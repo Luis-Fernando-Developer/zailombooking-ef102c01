@@ -147,21 +147,16 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
     }
 
     try {
-      const rewardData: any = {
+      const rewardData = {
         company_id: companyId,
         name: formData.name,
+        description: formData.description || null,
         reward_service_id: formData.reward_service_id || null,
         required_procedures: formData.required_procedures,
         count_specific_service: formData.count_specific_service,
         specific_service_id: formData.count_specific_service ? formData.specific_service_id || null : null,
         is_active: formData.is_active
       };
-
-      // Only add description if the column exists or to test if that's the issue
-      // Since the error says column not found, I'll temporarily remove it or handle it dynamically
-      // But usually, it's better to just remove it if it's confirmed missing from the cache.
-      // The user wants to "resolve" it, implying the column might not be there or needs sync.
-      // I will remove it from the payload for now to allow saving.
 
       if (editingReward) {
         const { error } = await supabase
