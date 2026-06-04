@@ -355,7 +355,7 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
       const combo = combos.find(c => c.id === selectedComboId);
       if (!combo) return null;
       const totalDuration = combo.service_combo_items.reduce(
-        (sum, item) => sum + (item.services?.duration_minutes || 0), 0
+        (sum, item) => sum + (item.services?.[0]?.duration_minutes || 0), 0
       );
       return {
         name: combo.name,
@@ -540,7 +540,7 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
                       <Label className="text-muted-foreground text-sm">Combos</Label>
                       {combos.map(combo => {
                         const totalDuration = combo.service_combo_items.reduce(
-                          (sum, item) => sum + (item.services?.duration_minutes || 0), 0
+                          (sum, item) => sum + (item.services?.[0]?.duration_minutes || 0), 0
                         );
                         return (
                           <div
