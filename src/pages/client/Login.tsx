@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookingLogo } from "@/components/BookingLogo";
-import { Lock, Mail } from "lucide-react";
+import { CompanyLogo } from "@/components/CompanyLogo";
+import { Lock, Mail, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
-export default function BusinessLogin() {
+// ...imports...
+
+export default function ClientLogin() {
+  const { slug } = useParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +24,7 @@ export default function BusinessLogin() {
     setIsLoading(true);
 
     try {
+      // Autentica o usuário no Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -32,43 +36,42 @@ export default function BusinessLogin() {
           description: error.message,
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
       if (data.user) {
-        // Verificar se o usuário é funcionário de alguma empresa
-        const { data: employee } = await supabase
-          .from('employees')
-          .select(`
-            *,
-            company:companies(*)
-          `)
+        // Busca o cliente vinculado ao usuário autenticado
+        const { data: client, error: clientError } = await supabase
+          .from('clients')
+          .select(`*`)
           .eq('user_id', data.user.id)
           .single();
 
-        if (employee) {
-          if (employee.company?.status === "pending_payment") {
-            toast({
-              title: "Pagamento pendente",
-              description: "Conclua o pagamento para liberar o acesso.",
-            });
-            await supabase.auth.signOut();
-            navigate(`/signup/aguardando/${employee.company.id}`);
-            return;
-          }
-
-          toast({
-            title: "Login realizado com sucesso!",
-            description: `Bem-vindo ao painel de ${employee.company.name}`,
-          });
-          navigate(`/${employee.company.slug}/admin/dashboard`);
-        } else {
+        if (clientError || !client) {
           toast({
             title: "Acesso negado",
-            description: "Usuário não está vinculado a nenhuma empresa.",
+            description: "Usuário não está cadastrado como cliente.",
             variant: "destructive",
           });
           await supabase.auth.signOut();
+          setIsLoading(false);
+          return;
+        }
+
+        toast({
+          title: "Login realizado com sucesso!",
+          description: `Bem-vindo(a), ${client.name}`,
+        });
+
+        // Check if there's a returnTo parameter for booking flow
+        const searchParams = new URLSearchParams(window.location.search);
+        const returnTo = searchParams.get('returnTo');
+        
+        if (returnTo === 'agendar') {
+          navigate(`/${slug}/agendar?restore=true`);
+        } else {
+          navigate(`/${slug}/agendamentos`);
         }
       }
     } catch (error) {
@@ -94,11 +97,11 @@ export default function BusinessLogin() {
       <Card className="w-full max-w-md card-glow bg-card/50 backdrop-blur-sm border-primary/30 relative z-10">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-6">
-            <BookingLogo />
+            <CompanyLogo companySlug={slug || ''} />
           </div>
-          <CardTitle className="text-2xl text-gradient">Login Empresarial</CardTitle>
+          <CardTitle className="text-2xl text-gradient">Acesse sua conta</CardTitle>
           <CardDescription>
-            Acesse o painel administrativo da sua empresa
+            Veja e gerencie suas agendamentos aqui!
           </CardDescription>
         </CardHeader>
         
@@ -143,16 +146,22 @@ export default function BusinessLogin() {
               disabled={isLoading}
               size="lg"
             >
-              {isLoading ? "Entrando..." : "Entrar no Painel"}
+              {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-primary/20 text-center">
             <p className="text-sm text-muted-foreground">
               Não tem uma conta?{" "}
-              <a href="/signup" className="text-primary hover:text-primary-glow transition-colors">
-                Cadastre sua empresa
-              </a>
+              <Link to={`/${slug}/cadastro`} className="text-primary hover:text-primary-glow transition-colors">
+                Cadastre-se
+              </Link>
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              <Link to={`/${slug}`} className="text-primary hover:text-primary-glow transition-colors inline-flex items-center gap-1">
+                <ArrowLeft className="w-4 h-4" />
+                Voltar à página inicial
+              </Link>
             </p>
           </div>
         </CardContent>

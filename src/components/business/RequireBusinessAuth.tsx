@@ -20,6 +20,7 @@ export const RequireBusinessAuth = ({ children }: RequireBusinessAuthProps) => {
   }
 
   if (!user) {
+    console.log('[RequireBusinessAuth] No user, redirecting to login');
     return <Navigate to={slug ? `/${slug}/admin/login` : '/login'} replace />;
   }
 

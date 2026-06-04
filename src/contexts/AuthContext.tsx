@@ -32,15 +32,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log('[AuthContext] onAuthStateChange:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setLoading(false);
       }
     );
 
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      console.log('[AuthContext] getSession:', existingSession ? 'found' : 'none');
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       setLoading(false);

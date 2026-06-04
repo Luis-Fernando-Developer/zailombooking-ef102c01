@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookingLogo } from "@/components/BookingLogo";
 import { Lock, Mail } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabaseClient";
 
-export default function BusinessLogin() {
+export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -21,61 +21,34 @@ export default function BusinessLogin() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data: signIn, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      if (error) {
-        toast({
-          title: "Erro no login",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
+      if (signInError || !signIn.user) {
+        throw new Error(signInError?.message || "Credenciais inválidas");
       }
 
-      if (data.user) {
-        // Verificar se o usuário é funcionário de alguma empresa
-        const { data: employee } = await supabase
-          .from('employees')
-          .select(`
-            *,
-            company:companies(*)
-          `)
-          .eq('user_id', data.user.id)
-          .single();
+      // Verifica se este usuário está cadastrado como super admin
+      const { data: isAdmin, error: rpcError } = await supabase.rpc("is_super_admin", {
+        _uid: signIn.user.id,
+      });
+      if (rpcError) throw rpcError;
 
-        if (employee) {
-          if (employee.company?.status === "pending_payment") {
-            toast({
-              title: "Pagamento pendente",
-              description: "Conclua o pagamento para liberar o acesso.",
-            });
-            await supabase.auth.signOut();
-            navigate(`/signup/aguardando/${employee.company.id}`);
-            return;
-          }
-
-          toast({
-            title: "Login realizado com sucesso!",
-            description: `Bem-vindo ao painel de ${employee.company.name}`,
-          });
-          navigate(`/${employee.company.slug}/admin/dashboard`);
-        } else {
-          toast({
-            title: "Acesso negado",
-            description: "Usuário não está vinculado a nenhuma empresa.",
-            variant: "destructive",
-          });
-          await supabase.auth.signOut();
-        }
+      if (!isAdmin) {
+        await supabase.auth.signOut();
+        throw new Error("Este usuário não tem permissão de Super Admin.");
       }
-    } catch (error) {
-      console.error('Error signing in:', error);
+
+      toast({
+        title: "Login realizado com sucesso!",
+        description: "Redirecionando para o painel Super Admin...",
+      });
+      navigate("/super-admin/painel");
+    } catch (err: any) {
       toast({
         title: "Erro no login",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
+        description: err.message || "Email ou senha incorretos.",
         variant: "destructive",
       });
     } finally {
@@ -85,7 +58,6 @@ export default function BusinessLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
-      {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-72 h-72 bg-neon-violet/10 rounded-full blur-3xl animate-pulse-glow"></div>
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-neon-pink/10 rounded-full blur-3xl animate-float"></div>
@@ -96,12 +68,10 @@ export default function BusinessLogin() {
           <div className="flex justify-center mb-6">
             <BookingLogo />
           </div>
-          <CardTitle className="text-2xl text-gradient">Login Empresarial</CardTitle>
-          <CardDescription>
-            Acesse o painel administrativo da sua empresa
-          </CardDescription>
+          <CardTitle className="text-2xl text-gradient">Super Admin</CardTitle>
+          <CardDescription>Acesse o painel de administração do sistema</CardDescription>
         </CardHeader>
-        
+
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
@@ -111,7 +81,7 @@ export default function BusinessLogin() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu@email.com"
+                  placeholder="admin@bookingfy.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
@@ -136,25 +106,10 @@ export default function BusinessLogin() {
               </div>
             </div>
 
-            <Button 
-              type="submit" 
-              variant="neon" 
-              className="w-full" 
-              disabled={isLoading}
-              size="lg"
-            >
-              {isLoading ? "Entrando..." : "Entrar no Painel"}
+            <Button type="submit" variant="neon" className="w-full" disabled={isLoading} size="lg">
+              {isLoading ? "Entrando..." : "Entrar no Sistema"}
             </Button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-primary/20 text-center">
-            <p className="text-sm text-muted-foreground">
-              Não tem uma conta?{" "}
-              <a href="/signup" className="text-primary hover:text-primary-glow transition-colors">
-                Cadastre sua empresa
-              </a>
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
