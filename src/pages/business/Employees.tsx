@@ -306,7 +306,7 @@ export default function BusinessEmployees() {
             role: editingEmployee.role || "employee",
             employee_type: editingEmployee.employee_type || "fixo",
             is_active: editingEmployee.is_active ?? true
-          } : null}
+          } as any : null}
           companyId={company.id}
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
