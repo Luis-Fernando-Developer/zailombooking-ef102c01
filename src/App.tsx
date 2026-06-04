@@ -45,8 +45,8 @@ const App = () => (
             <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/signup/aguardando/:companyId" element={<SignupPending />} />
-            <Route path="/login" element={<BusinessLogin title="Login Empresarial" />} />
-            <Route path="/:slug/admin/login" element={<BusinessLogin title="Login Admin" />} />
+            <Route path="/login" element={<BusinessLogin />} />
+            <Route path="/:slug/admin/login" element={<BusinessLogin />} />
             <Route path="/super-admin/login" element={<AdminLogin title="Login Super Admin" />} />
             <Route path="/super-admin/painel" element={<RequireSuperAdmin><SuperAdminDashboard title="Painel Super Admin" /></RequireSuperAdmin>} />
             <Route path="/super-admin/add-company" element={<RequireSuperAdmin><CreateCompany title="Criar Empresa" /></RequireSuperAdmin>} />
