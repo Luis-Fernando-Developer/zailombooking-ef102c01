@@ -35,20 +35,31 @@ export function Pricing() {
 
   const fetchPlans = async () => {
     try {
+      // Dummy data as fallback
+      const dummyPlans = [
+        { id: '1', name: 'Prata', monthly_price: 49, quarterly_price: 132, annual_price: 470, is_active: true, features: ['100 agendamentos', 'Suporte básico', 'Relatórios simples'] },
+        { id: '2', name: 'Ouro', monthly_price: 99, quarterly_price: 267, annual_price: 950, is_active: true, features: ['Agendamentos ilimitados', 'Suporte prioratário', 'Relatórios avançados', 'Multiusuário'] },
+        { id: '3', name: 'Diamante', monthly_price: 199, quarterly_price: 537, annual_price: 1910, is_active: true, features: ['Tudo do Ouro', 'Customização total', 'API de integração', 'Account manager'] },
+        { id: '4', name: 'Ruby', monthly_price: 0, quarterly_price: 0, annual_price: 0, is_active: true, features: ['Sob medida', 'SLA garantido', 'Instalação on-premise'] },
+      ];
+
       const { data, error } = await supabase
         .from('subscription_plans')
         .select('*')
         .eq('is_active', true)
         .order('monthly_price');
 
-      if (error) throw error;
+      if (error) {
+        setPlans(dummyPlans);
+        return;
+      }
       
       const parsedPlans = (data || []).map(plan => ({
         ...plan,
         features: Array.isArray(plan.features) ? plan.features : JSON.parse(plan.features as string || '[]')
       }));
       
-      setPlans(parsedPlans);
+      setPlans(parsedPlans.length > 0 ? parsedPlans : dummyPlans);
     } catch (error) {
       console.error('Error fetching plans:', error);
     } finally {
