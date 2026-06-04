@@ -16,7 +16,7 @@ interface Employee {
   id: string;
   name: string;
   email: string | null;
-  phone?: string | null;
+  phone?: string | null | undefined;
   role: string | null;
   is_active: boolean | null;
   created_at: string;

@@ -24,7 +24,10 @@ interface Combo {
   id: string;
   name: string;
   price: number;
-  service_combo_items: { service_id: string; services: { duration_minutes: number } }[];
+  service_combo_items: { 
+    service_id: string; 
+    services: { duration_minutes: number }[]; 
+  }[];
 }
 
 interface Employee {
@@ -121,7 +124,7 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
       ]);
 
       setServices(servicesRes.data || []);
-      setCombos(combosRes.data || []);
+      setCombos((combosRes.data as any) || []);
     } catch (error) {
       console.error('Error fetching services/combos:', error);
     } finally {

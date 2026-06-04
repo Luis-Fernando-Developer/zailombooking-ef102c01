@@ -64,9 +64,9 @@ export function ClientSidebar({  companySlug, companyName, companyId, userRole, 
     if (!permissions) {
       switch (item.title) {
         case "Colaboradores":
-          return ['owner', 'manager', 'supervisor'].includes(userRole);
+          return ['owner', 'manager', 'supervisor'].includes(userRole || '');
         case "Configurações":
-          return ['owner', 'manager'].includes(userRole);
+          return ['owner', 'manager'].includes(userRole || '');
         default:
           return true;
       }

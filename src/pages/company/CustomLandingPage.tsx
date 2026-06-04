@@ -237,13 +237,15 @@ export default function CustomLandingPage() {
 
   const nextBanner = () => {
     if (customization?.hero_banner_urls && customization.hero_banner_urls.length > 1) {
-      setBannerIndex((prevIndex) => (prevIndex + 1) % customization.hero_banner_urls.length);
+      const urls = customization.hero_banner_urls;
+      setBannerIndex((prevIndex) => (prevIndex + 1) % urls.length);
     }
   };
 
   const prevBanner = () => {
     if (customization?.hero_banner_urls && customization.hero_banner_urls.length > 1) {
-      setBannerIndex((prevIndex) => (prevIndex - 1 + customization.hero_banner_urls.length) % customization.hero_banner_urls.length);
+      const urls = customization.hero_banner_urls;
+      setBannerIndex((prevIndex) => (prevIndex - 1 + urls.length) % urls.length);
     }
   };
 
