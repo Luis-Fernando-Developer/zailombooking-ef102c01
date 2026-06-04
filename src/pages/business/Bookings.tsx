@@ -216,7 +216,7 @@ export default function BusinessBookings() {
     try {
       const { error } = await supabase
         .from('bookings')
-        .update({ status: status })
+        .update({ booking_status: status })
         .eq('id', bookingId);
 
       if (error) throw error;
