@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export default function ChatbotTalkMap() {
   const [builderBaseUrl, setBuilderBaseUrl] = useState<string>("https://talkbuilder.lovable.app");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { guard } = usePlanLimits(companyId || undefined);
 
   // subpath atual depois de /admin/chatbot/talkmap/  (ex: "teste02/workspace/bot/123")
   const subpath = (splat ?? "").replace(/^\/+/, "");
@@ -45,6 +47,14 @@ export default function ChatbotTalkMap() {
         if (!company) throw new Error("Empresa não encontrada");
         setCompanyId(company.id);
         setCompanyName(company.name);
+
+        // Verificar limite do plano antes de prosseguir
+        const isAllowed = await guard("chatbots");
+        if (!isAllowed) {
+          setError("Limite de chatbots do seu plano atingido.");
+          setLoading(false);
+          return;
+        }
 
         const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chatbot-integration/sign-embed-token`;
         const res = await fetch(url, {
