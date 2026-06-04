@@ -40,16 +40,7 @@ export function BusinessLayout({ children, companySlug, companyName, companyId, 
         />
         
         <main className="flex-1 flex flex-col w-full min-h-0">
-          {/* Main Content */}
           <div className="flex-1 w-full">
-            <div className="px-4 pt-4">
-              <PlanOverageBanner companyId={companyId} />
-            </div>
-            {children}
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
             <div className="px-4 pt-4">
               <PlanOverageBanner companyId={companyId} />
             </div>
