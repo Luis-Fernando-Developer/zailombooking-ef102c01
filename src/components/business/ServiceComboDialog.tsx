@@ -338,8 +338,8 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
                   <Input
                     id="price"
                     type="number"
-                    step="5"
-                    min='50'
+                    step="0.01"
+                    min="0"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
                     required
