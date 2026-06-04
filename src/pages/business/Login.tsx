@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ export default function BusinessLogin() {
       }
 
       if (data.user) {
+        // Verificar se o usuário é funcionário de alguma empresa
         const { data: employee } = await supabase
           .from('employees')
           .select(`
@@ -46,24 +47,20 @@ export default function BusinessLogin() {
           .single();
 
         if (employee) {
-          // @ts-ignore
           if (employee.company?.status === "pending_payment") {
             toast({
               title: "Pagamento pendente",
               description: "Conclua o pagamento para liberar o acesso.",
             });
             await supabase.auth.signOut();
-            // @ts-ignore
             navigate(`/signup/aguardando/${employee.company.id}`);
             return;
           }
 
           toast({
             title: "Login realizado com sucesso!",
-            // @ts-ignore
             description: `Bem-vindo ao painel de ${employee.company.name}`,
           });
-          // @ts-ignore
           navigate(`/${employee.company.slug}/admin/dashboard`);
         } else {
           toast({
@@ -88,6 +85,7 @@ export default function BusinessLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
+      {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-72 h-72 bg-neon-violet/10 rounded-full blur-3xl animate-pulse-glow"></div>
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-neon-pink/10 rounded-full blur-3xl animate-float"></div>
