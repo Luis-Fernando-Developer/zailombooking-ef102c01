@@ -162,51 +162,53 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   });
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-primary/20 h-screen sticky top-0">
-      <SidebarContent className="bg-card/30 backdrop-blur-sm border-r border-primary/20 min-h-0 overflow-hidden">
+    <Sidebar collapsible="icon" className="border-r border-primary/20 h-screen sticky top-0 transition-all duration-500 ease-in-out">
+      <SidebarContent className="bg-card/30 backdrop-blur-sm border-r border-primary/20 min-h-0 overflow-hidden transition-all duration-500">
         {/* Header */}
-        <div className="p-4 border-b border-primary/20">
+        <div className="p-4 border-b border-primary/20 flex flex-col items-center justify-center min-h-[100px]">
           {state !== "collapsed" ? (
-            <div>
+            <div className="w-full transition-all duration-500 opacity-100 scale-100">
               <BookingLogo showText={true} className="mb-2" />
               <h2 className="font-semibold text-gradient truncate">{companyName}</h2>
               <p className="text-sm text-muted-foreground capitalize">{userRole}</p>
             </div>
           ) : (
-            <div className="flex justify-center">
+            <div className="flex justify-center transition-all duration-500 opacity-100 scale-110">
               <BookingLogo showText={false} />
             </div>
           )}
         </div>
 
         {/* Navigation */}
-        <div className="overflow-y-auto h-full">
+        <div className="overflow-y-auto h-full scrollbar-none">
 
           <SidebarGroup>
-            <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : ""}>
+            <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : "transition-opacity duration-500"}>
               Menu Principal
             </SidebarGroupLabel>
             <SidebarGroupContent>
               
-              <SidebarMenu>
+              <SidebarMenu className="flex flex-col items-center">
                 {filteredMenuItems.map((item) => {
                   if (item.children && item.children.length > 0) {
                     const childActive = item.children.some((c) => isActive(c.url));
                     const collapsed = state === "collapsed";
                     return (
-                      <Collapsible key={item.title} defaultOpen={childActive}>
-                        <SidebarMenuItem>
+                      <Collapsible key={item.title} defaultOpen={childActive} className="w-full">
+                        <SidebarMenuItem className="flex justify-center w-full">
                           <CollapsibleTrigger asChild>
                             <SidebarMenuButton
-                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors w-full ${
+                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
+                                collapsed ? "justify-center w-10 h-10 p-0" : "w-full"
+                              } ${
                                 childActive ? "bg-primary/20 text-primary" : "hover:bg-primary/10 hover:text-primary"
                               }`}
                             >
-                              <item.icon className="w-5 h-5 flex-shrink-0" />
+                              <item.icon className={`w-5 h-5 flex-shrink-0 ${collapsed ? "m-0" : ""}`} />
                               {!collapsed && (
                                 <>
-                                  <span className="flex-1 text-left">{item.title}</span>
-                                  <ChevronDown className="w-4 h-4 transition-transform data-[state=open]:rotate-180" />
+                                  <span className="flex-1 text-left transition-opacity duration-500">{item.title}</span>
+                                  <ChevronDown className="w-4 h-4 transition-transform duration-300 data-[state=open]:rotate-180" />
                                 </>
                               )}
                             </SidebarMenuButton>
@@ -234,16 +236,18 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
                     );
                   }
                   return (
-                    <SidebarMenuItem key={item.title}>
+                    <SidebarMenuItem key={item.title} className="flex justify-center w-full">
                       <SidebarMenuButton asChild>
                         <NavLink 
                           to={`${basePath}${item.url}`} 
                           className={({ isActive }) => 
-                            `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${getNavCls(isActive)}`
+                            `flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
+                              state === "collapsed" ? "justify-center w-10 h-10 p-0" : "w-full"
+                            } ${getNavCls(isActive)}`
                           }
                         >
-                          <item.icon className="w-5 h-5 flex-shrink-0" />
-                          {state !== "collapsed" && <span>{item.title}</span>}
+                          <item.icon className={`w-5 h-5 flex-shrink-0 ${state === "collapsed" ? "m-0" : ""}`} />
+                          {state !== "collapsed" && <span className="transition-opacity duration-500">{item.title}</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -255,14 +259,16 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
 
           {/* User Actions */}
           <div className="mt-auto p-4 border-t border-primary/20">
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col items-center">
               <SidebarMenuButton asChild>
                 <NavLink 
                   to={`${basePath}/admin/perfil`}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-primary/10"
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
+                    state === "collapsed" ? "justify-center w-10 h-10 p-0" : "w-full"
+                  } hover:bg-primary/10`}
                 >
-                  <User className="w-5 h-5" />
-                  {state !== "collapsed" && <span>Meu Perfil</span>}
+                  <User className={`w-5 h-5 ${state === "collapsed" ? "m-0" : ""}`} />
+                  {state !== "collapsed" && <span className="transition-opacity duration-500">Meu Perfil</span>}
                 </NavLink>
               </SidebarMenuButton>
               
@@ -270,10 +276,12 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="w-full justify-start gap-3 px-3 hover:bg-destructive/10 hover:text-destructive"
+                className={`flex items-center gap-3 px-3 transition-all duration-300 ${
+                  state === "collapsed" ? "justify-center w-10 h-10 p-0" : "w-full justify-start"
+                } hover:bg-destructive/10 hover:text-destructive`}
               >
-                <LogOut className="w-5 h-5" />
-                {state !== "collapsed" && <span>Sair</span>}
+                <LogOut className={`w-5 h-5 ${state === "collapsed" ? "m-0" : ""}`} />
+                {state !== "collapsed" && <span className="transition-opacity duration-500">Sair</span>}
               </Button>
             </div>
           </div>
