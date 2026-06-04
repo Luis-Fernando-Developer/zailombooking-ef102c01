@@ -13,7 +13,6 @@ export function RequireSuperAdmin({ children }: { children: ReactNode }) {
         if (!cancelled) setStatus("denied");
         return;
       }
-      // @ts-ignore
       const { data: isAdmin } = await supabase.rpc("is_super_admin", { _uid: session.user.id });
       if (!cancelled) setStatus(isAdmin ? "ok" : "denied");
     })();
