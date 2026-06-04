@@ -316,21 +316,21 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
 
       {/* Reward Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg bg-card">
+        <DialogContent className=\"max-w-lg bg-card max-h-[90vh] overflow-y-auto overflow-x-hidden\">
           <DialogHeader>
-            <DialogTitle>{editingReward ? "Editar Brinde" : "Novo Brinde"}</DialogTitle>
+            <DialogTitle>{editingReward ? \"Editar Brinde\" : \"Novo Brinde\"}</DialogTitle>
             <DialogDescription>
               Configure as regras do programa de brindes
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+          <form onSubmit={handleSubmit} className=\"space-y-4 pb-4\">
+            <div className=\"space-y-2\">
               <Label>Nome do Brinde *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: Corte grátis após 10 procedimentos"
+                placeholder=\"Ex: Corte grátis após 10 procedimentos\"
               />
             </div>
 
