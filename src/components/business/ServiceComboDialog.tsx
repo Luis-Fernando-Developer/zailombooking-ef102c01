@@ -296,10 +296,15 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
                   onClick={() => toggleService(service.id)}
                 >
                   <div className="flex items-center gap-3">
-                    <Checkbox
-                      checked={selectedServices.includes(service.id)}
-                      onCheckedChange={() => {}}
-                    />
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                      selectedServices.includes(service.id) 
+                        ? 'bg-primary border-primary' 
+                        : 'border-muted-foreground'
+                    }`}>
+                      {selectedServices.includes(service.id) && (
+                        <div className="w-2 h-2 bg-background rounded-sm" />
+                      )}
+                    </div>
                     <div>
                       <p className="font-medium">{service.name}</p>
                       <p className="text-sm text-muted-foreground">
