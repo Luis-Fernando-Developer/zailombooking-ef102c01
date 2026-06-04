@@ -27,7 +27,7 @@ export function BusinessLayout({ children, companySlug, companyName, companyId, 
         currentUser={currentUser}
       />
       
-      <div className="flex flex-col flex-1 min-h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
+      <div className="flex flex-col flex-1 min-h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-x-hidden">
         <header className="h-[70px] w-full flex items-center border-b border-primary/20 bg-card/80 backdrop-blur-2xl px-4 sticky top-0 z-[60]">
           <SidebarTrigger className="text-foreground hover:bg-primary/10" />
           <div className="ml-4 flex flex-col -space-y-2 py-3">
