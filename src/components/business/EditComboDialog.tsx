@@ -29,7 +29,7 @@ interface Combo {
   id: string;
   name: string;
   description?: string;
-  combo_price: number;
+  price: number;
   original_total_price?: number;
   total_duration_minutes?: number;
   is_active?: boolean;
@@ -49,7 +49,7 @@ export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDi
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    combo_price: 0,
+    price: 0,
     is_active: true,
   });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -59,7 +59,7 @@ export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDi
       setFormData({
         name: combo.name,
         description: combo.description || "",
-        combo_price: combo.combo_price,
+        price: combo.price,
         is_active: combo.is_active ?? true,
       });
       setSelectedServices(combo.items?.map((it) => it.service_id) || []);
@@ -104,7 +104,7 @@ export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDi
         .update({
           name: formData.name,
           description: formData.description || null,
-          combo_price: formData.combo_price,
+          price: formData.price,
           original_total_price: totalPrice,
           total_duration_minutes: totalDuration,
           is_active: formData.is_active,
