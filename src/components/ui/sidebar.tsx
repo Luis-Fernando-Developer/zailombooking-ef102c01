@@ -222,7 +222,7 @@ const Sidebar = React.forwardRef<
         {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
-            "relative w-(--sidebar-width) bg-transparent transition-all duration-500 ease-in-out",
+            "relative w-(--sidebar-width) bg-transparent transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
@@ -232,7 +232,7 @@ const Sidebar = React.forwardRef<
         />
         <div
           className={cn(
-            "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-all duration-500 ease-in-out md:flex",
+            "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] md:flex",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
