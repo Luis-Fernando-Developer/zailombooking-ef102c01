@@ -3,7 +3,7 @@ import SuperAdminDashboard from "./pages/Placeholder";
 import CreateCompany from "./pages/Placeholder";
 import SignUp from "./pages/SignUp";
 import SignupPending from "./pages/SignupPending";
-import BusinessLogin from "./pages/Placeholder";
+import BusinessLogin from "./pages/business/Login";
 import CompanyLandingPage from "./pages/Placeholder";
 import BusinessDashboard from "./pages/Placeholder";
 import BusinessBookings from "./pages/Placeholder";
