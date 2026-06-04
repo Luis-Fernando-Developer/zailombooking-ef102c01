@@ -41,7 +41,7 @@ interface Combo {
   id: string;
   name: string;
   description?: string;
-  combo_price: number;
+  price: number;
   original_total_price?: number;
   total_duration_minutes?: number;
   is_active?: boolean;
@@ -326,7 +326,7 @@ export default function BusinessServices() {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Preço do combo:</span>
-                          <span className="font-semibold">{formatPrice(combo.combo_price)}</span>
+                          <span className="font-semibold">{formatPrice(combo.price)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Preço original:</span>
