@@ -162,7 +162,7 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   });
 
   return (
-    <Sidebar className={state === "collapsed" ? "w-14" : "w-64"} style={{ top: "70px", height: "calc(100vh - 70px)" }}>
+    <Sidebar collapsible="icon" className="border-r border-primary/20 h-screen sticky top-0">
       <SidebarContent className="bg-card/30 backdrop-blur-sm border-r border-primary/20 min-h-0 overflow-hidden">
         {/* Header */}
         <div className="p-4 border-b border-primary/20">
