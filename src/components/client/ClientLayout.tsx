@@ -16,7 +16,7 @@ interface Booking {
   booking_date: string;
   start_time: string;
   end_time: string;
-  status: string;
+  booking_status: string;
   notes?: string;
   service_id: string;
   employee_id?: string;
@@ -150,7 +150,7 @@ export default function ClientLayout() {
     try {
       const { error } = await supabase
         .from('bookings')
-        .update({ status: 'cancelled' })
+        .update({ booking_status: 'cancelled' })
         .eq('id', bookingId);
 
       if (error) throw error;
@@ -158,7 +158,7 @@ export default function ClientLayout() {
       setBookings(prev => 
         prev.map(booking => 
           booking.id === bookingId 
-            ? { ...booking, status: 'cancelled' }
+            ? { ...booking, booking_status: 'cancelled' }
             : booking
         )
       );
@@ -190,7 +190,7 @@ export default function ClientLayout() {
 
   const canModifyBooking = (booking: Booking) => {
     // Only pending or confirmed can be modified
-    if (booking.status !== 'pending' && booking.status !== 'confirmed') {
+    if (booking.booking_status !== 'pending' && booking.booking_status !== 'confirmed') {
       return false;
     }
     
@@ -297,8 +297,8 @@ export default function ClientLayout() {
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-2">
                                 <h3 className="font-semibold text-lg">{booking.service?.name}</h3>
-                                <Badge variant={statusLabels[booking.status]?.variant || "outline"}>
-                                  {statusLabels[booking.status]?.label || booking.status}
+                                <Badge variant={statusLabels[booking.booking_status]?.variant || "outline"}>
+                                  {statusLabels[booking.booking_status]?.label || booking.booking_status}
                                 </Badge>
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground mb-3">

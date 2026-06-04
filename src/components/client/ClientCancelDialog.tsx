@@ -29,7 +29,7 @@ export function ClientCancelDialog({
       // Use 'status' column as per database schema
       const { error } = await supabase
         .from('bookings')
-        .update({ status: 'cancelled' })
+        .update({ booking_status: 'cancelled' })
         .eq('id', booking.id);
 
       if (error) throw error;

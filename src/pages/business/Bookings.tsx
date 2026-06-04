@@ -188,7 +188,7 @@ export default function BusinessBookings() {
     let filtered = [...bookings];
 
     if (filters.status) {
-      filtered = filtered.filter(booking => booking.status === filters.status);
+      filtered = filtered.filter(booking => booking.booking_status === filters.status);
     }
 
     if (filters.payment) {
