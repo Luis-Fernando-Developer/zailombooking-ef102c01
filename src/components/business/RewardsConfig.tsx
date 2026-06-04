@@ -316,7 +316,7 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
 
       {/* Reward Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg bg-card">
+        <DialogContent className="max-w-lg bg-card max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingReward ? "Editar Brinde" : "Novo Brinde"}</DialogTitle>
             <DialogDescription>
@@ -324,7 +324,7 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 pb-4">
             <div className="space-y-2">
               <Label>Nome do Brinde *</Label>
               <Input
@@ -417,7 +417,7 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
               />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancelar
               </Button>
