@@ -187,6 +187,8 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
           name: formData.name,
           description: formData.description,
           price: formData.price,
+          original_total_price: totalPrice,
+          total_duration_minutes: totalDuration,
           is_active: true
         }])
         .select()
