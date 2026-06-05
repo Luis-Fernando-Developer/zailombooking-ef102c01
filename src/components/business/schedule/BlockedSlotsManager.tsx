@@ -103,13 +103,13 @@ export function BlockedSlotsManager({ companyId }: BlockedSlotsManagerProps) {
     }
 
     try {
-      // Build datetime strings with timezone safety
+      // Build datetime strings without timezone offset to be treated as local time by the database
       const startDatetime = newSlot.all_day 
-        ? `${newSlot.blocked_date}T00:00:00` 
-        : `${newSlot.blocked_date}T${newSlot.start_time}:00`;
+        ? `${newSlot.blocked_date} 00:00:00` 
+        : `${newSlot.blocked_date} ${newSlot.start_time}:00`;
       const endDatetime = newSlot.all_day 
-        ? `${newSlot.blocked_date}T23:59:59` 
-        : `${newSlot.blocked_date}T${newSlot.end_time}:00`;
+        ? `${newSlot.blocked_date} 23:59:59` 
+        : `${newSlot.blocked_date} ${newSlot.end_time}:00`;
 
       const { error } = await supabase
         .from('blocked_slots')
