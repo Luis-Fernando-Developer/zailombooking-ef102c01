@@ -14,6 +14,8 @@ serve(async (req) => {
   }
 
 
+  console.log(`Method: ${req.method}, URL: ${req.url}`)
+  
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
