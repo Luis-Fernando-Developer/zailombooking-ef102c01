@@ -471,7 +471,7 @@ export default function ClientBooking() {
                   employee_id: selectedEmployee.id,
                   date: dateStr
                 }
-              });
+              } as any);
 
               if (error) { allHaveSlot = false; break; }
               if (!((data.slots && data.slots.length > 0) || (data.availability && data.availability.length > 0))) {
@@ -490,7 +490,7 @@ export default function ClientBooking() {
               employee_id: selectedEmployee.id,
               date: dateStr
             }
-          });
+          } as any);
           
           if (!error) {
             // Check both slots (flat array) and availability (grouped by employee)
