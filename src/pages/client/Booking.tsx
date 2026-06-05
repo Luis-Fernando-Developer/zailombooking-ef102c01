@@ -464,11 +464,11 @@ export default function ClientBooking() {
             let allHaveSlot = true;
             for (const sId of serviceIds) {
             const { data, error } = await supabase.functions.invoke('get-availability', {
-              body: {
-                company_id: company.id,
-                service_id: sId,
-                employee_id: selectedEmployee.id,
-                date: dateStr
+              headers: {
+                'X-Company-Id': company.id,
+                'X-Service-Id': sId,
+                'X-Employee-Id': selectedEmployee.id,
+                'X-Date': dateStr
               }
             });
 
@@ -482,11 +482,11 @@ export default function ClientBooking() {
           }
 
           const { data, error } = await supabase.functions.invoke('get-availability', {
-            body: {
-              company_id: company.id,
-              service_id: selectedService.id,
-              employee_id: selectedEmployee.id,
-              date: dateStr
+            headers: {
+              'X-Company-Id': company.id,
+              'X-Service-Id': selectedService.id,
+              'X-Employee-Id': selectedEmployee.id,
+              'X-Date': dateStr
             }
           });
           
@@ -540,11 +540,11 @@ export default function ClientBooking() {
         }
         
         const { data, error } = await supabase.functions.invoke('get-availability', {
-          body: {
-            company_id: company.id,
-            service_id: firstServiceId,
-            employee_id: selectedEmployee.id,
-            date: dateStr
+          headers: {
+            'X-Company-Id': company.id,
+            'X-Service-Id': firstServiceId,
+            'X-Employee-Id': selectedEmployee.id,
+            'X-Date': dateStr
           }
         });
 
@@ -564,11 +564,11 @@ export default function ClientBooking() {
       }
       
       const { data, error } = await supabase.functions.invoke('get-availability', {
-        body: {
-          company_id: company.id,
-          service_id: selectedService.id,
-          employee_id: selectedEmployee.id,
-          date: dateStr
+        headers: {
+          'X-Company-Id': company.id,
+          'X-Service-Id': selectedService.id,
+          'X-Employee-Id': selectedEmployee.id,
+          'X-Date': dateStr
         }
       });
       
