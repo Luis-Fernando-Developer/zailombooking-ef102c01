@@ -27,11 +27,11 @@ serve(async (req) => {
     let employeeId = req.headers.get('x-employee-id')
     let date = req.headers.get('x-date')
 
+    const body = await req.json().catch(() => ({}))
     if (!companyId || !serviceId || !employeeId || !date) {
-      const body = await req.json().catch(() => ({}))
-      companyId = companyId || body.company_id
-      serviceId = serviceId || body.service_id
-      employeeId = employeeId || body.employee_id
+      companyId = companyId || body.company_id || body.companyId
+      serviceId = serviceId || body.service_id || body.serviceId
+      employeeId = employeeId || body.employee_id || body.employeeId
       date = date || body.date
     }
 
