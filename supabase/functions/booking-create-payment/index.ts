@@ -50,7 +50,7 @@ serve(async (req) => {
 
     // 3. Create payment in Asaas
     if (settings.own_gateway_provider === 'asaas') {
-      const isSandbox = decryptedKey.startsWith('$aact_') === false
+      const isSandbox = !decryptedKey.startsWith('$aact_')
       const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
       
       console.log(`Using Asaas ${isSandbox ? 'Sandbox' : 'Production'} environment`)
