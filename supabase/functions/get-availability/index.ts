@@ -162,7 +162,14 @@ serve(async (req) => {
         
         // A slot overlaps with break if:
         // (slotStart < breakEnd) AND (slotEnd > breakStart)
+        // Adjust logic: if slot start matches break start, it should be excluded
         if (slotStartTime < breakEnd && slotEndTime > breakStart) {
+          current = new Date(current.getTime() + 30 * 60000);
+          continue;
+        }
+        
+        // Specific fix for exact break start match if the above didn't catch it
+        if (slotStartTime === breakStart) {
           current = new Date(current.getTime() + 30 * 60000);
           continue;
         }
