@@ -1,9 +1,9 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-company-id, x-service-id, x-employee-id, x-date',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
@@ -162,7 +162,14 @@ serve(async (req) => {
         
         // A slot overlaps with break if:
         // (slotStart < breakEnd) AND (slotEnd > breakStart)
+        // Adjust logic: if slot start matches break start, it should be excluded
         if (slotStartTime < breakEnd && slotEndTime > breakStart) {
+          current = new Date(current.getTime() + 30 * 60000);
+          continue;
+        }
+        
+        // Specific fix for exact break start match if the above didn't catch it
+        if (slotStartTime === breakStart) {
           current = new Date(current.getTime() + 30 * 60000);
           continue;
         }
