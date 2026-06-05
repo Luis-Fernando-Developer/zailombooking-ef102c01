@@ -463,12 +463,17 @@ export default function ClientBooking() {
             const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
             let allHaveSlot = true;
             for (const sId of serviceIds) {
-              const response = await fetch(
-                `${getEdgeFunctionUrl('get-availability')}?company_id=${company.id}&service_id=${sId}&employee_id=${selectedEmployee.id}&date=${dateStr}`,
-                { method: 'GET', headers: { 'Content-Type': 'application/json' } }
-              );
-              if (!response.ok) { allHaveSlot = false; break; }
-              const data = await response.json();
+              const { data, error } = await supabase.functions.invoke('get-availability', {
+                method: 'GET',
+                queries: {
+                  company_id: company.id,
+                  service_id: sId,
+                  employee_id: selectedEmployee.id,
+                  date: dateStr
+                }
+              });
+
+              if (error) { allHaveSlot = false; break; }
               if (!((data.slots && data.slots.length > 0) || (data.availability && data.availability.length > 0))) {
                 allHaveSlot = false; break;
               }
@@ -476,18 +481,19 @@ export default function ClientBooking() {
             if (allHaveSlot) dates.push(date);
             continue;
           }
-          const response = await fetch(
-            `${getEdgeFunctionUrl('get-availability')}?company_id=${company.id}&service_id=${selectedService.id}&employee_id=${selectedEmployee.id}&date=${dateStr}`,
-            {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+
+          const { data, error } = await supabase.functions.invoke('get-availability', {
+            method: 'GET',
+            queries: {
+              company_id: company.id,
+              service_id: selectedService.id,
+              employee_id: selectedEmployee.id,
+              date: dateStr
             }
-          );
+          });
           
-          if (response.ok) {
-            const data = await response.json();
+          if (!error) {
+            // Check both slots (flat array) and availability (grouped by employee)
             // Check both slots (flat array) and availability (grouped by employee)
             if (data.slots && data.slots.length > 0) {
               dates.push(date);
