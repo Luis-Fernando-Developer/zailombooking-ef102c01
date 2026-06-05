@@ -671,32 +671,6 @@ export default function ClientBooking() {
         newBookingId = bookingData.id;
       }
 
-      const result = { booking: { id: newBookingId } };
-          var newBookingId = result?.booking?.id;
-        } catch (efError) {
-          throw new Error('Não foi possível realizar o agendamento. Verifique suas permissões.');
-        }
-      } else {
-        var newBookingId = bookingData.id;
-      }
-
-      
-      const response = await fetch(getEdgeFunctionUrl('create-booking'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.session?.access_token}`,
-        },
-        body: JSON.stringify(payloadBase),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao criar agendamento');
-      }
-
-      const result = await response.json();
-      const newBookingId = result?.booking?.id;
       const isComboFlow = isCombo;
 
       // Decide se abre o diálogo de pagamento
