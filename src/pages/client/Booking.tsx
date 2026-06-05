@@ -465,11 +465,11 @@ export default function ClientBooking() {
             for (const sId of serviceIds) {
             const { data, error } = await supabase.functions.invoke('get-availability', {
               method: 'GET',
-              queryParams: {
-                company_id: company.id,
-                service_id: sId,
-                employee_id: selectedEmployee.id,
-                date: dateStr
+              headers: {
+                'X-Query-Company-Id': company.id,
+                'X-Query-Service-Id': sId,
+                'X-Query-Employee-Id': selectedEmployee.id,
+                'X-Query-Date': dateStr
               }
             });
 
@@ -484,11 +484,11 @@ export default function ClientBooking() {
 
           const { data, error } = await supabase.functions.invoke('get-availability', {
             method: 'GET',
-            queryParams: {
-              company_id: company.id,
-              service_id: selectedService.id,
-              employee_id: selectedEmployee.id,
-              date: dateStr
+            headers: {
+              'X-Query-Company-Id': company.id,
+              'X-Query-Service-Id': selectedService.id,
+              'X-Query-Employee-Id': selectedEmployee.id,
+              'X-Query-Date': dateStr
             }
           });
           
@@ -568,11 +568,11 @@ export default function ClientBooking() {
       
       const { data, error } = await supabase.functions.invoke('get-availability', {
         method: 'GET',
-        queryParams: {
-          company_id: company.id,
-          service_id: selectedService.id,
-          employee_id: selectedEmployee.id,
-          date: dateStr
+        headers: {
+          'X-Query-Company-Id': company.id,
+          'X-Query-Service-Id': selectedService.id,
+          'X-Query-Employee-Id': selectedEmployee.id,
+          'X-Query-Date': dateStr
         }
       });
       
