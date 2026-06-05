@@ -618,28 +618,55 @@ export default function ClientBooking() {
         clientId = clientData.id;
       }
 
-      // Criar agendamento via edge function para contornar RLS
+      // Criar agendamento
       const { data: session } = await supabase.auth.getSession();
 
       const isCombo = selectedService.id?.startsWith?.('combo:');
       const payloadBase: any = {
         company_id: company.id,
         employee_id: selectedEmployee.id,
-        booking_date: format(selectedDate, 'yyyy-MM-dd'),
-        booking_time: selectedTime,
+        service_id: isCombo ? null : selectedService.id,
+        combo_id: isCombo ? selectedService.id.replace('combo:', '') : null,
+        start_time: `${format(selectedDate, 'yyyy-MM-dd')}T${selectedTime}:00`,
         duration_minutes: selectedService.duration_minutes,
         price: selectedService.price,
         notes: formData.notes,
-        client_id: clientId
+        client_id: clientId,
+        status: 'pending'
       };
 
-      if (isCombo) {
-        const comboId = selectedService.id.replace('combo:', '');
-        const combo = combos.find(c => c.id === comboId);
-        payloadBase.combo_id = comboId;
-        payloadBase.combo_items = (combo?.items || []).map((it: any) => it.service_id);
+      // Tenta inserir diretamente na tabela bookings
+      const { data: bookingData, error: bookingError } = await supabase
+        .from('bookings')
+        .insert([payloadBase])
+        .select()
+        .single();
+
+      if (bookingError) {
+        console.error("Booking insert error:", bookingError);
+        // Se falhar (ex: RLS), tenta via Edge Function se ela existir
+        try {
+          const response = await fetch(getEdgeFunctionUrl('create-booking'), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.session?.access_token}`,
+            },
+            body: JSON.stringify(payloadBase),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao criar agendamento');
+          }
+
+          const result = await response.json();
+          var newBookingId = result?.booking?.id;
+        } catch (efError) {
+          throw new Error('Não foi possível realizar o agendamento. Verifique suas permissões.');
+        }
       } else {
-        payloadBase.service_id = selectedService.id;
+        var newBookingId = bookingData.id;
       }
 
       
