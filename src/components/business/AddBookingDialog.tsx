@@ -242,8 +242,14 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
       });
 
       if (data && !data.error) {
-        setTimeSlots(data.slots || []);
+        const mappedSlots = (data.slots || []).map((s: string) => ({
+          time: s,
+          employee_id: selectedEmployeeId,
+          employee_name: employees.find(e => e.id === selectedEmployeeId)?.name || ''
+        }));
+        setTimeSlots(mappedSlots);
       }
+
 
     } catch (error) {
       console.error('Error fetching time slots:', error);
