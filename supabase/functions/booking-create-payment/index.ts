@@ -18,6 +18,7 @@ serve(async (req) => {
     )
 
     const { booking_id, method, payer } = await req.json()
+    console.log(`Processing payment for booking ${booking_id} via ${method}`)
 
     // 1. Get booking and company settings
     const { data: booking, error: bErr } = await supabaseClient
@@ -26,7 +27,7 @@ serve(async (req) => {
       .eq('id', booking_id)
       .single()
 
-    if (bErr || !booking) throw new Error('Booking not found')
+    if (bErr || !booking) throw new Error('Agendamento não encontrado')
 
     const { data: settings, error: sErr } = await supabaseClient
       .from('company_payment_settings')
@@ -34,39 +35,119 @@ serve(async (req) => {
       .eq('company_id', booking.company_id)
       .single()
 
-    if (sErr || !settings) throw new Error('Payment settings not found')
+    if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
 
-    // 2. Decrypt API Key (Assuming the RPC exists or you handle it here)
-    // For simplicity in this mock, we assume the key is saved or you use a secret
-    // In a real scenario, you'd decrypt it using the p_secret "asaas-own-gateway"
+    // 2. Decrypt API Key
     const { data: decryptedKey, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
       p_encrypted: settings.own_gateway_api_key_encrypted,
       p_secret: "asaas-own-gateway"
     })
 
-    if (decErr || !decryptedKey) throw new Error('Could not decrypt API Key')
+    if (decErr || !decryptedKey) {
+      console.error('Decryption error:', decErr)
+      throw new Error('Erro ao descriptografar chave de API')
+    }
 
     // 3. Create payment in Asaas
     if (settings.own_gateway_provider === 'asaas') {
-      const asaasPayload = {
-        customer: '', // You might need to create/find a customer first
-        billingType: method === 'PIX' ? 'PIX' : method,
+      const isSandbox = decryptedKey.startsWith('$aact_') === false
+      const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
+      
+      console.log(`Using Asaas ${isSandbox ? 'Sandbox' : 'Production'} environment`)
+
+      // A) First, find or create customer
+      const customerSearch = await fetch(`${baseUrl}/customers?email=${payer.email || ''}&cpfCnpj=${payer.cpf_cnpj || ''}`, {
+        headers: { 'access_token': decryptedKey }
+      })
+      const customerData = await customerSearch.json()
+      
+      let customerId = customerData.data?.[0]?.id
+
+      if (!customerId) {
+        const createCustomer = await fetch(`${baseUrl}/customers`, {
+          method: 'POST',
+          headers: {
+            'access_token': decryptedKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: payer.name || 'Cliente Agendamento',
+            email: payer.email,
+            phone: payer.phone,
+            cpfCnpj: payer.cpf_cnpj
+          })
+        })
+        const newCustomer = await createCustomer.json()
+        if (newCustomer.errors) throw new Error(`Erro ao criar cliente no Asaas: ${newCustomer.errors[0].description}`)
+        customerId = newCustomer.id
+      }
+
+      // B) Create payment
+      const billingType = method === 'PIX' ? 'PIX' : (method === 'CREDIT_CARD' ? 'CREDIT_CARD' : (method === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
+      
+      const paymentPayload = {
+        customer: customerId,
+        billingType: billingType,
         value: booking.total_price,
         dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         description: `Agendamento #${booking.id}`,
         externalReference: booking.id,
       }
 
-      // This is a simplified flow. Real world requires customer management.
-      // ... Asaas API calls ...
+      const createPayment = await fetch(`${baseUrl}/payments`, {
+        method: 'POST',
+        headers: {
+          'access_token': decryptedKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paymentPayload)
+      })
+
+      const paymentResult = await createPayment.json()
+      if (paymentResult.errors) throw new Error(`Erro ao gerar cobrança no Asaas: ${paymentResult.errors[0].description}`)
+
+      // C) If PIX, get QR Code
+      let pixInfo = {}
+      if (billingType === 'PIX') {
+        const getPix = await fetch(`${baseUrl}/payments/${paymentResult.id}/pixQrCode`, {
+          headers: { 'access_token': decryptedKey }
+        })
+        const pixData = await getPix.json()
+        pixInfo = {
+          pix_qr_code: pixData.encodedImage,
+          pix_payload: pixData.payload
+        }
+      }
+
+      const paymentData = {
+        id: paymentResult.id,
+        method: billingType,
+        invoice_url: paymentResult.invoiceUrl,
+        bank_slip_url: paymentResult.bankSlipUrl,
+        ...pixInfo
+      }
+
+      // Save payment info in database
+      await supabaseClient.from('booking_payments').insert({
+        booking_id: booking.id,
+        gateway_payment_id: paymentResult.id,
+        provider: 'asaas',
+        amount: booking.total_price,
+        status: 'pending',
+        method: billingType,
+        payment_data: paymentData
+      })
+
+      return new Response(JSON.stringify({ payment: paymentData }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
     }
 
-    return new Response(JSON.stringify({ message: 'Function scaffolded' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    })
+    throw new Error('Provedor de pagamento não suportado')
 
   } catch (error) {
+    console.error('Function error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
