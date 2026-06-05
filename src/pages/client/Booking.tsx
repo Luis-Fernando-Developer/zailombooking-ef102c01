@@ -552,37 +552,21 @@ export default function ClientBooking() {
 
       }
       
-      const { data, error } = await supabase.functions.invoke('get-availability', {
-        headers: {
-          'X-Company-Id': company.id,
-          'X-Service-Id': selectedService.id,
-          'X-Employee-Id': selectedEmployee.id,
-          'X-Date': dateStr
+      const data = await getAvailability({
+        data: {
+          company_id: company.id,
+          service_id: selectedService.id,
+          employee_id: selectedEmployee.id,
+          date: dateStr
         }
       });
       
-      if (error) {
-        throw error;
-      }
-      
-      // Use slots array directly (each slot has time, employee_id, employee_name)
-      if (data.slots && data.slots.length > 0) {
-        // Extract just the time strings from the slots
-        const times = data.slots.map((slot: { time: string }) => slot.time);
-        setAvailableTimes(times);
-      } else if (data.availability && data.availability.length > 0) {
-        // Fallback to availability format
-        const employeeAvailability = data.availability.find(
-          (a: any) => a.employee_id === selectedEmployee.id
-        );
-        if (employeeAvailability && employeeAvailability.slots) {
-          setAvailableTimes(employeeAvailability.slots);
-        } else {
-          setAvailableTimes([]);
-        }
+      if (data && !data.error && data.slots && data.slots.length > 0) {
+        setAvailableTimes(data.slots.map((slot: any) => typeof slot === 'string' ? slot : slot.time));
       } else {
         setAvailableTimes([]);
       }
+
     } catch (error) {
       console.error("Erro ao carregar horários:", error);
       toast({
