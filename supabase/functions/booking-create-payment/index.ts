@@ -189,8 +189,17 @@ serve(async (req) => {
     console.error('CRITICAL ERROR in Edge Function:', error.message)
     console.error('Stack:', error.stack)
     
+    // Tentamos extrair o corpo da resposta se for um erro de fetch
+    let detailedError = error.message
+    if (error.response) {
+      try {
+        const body = await error.response.text()
+        detailedError += ` | Response: ${body}`
+      } catch (_) {}
+    }
+
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: detailedError,
       stack: error.stack,
       timestamp: new Date().toISOString()
     }), {
