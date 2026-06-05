@@ -28,6 +28,7 @@ serve(async (req) => {
     let date = req.headers.get('x-date')
 
     const body = await req.json().catch(() => ({}))
+    console.log('Request body:', JSON.stringify(body))
     if (!companyId || !serviceId || !employeeId || !date) {
       companyId = companyId || body.company_id || body.companyId
       serviceId = serviceId || body.service_id || body.serviceId
