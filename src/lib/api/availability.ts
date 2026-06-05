@@ -18,6 +18,12 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
         service_id,
         employee_id,
         date
+      },
+      headers: {
+        'x-company-id': company_id,
+        'x-service-id': service_id,
+        'x-employee-id': employee_id,
+        'x-date': date
       }
     });
 
