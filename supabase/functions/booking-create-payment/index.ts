@@ -39,39 +39,43 @@ serve(async (req) => {
 
     // 2. Decrypt API Key
     let decryptedKey = ""
+    console.log('Attempting to get API Key for company:', booking.company_id)
+    console.log('Raw key from DB (masked):', settings.own_gateway_api_key_encrypted ? (settings.own_gateway_api_key_encrypted.substring(0, 10) + '...') : 'NULL')
     
-    // Check if the key is already plain (not encrypted)
-    if (settings.own_gateway_api_key_encrypted && !settings.own_gateway_api_key_encrypted.startsWith('pgp:')) {
-      console.log('API Key seems to be plain text, using as is')
+    // Simple check: if it looks like a real key (starts with $ or sandbox prefix), use it
+    if (settings.own_gateway_api_key_encrypted && 
+        (settings.own_gateway_api_key_encrypted.startsWith('$aact_') || 
+         settings.own_gateway_api_key_encrypted.startsWith('$') ||
+         settings.own_gateway_api_key_encrypted.length > 50)) {
+      console.log('API Key looks like plain text or already decrypted, using as is')
       decryptedKey = settings.own_gateway_api_key_encrypted
-    } else {
+    } else if (settings.own_gateway_api_key_encrypted) {
+      console.log('Attempting RPC decryption...')
       try {
         const { data: decrypted, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
           p_encrypted: settings.own_gateway_api_key_encrypted,
           p_secret: "asaas-own-gateway"
         })
 
-        if (decErr || !decrypted) {
-          console.error('Decryption RPC error:', decErr)
-          // Fallback: try to use the raw value if decryption fails (might not be encrypted or RPC failed)
-          if (settings.own_gateway_api_key_encrypted) {
-             console.log('RPC decryption failed, using raw value as fallback')
-             decryptedKey = settings.own_gateway_api_key_encrypted
-          } else {
-             throw new Error('Erro ao obter chave de API: chave ausente')
-          }
+        if (decErr) {
+          console.error('RPC decryption error:', decErr)
+          // Fallback
+          decryptedKey = settings.own_gateway_api_key_encrypted
+        } else if (!decrypted) {
+          console.log('RPC returned empty result, using raw value')
+          decryptedKey = settings.own_gateway_api_key_encrypted
         } else {
+          console.log('RPC decryption successful')
           decryptedKey = decrypted
         }
       } catch (e) {
-        console.error('Catch block decryption error:', e)
-        if (settings.own_gateway_api_key_encrypted) {
-           console.log('Exception during decryption, using raw value as fallback')
-           decryptedKey = settings.own_gateway_api_key_encrypted
-        } else {
-           throw new Error('Erro ao obter chave de API: ' + e.message)
-        }
+        console.error('Exception during RPC call:', e)
+        decryptedKey = settings.own_gateway_api_key_encrypted
       }
+    }
+
+    if (!decryptedKey) {
+      throw new Error('Chave de API não encontrada ou inválida')
     }
 
     // 3. Create payment in Asaas
