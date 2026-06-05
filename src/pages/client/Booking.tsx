@@ -463,12 +463,17 @@ export default function ClientBooking() {
             const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
             let allHaveSlot = true;
             for (const sId of serviceIds) {
-              const response = await fetch(
-                `${getEdgeFunctionUrl('get-availability')}?company_id=${company.id}&service_id=${sId}&employee_id=${selectedEmployee.id}&date=${dateStr}`,
-                { method: 'GET', headers: { 'Content-Type': 'application/json' } }
-              );
-              if (!response.ok) { allHaveSlot = false; break; }
-              const data = await response.json();
+              const { data, error } = await supabase.functions.invoke('get-availability', {
+                method: 'GET',
+                queries: {
+                  company_id: company.id,
+                  service_id: sId,
+                  employee_id: selectedEmployee.id,
+                  date: dateStr
+                }
+              } as any);
+
+              if (error) { allHaveSlot = false; break; }
               if (!((data.slots && data.slots.length > 0) || (data.availability && data.availability.length > 0))) {
                 allHaveSlot = false; break;
               }
@@ -476,18 +481,19 @@ export default function ClientBooking() {
             if (allHaveSlot) dates.push(date);
             continue;
           }
-          const response = await fetch(
-            `${getEdgeFunctionUrl('get-availability')}?company_id=${company.id}&service_id=${selectedService.id}&employee_id=${selectedEmployee.id}&date=${dateStr}`,
-            {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+
+          const { data, error } = await supabase.functions.invoke('get-availability', {
+            method: 'GET',
+            queries: {
+              company_id: company.id,
+              service_id: selectedService.id,
+              employee_id: selectedEmployee.id,
+              date: dateStr
             }
-          );
+          } as any);
           
-          if (response.ok) {
-            const data = await response.json();
+          if (!error) {
+            // Check both slots (flat array) and availability (grouped by employee)
             // Check both slots (flat array) and availability (grouped by employee)
             if (data.slots && data.slots.length > 0) {
               dates.push(date);
@@ -527,47 +533,52 @@ export default function ClientBooking() {
 
       // Para combos, por agora exibimos os horários do primeiro serviço do combo (backend idealmente deve suportar combo availability)
       if (selectedService.id?.startsWith?.('combo:')) {
-          const comboId = selectedService.id.replace('combo:', '');
-          const combo = combos.find(c => c.id === comboId);
-          const firstServiceId = combo?.items?.[0]?.service_id;
-          if (!firstServiceId) {
-              setAvailableTimes([]);
-              return;
-            }
-          const response = await fetch(
-              `${getEdgeFunctionUrl('get-availability')}?company_id=${company.id}&service_id=${firstServiceId}&employee_id=${selectedEmployee.id}&date=${dateStr}`,
-              { method: 'GET', headers: { 'Content-Type': 'application/json' } }
-            );
-          if (!response.ok) throw new Error('Erro ao buscar disponibilidade');
-          const data = await response.json();
-          if (data.slots && data.slots.length > 0) {
-              setAvailableTimes(data.slots.map((s: any) => s.time));
-              return;
-            } else if (data.availability && data.availability.length > 0) {
-                const empAvail = data.availability.find((a: any) => a.employee_id === selectedEmployee.id);
-                setAvailableTimes(empAvail?.slots || []);
-                return;
-              } else {
-              setAvailableTimes([]);
-              return;
-            }
+        const comboId = selectedService.id.replace('combo:', '');
+        const combo = combos.find(c => c.id === comboId);
+        const firstServiceId = combo?.items?.[0]?.service_id;
+        if (!firstServiceId) {
+          setAvailableTimes([]);
+          return;
         }
-      
-      const response = await fetch(
-        `${getEdgeFunctionUrl('get-availability')}?company_id=${company.id}&service_id=${selectedService.id}&employee_id=${selectedEmployee.id}&date=${dateStr}`,
-        {
+        
+        const { data, error } = await supabase.functions.invoke('get-availability', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          queries: {
+            company_id: company.id,
+            service_id: firstServiceId,
+            employee_id: selectedEmployee.id,
+            date: dateStr
+          }
+        } as any);
+
+        if (error) throw error;
+
+        if (data.slots && data.slots.length > 0) {
+          setAvailableTimes(data.slots.map((s: any) => typeof s === 'string' ? s : s.time));
+          return;
+        } else if (data.availability && data.availability.length > 0) {
+          const empAvail = data.availability.find((a: any) => a.employee_id === selectedEmployee.id);
+          setAvailableTimes(empAvail?.slots || []);
+          return;
+        } else {
+          setAvailableTimes([]);
+          return;
         }
-      );
-      
-      if (!response.ok) {
-        throw new Error('Erro ao buscar disponibilidade');
       }
       
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke('get-availability', {
+        method: 'GET',
+        queries: {
+          company_id: company.id,
+          service_id: selectedService.id,
+          employee_id: selectedEmployee.id,
+          date: dateStr
+        }
+      } as any);
+      
+      if (error) {
+        throw error;
+      }
       
       // Use slots array directly (each slot has time, employee_id, employee_name)
       if (data.slots && data.slots.length > 0) {
