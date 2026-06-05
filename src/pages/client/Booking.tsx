@@ -465,13 +465,13 @@ export default function ClientBooking() {
             for (const sId of serviceIds) {
               const { data, error } = await supabase.functions.invoke('get-availability', {
                 method: 'GET',
-                queries: {
-                  company_id: company.id,
-                  service_id: sId,
-                  employee_id: selectedEmployee.id,
-                  date: dateStr
+                headers: {
+                  'X-Query-Company-Id': company.id,
+                  'X-Query-Service-Id': sId,
+                  'X-Query-Employee-Id': selectedEmployee.id,
+                  'X-Query-Date': dateStr
                 }
-              } as any);
+              });
 
               if (error) { allHaveSlot = false; break; }
               if (!((data.slots && data.slots.length > 0) || (data.availability && data.availability.length > 0))) {
@@ -484,13 +484,13 @@ export default function ClientBooking() {
 
           const { data, error } = await supabase.functions.invoke('get-availability', {
             method: 'GET',
-            queries: {
-              company_id: company.id,
-              service_id: selectedService.id,
-              employee_id: selectedEmployee.id,
-              date: dateStr
+            headers: {
+              'X-Query-Company-Id': company.id,
+              'X-Query-Service-Id': selectedService.id,
+              'X-Query-Employee-Id': selectedEmployee.id,
+              'X-Query-Date': dateStr
             }
-          } as any);
+          });
           
           if (!error) {
             // Check both slots (flat array) and availability (grouped by employee)
@@ -543,13 +543,13 @@ export default function ClientBooking() {
         
         const { data, error } = await supabase.functions.invoke('get-availability', {
           method: 'GET',
-          queries: {
-            company_id: company.id,
-            service_id: firstServiceId,
-            employee_id: selectedEmployee.id,
-            date: dateStr
+          headers: {
+            'X-Query-Company-Id': company.id,
+            'X-Query-Service-Id': firstServiceId,
+            'X-Query-Employee-Id': selectedEmployee.id,
+            'X-Query-Date': dateStr
           }
-        } as any);
+        });
 
         if (error) throw error;
 
@@ -568,13 +568,13 @@ export default function ClientBooking() {
       
       const { data, error } = await supabase.functions.invoke('get-availability', {
         method: 'GET',
-        queries: {
-          company_id: company.id,
-          service_id: selectedService.id,
-          employee_id: selectedEmployee.id,
-          date: dateStr
+        headers: {
+          'X-Query-Company-Id': company.id,
+          'X-Query-Service-Id': selectedService.id,
+          'X-Query-Employee-Id': selectedEmployee.id,
+          'X-Query-Date': dateStr
         }
-      } as any);
+      });
       
       if (error) {
         throw error;

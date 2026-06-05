@@ -202,13 +202,13 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
 
         const { data, error } = await supabase.functions.invoke('get-availability', {
           method: 'GET',
-          queries: {
-            company_id: companyId,
-            service_id: serviceId,
-            employee_id: selectedEmployeeId,
-            date: dateStr
+          headers: {
+            'X-Query-Company-Id': companyId,
+            'X-Query-Service-Id': serviceId,
+            'X-Query-Employee-Id': selectedEmployeeId,
+            'X-Query-Date': dateStr
           }
-        } as any);
+        });
 
         if (!error && data?.slots?.length > 0) {
           dates.push(checkDate);
@@ -232,13 +232,13 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
 
       const { data, error } = await supabase.functions.invoke('get-availability', {
         method: 'GET',
-        queries: {
-          company_id: companyId,
-          service_id: serviceId,
-          employee_id: selectedEmployeeId,
-          date: dateStr
+        headers: {
+          'X-Query-Company-Id': companyId,
+          'X-Query-Service-Id': serviceId,
+          'X-Query-Employee-Id': selectedEmployeeId,
+          'X-Query-Date': dateStr
         }
-      } as any);
+      });
 
       if (!error) {
         setTimeSlots(data.slots || []);
