@@ -177,13 +177,15 @@ export function BlockedSlotsManager({ companyId }: BlockedSlotsManagerProps) {
   const isCompanyWide = (slot: BlockedSlot) => !slot.employee_id;
 
   const formatSlotDateTime = (slot: BlockedSlot) => {
-    // Use a date parsing strategy that handles the local time correctly
-    // Appending 'T' and using parseISO might treat it as UTC if not careful, 
-    // but the input from DB usually comes as "YYYY-MM-DDTHH:mm:ss" without offset.
-    // We replace the 'T' with space to ensure it's treated as local time by many parsers,
-    // or we can just ensure parseISO works as expected with the strings we have.
-    const start = parseISO(slot.start_datetime);
-    const end = parseISO(slot.end_datetime);
+    // Parse local datetime strings to Date objects correctly
+    const parseLocalISO = (isoString: string) => {
+      // Replace 'T' with space and remove timezone info if present to force local parsing
+      const localStr = isoString.replace('T', ' ').split('.')[0].split('+')[0].split('Z')[0];
+      return new Date(localStr.replace(/-/g, '/')); // Using / is more reliable for local time in some browsers
+    };
+
+    const start = parseLocalISO(slot.start_datetime);
+    const end = parseLocalISO(slot.end_datetime);
     const dateStr = format(start, "EEEE, dd 'de' MMMM", { locale: ptBR });
     const startTime = format(start, 'HH:mm');
     const endTime = format(end, 'HH:mm');
