@@ -9,8 +9,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Plus, ArrowLeft, CalendarIcon, Clock, User, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { getAvailability } from "@/lib/api/availability";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
 import { cn } from "@/lib/utils";
 
 interface Service {
@@ -200,18 +202,19 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
         const checkDate = addDays(today, i);
         const dateStr = format(checkDate, 'yyyy-MM-dd');
 
-        const { data, error } = await supabase.functions.invoke('get-availability', {
-          headers: {
-            'X-Company-Id': companyId,
-            'X-Service-Id': serviceId,
-            'X-Employee-Id': selectedEmployeeId,
-            'X-Date': dateStr
+        const data = await getAvailability({
+          data: {
+            company_id: companyId,
+            service_id: serviceId,
+            employee_id: selectedEmployeeId,
+            date: dateStr
           }
         });
 
-        if (!error && data?.slots?.length > 0) {
+        if (data && !data.error && data.slots?.length > 0) {
           dates.push(checkDate);
         }
+
       }
 
       setAvailableDates(dates);
@@ -229,18 +232,25 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
       const serviceId = selectedType === 'service' ? selectedServiceId : 
         combos.find(c => c.id === selectedComboId)?.service_combo_items[0]?.service_id || '';
 
-      const { data, error } = await supabase.functions.invoke('get-availability', {
-        headers: {
-          'X-Company-Id': companyId,
-          'X-Service-Id': serviceId,
-          'X-Employee-Id': selectedEmployeeId,
-          'X-Date': dateStr
+      const data = await getAvailability({
+        data: {
+          company_id: companyId,
+          service_id: serviceId,
+          employee_id: selectedEmployeeId,
+          date: dateStr
         }
       });
 
-      if (!error) {
-        setTimeSlots(data.slots || []);
+      if (data && !data.error) {
+        const mappedSlots = (data.slots || []).map((s: string) => ({
+          time: s,
+          employee_id: selectedEmployeeId,
+          employee_name: employees.find(e => e.id === selectedEmployeeId)?.name || ''
+        }));
+        setTimeSlots(mappedSlots);
       }
+
+
     } catch (error) {
       console.error('Error fetching time slots:', error);
     } finally {

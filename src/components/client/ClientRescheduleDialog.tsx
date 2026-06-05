@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { getAvailability } from "@/lib/api/availability";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
 import { Calendar as CalendarIcon, Clock, Check } from "lucide-react";
 
 interface ClientRescheduleDialogProps {
@@ -53,8 +55,8 @@ export function ClientRescheduleDialog({
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       
-      const response = await supabase.functions.invoke('get-availability', {
-        body: {
+      const data = await getAvailability({
+        data: {
           company_id: companyId,
           service_id: booking.service_id,
           employee_id: booking.employee_id,
@@ -62,14 +64,14 @@ export function ClientRescheduleDialog({
         }
       });
 
-      if (response.error) throw response.error;
+      if (!data || data.error) throw new Error(data?.error || 'Failed to fetch availability');
       
-      // Slots come as objects {time, employee_id, employee_name}, extract just the time strings
-      const slotsData = response.data?.slots || [];
+      const slotsData = data.slots || [];
       const timeSlots = slotsData.map((slot: string | { time: string }) => 
         typeof slot === 'string' ? slot : slot.time
       );
       setAvailableTimes(timeSlots);
+
     } catch (error) {
       console.error('Error fetching availability:', error);
       toast({
