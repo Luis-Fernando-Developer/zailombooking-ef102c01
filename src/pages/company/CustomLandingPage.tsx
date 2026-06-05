@@ -394,6 +394,7 @@ export default function CustomLandingPage() {
         ))}
       </div>
     );
+  };
 
   if (loading) {
     return (
