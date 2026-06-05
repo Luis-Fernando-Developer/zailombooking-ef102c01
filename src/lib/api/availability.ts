@@ -12,28 +12,21 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
   const { company_id, service_id, employee_id, date } = params.data;
   
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    const response = await fetch(getEdgeFunctionUrl('get-availability'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token || ''}`,
-      },
-      body: JSON.stringify({
+    const { data, error } = await supabase.functions.invoke('get-availability', {
+      body: {
         company_id,
         service_id,
         employee_id,
         date
-      })
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    if (error) {
+      console.error("Supabase function error:", error);
+      throw new Error(error.message || "Error fetching availability");
     }
 
-    return await response.json();
+    return data;
   } catch (error: any) {
     console.error("Error calling get-availability:", error);
     return { slots: [], error: error.message };
