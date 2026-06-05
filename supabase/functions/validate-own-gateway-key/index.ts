@@ -28,10 +28,13 @@ serve(async (req) => {
 
     if (provider === 'asaas') {
       console.log('Validating Asaas key...')
-      // Asaas production uses https://www.asaas.com/api/v3
-      // Sandbox uses https://sandbox.asaas.com/api/v3
-      // We'll try accounts to check the key
-      const response = await fetch('https://www.asaas.com/api/v3/accounts', {
+      
+      const isSandbox = api_key.startsWith('$aact_') === false
+      const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
+      
+      console.log(`Environment: ${isSandbox ? 'Sandbox' : 'Production'}`)
+
+      const response = await fetch(`${baseUrl}/accounts`, {
         headers: {
           'access_token': api_key,
         },
@@ -39,7 +42,6 @@ serve(async (req) => {
 
       const responseText = await response.text()
       console.log(`Asaas response status: ${response.status}`)
-      console.log(`Asaas response body: ${responseText}`)
 
       let data
       try {
@@ -56,9 +58,8 @@ serve(async (req) => {
         })
       }
 
-      // If success, data usually contains a list of accounts or the account info
       const accountName = data.data?.[0]?.name || data.name || 'Conta Asaas'
-      return new Response(JSON.stringify({ account_name: accountName }), {
+      return new Response(JSON.stringify({ account_name: accountName, environment: isSandbox ? 'sandbox' : 'production' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       })
