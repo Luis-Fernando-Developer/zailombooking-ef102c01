@@ -464,13 +464,11 @@ export default function ClientBooking() {
             let allHaveSlot = true;
             for (const sId of serviceIds) {
             const { data, error } = await supabase.functions.invoke('get-availability', {
-              method: 'GET',
               headers: {
                 'X-Query-Company-Id': company.id,
                 'X-Query-Service-Id': sId,
                 'X-Query-Employee-Id': selectedEmployee.id,
-                'X-Query-Date': dateStr,
-                'Content-Type': 'application/json'
+                'X-Query-Date': dateStr
               }
             });
 
@@ -484,13 +482,11 @@ export default function ClientBooking() {
           }
 
           const { data, error } = await supabase.functions.invoke('get-availability', {
-            method: 'GET',
             headers: {
               'X-Query-Company-Id': company.id,
               'X-Query-Service-Id': selectedService.id,
               'X-Query-Employee-Id': selectedEmployee.id,
-              'X-Query-Date': dateStr,
-              'Content-Type': 'application/json'
+              'X-Query-Date': dateStr
             }
           });
           
@@ -544,13 +540,11 @@ export default function ClientBooking() {
         }
         
         const { data, error } = await supabase.functions.invoke('get-availability', {
-          method: 'GET',
           headers: {
             'X-Query-Company-Id': company.id,
             'X-Query-Service-Id': firstServiceId,
             'X-Query-Employee-Id': selectedEmployee.id,
-            'X-Query-Date': dateStr,
-            'Content-Type': 'application/json'
+            'X-Query-Date': dateStr
           }
         });
 
@@ -570,13 +564,11 @@ export default function ClientBooking() {
       }
       
       const { data, error } = await supabase.functions.invoke('get-availability', {
-        method: 'GET',
         headers: {
           'X-Query-Company-Id': company.id,
           'X-Query-Service-Id': selectedService.id,
           'X-Query-Employee-Id': selectedEmployee.id,
-          'X-Query-Date': dateStr,
-          'Content-Type': 'application/json'
+          'X-Query-Date': dateStr
         }
       });
       
