@@ -47,9 +47,9 @@ serve(async (req) => {
     // 1. Get service duration
     const { data: service, error: serviceError } = await supabaseClient
       .from('services')
-      .select('duration')
+      .select('duration_minutes')
       .eq('id', serviceId)
-      .single()
+      .maybeSingle()
 
     if (serviceError || !service) {
       return new Response(JSON.stringify({ error: 'Service not found' }), {
@@ -58,7 +58,7 @@ serve(async (req) => {
       })
     }
 
-    const duration = service.duration || 30 // default 30 mins
+    const duration = service.duration_minutes || 30 // default 30 mins
 
     // 2. Get business hours for the day
     const dayOfWeek = new Date(date).getUTCDay()

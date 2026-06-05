@@ -643,22 +643,28 @@ export default function ClientBooking() {
       }
 
       
-      const response = await fetch(getEdgeFunctionUrl('create-booking'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.session?.access_token}`,
-        },
-        body: JSON.stringify(payloadBase),
-      });
+      // Criar agendamento diretamente via Supabase para evitar erro de fetch na edge function inexistente
+      const bookingData = {
+        ...payloadBase,
+        start_time: `${payloadBase.booking_date}T${payloadBase.booking_time}:00`,
+        end_time: new Date(new Date(`${payloadBase.booking_date}T${payloadBase.booking_time}:00`).getTime() + payloadBase.duration_minutes * 60000).toISOString(),
+        status: 'pending'
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao criar agendamento');
-      }
+      // Remover campos temporários que não existem na tabela
+      delete (bookingData as any).booking_date;
+      delete (bookingData as any).booking_time;
+      delete (bookingData as any).duration_minutes;
 
-      const result = await response.json();
-      const newBookingId = result?.booking?.id;
+      const { data: newBooking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert([bookingData])
+        .select()
+        .single();
+
+      if (bookingError) throw bookingError;
+      
+      const newBookingId = newBooking?.id;
       const isComboFlow = isCombo;
 
       // Decide se abre o diálogo de pagamento
