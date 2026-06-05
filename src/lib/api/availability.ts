@@ -118,6 +118,13 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
           current = new Date(current.getTime() + 30 * 60000);
           continue;
         }
+
+        // Also check if the service would overlap with the break
+        const slotEndFormatted = new Date(current.getTime() + (duration - 1) * 60000).toTimeString().substring(0, 5);
+        if (slotEndFormatted >= breakStart && slotEndFormatted < breakEnd) {
+          current = new Date(current.getTime() + 30 * 60000);
+          continue;
+        }
       }
 
       const isBooked = bookings?.some(b => {
