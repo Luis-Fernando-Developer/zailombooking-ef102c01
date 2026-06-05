@@ -2,14 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize Supabase client for server-side use
-// Using VITE_ prefix variables which are available on both client and server in this environment
-const supabaseUrl = process.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-
 export const getAvailability = createServerFn({ method: "POST" })
   .inputValidator(z.object({
     company_id: z.string(),
@@ -18,6 +10,16 @@ export const getAvailability = createServerFn({ method: "POST" })
     date: z.string(),
   }))
   .handler(async ({ data }) => {
+    // Initialize Supabase client inside the handler to ensure it only runs on the server
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase configuration for server function");
+      return { slots: [], error: "Server configuration error" };
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
     const { company_id, service_id, employee_id, date } = data;
 
     try {
@@ -33,7 +35,9 @@ export const getAvailability = createServerFn({ method: "POST" })
       const duration = service?.duration || 30;
 
       // 2. Get business hours
-      const dayOfWeek = new Date(date).getUTCDay();
+      const dateObj = new Date(date + 'T12:00:00Z'); // Use noon UTC to get correct day
+      const dayOfWeek = dateObj.getUTCDay();
+      
       const { data: bizHours } = await supabase
         .from('business_hours')
         .select('*')
