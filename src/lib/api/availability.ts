@@ -14,7 +14,7 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
     // 1. Get service duration
     const { data: service, error: serviceError } = await supabase
       .from('services')
-      .select('duration')
+      .select('duration_minutes')
       .eq('id', service_id)
       .maybeSingle();
 
@@ -23,7 +23,7 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
       return { slots: [], error: 'Service not found' };
     }
 
-    const duration = service?.duration || 30;
+    const duration = service?.duration_minutes || 30;
 
     // 2. Get business hours for the day
     const dayOfWeek = new Date(date).getUTCDay();
