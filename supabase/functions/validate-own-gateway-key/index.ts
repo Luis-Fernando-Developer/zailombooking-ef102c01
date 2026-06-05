@@ -6,14 +6,20 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log(`Request method: ${req.method}`)
+  
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { api_key, provider } = await req.json()
+    const body = await req.json()
+    console.log('Request body:', JSON.stringify(body))
+    
+    const { api_key, provider } = body
 
     if (!api_key) {
+      console.error('Missing API Key')
       return new Response(JSON.stringify({ error: 'API Key is required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -21,32 +27,49 @@ serve(async (req) => {
     }
 
     if (provider === 'asaas') {
+      console.log('Validating Asaas key...')
+      // Asaas production uses https://www.asaas.com/api/v3
+      // Sandbox uses https://sandbox.asaas.com/api/v3
+      // We'll try accounts to check the key
       const response = await fetch('https://www.asaas.com/api/v3/accounts', {
         headers: {
           'access_token': api_key,
         },
       })
 
-      const data = await response.json()
+      const responseText = await response.text()
+      console.log(`Asaas response status: ${response.status}`)
+      console.log(`Asaas response body: ${responseText}`)
+
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch (e) {
+        data = { errors: [{ description: 'Resposta inválida do Asaas' }] }
+      }
 
       if (!response.ok) {
-        return new Response(JSON.stringify({ error: data.errors?.[0]?.description || 'Invalid Asaas key' }), {
+        const errorMsg = data.errors?.[0]?.description || 'Chave Asaas inválida ou sem permissão'
+        return new Response(JSON.stringify({ error: errorMsg }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
         })
       }
 
-      return new Response(JSON.stringify({ account_name: data.data?.[0]?.name || 'Conta Asaas' }), {
+      // If success, data usually contains a list of accounts or the account info
+      const accountName = data.data?.[0]?.name || data.name || 'Conta Asaas'
+      return new Response(JSON.stringify({ account_name: accountName }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Provider not implemented yet' }), {
+    return new Response(JSON.stringify({ error: `Provedor '${provider}' não implementado` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })
   } catch (error) {
+    console.error('Function error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
