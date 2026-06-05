@@ -40,43 +40,46 @@ serve(async (req) => {
     // 2. Decrypt API Key
     let decryptedKey = ""
     console.log('Attempting to get API Key for company:', booking.company_id)
-    console.log('Raw key from DB (masked):', settings.own_gateway_api_key_encrypted ? (settings.own_gateway_api_key_encrypted.substring(0, 10) + '...') : 'NULL')
     
-    // Simple check: if it looks like a real key (starts with $ or sandbox prefix), use it
-    if (settings.own_gateway_api_key_encrypted && 
-        (settings.own_gateway_api_key_encrypted.startsWith('$aact_') || 
-         settings.own_gateway_api_key_encrypted.startsWith('$') ||
-         settings.own_gateway_api_key_encrypted.length > 50)) {
-      console.log('API Key looks like plain text or already decrypted, using as is')
-      decryptedKey = settings.own_gateway_api_key_encrypted
-    } else if (settings.own_gateway_api_key_encrypted) {
-      console.log('Attempting RPC decryption...')
-      try {
-        const { data: decrypted, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
-          p_encrypted: settings.own_gateway_api_key_encrypted,
-          p_secret: "asaas-own-gateway"
-        })
+    if (settings.own_gateway_api_key_encrypted) {
+      const rawKey = settings.own_gateway_api_key_encrypted;
+      console.log('Raw key from DB length:', rawKey.length)
+      
+      // Se a chave já começa com o prefixo do Asaas ($aact_ para produção ou sem ele para sandbox mas com formato de token)
+      // O Asaas costuma ter chaves de 64 caracteres hexadecimais (sandbox) ou começando com $aact_ (produção)
+      if (rawKey.startsWith('$aact_') || rawKey.length > 50) {
+        console.log('API Key seems to be plain text, using as is')
+        decryptedKey = rawKey
+      } else {
+        console.log('Attempting RPC decryption for encrypted key...')
+        try {
+          const { data: decrypted, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
+            p_encrypted: rawKey,
+            p_secret: "asaas-own-gateway"
+          })
 
-        if (decErr) {
-          console.error('RPC decryption error:', decErr)
-          // Fallback
-          decryptedKey = settings.own_gateway_api_key_encrypted
-        } else if (!decrypted) {
-          console.log('RPC returned empty result, using raw value')
-          decryptedKey = settings.own_gateway_api_key_encrypted
-        } else {
-          console.log('RPC decryption successful')
-          decryptedKey = decrypted
+          if (decErr) {
+            console.error('RPC decryption error:', decErr)
+            // Se falhou o RPC, tentamos usar a chave bruta como último recurso
+            decryptedKey = rawKey
+          } else if (!decrypted) {
+            console.log('RPC returned empty result, falling back to raw value')
+            decryptedKey = rawKey
+          } else {
+            console.log('RPC decryption successful')
+            decryptedKey = decrypted
+          }
+        } catch (e) {
+          console.error('Exception during RPC call:', e)
+          decryptedKey = rawKey
         }
-      } catch (e) {
-        console.error('Exception during RPC call:', e)
-        decryptedKey = settings.own_gateway_api_key_encrypted
       }
     }
 
-    if (!decryptedKey) {
-      throw new Error('Chave de API não encontrada ou inválida')
+    if (!decryptedKey || decryptedKey.trim() === "") {
+      throw new Error('Chave de API do Asaas não encontrada ou está vazia nas configurações')
     }
+
 
     // 3. Create payment in Asaas
     if (settings.own_gateway_provider === 'asaas') {
