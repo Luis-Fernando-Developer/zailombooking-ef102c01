@@ -463,15 +463,15 @@ export default function ClientBooking() {
             const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
             let allHaveSlot = true;
             for (const sId of serviceIds) {
-              const { data, error } = await supabase.functions.invoke('get-availability', {
-                method: 'GET',
-                headers: {
-                  'X-Query-Company-Id': company.id,
-                  'X-Query-Service-Id': sId,
-                  'X-Query-Employee-Id': selectedEmployee.id,
-                  'X-Query-Date': dateStr
-                }
-              });
+            const { data, error } = await supabase.functions.invoke('get-availability', {
+              method: 'GET',
+              queryParams: {
+                company_id: company.id,
+                service_id: sId,
+                employee_id: selectedEmployee.id,
+                date: dateStr
+              }
+            });
 
               if (error) { allHaveSlot = false; break; }
               if (!((data.slots && data.slots.length > 0) || (data.availability && data.availability.length > 0))) {
@@ -484,11 +484,11 @@ export default function ClientBooking() {
 
           const { data, error } = await supabase.functions.invoke('get-availability', {
             method: 'GET',
-            headers: {
-              'X-Query-Company-Id': company.id,
-              'X-Query-Service-Id': selectedService.id,
-              'X-Query-Employee-Id': selectedEmployee.id,
-              'X-Query-Date': dateStr
+            queryParams: {
+              company_id: company.id,
+              service_id: selectedService.id,
+              employee_id: selectedEmployee.id,
+              date: dateStr
             }
           });
           
@@ -568,11 +568,11 @@ export default function ClientBooking() {
       
       const { data, error } = await supabase.functions.invoke('get-availability', {
         method: 'GET',
-        headers: {
-          'X-Query-Company-Id': company.id,
-          'X-Query-Service-Id': selectedService.id,
-          'X-Query-Employee-Id': selectedEmployee.id,
-          'X-Query-Date': dateStr
+        queryParams: {
+          company_id: company.id,
+          service_id: selectedService.id,
+          employee_id: selectedEmployee.id,
+          date: dateStr
         }
       });
       

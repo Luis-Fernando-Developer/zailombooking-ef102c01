@@ -202,11 +202,11 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
 
         const { data, error } = await supabase.functions.invoke('get-availability', {
           method: 'GET',
-          headers: {
-            'X-Query-Company-Id': companyId,
-            'X-Query-Service-Id': serviceId,
-            'X-Query-Employee-Id': selectedEmployeeId,
-            'X-Query-Date': dateStr
+          queryParams: {
+            company_id: companyId,
+            service_id: serviceId,
+            employee_id: selectedEmployeeId,
+            date: dateStr
           }
         });
 
@@ -232,11 +232,11 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
 
       const { data, error } = await supabase.functions.invoke('get-availability', {
         method: 'GET',
-        headers: {
-          'X-Query-Company-Id': companyId,
-          'X-Query-Service-Id': serviceId,
-          'X-Query-Employee-Id': selectedEmployeeId,
-          'X-Query-Date': dateStr
+        queryParams: {
+          company_id: companyId,
+          service_id: serviceId,
+          employee_id: selectedEmployeeId,
+          date: dateStr
         }
       });
 
