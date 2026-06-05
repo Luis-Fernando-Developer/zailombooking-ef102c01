@@ -462,33 +462,21 @@ export default function ClientBooking() {
       const datePromises = next30Days.map(async (date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         try {
+          let checkServiceId = selectedService.id;
+          
           if (selectedService.id?.startsWith?.('combo:')) {
             const comboId = selectedService.id.replace('combo:', '');
             const combo = combos.find(c => c.id === comboId);
             if (!combo) return null;
             const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
-            
-            // Check first service availability as a proxy for the whole day to speed up
-            if (serviceIds.length > 0) {
-              const data = await getAvailability({
-                data: {
-                  company_id: company.id,
-                  service_id: serviceIds[0],
-                  employee_id: selectedEmployee.id,
-                  date: dateStr
-                }
-              });
-              if (data && !data.error && data.slots && data.slots.length > 0) {
-                return date;
-              }
-            }
-            return null;
+            if (serviceIds.length === 0) return null;
+            checkServiceId = serviceIds[0];
           }
 
           const data = await getAvailability({
             data: {
               company_id: company.id,
-              service_id: selectedService.id,
+              service_id: checkServiceId,
               employee_id: selectedEmployee.id,
               date: dateStr
             }
@@ -498,13 +486,21 @@ export default function ClientBooking() {
             return date;
           }
         } catch (err) {
-          // Silent error for individual date checks
+          // Silent error
         }
         return null;
       });
 
-      const results = await Promise.all(datePromises);
-      setAvailableDates(results.filter((d): d is Date => d !== null));
+      // Split into chunks of 5 to avoid overwhelming the function/browser
+      const results: Date[] = [];
+      const chunkSize = 5;
+      for (let i = 0; i < datePromises.length; i += chunkSize) {
+        const chunk = datePromises.slice(i, i + chunkSize);
+        const chunkResults = await Promise.all(chunk);
+        results.push(...chunkResults.filter((d): d is Date => d !== null));
+      }
+      
+      setAvailableDates(results);
     } catch (error) {
       console.error("Erro ao carregar datas disponíveis:", error);
       toast({
