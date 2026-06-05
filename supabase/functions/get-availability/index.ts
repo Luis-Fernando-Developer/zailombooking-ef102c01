@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-company-id, x-service-id, x-employee-id, x-date',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
@@ -27,11 +27,12 @@ serve(async (req) => {
     let employeeId = req.headers.get('x-employee-id')
     let date = req.headers.get('x-date')
 
+    const body = await req.json().catch(() => ({}))
+    console.log('Request body:', JSON.stringify(body))
     if (!companyId || !serviceId || !employeeId || !date) {
-      const body = await req.json().catch(() => ({}))
-      companyId = companyId || body.company_id
-      serviceId = serviceId || body.service_id
-      employeeId = employeeId || body.employee_id
+      companyId = companyId || body.company_id || body.companyId
+      serviceId = serviceId || body.service_id || body.serviceId
+      employeeId = employeeId || body.employee_id || body.employeeId
       date = date || body.date
     }
 
@@ -194,7 +195,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })
