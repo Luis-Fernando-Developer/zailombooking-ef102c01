@@ -200,15 +200,18 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
         const checkDate = addDays(today, i);
         const dateStr = format(checkDate, 'yyyy-MM-dd');
 
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-availability?company_id=${companyId}&service_id=${serviceId}&employee_id=${selectedEmployeeId}&date=${dateStr}`
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.slots && data.slots.length > 0) {
-            dates.push(checkDate);
+        const { data, error } = await supabase.functions.invoke('get-availability', {
+          method: 'GET',
+          queries: {
+            company_id: companyId,
+            service_id: serviceId,
+            employee_id: selectedEmployeeId,
+            date: dateStr
           }
+        } as any);
+
+        if (!error && data?.slots?.length > 0) {
+          dates.push(checkDate);
         }
       }
 
@@ -227,12 +230,17 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
       const serviceId = selectedType === 'service' ? selectedServiceId : 
         combos.find(c => c.id === selectedComboId)?.service_combo_items[0]?.service_id || '';
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-availability?company_id=${companyId}&service_id=${serviceId}&employee_id=${selectedEmployeeId}&date=${dateStr}`
-      );
+      const { data, error } = await supabase.functions.invoke('get-availability', {
+        method: 'GET',
+        queries: {
+          company_id: companyId,
+          service_id: serviceId,
+          employee_id: selectedEmployeeId,
+          date: dateStr
+        }
+      } as any);
 
-      if (response.ok) {
-        const data = await response.json();
+      if (!error) {
         setTimeSlots(data.slots || []);
       }
     } catch (error) {
