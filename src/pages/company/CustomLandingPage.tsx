@@ -385,9 +385,6 @@ export default function CustomLandingPage() {
             {DAYS[hour.day_of_week]}: {hour.is_open ? (
               <>
                 {hour.open_time} - {hour.close_time}
-                {hour.break_start && hour.break_end && (
-                  <span className="text-xs ml-2">(Intervalo: {hour.break_start} - {hour.break_end})</span>
-                )}
               </>
             ) : 'Fechado'}
           </p>
