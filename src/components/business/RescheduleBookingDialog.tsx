@@ -95,7 +95,7 @@ export function RescheduleBookingDialog({
         .from('bookings')
         .update({
           booking_date: newDate,
-          booking_time: selectedTime
+          start_time: selectedTime
         })
         .eq('id', booking.id);
 
@@ -147,7 +147,7 @@ export function RescheduleBookingDialog({
               Cliente: {booking.client?.name}
             </p>
             <p className="text-xs text-muted-foreground">
-              Data atual: {formatCurrentDate(booking.booking_date)} às {booking.booking_time?.slice(0, 5)}
+              Data atual: {formatCurrentDate(booking.booking_date)} às {booking.start_time?.slice(0, 5)}
             </p>
           </div>
         )}

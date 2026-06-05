@@ -632,7 +632,7 @@ export default function ClientBooking() {
         price: selectedService.price,
         notes: formData.notes,
         client_id: clientId,
-        status: 'pending'
+        booking_status: 'pending'
       };
 
       let newBookingId: string;
