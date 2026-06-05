@@ -176,8 +176,15 @@ serve(async (req) => {
     throw new Error('Provedor de pagamento não suportado')
 
   } catch (error) {
-    console.error('Function error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Function error detailed:', {
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause
+    })
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: error.stack 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })
