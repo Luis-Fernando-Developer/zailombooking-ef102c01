@@ -38,14 +38,30 @@ serve(async (req) => {
     if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
 
     // 2. Decrypt API Key
-    const { data: decryptedKey, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
-      p_encrypted: settings.own_gateway_api_key_encrypted,
-      p_secret: "asaas-own-gateway"
-    })
+    let decryptedKey = ""
+    
+    // Check if the key is already plain (not encrypted)
+    if (settings.own_gateway_api_key_encrypted && !settings.own_gateway_api_key_encrypted.startsWith('pgp:')) {
+      console.log('API Key seems to be plain text, using as is')
+      decryptedKey = settings.own_gateway_api_key_encrypted
+    } else {
+      const { data: decrypted, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
+        p_encrypted: settings.own_gateway_api_key_encrypted,
+        p_secret: "asaas-own-gateway"
+      })
 
-    if (decErr || !decryptedKey) {
-      console.error('Decryption error:', decErr)
-      throw new Error('Erro ao descriptografar chave de API')
+      if (decErr || !decrypted) {
+        console.error('Decryption error:', decErr)
+        // Fallback: try to use the raw value if decryption fails (might not be encrypted)
+        if (settings.own_gateway_api_key_encrypted) {
+           console.log('Decryption failed, using raw value as fallback')
+           decryptedKey = settings.own_gateway_api_key_encrypted
+        } else {
+           throw new Error('Erro ao descriptografar chave de API')
+        }
+      } else {
+        decryptedKey = decrypted
+      }
     }
 
     // 3. Create payment in Asaas
