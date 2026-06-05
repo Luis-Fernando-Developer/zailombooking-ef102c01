@@ -635,6 +635,8 @@ export default function ClientBooking() {
         status: 'pending'
       };
 
+      let newBookingId: string;
+
       // Tenta inserir diretamente na tabela bookings
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
@@ -661,6 +663,15 @@ export default function ClientBooking() {
           }
 
           const result = await response.json();
+          newBookingId = result?.booking?.id;
+        } catch (efError) {
+          throw new Error('Não foi possível realizar o agendamento. Verifique suas permissões.');
+        }
+      } else {
+        newBookingId = bookingData.id;
+      }
+
+      const result = { booking: { id: newBookingId } };
           var newBookingId = result?.booking?.id;
         } catch (efError) {
           throw new Error('Não foi possível realizar o agendamento. Verifique suas permissões.');
