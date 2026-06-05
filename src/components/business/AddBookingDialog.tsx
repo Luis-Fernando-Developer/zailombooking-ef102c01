@@ -201,13 +201,12 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
         const dateStr = format(checkDate, 'yyyy-MM-dd');
 
         const { data, error } = await supabase.functions.invoke('get-availability', {
-          method: 'POST',
-          body: JSON.stringify({
+          body: {
             company_id: companyId,
             service_id: serviceId,
             employee_id: selectedEmployeeId,
             date: dateStr
-          })
+          }
         });
 
         if (!error && data?.slots?.length > 0) {
@@ -231,13 +230,12 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
         combos.find(c => c.id === selectedComboId)?.service_combo_items[0]?.service_id || '';
 
       const { data, error } = await supabase.functions.invoke('get-availability', {
-        method: 'POST',
-        body: JSON.stringify({
+        body: {
           company_id: companyId,
           service_id: serviceId,
           employee_id: selectedEmployeeId,
           date: dateStr
-        })
+        }
       });
 
       if (!error) {
