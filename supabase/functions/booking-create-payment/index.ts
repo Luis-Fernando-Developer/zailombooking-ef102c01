@@ -45,22 +45,32 @@ serve(async (req) => {
       console.log('API Key seems to be plain text, using as is')
       decryptedKey = settings.own_gateway_api_key_encrypted
     } else {
-      const { data: decrypted, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
-        p_encrypted: settings.own_gateway_api_key_encrypted,
-        p_secret: "asaas-own-gateway"
-      })
+      try {
+        const { data: decrypted, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
+          p_encrypted: settings.own_gateway_api_key_encrypted,
+          p_secret: "asaas-own-gateway"
+        })
 
-      if (decErr || !decrypted) {
-        console.error('Decryption error:', decErr)
-        // Fallback: try to use the raw value if decryption fails (might not be encrypted)
+        if (decErr || !decrypted) {
+          console.error('Decryption RPC error:', decErr)
+          // Fallback: try to use the raw value if decryption fails (might not be encrypted or RPC failed)
+          if (settings.own_gateway_api_key_encrypted) {
+             console.log('RPC decryption failed, using raw value as fallback')
+             decryptedKey = settings.own_gateway_api_key_encrypted
+          } else {
+             throw new Error('Erro ao obter chave de API: chave ausente')
+          }
+        } else {
+          decryptedKey = decrypted
+        }
+      } catch (e) {
+        console.error('Catch block decryption error:', e)
         if (settings.own_gateway_api_key_encrypted) {
-           console.log('Decryption failed, using raw value as fallback')
+           console.log('Exception during decryption, using raw value as fallback')
            decryptedKey = settings.own_gateway_api_key_encrypted
         } else {
-           throw new Error('Erro ao descriptografar chave de API')
+           throw new Error('Erro ao obter chave de API: ' + e.message)
         }
-      } else {
-        decryptedKey = decrypted
       }
     }
 
@@ -120,7 +130,10 @@ serve(async (req) => {
       })
 
       const paymentResult = await createPayment.json()
-      if (paymentResult.errors) throw new Error(`Erro ao gerar cobrança no Asaas: ${paymentResult.errors[0].description}`)
+      if (paymentResult.errors) {
+        console.error('Asaas payment creation errors:', paymentResult.errors)
+        throw new Error(`Erro ao gerar cobrança no Asaas: ${paymentResult.errors[0].description}`)
+      }
 
       // C) If PIX, get QR Code
       let pixInfo = {}
