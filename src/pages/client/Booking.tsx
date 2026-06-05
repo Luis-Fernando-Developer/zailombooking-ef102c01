@@ -643,28 +643,22 @@ export default function ClientBooking() {
       }
 
       
-      // Criar agendamento diretamente via Supabase para evitar erro de fetch na edge function inexistente
-      const bookingData = {
-        ...payloadBase,
-        start_time: `${payloadBase.booking_date}T${payloadBase.booking_time}:00`,
-        end_time: new Date(new Date(`${payloadBase.booking_date}T${payloadBase.booking_time}:00`).getTime() + payloadBase.duration_minutes * 60000).toISOString(),
-        status: 'pending'
-      };
+      const response = await fetch(getEdgeFunctionUrl('create-booking'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.session?.access_token}`,
+        },
+        body: JSON.stringify(payloadBase),
+      });
 
-      // Remover campos temporários que não existem na tabela
-      delete (bookingData as any).booking_date;
-      delete (bookingData as any).booking_time;
-      delete (bookingData as any).duration_minutes;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao criar agendamento');
+      }
 
-      const { data: newBooking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert([bookingData])
-        .select()
-        .single();
-
-      if (bookingError) throw bookingError;
-      
-      const newBookingId = newBooking?.id;
+      const result = await response.json();
+      const newBookingId = result?.booking?.id;
       const isComboFlow = isCombo;
 
       // Decide se abre o diálogo de pagamento
@@ -1255,7 +1249,7 @@ export default function ClientBooking() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {logoSrc && (
-                <img src={logoSrc} alt={company.name} className="w-12 h-12 object-contain" />
+                <img src={logoSrc} alt={company.name} className="w-12 h-12 object-contain border-2 border-blue-600" />
               )}
               <div>
                 <h1 className="text-xl font-bold">{company.name}</h1>
