@@ -464,6 +464,7 @@ export default function ClientBooking() {
             let allHaveSlot = true;
             for (const sId of serviceIds) {
             const { data, error } = await supabase.functions.invoke('get-availability', {
+              method: 'POST',
               body: {
                 company_id: company.id,
                 service_id: sId,
@@ -482,6 +483,7 @@ export default function ClientBooking() {
           }
 
           const { data, error } = await supabase.functions.invoke('get-availability', {
+            method: 'POST',
             body: {
               company_id: company.id,
               service_id: selectedService.id,
@@ -540,6 +542,7 @@ export default function ClientBooking() {
         }
         
         const { data, error } = await supabase.functions.invoke('get-availability', {
+          method: 'POST',
           body: {
             company_id: company.id,
             service_id: firstServiceId,
@@ -564,6 +567,7 @@ export default function ClientBooking() {
       }
       
       const { data, error } = await supabase.functions.invoke('get-availability', {
+        method: 'POST',
         body: {
           company_id: company.id,
           service_id: selectedService.id,
