@@ -163,7 +163,7 @@ export default function ClientBooking() {
               id: combo.id,
               name: combo.name,
               description: combo.description || '',
-              price: combo.combo_price,
+              price: combo.price || combo.combo_price || 0,
               duration_minutes: combo.total_duration_minutes,
               image_url: combo.image_url
             };
@@ -352,7 +352,7 @@ export default function ClientBooking() {
       id: `combo:${combo.id}`,
       name: combo.name,
       description: combo.description || "",
-      price: combo.combo_price ?? 0,
+      price: combo.price || combo.combo_price || 0,
       duration_minutes: combo.total_duration_minutes ?? (combo.items?.reduce((s: number, it: any) => s + (it.service?.duration_minutes || 0), 0) || 0),
       image_url: combo.items?.[0]?.service?.image_url
     };
@@ -750,7 +750,7 @@ export default function ClientBooking() {
                     id: `combo:${combo.id}`,
                     name: combo.name,
                     description: combo.description || '',
-                    price: combo.combo_price ?? 0,
+                    price: combo.price || combo.combo_price || 0,
                     duration_minutes: combo.total_duration_minutes ?? (combo.items?.reduce((s: number, it: any) => s + (it.service?.duration_minutes || 0), 0) || 0),
                     image_url: combo.items?.[0]?.service?.image_url
                   };
