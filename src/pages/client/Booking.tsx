@@ -462,21 +462,6 @@ export default function ClientBooking() {
       const results: Date[] = [];
       const todayStr = format(today, 'yyyy-MM-dd');
       
-      // Call once for today to check if we can reach the function
-      try {
-        const testData = await getAvailability({
-          data: {
-            company_id: company.id,
-            service_id: selectedService.id.startsWith('combo:') ? combos.find(c => c.id === selectedService.id.replace('combo:', ''))?.items?.[0]?.service_id : selectedService.id,
-            employee_id: selectedEmployee.id,
-            date: todayStr
-          }
-        });
-        console.log("Initial availability check:", testData);
-      } catch (e) {
-        console.error("Initial check failed:", e);
-      }
-
       const datePromises = next30Days.map(async (date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         try {
@@ -507,7 +492,8 @@ export default function ClientBooking() {
         return null;
       });
 
-      const chunkSize = 3;
+      // Process dates in chunks to avoid overwhelming the edge function or getting rate limited
+      const chunkSize = 5;
       for (let i = 0; i < datePromises.length; i += chunkSize) {
         const chunk = datePromises.slice(i, i + chunkSize);
         const chunkResults = await Promise.all(chunk);

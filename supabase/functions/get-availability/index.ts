@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-company-id, x-service-id, x-employee-id, x-date',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
@@ -157,16 +157,14 @@ serve(async (req) => {
 
       // Check if slot is during a break
       if (breakStart && breakEnd) {
-        if (currentFormatted >= breakStart && currentFormatted < breakEnd) {
-          current = new Date(current.getTime() + 30 * 60000)
-          continue
-        }
-
-        // Also check if the service would overlap with the break
-        const slotEndFormatted = new Date(current.getTime() + (duration - 1) * 60000).toTimeString().substring(0, 5)
-        if (slotEndFormatted >= breakStart && slotEndFormatted < breakEnd) {
-          current = new Date(current.getTime() + 30 * 60000)
-          continue
+        const slotStartTime = currentFormatted;
+        const slotEndTime = new Date(current.getTime() + duration * 60000).toTimeString().substring(0, 5);
+        
+        // A slot overlaps with break if:
+        // (slotStart < breakEnd) AND (slotEnd > breakStart)
+        if (slotStartTime < breakEnd && slotEndTime > breakStart) {
+          current = new Date(current.getTime() + 30 * 60000);
+          continue;
         }
       }
 
