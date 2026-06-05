@@ -12,23 +12,30 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
   const { company_id, service_id, employee_id, date } = params.data;
   
   try {
-    const { data, error } = await supabase.functions.invoke('get-availability', {
-      body: {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const response = await fetch(getEdgeFunctionUrl('get-availability'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token || ''}`,
+      },
+      body: JSON.stringify({
         company_id,
         service_id,
         employee_id,
         date
-      }
+      })
     });
 
-    if (error) {
-      // If it's a specific function error, we still want to return empty slots
-      console.warn("Supabase function error (handled):", error);
-      return { slots: [], error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
-    return data;
+
+    return await response.json();
   } catch (error: any) {
-    console.error("Critical error calling get-availability:", error);
+    console.error("Error calling get-availability:", error);
     return { slots: [], error: error.message };
   }
 };

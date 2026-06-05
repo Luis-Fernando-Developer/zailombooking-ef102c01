@@ -459,25 +459,36 @@ export default function ClientBooking() {
       // and only verify slots when the user selects a specific date or in a more batched way if possible.
       // For now, let's just make it parallel to be faster.
       
-      const results: Date[] = [];
-      const todayStr = format(today, 'yyyy-MM-dd');
-      
       const datePromises = next30Days.map(async (date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         try {
-          let checkServiceId = selectedService.id;
           if (selectedService.id?.startsWith?.('combo:')) {
             const comboId = selectedService.id.replace('combo:', '');
             const combo = combos.find(c => c.id === comboId);
             if (!combo) return null;
-            checkServiceId = combo.items?.[0]?.service_id;
-            if (!checkServiceId) return null;
+            const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
+            
+            // Check first service availability as a proxy for the whole day to speed up
+            if (serviceIds.length > 0) {
+              const data = await getAvailability({
+                data: {
+                  company_id: company.id,
+                  service_id: serviceIds[0],
+                  employee_id: selectedEmployee.id,
+                  date: dateStr
+                }
+              });
+              if (data && !data.error && data.slots && data.slots.length > 0) {
+                return date;
+              }
+            }
+            return null;
           }
 
           const data = await getAvailability({
             data: {
               company_id: company.id,
-              service_id: checkServiceId,
+              service_id: selectedService.id,
               employee_id: selectedEmployee.id,
               date: dateStr
             }
@@ -487,22 +498,13 @@ export default function ClientBooking() {
             return date;
           }
         } catch (err) {
-          console.error(`Error checking date ${dateStr}:`, err);
+          // Silent error for individual date checks
         }
         return null;
       });
 
-      // Process dates in chunks to avoid overwhelming the edge function
-      const chunkSize = 2; // Reduced chunk size to be safer with CORS/Preflight
-      for (let i = 0; i < datePromises.length; i += chunkSize) {
-        const chunk = datePromises.slice(i, i + chunkSize);
-        const chunkResults = await Promise.all(chunk);
-        results.push(...chunkResults.filter((d): d is Date => d !== null));
-        // Small delay between chunks to avoid rate limiting or connection drops
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-      
-      setAvailableDates(results);
+      const results = await Promise.all(datePromises);
+      setAvailableDates(results.filter((d): d is Date => d !== null));
     } catch (error) {
       console.error("Erro ao carregar datas disponíveis:", error);
       toast({

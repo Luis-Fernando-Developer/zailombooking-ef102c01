@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,15 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
+
 serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders, status: 200 })
+    return new Response('ok', { headers: corsHeaders })
   }
 
 
-  console.log(`Method: ${req.method}, URL: ${req.url}`)
-  
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -28,12 +27,11 @@ serve(async (req) => {
     let employeeId = req.headers.get('x-employee-id')
     let date = req.headers.get('x-date')
 
-    const body = await req.json().catch(() => ({}))
-    console.log('Request body:', JSON.stringify(body))
     if (!companyId || !serviceId || !employeeId || !date) {
-      companyId = companyId || body.company_id || body.companyId
-      serviceId = serviceId || body.service_id || body.serviceId
-      employeeId = employeeId || body.employee_id || body.employeeId
+      const body = await req.json().catch(() => ({}))
+      companyId = companyId || body.company_id
+      serviceId = serviceId || body.service_id
+      employeeId = employeeId || body.employee_id
       date = date || body.date
     }
 
@@ -157,21 +155,16 @@ serve(async (req) => {
 
       // Check if slot is during a break
       if (breakStart && breakEnd) {
-        const slotStartTime = currentFormatted;
-        const slotEndTime = new Date(current.getTime() + duration * 60000).toTimeString().substring(0, 5);
-        
-        // A slot overlaps with break if:
-        // (slotStart < breakEnd) AND (slotEnd > breakStart)
-        // Adjust logic: if slot start matches break start, it should be excluded
-        if (slotStartTime < breakEnd && slotEndTime > breakStart) {
-          current = new Date(current.getTime() + 30 * 60000);
-          continue;
+        if (currentFormatted >= breakStart && currentFormatted < breakEnd) {
+          current = new Date(current.getTime() + 30 * 60000)
+          continue
         }
-        
-        // Specific fix for exact break start match if the above didn't catch it
-        if (slotStartTime === breakStart) {
-          current = new Date(current.getTime() + 30 * 60000);
-          continue;
+
+        // Also check if the service would overlap with the break
+        const slotEndFormatted = new Date(current.getTime() + (duration - 1) * 60000).toTimeString().substring(0, 5)
+        if (slotEndFormatted >= breakStart && slotEndFormatted < breakEnd) {
+          current = new Date(current.getTime() + 30 * 60000)
+          continue
         }
       }
 
@@ -201,7 +194,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error:', error)
-    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
+    return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })
