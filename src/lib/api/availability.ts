@@ -39,6 +39,7 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
     }
 
     const data = await response.json();
+    return data;
   } catch (error: any) {
     console.error("Error calling get-availability:", error);
     return { slots: [], error: error.message };
