@@ -23,8 +23,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
-
 import { BookingPaymentDialog } from "@/components/booking/BookingPaymentDialog";
+import { getAvailability } from "@/lib/api/availability.server";
+
 
 interface Service {
   id: string;
@@ -463,47 +464,40 @@ export default function ClientBooking() {
             const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
             let allHaveSlot = true;
             for (const sId of serviceIds) {
-            const { data, error } = await supabase.functions.invoke('get-availability', {
-              headers: {
-                'X-Company-Id': company.id,
-                'X-Service-Id': sId,
-                'X-Employee-Id': selectedEmployee.id,
-                'X-Date': dateStr
-              }
-            });
+              const data = await getAvailability({
+                data: {
+                  company_id: company.id,
+                  service_id: sId,
+                  employee_id: selectedEmployee.id,
+                  date: dateStr
+                }
+              });
 
-              if (error) { allHaveSlot = false; break; }
-              if (!((data.slots && data.slots.length > 0) || (data.availability && data.availability.length > 0))) {
+              if (!data || data.error) { allHaveSlot = false; break; }
+              if (!(data.slots && data.slots.length > 0)) {
                 allHaveSlot = false; break;
               }
             }
+
             if (allHaveSlot) dates.push(date);
             continue;
           }
 
-          const { data, error } = await supabase.functions.invoke('get-availability', {
-            headers: {
-              'X-Company-Id': company.id,
-              'X-Service-Id': selectedService.id,
-              'X-Employee-Id': selectedEmployee.id,
-              'X-Date': dateStr
+          const data = await getAvailability({
+            data: {
+              company_id: company.id,
+              service_id: selectedService.id,
+              employee_id: selectedEmployee.id,
+              date: dateStr
             }
           });
           
-          if (!error) {
-            // Check both slots (flat array) and availability (grouped by employee)
-            // Check both slots (flat array) and availability (grouped by employee)
+          if (data && !data.error) {
             if (data.slots && data.slots.length > 0) {
               dates.push(date);
-            } else if (data.availability && data.availability.length > 0) {
-              const employeeAvailability = data.availability.find(
-                (a: any) => a.employee_id === selectedEmployee.id
-              );
-              if (employeeAvailability && employeeAvailability.slots.length > 0) {
-                dates.push(date);
-              }
             }
           }
+
         } catch (err) {
           console.log(`Erro ao verificar disponibilidade para ${dateStr}:`, err);
         }
@@ -539,28 +533,23 @@ export default function ClientBooking() {
           return;
         }
         
-        const { data, error } = await supabase.functions.invoke('get-availability', {
-          headers: {
-            'X-Company-Id': company.id,
-            'X-Service-Id': firstServiceId,
-            'X-Employee-Id': selectedEmployee.id,
-            'X-Date': dateStr
+        const data = await getAvailability({
+          data: {
+            company_id: company.id,
+            service_id: firstServiceId,
+            employee_id: selectedEmployee.id,
+            date: dateStr
           }
         });
 
-        if (error) throw error;
-
-        if (data.slots && data.slots.length > 0) {
+        if (data && !data.error && data.slots && data.slots.length > 0) {
           setAvailableTimes(data.slots.map((s: any) => typeof s === 'string' ? s : s.time));
-          return;
-        } else if (data.availability && data.availability.length > 0) {
-          const empAvail = data.availability.find((a: any) => a.employee_id === selectedEmployee.id);
-          setAvailableTimes(empAvail?.slots || []);
           return;
         } else {
           setAvailableTimes([]);
           return;
         }
+
       }
       
       const { data, error } = await supabase.functions.invoke('get-availability', {
