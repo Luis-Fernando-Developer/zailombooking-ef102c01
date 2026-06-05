@@ -16,14 +16,14 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
       .from('services')
       .select('duration')
       .eq('id', service_id)
-      .single();
+      .maybeSingle();
 
-    if (serviceError || !service) {
-      console.error("Service not found:", serviceError);
+    if (serviceError) {
+      console.error("Service fetch error:", serviceError);
       return { slots: [], error: 'Service not found' };
     }
 
-    const duration = service.duration || 30;
+    const duration = service?.duration || 30;
 
     // 2. Get business hours for the day
     const dayOfWeek = new Date(date).getUTCDay();
