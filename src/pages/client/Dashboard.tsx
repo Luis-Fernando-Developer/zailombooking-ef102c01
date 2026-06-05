@@ -81,7 +81,7 @@ export default function ClientDashboard() {
       // Get bookings stats
       const { data: bookings } = await supabase
         .from('bookings')
-        .select('booking_status, booking_date, booking_time, service:services(name)')
+        .select('booking_status, booking_date, start_time, service:services(name)')
         .eq('client_id', clientData.id);
 
       if (bookings) {
@@ -104,7 +104,7 @@ export default function ClientDashboard() {
           .sort((a, b) => {
             const dateCompare = a.booking_date.localeCompare(b.booking_date);
             if (dateCompare !== 0) return dateCompare;
-            return a.booking_time.localeCompare(b.booking_time);
+            return a.start_time.localeCompare(b.start_time);
           })
           .slice(0, 5);
         setUpcomingBookings(upcoming);
@@ -249,7 +249,7 @@ export default function ClientDashboard() {
                             <div>
                               <p className="font-medium">{booking.service?.name}</p>
                               <p className="text-sm text-muted-foreground">
-                                {formatDate(booking.booking_date)} às {booking.booking_time?.slice(0, 5)}
+                                {formatDate(booking.booking_date)} às {booking.start_time?.slice(0, 5)}
                               </p>
                             </div>
                           </div>
