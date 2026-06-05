@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { getAvailability } from "@/lib/api/availability.server";
+import { getAvailability } from "@/lib/api/availability";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 

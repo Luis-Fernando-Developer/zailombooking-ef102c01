@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Plus, ArrowLeft, CalendarIcon, Clock, User, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { getAvailability } from "@/lib/api/availability.server";
+import { getAvailability } from "@/lib/api/availability";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
