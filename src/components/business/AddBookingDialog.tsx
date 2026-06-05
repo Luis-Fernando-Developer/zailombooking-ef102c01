@@ -206,7 +206,8 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
             'X-Query-Company-Id': companyId,
             'X-Query-Service-Id': serviceId,
             'X-Query-Employee-Id': selectedEmployeeId,
-            'X-Query-Date': dateStr
+            'X-Query-Date': dateStr,
+            'Content-Type': 'application/json'
           }
         });
 
@@ -236,7 +237,8 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
           'X-Query-Company-Id': companyId,
           'X-Query-Service-Id': serviceId,
           'X-Query-Employee-Id': selectedEmployeeId,
-          'X-Query-Date': dateStr
+          'X-Query-Date': dateStr,
+          'Content-Type': 'application/json'
         }
       });
 

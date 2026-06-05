@@ -469,7 +469,8 @@ export default function ClientBooking() {
                 'X-Query-Company-Id': company.id,
                 'X-Query-Service-Id': sId,
                 'X-Query-Employee-Id': selectedEmployee.id,
-                'X-Query-Date': dateStr
+                'X-Query-Date': dateStr,
+                'Content-Type': 'application/json'
               }
             });
 
@@ -488,7 +489,8 @@ export default function ClientBooking() {
               'X-Query-Company-Id': company.id,
               'X-Query-Service-Id': selectedService.id,
               'X-Query-Employee-Id': selectedEmployee.id,
-              'X-Query-Date': dateStr
+              'X-Query-Date': dateStr,
+              'Content-Type': 'application/json'
             }
           });
           
@@ -547,7 +549,8 @@ export default function ClientBooking() {
             'X-Query-Company-Id': company.id,
             'X-Query-Service-Id': firstServiceId,
             'X-Query-Employee-Id': selectedEmployee.id,
-            'X-Query-Date': dateStr
+            'X-Query-Date': dateStr,
+            'Content-Type': 'application/json'
           }
         });
 
@@ -572,7 +575,8 @@ export default function ClientBooking() {
           'X-Query-Company-Id': company.id,
           'X-Query-Service-Id': selectedService.id,
           'X-Query-Employee-Id': selectedEmployee.id,
-          'X-Query-Date': dateStr
+          'X-Query-Date': dateStr,
+          'Content-Type': 'application/json'
         }
       });
       
