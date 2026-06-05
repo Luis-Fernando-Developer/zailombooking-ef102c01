@@ -1255,7 +1255,7 @@ export default function ClientBooking() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {logoSrc && (
-                <img src={logoSrc} alt={company.name} className="w-12 h-12 object-contain border-2 border-blue-600" />
+                <img src={logoSrc} alt={company.name} className="w-12 h-12 object-contain" />
               )}
               <div>
                 <h1 className="text-xl font-bold">{company.name}</h1>
