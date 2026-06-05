@@ -492,12 +492,14 @@ export default function ClientBooking() {
         return null;
       });
 
-      // Process dates in chunks to avoid overwhelming the edge function or getting rate limited
-      const chunkSize = 5;
+      // Process dates in chunks to avoid overwhelming the edge function
+      const chunkSize = 2; // Reduced chunk size to be safer with CORS/Preflight
       for (let i = 0; i < datePromises.length; i += chunkSize) {
         const chunk = datePromises.slice(i, i + chunkSize);
         const chunkResults = await Promise.all(chunk);
         results.push(...chunkResults.filter((d): d is Date => d !== null));
+        // Small delay between chunks to avoid rate limiting or connection drops
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
       
       setAvailableDates(results);
