@@ -22,12 +22,13 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
     });
 
     if (error) {
-      console.error("Supabase function error:", error);
-      throw new Error(error.message || "Error fetching availability");
+      // If it's a specific function error, we still want to return empty slots
+      console.warn("Supabase function error (handled):", error);
+      return { slots: [], error: error.message };
     }
     return data;
   } catch (error: any) {
-    console.error("Error calling get-availability:", error);
+    console.error("Critical error calling get-availability:", error);
     return { slots: [], error: error.message };
   }
 };
