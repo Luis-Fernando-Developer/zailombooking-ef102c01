@@ -465,12 +465,12 @@ export default function ClientBooking() {
             for (const sId of serviceIds) {
             const { data, error } = await supabase.functions.invoke('get-availability', {
               method: 'POST',
-              body: {
+              body: JSON.stringify({
                 company_id: company.id,
                 service_id: sId,
                 employee_id: selectedEmployee.id,
                 date: dateStr
-              }
+              })
             });
 
               if (error) { allHaveSlot = false; break; }
@@ -484,12 +484,12 @@ export default function ClientBooking() {
 
           const { data, error } = await supabase.functions.invoke('get-availability', {
             method: 'POST',
-            body: {
+            body: JSON.stringify({
               company_id: company.id,
               service_id: selectedService.id,
               employee_id: selectedEmployee.id,
               date: dateStr
-            }
+            })
           });
           
           if (!error) {
@@ -543,12 +543,12 @@ export default function ClientBooking() {
         
         const { data, error } = await supabase.functions.invoke('get-availability', {
           method: 'POST',
-          body: {
+          body: JSON.stringify({
             company_id: company.id,
             service_id: firstServiceId,
             employee_id: selectedEmployee.id,
             date: dateStr
-          }
+          })
         });
 
         if (error) throw error;
@@ -568,12 +568,12 @@ export default function ClientBooking() {
       
       const { data, error } = await supabase.functions.invoke('get-availability', {
         method: 'POST',
-        body: {
+        body: JSON.stringify({
           company_id: company.id,
           service_id: selectedService.id,
           employee_id: selectedEmployee.id,
           date: dateStr
-        }
+        })
       });
       
       if (error) {

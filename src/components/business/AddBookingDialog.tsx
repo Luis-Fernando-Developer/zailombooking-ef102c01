@@ -202,12 +202,12 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
 
         const { data, error } = await supabase.functions.invoke('get-availability', {
           method: 'POST',
-          body: {
+          body: JSON.stringify({
             company_id: companyId,
             service_id: serviceId,
             employee_id: selectedEmployeeId,
             date: dateStr
-          }
+          })
         });
 
         if (!error && data?.slots?.length > 0) {
@@ -232,12 +232,12 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
 
       const { data, error } = await supabase.functions.invoke('get-availability', {
         method: 'POST',
-        body: {
+        body: JSON.stringify({
           company_id: companyId,
           service_id: serviceId,
           employee_id: selectedEmployeeId,
           date: dateStr
-        }
+        })
       });
 
       if (!error) {
