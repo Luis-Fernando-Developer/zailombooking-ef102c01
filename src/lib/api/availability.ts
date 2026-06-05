@@ -25,36 +25,57 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
 
     const duration = service?.duration_minutes || 30;
 
-    // 2. Get business hours for the day
-    const dayOfWeek = new Date(date).getUTCDay();
-    const { data: bizHours, error: bizError } = await supabase
-      .from('business_hours')
-      .select('*')
-      .eq('company_id', company_id)
-      .eq('day_of_week', dayOfWeek)
-      .single();
-
-    if (bizError || !bizHours || bizHours.is_closed) {
-      return { slots: [] };
-    }
-
-    // 3. Get employee schedule
-    const { data: empSchedule, error: empSchError } = await supabase
-      .from('employee_schedules')
+    // 2. Check for specific employee availability on this date
+    const { data: specificAvail, error: availError } = await supabase
+      .from('employee_availability')
       .select('*')
       .eq('employee_id', employee_id)
-      .eq('day_of_week', dayOfWeek)
-      .single();
+      .eq('available_date', date)
+      .maybeSingle();
 
-    if (empSchError || !empSchedule || !empSchedule.is_working) {
-      return { slots: [] };
+    let startTime: string;
+    let endTime: string;
+    let breakStart: string | null = null;
+    let breakEnd: string | null = null;
+
+    if (specificAvail) {
+      // Use specific availability if found
+      startTime = specificAvail.start_time;
+      endTime = specificAvail.end_time;
+      breakStart = specificAvail.break_start;
+      breakEnd = specificAvail.break_end;
+    } else {
+      // 3. Get business hours for the day (fallback)
+      const dayOfWeek = new Date(date).getUTCDay();
+      const { data: bizHours, error: bizError } = await supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', company_id)
+        .eq('day_of_week', dayOfWeek)
+        .single();
+
+      if (bizError || !bizHours || bizHours.is_closed) {
+        return { slots: [] };
+      }
+
+      // 4. Get employee schedule (fallback)
+      const { data: empSchedule, error: empSchError } = await supabase
+        .from('employee_schedules')
+        .select('*')
+        .eq('employee_id', employee_id)
+        .eq('day_of_week', dayOfWeek)
+        .single();
+
+      if (empSchError || !empSchedule || !empSchedule.is_working) {
+        return { slots: [] };
+      }
+
+      // Determine working interval (intersection of business hours and employee schedule)
+      startTime = empSchedule.start_time > bizHours.open_time ? empSchedule.start_time : bizHours.open_time;
+      endTime = empSchedule.end_time < bizHours.close_time ? empSchedule.end_time : bizHours.close_time;
     }
 
-    // Determine working interval (intersection of business hours and employee schedule)
-    const startTime = empSchedule.start_time > bizHours.open_time ? empSchedule.start_time : bizHours.open_time;
-    const endTime = empSchedule.end_time < bizHours.close_time ? empSchedule.end_time : bizHours.close_time;
-
-    // 4. Get existing bookings
+    // 5. Get existing bookings
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('start_time, end_time')
@@ -63,7 +84,7 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
       .lte('start_time', `${date}T23:59:59`)
       .not('status', 'eq', 'cancelled');
 
-    // 5. Get blocked slots
+    // 6. Get blocked slots
     const { data: blocked, error: blockedError } = await supabase
       .from('blocked_slots')
       .select('start_time, end_time')
@@ -71,7 +92,7 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
       .gte('start_time', `${date}T00:00:00`)
       .lte('start_time', `${date}T23:59:59`);
 
-    // 6. Generate slots
+    // 7. Generate slots
     const slots = [];
     let current = new Date(`${date}T${startTime}`);
     const end = new Date(`${date}T${endTime}`);
@@ -83,11 +104,20 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
     while (current.getTime() + duration * 60000 <= end.getTime()) {
       const slotStart = current.toISOString();
       const slotEnd = new Date(current.getTime() + duration * 60000).toISOString();
+      const currentFormatted = current.toTimeString().substring(0, 5);
 
       // Check if slot is in the past
       if (date === today && current.getTime() <= now.getTime()) {
         current = new Date(current.getTime() + 30 * 60000);
         continue;
+      }
+
+      // Check if slot is during a break
+      if (breakStart && breakEnd) {
+        if (currentFormatted >= breakStart && currentFormatted < breakEnd) {
+          current = new Date(current.getTime() + 30 * 60000);
+          continue;
+        }
       }
 
       const isBooked = bookings?.some(b => {
@@ -103,7 +133,7 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
       });
 
       if (!isBooked && !isBlocked) {
-        slots.push(current.toTimeString().substring(0, 5));
+        slots.push(currentFormatted);
       }
 
       current = new Date(current.getTime() + 30 * 60000); // Increment by 30 mins
