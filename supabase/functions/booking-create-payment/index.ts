@@ -186,17 +186,17 @@ serve(async (req) => {
     throw new Error('Provedor de pagamento não suportado')
 
   } catch (error) {
-    console.error('Function error detailed:', {
-      message: error.message,
-      stack: error.stack,
-      cause: error.cause
-    })
+    console.error('CRITICAL ERROR in Edge Function:', error.message)
+    console.error('Stack:', error.stack)
+    
     return new Response(JSON.stringify({ 
       error: error.message,
-      details: error.stack 
+      stack: error.stack,
+      timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })
   }
 })
+
