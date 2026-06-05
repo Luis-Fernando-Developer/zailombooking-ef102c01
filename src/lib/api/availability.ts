@@ -20,8 +20,7 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token || supabaseAnonKey}`,
-        'apikey': supabaseAnonKey
+        'Authorization': `Bearer ${session?.access_token || supabaseAnonKey}`
       },
       body: JSON.stringify({ company_id, service_id, employee_id, date })
     });
