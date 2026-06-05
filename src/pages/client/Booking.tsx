@@ -459,18 +459,34 @@ export default function ClientBooking() {
       // and only verify slots when the user selects a specific date or in a more batched way if possible.
       // For now, let's just make it parallel to be faster.
       
+      const results: Date[] = [];
+      const todayStr = format(today, 'yyyy-MM-dd');
+      
+      // Call once for today to check if we can reach the function
+      try {
+        const testData = await getAvailability({
+          data: {
+            company_id: company.id,
+            service_id: selectedService.id.startsWith('combo:') ? combos.find(c => c.id === selectedService.id.replace('combo:', ''))?.items?.[0]?.service_id : selectedService.id,
+            employee_id: selectedEmployee.id,
+            date: todayStr
+          }
+        });
+        console.log("Initial availability check:", testData);
+      } catch (e) {
+        console.error("Initial check failed:", e);
+      }
+
       const datePromises = next30Days.map(async (date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         try {
           let checkServiceId = selectedService.id;
-          
           if (selectedService.id?.startsWith?.('combo:')) {
             const comboId = selectedService.id.replace('combo:', '');
             const combo = combos.find(c => c.id === comboId);
             if (!combo) return null;
-            const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
-            if (serviceIds.length === 0) return null;
-            checkServiceId = serviceIds[0];
+            checkServiceId = combo.items?.[0]?.service_id;
+            if (!checkServiceId) return null;
           }
 
           const data = await getAvailability({
@@ -486,14 +502,12 @@ export default function ClientBooking() {
             return date;
           }
         } catch (err) {
-          // Silent error
+          console.error(`Error checking date ${dateStr}:`, err);
         }
         return null;
       });
 
-      // Split into chunks of 5 to avoid overwhelming the function/browser
-      const results: Date[] = [];
-      const chunkSize = 5;
+      const chunkSize = 3;
       for (let i = 0; i < datePromises.length; i += chunkSize) {
         const chunk = datePromises.slice(i, i + chunkSize);
         const chunkResults = await Promise.all(chunk);

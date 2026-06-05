@@ -12,33 +12,25 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
   const { company_id, service_id, employee_id, date } = params.data;
   
   try {
-    const url = getEdgeFunctionUrl('get-availability');
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-        'x-company-id': company_id,
-        'x-service-id': service_id,
-        'x-employee-id': employee_id,
-        'x-date': date
-      },
-      body: JSON.stringify({
+    const { data, error } = await supabase.functions.invoke('get-availability', {
+      body: {
         company_id,
         service_id,
         employee_id,
         date
-      })
+      },
+      headers: {
+        'x-company-id': company_id,
+        'x-service-id': service_id,
+        'x-employee-id': employee_id,
+        'x-date': date
+      }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Supabase function error text:", errorText);
-      throw new Error(`Error fetching availability: ${response.status} ${response.statusText}`);
+    if (error) {
+      console.error("Supabase function error:", error);
+      throw new Error(error.message || "Error fetching availability");
     }
-
-    const data = await response.json();
     return data;
   } catch (error: any) {
     console.error("Error calling get-availability:", error);
