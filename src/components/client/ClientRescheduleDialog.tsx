@@ -95,7 +95,7 @@ export function ClientRescheduleDialog({
         .from('bookings')
         .update({
           booking_date: newDate,
-          booking_time: selectedTime
+          start_time: selectedTime
         })
         .eq('id', booking.id);
 
@@ -135,7 +135,7 @@ export function ClientRescheduleDialog({
           <div className="p-3 bg-background/50 rounded-lg border border-primary/20 mb-4">
             <p className="text-sm font-medium">{booking.service?.name}</p>
             <p className="text-xs text-muted-foreground">
-              Data atual: {booking.booking_date} às {booking.booking_time?.slice(0, 5)}
+              Data atual: {booking.booking_date} às {booking.start_time?.slice(0, 5)}
             </p>
           </div>
         )}

@@ -442,7 +442,7 @@ export default function BusinessBookings() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4" />
-                          <span className="font-medium">{formatTime(booking.booking_time)}</span>
+                          <span className="font-medium">{formatTime(booking.start_time)}</span>
                         </div>
                       </div>
 
