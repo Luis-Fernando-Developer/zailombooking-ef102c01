@@ -103,7 +103,7 @@ export function BlockedSlotsManager({ companyId }: BlockedSlotsManagerProps) {
     }
 
     try {
-      // Build datetime strings
+      // Build datetime strings with timezone safety
       const startDatetime = newSlot.all_day 
         ? `${newSlot.blocked_date}T00:00:00` 
         : `${newSlot.blocked_date}T${newSlot.start_time}:00`;
