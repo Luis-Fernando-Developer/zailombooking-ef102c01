@@ -76,6 +76,7 @@ export default function CustomLandingPage() {
   const [customization, setCustomization] = useState<CustomizationData | null>(null);
   const [combos, setCombos] = useState<Combo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [businessHours, setBusinessHours] = useState<any[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
   const headerRef = useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -214,7 +215,15 @@ export default function CustomLandingPage() {
       } else {
         setCustomization(null);
       }
-      // Chatbot agora é gerenciado pelo builder externo (TalkMap), não há mais flow ativo a buscar aqui.
+      // Fetch business hours
+      const { data: hoursData } = await supabaseClient
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyData.id)
+        .order('day_of_week');
+
+      setBusinessHours(hoursData || []);
+
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -354,6 +363,37 @@ export default function CustomLandingPage() {
     
 
     return styles;
+  };
+
+  const formatBusinessHours = () => {
+    if (!businessHours || businessHours.length === 0) {
+      return (
+        <div className="space-y-2 text-muted-foreground">
+          <p>Segunda a Sexta: 8:00 - 18:00</p>
+          <p>Sábado: 8:00 - 16:00</p>
+          <p>Domingo: Fechado</p>
+        </div>
+      );
+    }
+
+    const DAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+    return (
+      <div className="space-y-2 text-muted-foreground">
+        {businessHours.map((hour) => (
+          <p key={hour.day_of_week}>
+            {DAYS[hour.day_of_week]}: {hour.is_open ? (
+              <>
+                {hour.open_time} - {hour.close_time}
+                {hour.break_start && hour.break_end && (
+                  <span className="text-xs ml-2">(Intervalo: {hour.break_start} - {hour.break_end})</span>
+                )}
+              </>
+            ) : 'Fechado'}
+          </p>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -902,9 +942,7 @@ export default function CustomLandingPage() {
               <div className="bg-card/50 rounded-lg p-8 border border-primary/20">
                 <h3 className="text-xl font-semibold mb-4">Horário de Funcionamento</h3>
                 <div className="space-y-2 text-muted-foreground">
-                  <p>Segunda a Sexta: 8:00 - 18:00</p>
-                  <p>Sábado: 8:00 - 16:00</p>
-                  <p>Domingo: Fechado</p>
+                  {formatBusinessHours()}
                 </div>
                 <div className="mt-6">
                   <button 
