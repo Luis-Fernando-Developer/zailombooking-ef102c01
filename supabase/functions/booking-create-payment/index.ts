@@ -134,14 +134,20 @@ serve(async (req) => {
     // B) Pagamento
     const billingType = method === 'PIX' ? 'PIX' : (method === 'CREDIT_CARD' ? 'CREDIT_CARD' : (method === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
     
-    console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType}`)
+    const amount = Number(booking.total_price || 0)
+    console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType} | Amount: ${amount}`)
+
+    if (!amount || amount <= 0) {
+      throw new Error(`O valor do agendamento (${amount}) é inválido para processar o pagamento.`)
+    }
+
     const paymentResult = await asaasFetch(`${baseUrl}/payments`, {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify({
         customer: customerId,
         billingType: billingType,
-        value: booking.total_price,
+        value: amount,
         dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // 24h
         description: `Agendamento #${booking.id}`,
         externalReference: booking.id,
