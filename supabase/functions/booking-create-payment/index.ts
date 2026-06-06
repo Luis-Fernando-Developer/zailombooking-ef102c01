@@ -58,8 +58,9 @@ serve(async (req) => {
     }
 
     // 6. Decisão de Ambiente (Sandbox vs Produção)
-    // Se a chave começa com $aact_ é produção, caso contrário sandbox
-    const isSandbox = !decryptedKey.startsWith('$aact_')
+    // Se a chave começa com $aact_hmlg_ ou é curta, é sandbox (homologação)
+    // Se a chave começa com $aact_ mas NÃO tem hmlg_, ou se o usuário explicitamente marcou produção
+    const isSandbox = decryptedKey.includes('hmlg') || !decryptedKey.startsWith('$aact_')
     const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
     
     console.log(`[BOOKING_PAYMENT] Mode: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`)
@@ -71,8 +72,8 @@ serve(async (req) => {
       'User-Agent': 'SupabaseEdgeFunction/1.0'
     }
 
-    console.log(`[BOOKING_PAYMENT] Auth header (prefix): ${decryptedKey.substring(0, 10)}...`)
-    console.log(`[BOOKING_PAYMENT] Auth header (suffix): ...${decryptedKey.substring(decryptedKey.length - 5)}`)
+    console.log(`[BOOKING_PAYMENT] Auth header (prefix): ${decryptedKey.substring(0, 15)}...`)
+    console.log(`[BOOKING_PAYMENT] Auth header (suffix): ...${decryptedKey.substring(Math.max(0, decryptedKey.length - 10))}`)
 
     // Generic Asaas Fetch with improved error logging
     const asaasFetch = async (url: string, options: any) => {
