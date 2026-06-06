@@ -47,41 +47,51 @@ serve(async (req) => {
 
     const isConfirmedEvent = confirmedStatuses.includes(event);
     
-    // We try to find the booking ID from externalReference or from a custom parsing
-    // Asaas sometimes sends it in different places depending on the event type
-    let bookingId = payment?.externalReference || body.payment?.externalReference;
+    // We try to find the booking ID from externalReference in different locations
+    let bookingId = payment?.externalReference || body.payment?.externalReference || body.externalReference;
 
-    if (isConfirmedEvent && bookingId) {
-      console.log(`[ASAAS_WEBHOOK] Updating booking ${bookingId} to confirmed due to event ${event}`)
+    // If still not found, try searching in payment object if it's nested differently
+    if (!bookingId && body.payment) {
+      bookingId = body.payment.externalReference;
+    }
 
-      // Update bookings table
-      const { error: bookingError } = await supabaseClient
-        .from('bookings')
-        .update({ 
-          booking_status: 'confirmed',
-          payment_status: 'confirmed'
-        })
-        .eq('id', bookingId)
-      
-      if (bookingError) {
-        console.error('[ASAAS_WEBHOOK] Error updating booking:', bookingError)
+    console.log(`[ASAAS_WEBHOOK] Is confirmed: ${isConfirmedEvent} | Booking ID: ${bookingId}`)
+
+    if (bookingId) {
+      if (isConfirmedEvent) {
+        console.log(`[ASAAS_WEBHOOK] Updating booking ${bookingId} to confirmed due to event ${event}`)
+
+        // Update bookings table
+        const { error: bookingError } = await supabaseClient
+          .from('bookings')
+          .update({ 
+            booking_status: 'confirmed',
+            payment_status: 'confirmed'
+          })
+          .eq('id', bookingId)
+        
+        if (bookingError) {
+          console.error('[ASAAS_WEBHOOK] Error updating booking:', bookingError)
+        }
+
+        // Update booking_payments table
+        const { error: paymentError } = await supabaseClient
+          .from('booking_payments')
+          .update({ 
+            status: 'paid',
+            updated_at: new Date().toISOString()
+          })
+          .eq('booking_id', bookingId)
+        
+        if (paymentError) {
+          console.error('[ASAAS_WEBHOOK] Error updating booking_payment:', paymentError)
+        }
+        console.log(`[ASAAS_WEBHOOK] Success processing event ${event} for booking ${bookingId}`)
+      } else {
+        console.log(`[ASAAS_WEBHOOK] Event ${event} received for booking ${bookingId} but not a confirmation event.`)
       }
-
-      // Update booking_payments table
-      const { error: paymentError } = await supabaseClient
-        .from('booking_payments')
-        .update({ 
-          status: 'paid',
-          updated_at: new Date().toISOString()
-        })
-        .eq('booking_id', bookingId)
-      
-      if (paymentError) {
-        console.error('[ASAAS_WEBHOOK] Error updating booking_payment:', paymentError)
-      }
-      console.log(`[ASAAS_WEBHOOK] Success processing event ${event} for booking ${bookingId}`)
     } else {
-      console.log(`[ASAAS_WEBHOOK] Event ${event} received but not processed. Payment ID: ${payment?.id}, ExtRef: ${bookingId}`)
+      console.log(`[ASAAS_WEBHOOK] No bookingId found in webhook body. Event: ${event}`)
     }
 
     return new Response(JSON.stringify({ received: true }), {
