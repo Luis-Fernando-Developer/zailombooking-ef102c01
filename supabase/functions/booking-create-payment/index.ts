@@ -97,23 +97,40 @@ serve(async (req) => {
       const searchUrl = `${baseUrl}/customers?${urlParams.toString()}`
       console.log('Searching customer at:', searchUrl)
 
-      const customerSearch = await fetch(searchUrl, {
-        headers: { 
-          'access_token': decryptedKey,
-          'User-Agent': 'SupabaseEdgeFunction/1.0'
-        }
-      })
+      let customerSearchResponse;
+      try {
+        customerSearchResponse = await fetch(searchUrl, {
+          headers: { 
+            'access_token': decryptedKey,
+            'User-Agent': 'SupabaseEdgeFunction/1.0'
+          }
+        })
+      } catch (e) {
+        console.error('Fetch error (Search Customer):', e.message)
+        throw new Error(`Erro de conexão com o Asaas: ${e.message}`)
+      }
       
-      if (!customerSearch.ok) {
-        const errorText = await customerSearch.text()
-        console.error('Customer search failed:', errorText)
-        if (customerSearch.status === 401) {
-          throw new Error('Chave de API do Asaas inválida ou expirada. Verifique as configurações.')
+      if (!customerSearchResponse.ok) {
+        const errorText = await customerSearchResponse.text()
+        console.error('Customer search failed. Status:', customerSearchResponse.status, 'Body:', errorText)
+        
+        if (customerSearchResponse.status === 401 || customerSearchResponse.status === 403) {
+          throw new Error('Chave de API do Asaas inválida ou sem permissão. Verifique se a chave está correta e se possui as permissões necessárias.')
         }
-        throw new Error(`Asaas API error (Search Customer): ${customerSearch.status} - ${errorText}`)
+        
+        try {
+          const errJson = JSON.parse(errorText)
+          if (errJson.errors && errJson.errors[0]) {
+            throw new Error(`Erro Asaas (Busca): ${errJson.errors[0].description}`)
+          }
+        } catch (e) {
+          if (e.message.startsWith('Erro Asaas')) throw e
+        }
+        
+        throw new Error(`Asaas API error (Search Customer): ${customerSearchResponse.status}`)
       }
 
-      const customerData = await customerSearch.json()
+      const customerData = await customerSearchResponse.json()
       let customerId = customerData.data?.[0]?.id
 
       if (!customerId) {
