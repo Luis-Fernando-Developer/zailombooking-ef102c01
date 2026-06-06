@@ -1221,7 +1221,9 @@ export default function ClientBooking() {
                 <p className="text-sm text-muted-foreground">
                   Você receberá um e-mail de confirmação em breve.
                 </p>
-                <Badge variant="secondary">Status: Aguardando Confirmação</Badge>
+                <Badge variant={paymentDialog.wasPaid ? "success" : "secondary"}>
+                  Status: {paymentDialog.wasPaid ? "Confirmado" : "Aguardando Confirmação"}
+                </Badge>
               </div>
 
               <Button
