@@ -1298,8 +1298,8 @@ export default function ClientBooking() {
             cpf_cnpj: client?.cpf,
           }}
           allowPayLater={paymentDialog.allowLater}
-          onPayLater={() => { setPaymentDialog({ open: false }); setStep(6); }}
-          onPaid={() => { setPaymentDialog({ open: false }); setStep(6); }}
+          onPayLater={() => { setPaymentDialog({ ...paymentDialog, open: false, wasPaid: false }); setStep(6); }}
+          onPaid={() => { setPaymentDialog({ ...paymentDialog, open: false, wasPaid: true }); setStep(6); }}
         />
       )}
     </div>
