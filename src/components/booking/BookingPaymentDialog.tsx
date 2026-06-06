@@ -103,11 +103,14 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
               </RadioGroup>
             </div>
 
-            {(selected === "BOLETO" || selected.includes("CARD")) && (
-              <div className="space-y-2">
-                <div><Label>CPF/CNPJ do pagador</Label><Input value={payer.cpf_cnpj || ""} onChange={(e) => setPayer({ ...payer, cpf_cnpj: e.target.value })} /></div>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>CPF/CNPJ do pagador</Label>
+              <Input 
+                value={payer.cpf_cnpj || ""} 
+                onChange={(e) => setPayer({ ...payer, cpf_cnpj: e.target.value.replace(/\D/g, "") })} 
+                placeholder="Apenas números"
+              />
+            </div>
 
             <Button onClick={generate} disabled={loading} className="w-full">
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Gerar pagamento
