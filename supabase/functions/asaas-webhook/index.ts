@@ -36,11 +36,16 @@ serve(async (req) => {
     const { event, payment } = body
     console.log(`[ASAAS_WEBHOOK] Event: ${event} | Payment ID: ${payment?.id}`)
 
-    const isConfirmedEvent = event === 'PAYMENT_RECEIVED' || 
-                            event === 'PAYMENT_CONFIRMED' || 
-                            event === 'PAYMENT_SETTLED' ||
-                            event === 'PAYMENT_RECEIVED_BY_ASAAS' ||
-                            event === 'PAYMENT_AUTHORIZED';
+    const confirmedStatuses = [
+      'PAYMENT_RECEIVED',
+      'PAYMENT_CONFIRMED',
+      'PAYMENT_SETTLED',
+      'PAYMENT_RECEIVED_BY_ASAAS',
+      'PAYMENT_AUTHORIZED',
+      'CHECKOUT_PAID'
+    ];
+
+    const isConfirmedEvent = confirmedStatuses.includes(event);
 
     if (isConfirmedEvent && payment?.externalReference) {
       const bookingId = payment.externalReference

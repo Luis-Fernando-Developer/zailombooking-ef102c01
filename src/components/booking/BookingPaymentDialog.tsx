@@ -67,13 +67,11 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           .eq("id", bookingId)
           .maybeSingle();
 
-        const { data: paymentData, error: paymentErr } = await supabase
+        const { data: payments, error: paymentErr } = await supabase
           .from("booking_payments")
           .select("status")
           .eq("booking_id", bookingId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .order('created_at', { ascending: false });
         
         if (bookingErr || paymentErr) {
           console.error("[PAYMENT_DIALOG] Error polling status:", bookingErr || paymentErr);
@@ -82,18 +80,24 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         
         const bStatus = bookingData?.payment_status?.toLowerCase();
         const bBookingStatus = bookingData?.booking_status?.toLowerCase();
-        const pStatus = paymentData?.status?.toLowerCase();
+        
+        // Check if ANY payment row for this booking is paid
+        const hasPaidPaymentRow = payments?.some(p => 
+          ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(p.status?.toLowerCase() || "")
+        );
         
         console.log("[PAYMENT_DIALOG] Current status from DB:", { 
           booking_payment_status: bStatus, 
           booking_status: bBookingStatus,
-          payment_row_status: pStatus 
+          has_paid_payment_row: hasPaidPaymentRow,
+          payment_rows_count: payments?.length || 0
         });
         
         const isPaidStatus = (s: string | undefined) => 
           ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(s || "");
 
-        if (isPaidStatus(bStatus) || isPaidStatus(pStatus) || bBookingStatus === 'confirmed') { 
+        if (isPaidStatus(bStatus) || hasPaidPaymentRow || bBookingStatus === 'confirmed') { 
+
           clearInterval(t); 
           console.log("[PAYMENT_DIALOG] Payment confirmed! Updating UI...");
           toast({ title: "Pagamento confirmado!" }); 
