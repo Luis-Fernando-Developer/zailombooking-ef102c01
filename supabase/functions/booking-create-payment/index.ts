@@ -162,7 +162,10 @@ serve(async (req) => {
           method: 'GET',
           headers: authHeaders
         })
-        pixInfo = { pix_qr_code: pixData.encodedImage, pix_payload: pixData.payload }
+        pixInfo = { 
+          pix_qr_code: `data:image/png;base64,${pixData.encodedImage}`, 
+          pix_payload: pixData.payload 
+        }
       } catch (e) {
         console.warn('[BOOKING_PAYMENT] Pix QR Code fail:', e.message)
       }
