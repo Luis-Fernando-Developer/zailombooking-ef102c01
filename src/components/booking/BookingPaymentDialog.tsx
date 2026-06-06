@@ -56,7 +56,15 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
     setPolling(true);
     const t = setInterval(async () => {
       const { data } = await supabase.from("booking_payments").select("status").eq("booking_id", bookingId).maybeSingle();
-      if (data?.status === "paid") { clearInterval(t); toast({ title: "Pagamento confirmado!" }); onPaid(); }
+      if (data?.status === "paid") { 
+        clearInterval(t); 
+        toast({ title: "Pagamento confirmado!" }); 
+        setIsPaid(true);
+        setTimeout(() => {
+          onPaid();
+          onClose();
+        }, 3000);
+      }
     }, 5000);
     return () => { clearInterval(t); setPolling(false); };
   }, [payment, bookingId]);
