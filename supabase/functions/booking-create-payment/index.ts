@@ -45,42 +45,43 @@ serve(async (req) => {
       const rawKey = settings.own_gateway_api_key_encrypted;
       console.log('Raw key from DB length:', rawKey.length)
       
-      // Se a chave já começa com o prefixo do Asaas ($aact_) ou tem formato de chave de sandbox (geralmente > 32 chars)
+      // Basic validation: Asaas tokens usually start with $aact_ and are followed by a long hash
+      // If it looks like a valid production token or a sandbox token (> 60 chars), use it directly
       if (rawKey.startsWith('$aact_') || rawKey.length > 50) {
-        console.log('API Key looks like plain text or valid Asaas token, using as is')
+        console.log('API Key looks like a direct Asaas token')
         decryptedKey = rawKey
       } else {
-        console.log('Attempting RPC decryption for potentially encrypted key...')
+        console.log('Key is short, attempting RPC decryption...')
         try {
-          // Tentamos descriptografar apenas se não parecer uma chave pura
           const { data: decrypted, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
             p_encrypted: rawKey,
             p_secret: "asaas-own-gateway"
           })
 
           if (decErr) {
-            console.warn('RPC decryption failed, checking if raw key is usable:', decErr.message)
+            console.warn('RPC decryption failed, falling back to raw key:', decErr.message)
             decryptedKey = rawKey
           } else if (!decrypted) {
-            console.log('RPC returned empty result, using raw value')
+            console.log('RPC returned no data, using raw key')
             decryptedKey = rawKey
           } else {
             console.log('RPC decryption successful')
             decryptedKey = decrypted
           }
         } catch (e) {
-          console.error('Exception during RPC call:', e)
+          console.error('Exception during decryption:', e.message)
           decryptedKey = rawKey
         }
       }
     }
 
-    if (!decryptedKey || decryptedKey.trim() === "") {
-      throw new Error('Chave de API do Asaas não encontrada. Salve-a novamente nas configurações da empresa.')
+    if (!decryptedKey || decryptedKey.trim().length < 10) {
+      throw new Error('Chave de API do Asaas não encontrada ou inválida. Por favor, salve a chave novamente nas configurações.')
     }
 
-    // Limpeza básica da chave (remover espaços, quebras de linha ou caracteres invisíveis)
-    decryptedKey = decryptedKey.trim().replace(/[\r\n]/g, '')
+    // Clean up the key: remove spaces, tabs, newlines
+    decryptedKey = decryptedKey.trim().replace(/\s/g, '')
+    console.log('Final key length:', decryptedKey.length, 'Starts with:', decryptedKey.substring(0, 10) + '...')
 
     // 3. Create payment in Asaas
     if (settings.own_gateway_provider === 'asaas') {
