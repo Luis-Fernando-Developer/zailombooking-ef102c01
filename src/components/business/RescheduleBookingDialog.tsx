@@ -90,12 +90,13 @@ export function RescheduleBookingDialog({
 
     try {
       const newDate = format(selectedDate, 'yyyy-MM-dd');
+      const timeFormatted = selectedTime.includes(':') ? (selectedTime.length === 5 ? selectedTime : selectedTime.slice(0, 5)) : selectedTime;
       
       const { error } = await supabase
         .from('bookings')
         .update({
           booking_date: newDate,
-          start_time: selectedTime.includes(':') ? (selectedTime.length === 5 ? selectedTime : selectedTime.slice(0, 5)) : selectedTime
+          start_time: `${newDate}T${timeFormatted}:00`
         })
         .eq('id', booking.id);
 
