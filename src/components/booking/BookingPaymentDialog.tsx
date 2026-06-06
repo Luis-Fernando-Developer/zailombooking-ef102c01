@@ -59,7 +59,15 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
     const t = setInterval(async () => {
       try {
         console.log("[PAYMENT_DIALOG] Polling status for booking:", bookingId);
-        const { data, error } = await supabase
+        
+        // We fetch ALL status fields from the booking and its related payments
+        const { data: bookingData, error: bookingErr } = await supabase
+          .from("bookings")
+          .select("payment_status, booking_status")
+          .eq("id", bookingId)
+          .maybeSingle();
+
+        const { data: paymentData, error: paymentErr } = await supabase
           .from("booking_payments")
           .select("status")
           .eq("booking_id", bookingId)
@@ -67,15 +75,19 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           .limit(1)
           .maybeSingle();
         
-        if (error) {
-          console.error("[PAYMENT_DIALOG] Error polling status:", error);
+        if (bookingErr || paymentErr) {
+          console.error("[PAYMENT_DIALOG] Error polling status:", bookingErr || paymentErr);
           return;
         }
         
-        console.log("[PAYMENT_DIALOG] Current status from DB:", data?.status);
+        const bStatus = bookingData?.payment_status?.toLowerCase();
+        const pStatus = paymentData?.status?.toLowerCase();
         
-        const currentStatus = data?.status?.toLowerCase();
-        if (currentStatus === "paid" || currentStatus === "confirmed" || currentStatus === "received") { 
+        console.log("[PAYMENT_DIALOG] Current status from DB:", { booking_payment_status: bStatus, payment_row_status: pStatus });
+        
+        const isPaidStatus = (s: string | undefined) => ["paid", "confirmed", "received", "pago"].includes(s || "");
+
+        if (isPaidStatus(bStatus) || isPaidStatus(pStatus)) { 
           clearInterval(t); 
           console.log("[PAYMENT_DIALOG] Payment confirmed! Updating UI...");
           toast({ title: "Pagamento confirmado!" }); 
@@ -88,7 +100,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
       }
-    }, 4000);
+    }, 3000);
     
     return () => { 
       clearInterval(t); 
