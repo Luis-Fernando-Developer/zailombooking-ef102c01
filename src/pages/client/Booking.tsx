@@ -86,7 +86,7 @@ export default function ClientBooking() {
   const [client, setClient] = useState<any>(null);
   const [customization, setCustomization] = useState<any>(null);
   const [pendingEmployeeRestore, setPendingEmployeeRestore] = useState<string | null>(null);
-  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; bookingId?: string; amount?: number; allowLater?: boolean }>({ open: false });
+  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; bookingId?: string; amount?: number; allowLater?: boolean; wasPaid?: boolean }>({ open: false });
 
   useEffect(() => {
     fetchCompanyAndServices();
@@ -1221,7 +1221,9 @@ export default function ClientBooking() {
                 <p className="text-sm text-muted-foreground">
                   Você receberá um e-mail de confirmação em breve.
                 </p>
-                <Badge variant="secondary">Status: Aguardando Confirmação</Badge>
+                <Badge variant={paymentDialog.wasPaid ? "default" : "secondary"} className={paymentDialog.wasPaid ? "bg-green-500 hover:bg-green-600" : ""}>
+                  Status: {paymentDialog.wasPaid ? "Confirmado" : "Aguardando Confirmação"}
+                </Badge>
               </div>
 
               <Button
@@ -1296,8 +1298,8 @@ export default function ClientBooking() {
             cpf_cnpj: client?.cpf,
           }}
           allowPayLater={paymentDialog.allowLater}
-          onPayLater={() => { setPaymentDialog({ open: false }); setStep(6); }}
-          onPaid={() => { setPaymentDialog({ open: false }); setStep(6); }}
+          onPayLater={() => { setPaymentDialog({ ...paymentDialog, open: false, wasPaid: false }); setStep(6); }}
+          onPaid={() => { setPaymentDialog({ ...paymentDialog, open: false, wasPaid: true }); setStep(6); }}
         />
       )}
     </div>
