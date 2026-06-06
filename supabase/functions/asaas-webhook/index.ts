@@ -29,7 +29,7 @@ serve(async (req) => {
       console.error('[ASAAS_WEBHOOK] Failed to parse JSON body:', e.message)
       return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200, // Return 200 even on error to stop Asaas retries
+        status: 200, 
       })
     }
 
@@ -37,10 +37,8 @@ serve(async (req) => {
     const payment = body.payment || body; 
     const currentStatus = (payment?.status || body.status || '').toUpperCase();
     
-    // Log explicitamente os dados que o Asaas envia para debugar se necessário
     console.info(`[ASAAS_WEBHOOK] Body ID: ${body.id} | Evento: ${event} | Status Pagamento: ${currentStatus} | ID Pagamento Asaas: ${payment?.id}`)
 
-    // Lista exaustiva de eventos de confirmação do Asaas (Sandbox e Produção)
     const confirmedEvents = [
       'PAYMENT_CONFIRMED', 
       'PAYMENT_RECEIVED', 
@@ -53,7 +51,6 @@ serve(async (req) => {
       'CHECKOUT_PAID'
     ];
     
-    // Status que indicam pagamento concluído
     const successStatuses = [
       'CONFIRMED',
       'RECEIVED', 
@@ -69,7 +66,6 @@ serve(async (req) => {
 
     let bookingId = payment?.externalReference || body.externalReference || body.payment?.externalReference;
     
-    // Fallback: Tentar pegar de campos aninhados ou metadados se existirem
     if (!bookingId && payment?.metadata?.booking_id) {
       bookingId = payment.metadata.booking_id;
     }
@@ -81,7 +77,6 @@ serve(async (req) => {
     }
     
     if (!bookingId) {
-      // Regex mais robusto para UUID
       const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
       const uuidMatch = rawBody.match(uuidRegex);
       if (uuidMatch) bookingId = uuidMatch[0];
@@ -89,35 +84,38 @@ serve(async (req) => {
 
     console.info(`[ASAAS_WEBHOOK] Agendamento ID Extraído: ${bookingId} | Confirmado: ${isConfirmed}`)
 
-    if (bookingId) {
+    if (bookingId && isConfirmed) {
       const now = new Date().toISOString();
       
-      if (isConfirmed) {
-        // Log to a dedicated audit table if it exists, or just log to console
-        console.info(`[ASAAS_WEBHOOK] Updating database for booking ${bookingId}`);
+      console.info(`[ASAAS_WEBHOOK] Updating database for booking ${bookingId}`);
+      
+      const { error: bErr } = await supabaseClient
+        .from('bookings')
+        .update({ 
+          booking_status: 'confirmed',
+          payment_status: 'confirmed',
+          updated_at: now
+        })
+        .eq('id', bookingId);
         
-        const { error: bErr } = await supabaseClient
-          .from('bookings')
-          .update({ 
-            booking_status: 'confirmed',
-            payment_status: 'confirmed',
-            updated_at: now
-          })
-          .eq('id', bookingId);
-          
-        const { error: pErr } = await supabaseClient
-          .from('booking_payments')
-          .update({ 
-            status: 'paid', 
-            updated_at: now
-          })
-          .eq('booking_id', bookingId);
+      const { error: pErr } = await supabaseClient
+        .from('booking_payments')
+        .update({ 
+          status: 'paid', 
+          updated_at: now
+        })
+        .eq('booking_id', bookingId);
 
-        if (bErr) console.error('[ASAAS_WEBHOOK] Bookings update error:', bErr);
-        if (pErr) console.error('[ASAAS_WEBHOOK] Booking_payments update error:', pErr);
-        
-        console.info(`[ASAAS_WEBHOOK] DB updates completed for ${bookingId}`);
-      }
+      if (bErr) console.error('[ASAAS_WEBHOOK] Bookings update error:', bErr);
+      if (pErr) console.error('[ASAAS_WEBHOOK] Booking_payments update error:', pErr);
+      
+      console.info(`[ASAAS_WEBHOOK] DB updates completed for ${bookingId}`);
+    } else if (bookingId && (event === 'PAYMENT_CREATED' || currentStatus === 'PENDING')) {
+      console.info(`[ASAAS_WEBHOOK] Ensuring booking is pending for ${bookingId}`);
+      await supabaseClient
+        .from('bookings')
+        .update({ payment_status: 'pending' })
+        .eq('id', bookingId);
     }
 
     return new Response(JSON.stringify({ success: true }), {
