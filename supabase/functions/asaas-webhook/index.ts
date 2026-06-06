@@ -103,7 +103,7 @@ serve(async (req) => {
         console.log(`[ASAAS_WEBHOOK] Event ${event} / Status ${currentStatus} not considered confirmation for ${bookingId}.`);
       }
     } else {
-      console.log(`[ASAAS_WEBHOOK] Could not identify booking from webhook body.`);
+      console.error(`[ASAAS_WEBHOOK] CRITICAL: Could not identify booking from webhook body. Body snippet: ${bodyStr.substring(0, 200)}`);
     }
 
     return new Response(JSON.stringify({ received: true }), {

@@ -35,6 +35,8 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   const [isPaid, setIsPaid] = useState(false);
 
   useEffect(() => {
+    console.log("[PAYMENT_DIALOG] Booking ID:", bookingId);
+    console.log("[PAYMENT_DIALOG] Payer Info:", payerInitial);
     if (!open) return;
     (async () => {
       const { data } = await supabase
