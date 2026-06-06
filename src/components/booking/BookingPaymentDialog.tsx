@@ -52,12 +52,27 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
   // Polling for paid status
   useEffect(() => {
-    if (!payment?.id || polling) return;
+    if (!payment?.id || polling || isPaid) return;
     setPolling(true);
+    console.log("[PAYMENT_DIALOG] Starting poll for booking:", bookingId);
+    
     const t = setInterval(async () => {
-      const { data } = await supabase.from("booking_payments").select("status").eq("booking_id", bookingId).maybeSingle();
-      if (data?.status === "paid") { 
+      const { data, error } = await supabase
+        .from("booking_payments")
+        .select("status")
+        .eq("booking_id", bookingId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("[PAYMENT_DIALOG] Error polling status:", error);
+        return;
+      }
+      
+      console.log("[PAYMENT_DIALOG] Current status:", data?.status);
+      
+      if (data?.status === "paid" || data?.status === "confirmed") { 
         clearInterval(t); 
+        console.log("[PAYMENT_DIALOG] Payment confirmed! Updating UI...");
         toast({ title: "Pagamento confirmado!" }); 
         setIsPaid(true);
         setTimeout(() => {
@@ -66,8 +81,13 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         }, 3000);
       }
     }, 5000);
-    return () => { clearInterval(t); setPolling(false); };
-  }, [payment, bookingId]);
+    
+    return () => { 
+      clearInterval(t); 
+      setPolling(false); 
+      console.log("[PAYMENT_DIALOG] Stopped poll");
+    };
+  }, [payment, bookingId, isPaid]);
 
   async function generate() {
     setLoading(true);

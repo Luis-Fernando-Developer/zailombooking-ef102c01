@@ -151,6 +151,10 @@ serve(async (req) => {
         dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // 24h
         description: `Agendamento #${booking.id}`,
         externalReference: booking.id,
+        postalCode: '12345678', // Postal code fallback for webhooks
+        address: 'Rua Principal',
+        addressNumber: '123',
+        province: 'Centro',
       })
     })
 
