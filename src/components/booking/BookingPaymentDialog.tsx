@@ -81,10 +81,11 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const bStatus = bookingData?.payment_status?.toLowerCase();
         const bBookingStatus = bookingData?.booking_status?.toLowerCase();
         
+        const isPaidStatus = (s: string | undefined) => 
+          ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas"].includes(s?.toLowerCase() || "");
+
         // Check if ANY payment row for this booking is paid
-        const hasPaidPaymentRow = payments?.some(p => 
-          ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(p.status?.toLowerCase() || "")
-        );
+        const hasPaidPaymentRow = payments?.some(p => isPaidStatus(p.status));
         
         console.log("[PAYMENT_DIALOG] Current status from DB:", { 
           booking_payment_status: bStatus, 
@@ -92,37 +93,18 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           has_paid_payment_row: hasPaidPaymentRow,
           payment_rows_count: payments?.length || 0
         });
-        
-        const isPaidStatus = (s: string | undefined) => 
-          ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas"].includes(s?.toLowerCase() || "");
 
         // If either booking or any payment row is confirmed, we finish
         if (isPaidStatus(bStatus) || hasPaidPaymentRow || isPaidStatus(bBookingStatus)) { 
-          console.log("[PAYMENT_DIALOG] Payment confirmed! Updating UI...");
+          console.log("[PAYMENT_DIALOG] Confirmation detected! Completing...");
           clearInterval(t); 
           toast({ title: "Pagamento confirmado!" }); 
           setIsPaid(true);
           
-          // Small delay before closing to show success state
           setTimeout(() => {
             onPaid();
             onClose();
-          }, 3000);
-        } else {
-          // Fallback: check the booking one more time directly by ID to ensure fresh state
-          // and also check for recent confirmed events in some log or transaction table if exists
-          const { data: freshBooking } = await supabase
-            .from("bookings")
-            .select("payment_status, booking_status")
-            .eq("id", bookingId)
-            .single();
-            
-          if (isPaidStatus(freshBooking?.payment_status) || isPaidStatus(freshBooking?.booking_status)) {
-            console.log("[PAYMENT_DIALOG] Fresh check confirmed payment!");
-            clearInterval(t);
-            setIsPaid(true);
-            setTimeout(() => { onPaid(); onClose(); }, 2000);
-          }
+          }, 2000);
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
