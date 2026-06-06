@@ -18,6 +18,8 @@ serve(async (req) => {
     )
 
     const rawBody = await req.text()
+    console.log('--- RAW REQUEST BODY ---', rawBody)
+    
     const body = JSON.parse(rawBody)
     const { booking_id, method, payer } = body
 
@@ -37,17 +39,27 @@ serve(async (req) => {
 
     if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
 
-    let decryptedKey = (settings.own_gateway_api_key_encrypted || "").trim()
+    // Limpeza profunda da chave
+    let decryptedKey = (settings.own_gateway_api_key_encrypted || "")
+      .trim()
       .replace(/[\n\r\t]/g, '')
-      .replace(/[^\x20-\x7E]/g, '')
+      .replace(/\s+/g, '')
 
     if (!decryptedKey || decryptedKey.length < 10) {
       throw new Error('Chave de API do Asaas não encontrada. Por favor, salve a chave novamente nas configurações.')
     }
 
     if (settings.own_gateway_provider === 'asaas') {
+      // Se o usuário diz que é Sandbox, vamos forçar Sandbox para testar.
+      // O Asaas Sandbox usa chaves que NÃO começam com $aact_
       const isSandbox = !decryptedKey.startsWith('$aact_')
       const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
+      
+      console.log(`--- DIAGNOSTIC START ---`)
+      console.log(`Environment: ${isSandbox ? 'SANDBOX' : 'PRODUCAO'}`)
+      console.log(`Base URL: ${baseUrl}`)
+      console.log(`Key starts with: ${decryptedKey.substring(0, 10)}...`)
+      console.log(`Key length: ${decryptedKey.length}`)
       
       const authHeaders = { 
         'access_token': decryptedKey,
@@ -57,24 +69,28 @@ serve(async (req) => {
 
       // Helper to handle Asaas fetch with debugging
       const asaasFetch = async (url: string, options: any) => {
+        console.log(`Fetching Asaas: ${options.method} ${url}`)
         const res = await fetch(url, options)
+        const responseText = await res.text()
+        
         if (!res.ok) {
-          const text = await res.text()
-          console.error(`Asaas error at ${url}. Status: ${res.status}. Body: ${text}`)
+          console.error(`Asaas error at ${url}. Status: ${res.status}. Body: ${responseText}`)
           
           if (res.status === 401) {
+            // Se falhou com 401, vamos tentar o outro ambiente só por garantia? 
+            // Não, o usuário confirmou que é Sandbox.
             throw new Error(`CHAVE_API_INVALIDA|${isSandbox ? 'SANDBOX' : 'PRODUCAO'}|${decryptedKey.substring(0, 10)}`)
           }
           
           try {
-            const json = JSON.parse(text)
+            const json = JSON.parse(responseText)
             if (json.errors?.[0]?.description) throw new Error(json.errors[0].description)
           } catch (e) {
-            if (!e.message.includes('CHAVE_API_INVALIDA')) throw new Error(`Erro Asaas (${res.status}): ${text.substring(0, 100)}`)
+            if (!e.message.includes('CHAVE_API_INVALIDA')) throw new Error(`Erro Asaas (${res.status}): ${responseText.substring(0, 100)}`)
             throw e
           }
         }
-        return res.json()
+        return JSON.parse(responseText)
       }
 
       // A) Find or create customer
@@ -90,6 +106,7 @@ serve(async (req) => {
       let customerId = customerData.data?.[0]?.id
 
       if (!customerId) {
+        console.log('Customer not found, creating new one...')
         const newCustomer = await asaasFetch(`${baseUrl}/customers`, {
           method: 'POST',
           headers: authHeaders,
@@ -165,7 +182,7 @@ serve(async (req) => {
     if (error.message.startsWith('CHAVE_API_INVALIDA')) {
       const [, env, prefix] = error.message.split('|')
       return new Response(JSON.stringify({ 
-        error: `A Chave de API (${prefix}...) não foi aceita pelo Asaas em modo ${env}. Verifique se você não está usando uma chave de Sandbox no ambiente de Produção ou vice-versa.`,
+        error: `A Chave de API (${prefix}...) não foi aceita pelo Asaas em modo ${env}. Você pegou esta chave em sandbox.asaas.com? Se sim, verifique se não há espaços sobrando.`,
         code: 'INVALID_API_KEY'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -179,6 +196,7 @@ serve(async (req) => {
     })
   }
 })
+
 
 
 
