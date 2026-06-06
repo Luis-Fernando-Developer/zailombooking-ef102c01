@@ -70,26 +70,52 @@ serve(async (req) => {
 
     console.log(`[ASAAS_WEBHOOK] Is confirmed: ${isConfirmedEvent} | Booking ID: ${bookingId}`)
 
-    if (bookingId && isConfirmedEvent) {
-      console.log(`[ASAAS_WEBHOOK] Processing confirmation for booking ${bookingId}`);
+    if (bookingId) {
+      if (isConfirmedEvent) {
+        console.log(`[ASAAS_WEBHOOK] Processing confirmation for booking ${bookingId}`);
 
-      // We perform updates in a single block for better reliability
-      const updateData = { 
-        booking_status: 'confirmed',
-        payment_status: 'confirmed'
-      };
+        const updateData = { 
+          booking_status: 'confirmed',
+          payment_status: 'confirmed',
+          updated_at: new Date().toISOString()
+        };
 
-      const [bookingUpdate, paymentUpdate] = await Promise.all([
-        supabaseClient.from('bookings').update(updateData).eq('id', bookingId),
-        supabaseClient.from('booking_payments').update({ status: 'paid', updated_at: new Date().toISOString() }).eq('booking_id', bookingId)
-      ]);
+        const [bookingUpdate, paymentUpdate] = await Promise.all([
+          supabaseClient.from('bookings').update(updateData).eq('id', bookingId),
+          supabaseClient.from('booking_payments').update({ 
+            status: 'paid', 
+            updated_at: new Date().toISOString() 
+          }).eq('booking_id', bookingId)
+        ]);
 
-      if (bookingUpdate.error) console.error('[ASAAS_WEBHOOK] Bookings update error:', bookingUpdate.error);
-      if (paymentUpdate.error) console.error('[ASAAS_WEBHOOK] Booking_payments update error:', paymentUpdate.error);
-      
-      console.log(`[ASAAS_WEBHOOK] Update attempt finished for ${bookingId}`);
-    } else if (bookingId) {
-      console.log(`[ASAAS_WEBHOOK] Event ${event} ignored (not a confirmation).`);
+        if (bookingUpdate.error) console.error('[ASAAS_WEBHOOK] Bookings update error:', bookingUpdate.error);
+        if (paymentUpdate.error) console.error('[ASAAS_WEBHOOK] Booking_payments update error:', paymentUpdate.error);
+        
+        console.log(`[ASAAS_WEBHOOK] Update attempt finished for ${bookingId}`);
+      } else {
+        // Even if not a confirmed event, we check if the payment is ALREADY paid in Asaas
+        // to handle cases where we might have missed the actual confirmation event
+        const confirmedAsaasStatuses = ['RECEIVED', 'CONFIRMED', 'RECEIVED_BY_ASAAS', 'SETTLED'];
+        const asaasStatus = payment?.status || body.status;
+        
+        if (confirmedAsaasStatuses.includes(asaasStatus)) {
+          console.log(`[ASAAS_WEBHOOK] Detected confirmed status ${asaasStatus} for ${bookingId} even if event was ${event}`);
+          
+          await Promise.all([
+            supabaseClient.from('bookings').update({ 
+              booking_status: 'confirmed', 
+              payment_status: 'confirmed',
+              updated_at: new Date().toISOString()
+            }).eq('id', bookingId),
+            supabaseClient.from('booking_payments').update({ 
+              status: 'paid', 
+              updated_at: new Date().toISOString() 
+            }).eq('booking_id', bookingId)
+          ]);
+        } else {
+          console.log(`[ASAAS_WEBHOOK] Event ${event} (Status: ${asaasStatus}) ignored for ${bookingId}.`);
+        }
+      }
     } else {
       console.log(`[ASAAS_WEBHOOK] Could not identify booking from webhook body.`);
     }
