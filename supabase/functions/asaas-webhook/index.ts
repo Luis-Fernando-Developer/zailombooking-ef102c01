@@ -7,7 +7,8 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.info(`[ASAAS_WEBHOOK] Received ${req.method} request at ${new Date().toISOString()}`)
+  const requestId = crypto.randomUUID().substring(0, 8);
+  console.info(`[ASAAS_WEBHOOK][${requestId}] Received ${req.method} request`);
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -17,7 +18,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     
-    // Configuração do cliente Supabase sem persistência de sessão para evitar overhead
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -27,14 +27,15 @@ serve(async (req) => {
     });
 
     const rawBody = await req.text()
-    console.info('[ASAAS_WEBHOOK] Raw body received:', rawBody)
+    console.info(`[ASAAS_WEBHOOK][${requestId}] Raw body:`, rawBody)
     
     let body
     try {
       body = JSON.parse(rawBody)
     } catch (e) {
-      console.error('[ASAAS_WEBHOOK] Failed to parse JSON body:', e.message)
-      return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+      console.error(`[ASAAS_WEBHOOK][${requestId}] JSON parse error:`, e.message)
+      // Respond 200 to Asaas even on parse error to avoid retries if body is truly invalid
+      return new Response(JSON.stringify({ error: 'Invalid JSON', received: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200, 
       })
