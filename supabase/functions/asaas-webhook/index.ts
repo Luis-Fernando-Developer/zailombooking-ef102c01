@@ -49,9 +49,10 @@ serve(async (req) => {
       'CHECKOUT_PAID'
     ];
     
-    // Simplificar: se qualquer um dos indicadores for positivo, confirmamos.
-    const isConfirmed = confirmedEvents.includes(event) || 
-                        ['RECEIVED', 'CONFIRMED', 'SETTLED', 'AUTHORIZED', 'PAYMENT_RECEIVED'].includes(currentStatus);
+    // Lista exaustiva de status que indicam sucesso no Asaas
+    const successStatuses = ['RECEIVED', 'CONFIRMED', 'SETTLED', 'AUTHORIZED', 'PAYMENT_RECEIVED', 'RECEIVED_IN_CASH'];
+    
+    const isConfirmed = confirmedEvents.includes(event) || successStatuses.includes(currentStatus);
 
     let bookingId = payment?.externalReference || body.externalReference || body.payment?.externalReference;
     
