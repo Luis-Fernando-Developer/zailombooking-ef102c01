@@ -49,8 +49,9 @@ serve(async (req) => {
       'CHECKOUT_PAID'
     ];
     
+    // Simplificar: se qualquer um dos indicadores for positivo, confirmamos.
     const isConfirmed = confirmedEvents.includes(event) || 
-                        ['RECEIVED', 'CONFIRMED', 'SETTLED', 'AUTHORIZED'].includes(currentStatus);
+                        ['RECEIVED', 'CONFIRMED', 'SETTLED', 'AUTHORIZED', 'PAYMENT_RECEIVED'].includes(currentStatus);
 
     let bookingId = payment?.externalReference || body.externalReference || body.payment?.externalReference;
     

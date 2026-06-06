@@ -82,9 +82,9 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         
         console.log(`[PAYMENT_DIALOG] Status para ${bookingId}: Agendamento=${bBookingStatus}, Pagamento=${bStatus}`);
 
-        const isSuccess = (s: string) => ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(s.toLowerCase());
+        const isSuccess = (s: string) => ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes((s || "").toLowerCase());
         
-        const hasConfirmedPayment = pData.some(p => isSuccess(p.status || ""));
+        const hasConfirmedPayment = Array.isArray(pData) && pData.some(p => isSuccess(p.status || ""));
         const bookingConfirmed = isSuccess(bStatus) || isSuccess(bBookingStatus) || bBookingStatus === 'confirmed';
 
         if (bookingConfirmed || hasConfirmedPayment) {
