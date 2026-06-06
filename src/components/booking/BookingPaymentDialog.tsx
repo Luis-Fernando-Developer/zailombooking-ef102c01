@@ -54,74 +54,59 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
   // Polling for paid status
   useEffect(() => {
-    if (!payment?.id || isPaid) return;
+    if (!payment?.id || isPaid || !open) return;
     
     console.log("[PAYMENT_DIALOG] Starting poll for booking:", bookingId);
     
+    let isSubscribed = true;
     const t = setInterval(async () => {
+      if (!isSubscribed) return;
+      
       try {
-        console.log("[PAYMENT_DIALOG] Polling status for booking:", bookingId);
-        
-        // Fetch fresh data with a direct query
-        const { data: bookingData, error: bookingErr } = await supabase
-          .from("bookings")
-          .select("payment_status, booking_status, updated_at")
-          .eq("id", bookingId)
-          .single();
+        // Fetch fresh status from BOTH tables
+        const [bookingRes, paymentsRes] = await Promise.all([
+          supabase.from("bookings").select("payment_status, booking_status").eq("id", bookingId).maybeSingle(),
+          supabase.from("booking_payments").select("status").eq("booking_id", bookingId)
+        ]);
 
-        const { data: payments, error: paymentErr } = await supabase
-          .from("booking_payments")
-          .select("status, updated_at")
-          .eq("booking_id", bookingId);
-        
-        if (bookingErr || paymentErr) {
-          console.error("[PAYMENT_DIALOG] Error polling status:", bookingErr || paymentErr);
+        if (bookingRes.error || paymentsRes.error) {
+          console.error("[PAYMENT_DIALOG] Polling error:", bookingRes.error || paymentsRes.error);
           return;
         }
-        
-        const bStatus = (bookingData?.payment_status || "").toLowerCase();
-        const bBookingStatus = (bookingData?.booking_status || "").toLowerCase();
 
-        console.log(`[PAYMENT_DIALOG] Checking for booking ${bookingId}. Raw status from DB: bStatus=${bStatus}, bBookingStatus=${bBookingStatus}`);
-        
-        const isPaidStatus = (s: string) => {
-          if (!s) return false;
-          const status = s.toLowerCase().trim();
-          return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled", "authorized", "received_by_asaas", "payment_received", "payment_confirmed"].includes(status);
-        };
+        const bData = bookingRes.data;
+        const pData = paymentsRes.data || [];
 
-        const hasPaidPaymentRow = payments && payments.length > 0 && payments.some(p => isPaidStatus(p.status || ""));
+        const bStatus = (bData?.payment_status || "").toLowerCase();
+        const bBookingStatus = (bData?.booking_status || "").toLowerCase();
         
-        // Very aggressive success check
-        const isConfirmed = isPaidStatus(bStatus) || 
-                          isPaidStatus(bBookingStatus) || 
-                          bBookingStatus === 'confirmed' || 
-                          bStatus === 'confirmed' ||
-                          hasPaidPaymentRow;
+        console.log(`[PAYMENT_DIALOG] Status for ${bookingId}: Book=${bBookingStatus}, Pay=${bStatus}`);
 
-        if (isConfirmed) { 
-          console.log("[PAYMENT_DIALOG] SUCCESS! Confirmation detected. Booking Status:", bBookingStatus, "Payment Status:", bStatus);
-          clearInterval(t); 
-          toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado com sucesso." }); 
+        const isSuccess = (s: string) => ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(s.toLowerCase());
+        
+        const hasConfirmedPayment = pData.some(p => isSuccess(p.status || ""));
+        const bookingConfirmed = isSuccess(bStatus) || isSuccess(bBookingStatus) || bBookingStatus === 'confirmed';
+
+        if (bookingConfirmed || hasConfirmedPayment) {
+          console.log("[PAYMENT_DIALOG] CONFIRMED!");
+          isSubscribed = false;
+          clearInterval(t);
           setIsPaid(true);
           onPaid();
-          
-          setTimeout(() => {
-            onClose();
-          }, 3000);
+          toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
+          setTimeout(onClose, 3000);
         }
       } catch (err) {
-        console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
+        console.error("[PAYMENT_DIALOG] Poll exception:", err);
       }
-    }, 1500); // More frequent polling (1.5s) to catch it instantly
-
-
+    }, 2000);
     
     return () => { 
+      isSubscribed = false;
       clearInterval(t); 
-      console.log("[PAYMENT_DIALOG] Stopped poll");
     };
-  }, [payment?.id, bookingId, isPaid]);
+  }, [payment?.id, bookingId, isPaid, open]);
+
 
   async function generate() {
     setLoading(true);
