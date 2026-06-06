@@ -116,7 +116,8 @@ serve(async (req) => {
         console.error('Customer search failed. Status:', customerSearchResponse.status, 'Body:', errorText)
         
         if (customerSearchResponse.status === 401 || customerSearchResponse.status === 403) {
-          throw new Error('Chave de API do Asaas inválida ou sem permissão. Verifique se a chave está correta e se possui as permissões necessárias.')
+          console.error('CRITICAL: Invalid API Key or Unauthorized. Token prefix:', decryptedKey.substring(0, 10))
+          throw new Error('CHAVE_API_INVALIDA')
         }
         
         try {
@@ -253,12 +254,20 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('CRITICAL ERROR in Edge Function:', error.message)
-    console.error('Stack:', error.stack)
     
-    // Tentamos extrair o corpo da resposta se for um erro de fetch
     let detailedError = error.message
     
-    // Se for um erro JSON do Asaas, vamos extrair a mensagem amigável
+    // Tratamento especial para erros de autenticação para retornar status 401
+    if (detailedError === 'CHAVE_API_INVALIDA') {
+      return new Response(JSON.stringify({ 
+        error: 'Chave de API do Asaas inválida ou sem permissão. Verifique se a chave está correta e se possui as permissões necessárias.',
+        code: 'INVALID_API_KEY'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
     try {
       if (error.message.includes('{')) {
         const jsonStart = error.message.indexOf('{')
@@ -277,7 +286,7 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200, // Retornamos 200 para que o client possa ler o erro JSON
+      status: 400, // Usamos 400 em vez de 500 para erros de negócio/entrada
     })
   }
 })
