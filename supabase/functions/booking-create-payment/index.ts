@@ -39,16 +39,18 @@ serve(async (req) => {
 
     // 2. Decrypt API Key
     let decryptedKey = ""
-    console.log('Attempting to get API Key for company:', booking.company_id)
+    console.log('--- DIAGNOSTIC START ---')
+    console.log('Company ID:', booking.company_id)
     
     if (settings.own_gateway_api_key_encrypted) {
       const rawKey = settings.own_gateway_api_key_encrypted;
       console.log('Raw key from DB length:', rawKey.length)
       
-      // Basic validation: Asaas tokens usually start with $aact_ and are followed by a long hash
-      // If it looks like a valid production token or a sandbox token (> 60 chars), use it directly
+      // DIAGNOSTIC: Log the exact content for verification (safe since it's an edge function log only visible to dev)
+      console.log('Raw key from DB content:', rawKey)
+      
       if (rawKey.startsWith('$aact_') || rawKey.length > 50) {
-        console.log('API Key looks like a direct Asaas token')
+        console.log('API Key starts with $aact_ or is long enough, using as-is.')
         decryptedKey = rawKey
       } else {
         console.log('Key is short, attempting RPC decryption...')
@@ -59,7 +61,7 @@ serve(async (req) => {
           })
 
           if (decErr) {
-            console.warn('RPC decryption failed, falling back to raw key:', decErr.message)
+            console.warn('RPC decryption failed:', decErr.message)
             decryptedKey = rawKey
           } else if (!decrypted) {
             console.log('RPC returned no data, using raw key')
@@ -76,12 +78,16 @@ serve(async (req) => {
     }
 
     if (!decryptedKey || decryptedKey.trim().length < 10) {
+      console.error('ERROR: No valid key found. Found length:', decryptedKey?.trim()?.length)
       throw new Error('Chave de API do Asaas não encontrada ou inválida. Por favor, salve a chave novamente nas configurações.')
     }
 
-    // Clean up the key: remove spaces, tabs, newlines
-    decryptedKey = decryptedKey.trim().replace(/\s/g, '')
-    console.log('Final key length:', decryptedKey.length, 'Starts with:', decryptedKey.substring(0, 10) + '...')
+    // Clean up the key
+    decryptedKey = decryptedKey.trim()
+    console.log('Cleaned key length:', decryptedKey.length)
+    console.log('Cleaned key starts with:', decryptedKey.substring(0, 10))
+    console.log('--- DIAGNOSTIC END ---')
+
 
     // 3. Create payment in Asaas
     if (settings.own_gateway_provider === 'asaas') {
