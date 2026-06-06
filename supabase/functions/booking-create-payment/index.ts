@@ -37,50 +37,19 @@ serve(async (req) => {
 
     if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
 
-    // 2. Decrypt API Key
-    let decryptedKey = ""
+    // 2. API Key Retrieval (Simple & Robust)
+    let decryptedKey = settings.own_gateway_api_key_encrypted || ""
+    
     console.log('--- DIAGNOSTIC START ---')
     console.log('Company ID:', booking.company_id)
-    
-    if (settings.own_gateway_api_key_encrypted) {
-      const rawKey = settings.own_gateway_api_key_encrypted;
-      console.log('Raw key from DB length:', rawKey.length)
-      
-      // If the key is already in the Asaas format, use it directly
-      if (rawKey.startsWith('$aact_') || (rawKey.length > 50 && !rawKey.includes(':'))) {
-        console.log('API Key seems to be stored in plain text (migrated or not encrypted), using as-is.')
-        decryptedKey = rawKey
-      } else {
-        console.log('Key appears encrypted, attempting RPC decryption...')
-        try {
-          const { data: decrypted, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
-            p_encrypted: rawKey,
-            p_secret: "asaas-own-gateway"
-          })
+    console.log('Stored key length:', decryptedKey.length)
 
-          if (decErr) {
-            console.warn('RPC decryption failed:', decErr.message)
-            decryptedKey = rawKey
-          } else if (!decrypted) {
-            console.log('RPC returned no data (possibly already plain text but failed check), using raw key')
-            decryptedKey = rawKey
-          } else {
-            console.log('RPC decryption successful')
-            decryptedKey = decrypted
-          }
-        } catch (e) {
-          console.error('Exception during decryption:', e.message)
-          decryptedKey = rawKey
-        }
-      }
-    }
-
-    // Clean up the key
-    decryptedKey = decryptedKey?.trim() || ""
+    // Force cleaning of any potential invisible characters
+    decryptedKey = decryptedKey.trim().replace(/[\n\r\t]/g, '')
     
     if (!decryptedKey || decryptedKey.length < 10) {
-      console.error('ERROR: No valid key found. Found length:', decryptedKey.length)
-      throw new Error('Chave de API do Asaas não encontrada ou inválida. Por favor, salve a chave novamente nas configurações.')
+      console.error('ERROR: No valid key found.')
+      throw new Error('Chave de API do Asaas não encontrada. Por favor, salve a chave novamente nas configurações.')
     }
 
     console.log('Final key length:', decryptedKey.length)
@@ -97,14 +66,15 @@ serve(async (req) => {
 
       // A) First, find or create customer
       const urlParams = new URLSearchParams()
-      if (payer.email) urlParams.append('email', payer.email)
       if (payer.cpf_cnpj) urlParams.append('cpfCnpj', payer.cpf_cnpj)
+      else if (payer.email) urlParams.append('email', payer.email)
       
       const searchUrl = `${baseUrl}/customers?${urlParams.toString()}`
       console.log('Searching customer at:', searchUrl)
 
       let customerSearchResponse;
       try {
+        console.log('Requesting Asaas with token length:', decryptedKey.length)
         customerSearchResponse = await fetch(searchUrl, {
           headers: { 
             'access_token': decryptedKey,
