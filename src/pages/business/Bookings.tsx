@@ -416,8 +416,8 @@ export default function BusinessBookings() {
               </CardContent>
             </Card>
           ) : (
-            filteredBookings.map((booking, index) => (
-              <Card key={`${booking.id}-${index}`} className="flex flex-col card-glow bg-card/50 backdrop-blur-sm border-primary/20 ">
+            filteredBookings.map((booking) => (
+              <Card key={booking.id} className="flex flex-col card-glow bg-card/50 backdrop-blur-sm border-primary/20 ">
                 <CardContent className="relative w-full p-6 flex flex-col  h-full">
                   <div className="w-full flex flex-col">
                     <div className="flex flex-col space-y-4">
