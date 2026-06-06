@@ -167,21 +167,30 @@ export default function BusinessBookings() {
   };
 
   const fetchBookings = async (companyId: string) => {
-    const { data: bookingsData } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        client:clients(*),
-        service:services(*),
-        combo:service_combos(*),
-        employee:employees(*)
-      `)
-      .eq('company_id', companyId)
-      .order('booking_date', { ascending: false })
-      .order('start_time', { ascending: true });
+    try {
+      const { data: bookingsData, error } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          client:clients(*),
+          service:services(*),
+          combo:service_combos(*),
+          employee:employees(*)
+        `)
+        .eq('company_id', companyId)
+        .order('booking_date', { ascending: false })
+        .order('start_time', { ascending: true });
 
-    console.log('bookingsData:', bookingsData);
-    setBookings(bookingsData || []);
+      if (error) {
+        console.error('Error fetching bookings:', error);
+        return;
+      }
+
+      console.log('bookingsData fetched:', bookingsData);
+      setBookings(bookingsData || []);
+    } catch (err) {
+      console.error('Unexpected error fetching bookings:', err);
+    }
   };
 
   const applyFilters = () => {
@@ -252,6 +261,11 @@ export default function BusinessBookings() {
   };
 
   const formatTime = (time: string) => {
+    if (!time) return "";
+    // Se a string contiver a data completa (ISO), extrai apenas o horário
+    if (time.includes('T')) {
+      return time.split('T')[1].slice(0, 5);
+    }
     return time.slice(0, 5);
   };
 
@@ -397,8 +411,8 @@ export default function BusinessBookings() {
               </CardContent>
             </Card>
           ) : (
-            filteredBookings.map((booking) => (
-              <Card key={booking.id} className="flex flex-col card-glow bg-card/50 backdrop-blur-sm border-primary/20 ">
+            filteredBookings.map((booking, index) => (
+              <Card key={`${booking.id}-${index}`} className="flex flex-col card-glow bg-card/50 backdrop-blur-sm border-primary/20 ">
                 <CardContent className="relative w-full p-6 flex flex-col  h-full">
                   <div className="w-full flex flex-col">
                     <div className="flex flex-col space-y-4">
@@ -478,19 +492,19 @@ export default function BusinessBookings() {
                         <DropdownMenuContent align="end" className="bg-card border-primary/20">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
+                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'confirmed')}>
                             <Check className="mr-2 h-4 w-4" />
                             Confirmar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
+                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'completed')}>
                             <Check className="mr-2 h-4 w-4" />
                             Marcar como Concluído
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'no_show')}>
+                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'no_show')}>
                             <AlertCircle className="mr-2 h-4 w-4" />
                             Não Realizado
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'cancelled')}>
+                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'cancelled')}>
                             <X className="mr-2 h-4 w-4" />
                             Cancelar
                           </DropdownMenuItem>
