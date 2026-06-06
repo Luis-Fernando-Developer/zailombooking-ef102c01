@@ -71,7 +71,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[ASAAS_WEBHOOK] Is confirmed: ${isConfirmedEvent} | Booking ID: ${bookingId}`)
+    console.log(`[ASAAS_WEBHOOK] Is confirmed: ${isConfirmed} | Booking ID: ${bookingId}`)
 
     if (bookingId) {
       if (isConfirmed) {
