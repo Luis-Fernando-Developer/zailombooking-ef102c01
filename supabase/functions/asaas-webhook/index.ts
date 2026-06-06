@@ -37,20 +37,26 @@ serve(async (req) => {
     const payment = body.payment || body; 
     const currentStatus = (payment?.status || body.status || '').toUpperCase();
     
-    console.info(`[ASAAS_WEBHOOK] Event: ${event} | Status: ${currentStatus} | Payment ID: ${payment?.id}`)
+    // Log explicitamente os dados que o Asaas envia
+    console.info(`[ASAAS_WEBHOOK] Evento: ${event} | Status Pagamento: ${currentStatus} | ID Asaas: ${payment?.id}`)
 
-    const confirmedStatuses = [
-      'PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED', 'PAYMENT_SETTLED', 
-      'PAYMENT_RECEIVED_BY_ASAAS', 'PAYMENT_AUTHORIZED', 'CHECKOUT_PAID'
+    const confirmedEvents = [
+      'PAYMENT_RECEIVED', 
+      'PAYMENT_CONFIRMED', 
+      'PAYMENT_SETTLED', 
+      'PAYMENT_RECEIVED_BY_ASAAS', 
+      'PAYMENT_AUTHORIZED', 
+      'CHECKOUT_PAID'
     ];
     
-    const isConfirmed = confirmedStatuses.includes(event) || 
+    const isConfirmed = confirmedEvents.includes(event) || 
                         ['RECEIVED', 'CONFIRMED', 'SETTLED', 'AUTHORIZED'].includes(currentStatus);
 
-    let bookingId = payment?.externalReference || body.externalReference;
+    let bookingId = payment?.externalReference || body.externalReference || body.payment?.externalReference;
     
-    if (!bookingId && payment?.description?.includes('#')) {
-      const match = payment.description.match(/#([0-9a-f-]{36})/i);
+    if (!bookingId && (payment?.description || body.description)?.includes('#')) {
+      const desc = payment?.description || body.description;
+      const match = desc.match(/#([0-9a-f-]{36})/i);
       if (match) bookingId = match[1];
     }
     
@@ -59,7 +65,7 @@ serve(async (req) => {
       if (uuidMatch) bookingId = uuidMatch[0];
     }
 
-    console.info(`[ASAAS_WEBHOOK] Extracted Booking ID: ${bookingId} | Confirmed: ${isConfirmed}`)
+    console.info(`[ASAAS_WEBHOOK] Agendamento ID: ${bookingId} | Confirmado: ${isConfirmed}`)
 
     if (bookingId) {
       const now = new Date().toISOString();
