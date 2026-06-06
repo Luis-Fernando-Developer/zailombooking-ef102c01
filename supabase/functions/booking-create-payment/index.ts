@@ -97,14 +97,15 @@ serve(async (req) => {
 
       // A) First, find or create customer
       const urlParams = new URLSearchParams()
-      if (payer.email) urlParams.append('email', payer.email)
       if (payer.cpf_cnpj) urlParams.append('cpfCnpj', payer.cpf_cnpj)
+      else if (payer.email) urlParams.append('email', payer.email)
       
       const searchUrl = `${baseUrl}/customers?${urlParams.toString()}`
       console.log('Searching customer at:', searchUrl)
 
       let customerSearchResponse;
       try {
+        console.log('Requesting Asaas with token length:', decryptedKey.length)
         customerSearchResponse = await fetch(searchUrl, {
           headers: { 
             'access_token': decryptedKey,
