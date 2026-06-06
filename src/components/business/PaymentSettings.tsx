@@ -129,9 +129,8 @@ export function PaymentSettings({ companyId }: Props) {
       };
 
       if (apiKeyInput.trim()) {
-        // We save the key directly in plain text for this provider to ensure it's not corrupted by encryption mismatches.
-        // In a future update, we can re-enable encryption once the RPC is fully stable.
-        payload.own_gateway_api_key_encrypted = apiKeyInput.trim();
+        const cleanKey = apiKeyInput.trim().replace(/[\r\n\t]/g, '');
+        payload.own_gateway_api_key_encrypted = cleanKey;
       }
 
       const { error } = await (supabase as any)
