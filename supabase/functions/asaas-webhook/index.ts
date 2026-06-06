@@ -38,7 +38,9 @@ serve(async (req) => {
 
     const isConfirmedEvent = event === 'PAYMENT_RECEIVED' || 
                             event === 'PAYMENT_CONFIRMED' || 
-                            event === 'PAYMENT_SETTLED';
+                            event === 'PAYMENT_SETTLED' ||
+                            event === 'PAYMENT_RECEIVED_BY_ASAAS' ||
+                            event === 'PAYMENT_AUTHORIZED';
 
     if (isConfirmedEvent && payment?.externalReference) {
       const bookingId = payment.externalReference

@@ -81,13 +81,19 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         }
         
         const bStatus = bookingData?.payment_status?.toLowerCase();
+        const bBookingStatus = bookingData?.booking_status?.toLowerCase();
         const pStatus = paymentData?.status?.toLowerCase();
         
-        console.log("[PAYMENT_DIALOG] Current status from DB:", { booking_payment_status: bStatus, payment_row_status: pStatus });
+        console.log("[PAYMENT_DIALOG] Current status from DB:", { 
+          booking_payment_status: bStatus, 
+          booking_status: bBookingStatus,
+          payment_row_status: pStatus 
+        });
         
-        const isPaidStatus = (s: string | undefined) => ["paid", "confirmed", "received", "pago"].includes(s || "");
+        const isPaidStatus = (s: string | undefined) => 
+          ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(s || "");
 
-        if (isPaidStatus(bStatus) || isPaidStatus(pStatus)) { 
+        if (isPaidStatus(bStatus) || isPaidStatus(pStatus) || bBookingStatus === 'confirmed') { 
           clearInterval(t); 
           console.log("[PAYMENT_DIALOG] Payment confirmed! Updating UI...");
           toast({ title: "Pagamento confirmado!" }); 
