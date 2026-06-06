@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // 1. Resposta rápida para preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -17,12 +18,21 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // 2. Extração do corpo com log básico
     const rawBody = await req.text()
-    console.log('--- RAW REQUEST BODY ---', rawBody)
+    console.log('[BOOKING_PAYMENT] Request body:', rawBody)
     
-    const body = JSON.parse(rawBody)
-    const { booking_id, method, payer } = body
+    let body
+    try {
+      body = JSON.parse(rawBody)
+    } catch (e) {
+      throw new Error('Corpo da requisição inválido')
+    }
 
+    const { booking_id, method, payer } = body
+    if (!booking_id) throw new Error('booking_id é obrigatório')
+
+    // 3. Buscar agendamento e empresa
     const { data: booking, error: bErr } = await supabaseClient
       .from('bookings')
       .select('*, company:companies(*)')
@@ -31,6 +41,7 @@ serve(async (req) => {
 
     if (bErr || !booking) throw new Error('Agendamento não encontrado')
 
+    // 4. Buscar configurações de pagamento
     const { data: settings, error: sErr } = await supabaseClient
       .from('company_payment_settings')
       .select('*')
@@ -39,160 +50,152 @@ serve(async (req) => {
 
     if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
 
-    // Limpeza profunda da chave
-    let decryptedKey = (settings.own_gateway_api_key_encrypted || "")
-      .trim()
-      .replace(/[\n\r\t]/g, '')
-      .replace(/\s+/g, '')
-
-    if (!decryptedKey || decryptedKey.length < 10) {
-      throw new Error('Chave de API do Asaas não encontrada. Por favor, salve a chave novamente nas configurações.')
+    // 5. Limpeza da chave
+    let decryptedKey = (settings.own_gateway_api_key_encrypted || "").trim()
+    
+    if (!decryptedKey) {
+      throw new Error('Chave de API do Asaas não configurada na empresa')
     }
 
-    if (settings.own_gateway_provider === 'asaas') {
-      // Se o usuário diz que é Sandbox, vamos forçar Sandbox para testar.
-      // O Asaas Sandbox usa chaves que NÃO começam com $aact_
-      const isSandbox = !decryptedKey.startsWith('$aact_')
-      const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
-      
-      console.log(`--- DIAGNOSTIC START ---`)
-      console.log(`Environment: ${isSandbox ? 'SANDBOX' : 'PRODUCAO'}`)
-      console.log(`Base URL: ${baseUrl}`)
-      console.log(`Key starts with: ${decryptedKey.substring(0, 10)}...`)
-      console.log(`Key length: ${decryptedKey.length}`)
-      
-      const authHeaders = { 
-        'access_token': decryptedKey,
-        'Content-Type': 'application/json',
-        'User-Agent': 'SupabaseEdgeFunction/1.0'
-      }
+    // 6. Decisão de Ambiente (Sandbox vs Produção)
+    // Se a chave começa com $aact_ é produção, caso contrário sandbox
+    const isSandbox = !decryptedKey.startsWith('$aact_')
+    const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
+    
+    console.log(`[BOOKING_PAYMENT] Mode: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`)
+    console.log(`[BOOKING_PAYMENT] Target: ${baseUrl}`)
 
-      // Helper to handle Asaas fetch with debugging
-      const asaasFetch = async (url: string, options: any) => {
-        console.log(`Fetching Asaas: ${options.method} ${url}`)
-        const res = await fetch(url, options)
-        const responseText = await res.text()
+    const authHeaders = { 
+      'access_token': decryptedKey,
+      'Content-Type': 'application/json',
+      'User-Agent': 'SupabaseEdgeFunction/1.0'
+    }
+
+    // Generic Asaas Fetch with improved error logging
+    const asaasFetch = async (url: string, options: any) => {
+      const response = await fetch(url, options)
+      const text = await response.text()
+      
+      if (!response.ok) {
+        console.error(`[ASAAS_ERROR] ${response.status} | ${url} | Response: ${text}`)
         
-        if (!res.ok) {
-          console.error(`Asaas error at ${url}. Status: ${res.status}. Body: ${responseText}`)
-          
-          if (res.status === 401) {
-            // Se falhou com 401, vamos tentar o outro ambiente só por garantia? 
-            // Não, o usuário confirmou que é Sandbox.
-            throw new Error(`CHAVE_API_INVALIDA|${isSandbox ? 'SANDBOX' : 'PRODUCAO'}|${decryptedKey.substring(0, 10)}`)
-          }
-          
-          try {
-            const json = JSON.parse(responseText)
-            if (json.errors?.[0]?.description) throw new Error(json.errors[0].description)
-          } catch (e) {
-            if (!e.message.includes('CHAVE_API_INVALIDA')) throw new Error(`Erro Asaas (${res.status}): ${responseText.substring(0, 100)}`)
-            throw e
-          }
+        if (response.status === 401) {
+          throw new Error('AUTORIZACAO_FALHOU_ASAAS')
         }
-        return JSON.parse(responseText)
+        
+        try {
+          const json = JSON.parse(text)
+          if (json.errors?.[0]?.description) throw new Error(json.errors[0].description)
+        } catch (e) {
+          if (e.message === 'AUTORIZACAO_FALHOU_ASAAS') throw e
+          throw new Error(`Erro Asaas (${response.status})`)
+        }
       }
-
-      // A) Find or create customer
-      const urlParams = new URLSearchParams()
-      if (payer.cpf_cnpj) urlParams.append('cpfCnpj', payer.cpf_cnpj)
-      else if (payer.email) urlParams.append('email', payer.email)
       
-      const customerData = await asaasFetch(`${baseUrl}/customers?${urlParams.toString()}`, {
-        method: 'GET',
-        headers: authHeaders
-      })
-
-      let customerId = customerData.data?.[0]?.id
-
-      if (!customerId) {
-        console.log('Customer not found, creating new one...')
-        const newCustomer = await asaasFetch(`${baseUrl}/customers`, {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify({
-            name: payer.name || 'Cliente Agendamento',
-            email: payer.email,
-            phone: payer.phone,
-            cpfCnpj: payer.cpf_cnpj
-          })
-        })
-        customerId = newCustomer.id
+      try {
+        return JSON.parse(text)
+      } catch (e) {
+        return text
       }
+    }
 
-      // B) Create payment
-      const billingType = method === 'PIX' ? 'PIX' : (method === 'CREDIT_CARD' ? 'CREDIT_CARD' : (method === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
-      
-      const paymentResult = await asaasFetch(`${baseUrl}/payments`, {
+    // A) Cliente
+    const urlParams = new URLSearchParams()
+    if (payer.cpf_cnpj) urlParams.append('cpfCnpj', payer.cpf_cnpj)
+    else if (payer.email) urlParams.append('email', payer.email)
+    
+    let customerId
+    const customers = await asaasFetch(`${baseUrl}/customers?${urlParams.toString()}`, {
+      method: 'GET',
+      headers: authHeaders
+    })
+
+    customerId = customers.data?.[0]?.id
+
+    if (!customerId) {
+      console.log('[BOOKING_PAYMENT] Creating customer...')
+      const newCustomer = await asaasFetch(`${baseUrl}/customers`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
-          customer: customerId,
-          billingType: billingType,
-          value: booking.total_price,
-          dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-          description: `Agendamento #${booking.id}`,
-          externalReference: booking.id,
+          name: payer.name || 'Cliente',
+          email: payer.email,
+          phone: payer.phone,
+          cpfCnpj: payer.cpf_cnpj
         })
       })
+      customerId = newCustomer.id
+    }
 
-      // C) If PIX, get QR Code
-      let pixInfo = {}
-      if (billingType === 'PIX') {
-        try {
-          const pixData = await asaasFetch(`${baseUrl}/payments/${paymentResult.id}/pixQrCode`, {
-            method: 'GET',
-            headers: authHeaders
-          })
-          pixInfo = { pix_qr_code: pixData.encodedImage, pix_payload: pixData.payload }
-        } catch (e) {
-          console.warn('Failed to get Pix QR Code:', e.message)
-        }
+    // B) Pagamento
+    const billingType = method === 'PIX' ? 'PIX' : (method === 'CREDIT_CARD' ? 'CREDIT_CARD' : (method === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
+    
+    console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType}`)
+    const paymentResult = await asaasFetch(`${baseUrl}/payments`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        customer: customerId,
+        billingType: billingType,
+        value: booking.total_price,
+        dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // 24h
+        description: `Agendamento #${booking.id}`,
+        externalReference: booking.id,
+      })
+    })
+
+    // C) QR Code se for PIX
+    let pixInfo = {}
+    if (billingType === 'PIX') {
+      try {
+        const pixData = await asaasFetch(`${baseUrl}/payments/${paymentResult.id}/pixQrCode`, {
+          method: 'GET',
+          headers: authHeaders
+        })
+        pixInfo = { pix_qr_code: pixData.encodedImage, pix_payload: pixData.payload }
+      } catch (e) {
+        console.warn('[BOOKING_PAYMENT] Pix QR Code fail:', e.message)
       }
+    }
 
-      const paymentData = {
+    const responseData = {
+      payment: {
         id: paymentResult.id,
         method: billingType,
         invoice_url: paymentResult.invoiceUrl,
         bank_slip_url: paymentResult.bankSlipUrl,
         ...pixInfo
       }
-
-      await supabaseClient.from('booking_payments').insert({
-        booking_id: booking.id,
-        gateway_payment_id: paymentResult.id,
-        provider: 'asaas',
-        amount: booking.total_price,
-        status: 'pending',
-        method: billingType,
-        payment_data: paymentData
-      })
-
-      return new Response(JSON.stringify({ payment: paymentData }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
     }
 
-    throw new Error('Provedor de pagamento não suportado')
+    // Gravar no banco
+    await supabaseClient.from('booking_payments').insert({
+      booking_id: booking.id,
+      gateway_payment_id: paymentResult.id,
+      provider: 'asaas',
+      amount: booking.total_price,
+      status: 'pending',
+      method: billingType,
+      payment_data: responseData.payment
+    })
+
+    return new Response(JSON.stringify(responseData), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    })
 
   } catch (error: any) {
-    console.error('Edge Function Error:', error.message)
+    console.error('[BOOKING_PAYMENT] Error:', error.message)
     
-    if (error.message.startsWith('CHAVE_API_INVALIDA')) {
-      const [, env, prefix] = error.message.split('|')
-      return new Response(JSON.stringify({ 
-        error: `A Chave de API (${prefix}...) não foi aceita pelo Asaas em modo ${env}. Você pegou esta chave em sandbox.asaas.com? Se sim, verifique se não há espaços sobrando.`,
-        code: 'INVALID_API_KEY'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      })
-    }
+    const isAuthError = error.message === 'AUTORIZACAO_FALHOU_ASAAS'
+    const status = isAuthError ? 401 : 400
+    const message = isAuthError 
+      ? 'A chave de API não foi aceita pelo Asaas. Verifique se a chave é do ambiente correto (Sandbox vs Produção) e se foi copiada sem espaços.'
+      : error.message
 
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status,
     })
   }
 })
