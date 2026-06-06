@@ -33,6 +33,9 @@ serve(async (req) => {
       })
     }
 
+    const bodyStr = JSON.stringify(body);
+    console.log('[ASAAS_WEBHOOK] Searching for externalReference in:', bodyStr);
+
     const { event, payment } = body
     console.log(`[ASAAS_WEBHOOK] Event: ${event} | Payment ID: ${payment?.id}`)
 
@@ -47,12 +50,27 @@ serve(async (req) => {
 
     const isConfirmedEvent = confirmedStatuses.includes(event);
     
-    // We try to find the booking ID from externalReference in different locations
-    let bookingId = payment?.externalReference || body.payment?.externalReference || body.externalReference;
+    // Resilient externalReference extraction
+    let bookingId = null;
 
-    // If still not found, try searching in payment object if it's nested differently
-    if (!bookingId && body.payment) {
-      bookingId = body.payment.externalReference;
+    // 1. Check direct paths
+    if (payment?.externalReference) bookingId = payment.externalReference;
+    else if (body.payment?.externalReference) bookingId = body.payment.externalReference;
+    else if (body.externalReference) bookingId = body.externalReference;
+    
+    // 2. If not found, regex search for UUID in the entire body (last resort)
+    if (!bookingId) {
+      const uuidMatch = bodyStr.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      if (uuidMatch) {
+        // We only use this if we can verify it's a booking
+        const tempId = uuidMatch[0];
+        console.log(`[ASAAS_WEBHOOK] Found UUID in body: ${tempId}, checking if it's a valid booking...`);
+        const { data: bookingCheck } = await supabaseClient.from('bookings').select('id').eq('id', tempId).maybeSingle();
+        if (bookingCheck) {
+          bookingId = tempId;
+          console.log(`[ASAAS_WEBHOOK] UUID ${tempId} validated as a booking.`);
+        }
+      }
     }
 
     console.log(`[ASAAS_WEBHOOK] Is confirmed: ${isConfirmedEvent} | Booking ID: ${bookingId}`)
@@ -86,9 +104,10 @@ serve(async (req) => {
         if (paymentError) {
           console.error('[ASAAS_WEBHOOK] Error updating booking_payment:', paymentError)
         }
+        
         console.log(`[ASAAS_WEBHOOK] Success processing event ${event} for booking ${bookingId}`)
       } else {
-        console.log(`[ASAAS_WEBHOOK] Event ${event} received for booking ${bookingId} but not a confirmation event.`)
+        console.log(`[ASAAS_WEBHOOK] Event ${event} received but not a confirmation event.`)
       }
     } else {
       console.log(`[ASAAS_WEBHOOK] No bookingId found in webhook body. Event: ${event}`)

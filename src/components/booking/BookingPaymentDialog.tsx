@@ -94,10 +94,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         });
         
         const isPaidStatus = (s: string | undefined) => 
-          ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(s?.toLowerCase() || "");
+          ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas"].includes(s?.toLowerCase() || "");
 
         // If either booking or any payment row is confirmed, we finish
-        if (isPaidStatus(bStatus) || hasPaidPaymentRow || bBookingStatus === 'confirmed' || bBookingStatus === 'pago') { 
+        if (isPaidStatus(bStatus) || hasPaidPaymentRow || isPaidStatus(bBookingStatus)) { 
           console.log("[PAYMENT_DIALOG] Payment confirmed! Updating UI...");
           clearInterval(t); 
           toast({ title: "Pagamento confirmado!" }); 
@@ -108,15 +108,16 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
             onPaid();
             onClose();
           }, 3000);
-        } else if (payment?.id) {
+        } else {
           // Fallback: check the booking one more time directly by ID to ensure fresh state
+          // and also check for recent confirmed events in some log or transaction table if exists
           const { data: freshBooking } = await supabase
             .from("bookings")
-            .select("payment_status")
+            .select("payment_status, booking_status")
             .eq("id", bookingId)
             .single();
             
-          if (isPaidStatus(freshBooking?.payment_status)) {
+          if (isPaidStatus(freshBooking?.payment_status) || isPaidStatus(freshBooking?.booking_status)) {
             console.log("[PAYMENT_DIALOG] Fresh check confirmed payment!");
             clearInterval(t);
             setIsPaid(true);
