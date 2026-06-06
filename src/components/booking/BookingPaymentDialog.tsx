@@ -80,12 +80,15 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const bStatus = (bData?.payment_status || "").toLowerCase();
         const bBookingStatus = (bData?.booking_status || "").toLowerCase();
         
-        console.log(`[PAYMENT_DIALOG] Status para ${bookingId}: Agendamento=${bBookingStatus}, Pagamento=${bStatus}`);
+        console.log(`[PAYMENT_DIALOG] Polling ${bookingId}: Agendamento=${bBookingStatus}, Pagamento=${bStatus}`);
 
-        const isSuccess = (s: string) => ["paid", "confirmed", "received", "pago", "sucesso", "success", "settled", "authorized", "payment_confirmed", "payment_received", "payment_authorized", "checkout_paid", "deposited", "payment_deposited", "done"].includes((s || "").toLowerCase());
+        const isSuccess = (s: string) => {
+          const val = (s || "").toLowerCase().trim();
+          return ["paid", "confirmed", "received", "pago", "sucesso", "success", "settled", "authorized", "payment_confirmed", "payment_received", "payment_authorized", "checkout_paid", "deposited", "payment_deposited", "done"].includes(val);
+        };
         
         const hasConfirmedPayment = Array.isArray(pData) && pData.some(p => isSuccess(p.status || ""));
-        const bookingConfirmed = isSuccess(bStatus) || isSuccess(bBookingStatus) || bBookingStatus === 'confirmed' || bBookingStatus === 'pago';
+        const bookingConfirmed = isSuccess(bStatus) || isSuccess(bBookingStatus) || bBookingStatus === 'confirmed' || bBookingStatus === 'pago' || bBookingStatus === 'received';
 
         if (bookingConfirmed || hasConfirmedPayment) {
           console.log("[PAYMENT_DIALOG] CONFIRMED!");
