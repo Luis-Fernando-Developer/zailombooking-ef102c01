@@ -81,6 +81,16 @@ serve(async (req) => {
     console.log(`[ASAAS_WEBHOOK] Is confirmed: ${isConfirmed} | Booking ID: ${bookingId}`)
 
     if (bookingId) {
+      // FORCE: Even if not confirmed, let's log the attempt to find the booking
+      const { data: bookingExists, error: checkErr } = await supabaseClient
+        .from('bookings')
+        .select('id, booking_status, payment_status')
+        .eq('id', bookingId)
+        .maybeSingle();
+      
+      if (checkErr) console.error('[ASAAS_WEBHOOK] Error checking booking existence:', checkErr);
+      console.log(`[ASAAS_WEBHOOK] Booking existence check for ${bookingId}:`, bookingExists ? 'FOUND' : 'NOT FOUND');
+
       if (isConfirmed) {
         console.log(`[ASAAS_WEBHOOK] Processing confirmation for booking ${bookingId}`);
 
@@ -110,7 +120,7 @@ serve(async (req) => {
         console.log(`[ASAAS_WEBHOOK] Event ${event} / Status ${currentStatus} not considered confirmation for ${bookingId}.`);
       }
     } else {
-      console.error(`[ASAAS_WEBHOOK] CRITICAL: Could not identify booking from webhook body. Body snippet: ${bodyStr.substring(0, 200)}`);
+      console.error(`[ASAAS_WEBHOOK] CRITICAL: Could not identify booking from webhook body. Full Body: ${bodyStr}`);
     }
 
     return new Response(JSON.stringify({ received: true }), {
