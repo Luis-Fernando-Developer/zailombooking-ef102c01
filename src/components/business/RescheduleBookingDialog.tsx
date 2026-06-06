@@ -95,7 +95,7 @@ export function RescheduleBookingDialog({
         .from('bookings')
         .update({
           booking_date: newDate,
-          start_time: selectedTime
+          start_time: selectedTime.includes(':') ? (selectedTime.length === 5 ? `${selectedTime}:00` : selectedTime) : `${selectedTime}:00`
         })
         .eq('id', booking.id);
 
@@ -165,7 +165,11 @@ export function RescheduleBookingDialog({
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  return date < today;
+                }}
                 locale={ptBR}
                 className="rounded-md border border-primary/20"
               />
