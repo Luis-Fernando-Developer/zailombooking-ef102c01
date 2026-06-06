@@ -269,7 +269,8 @@ export default function BusinessBookings() {
     if (!time) return "";
     // Se a string contiver a data completa (ISO), extrai apenas o horário
     if (time.includes('T')) {
-      return time.split('T')[1].slice(0, 5);
+      const timePart = time.split('T')[1];
+      return timePart.slice(0, 5);
     }
     return time.slice(0, 5);
   };
