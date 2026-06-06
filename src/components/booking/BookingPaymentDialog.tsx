@@ -94,18 +94,20 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         });
         
         const isPaidStatus = (s: string | undefined) => 
-          ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(s || "");
+          ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(s?.toLowerCase() || "");
 
         if (isPaidStatus(bStatus) || hasPaidPaymentRow || bBookingStatus === 'confirmed') { 
-
-          clearInterval(t); 
           console.log("[PAYMENT_DIALOG] Payment confirmed! Updating UI...");
+          clearInterval(t); 
           toast({ title: "Pagamento confirmado!" }); 
           setIsPaid(true);
           setTimeout(() => {
             onPaid();
             onClose();
           }, 3000);
+        } else if (payment?.invoice_url && !isPaid) {
+          // If not confirmed yet, we can double check directly with Asaas if it's a critical flow
+          // but usually the webhook should handle it. Here we just keep polling.
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
