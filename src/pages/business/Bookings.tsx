@@ -194,14 +194,13 @@ export default function BusinessBookings() {
   };
 
   const applyFilters = () => {
-    console.log('Aplicando filtros nos agendamentos:', bookings.length);
     let filtered = [...bookings];
 
-    if (filters.status) {
+    if (filters.status && filters.status !== 'all') {
       filtered = filtered.filter(booking => booking.booking_status === filters.status);
     }
 
-    if (filters.payment) {
+    if (filters.payment && filters.payment !== 'all') {
       filtered = filtered.filter(booking => booking.payment_status === filters.payment);
     }
 
@@ -218,12 +217,13 @@ export default function BusinessBookings() {
         booking.employee?.name?.toLowerCase().includes(searchLower)
       );
     }
-    console.log('filteredBookings:', filtered);
     setFilteredBookings(filtered);
   };
 
   const updateBookingStatus = async (bookingId: string, status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show') => {
-    console.log('Atualizando status do agendamento:', bookingId, 'para:', status);
+    // Atualizar o estado local imediatamente
+    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, booking_status: status } : b));
+
     try {
       const { error } = await supabase
         .from('bookings')
@@ -236,16 +236,14 @@ export default function BusinessBookings() {
         title: "Status atualizado",
         description: "O status do agendamento foi atualizado com sucesso.",
       });
-
-      // Atualizar o estado local imediatamente para refletir na UI sem esperar o fetch
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, booking_status: status } : b));
       
-      // Recarregar os dados do banco para garantir consistência
-      if (company?.id) {
-        await fetchBookings(company.id);
-      }
+      // Opcional: recarregar do banco apenas para confirmar
+      // if (company?.id) await fetchBookings(company.id);
     } catch (error) {
       console.error('Error updating booking:', error);
+      // Reverter estado local em caso de erro
+      if (company?.id) await fetchBookings(company.id);
+      
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o status do agendamento.",
@@ -418,8 +416,8 @@ export default function BusinessBookings() {
               </CardContent>
             </Card>
           ) : (
-            filteredBookings.map((booking, index) => (
-              <Card key={`${booking.id}-${index}`} className="flex flex-col card-glow bg-card/50 backdrop-blur-sm border-primary/20 ">
+            filteredBookings.map((booking) => (
+              <Card key={booking.id} className="flex flex-col card-glow bg-card/50 backdrop-blur-sm border-primary/20 ">
                 <CardContent className="relative w-full p-6 flex flex-col  h-full">
                   <div className="w-full flex flex-col">
                     <div className="flex flex-col space-y-4">
