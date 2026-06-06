@@ -82,8 +82,6 @@ serve(async (req) => {
     // Limpeza básica da chave (remover espaços, quebras de linha ou caracteres invisíveis)
     decryptedKey = decryptedKey.trim().replace(/[\r\n]/g, '')
 
-
-
     // 3. Create payment in Asaas
     if (settings.own_gateway_provider === 'asaas') {
       const isSandbox = !decryptedKey.startsWith('$aact_')
@@ -92,14 +90,28 @@ serve(async (req) => {
       console.log(`Using Asaas ${isSandbox ? 'Sandbox' : 'Production'} environment`)
 
       // A) First, find or create customer
-      const customerSearch = await fetch(`${baseUrl}/customers?email=${payer.email || ''}&cpfCnpj=${payer.cpf_cnpj || ''}`, {
+      const urlParams = new URLSearchParams()
+      if (payer.email) urlParams.append('email', payer.email)
+      if (payer.cpf_cnpj) urlParams.append('cpfCnpj', payer.cpf_cnpj)
+      
+      const searchUrl = `${baseUrl}/customers?${urlParams.toString()}`
+      console.log('Searching customer at:', searchUrl)
+
+      const customerSearch = await fetch(searchUrl, {
         headers: { 'access_token': decryptedKey }
       })
-      const customerData = await customerSearch.json()
       
+      if (!customerSearch.ok) {
+        const errorText = await customerSearch.text()
+        console.error('Customer search failed:', errorText)
+        throw new Error(`Asaas API error (Search Customer): ${customerSearch.status} - ${errorText}`)
+      }
+
+      const customerData = await customerSearch.json()
       let customerId = customerData.data?.[0]?.id
 
       if (!customerId) {
+        console.log('Customer not found, creating new one...')
         const createCustomer = await fetch(`${baseUrl}/customers`, {
           method: 'POST',
           headers: {
@@ -113,8 +125,20 @@ serve(async (req) => {
             cpfCnpj: payer.cpf_cnpj
           })
         })
+
+        if (!createCustomer.ok) {
+          const errorText = await createCustomer.text()
+          console.error('Customer creation failed:', errorText)
+          try {
+            const errJson = JSON.parse(errorText)
+            if (errJson.errors) throw new Error(`Erro ao criar cliente no Asaas: ${errJson.errors[0].description}`)
+          } catch (e) {
+            if (e.message.includes('Erro ao criar cliente')) throw e
+          }
+          throw new Error(`Asaas API error (Create Customer): ${createCustomer.status} - ${errorText}`)
+        }
+
         const newCustomer = await createCustomer.json()
-        if (newCustomer.errors) throw new Error(`Erro ao criar cliente no Asaas: ${newCustomer.errors[0].description}`)
         customerId = newCustomer.id
       }
 
@@ -139,11 +163,19 @@ serve(async (req) => {
         body: JSON.stringify(paymentPayload)
       })
 
-      const paymentResult = await createPayment.json()
-      if (paymentResult.errors) {
-        console.error('Asaas payment creation errors:', paymentResult.errors)
-        throw new Error(`Erro ao gerar cobrança no Asaas: ${paymentResult.errors[0].description}`)
+      if (!createPayment.ok) {
+        const errorText = await createPayment.text()
+        console.error('Payment creation failed:', errorText)
+        try {
+          const errJson = JSON.parse(errorText)
+          if (errJson.errors) throw new Error(`Erro ao gerar cobrança no Asaas: ${errJson.errors[0].description}`)
+        } catch (e) {
+          if (e.message.includes('Erro ao gerar cobrança')) throw e
+        }
+        throw new Error(`Asaas API error (Create Payment): ${createPayment.status} - ${errorText}`)
       }
+
+      const paymentResult = await createPayment.json()
 
       // C) If PIX, get QR Code
       let pixInfo = {}
@@ -151,10 +183,15 @@ serve(async (req) => {
         const getPix = await fetch(`${baseUrl}/payments/${paymentResult.id}/pixQrCode`, {
           headers: { 'access_token': decryptedKey }
         })
-        const pixData = await getPix.json()
-        pixInfo = {
-          pix_qr_code: pixData.encodedImage,
-          pix_payload: pixData.payload
+        
+        if (!getPix.ok) {
+          console.warn('Failed to get Pix QR Code, but payment was created')
+        } else {
+          const pixData = await getPix.json()
+          pixInfo = {
+            pix_qr_code: pixData.encodedImage,
+            pix_payload: pixData.payload
+          }
         }
       }
 
