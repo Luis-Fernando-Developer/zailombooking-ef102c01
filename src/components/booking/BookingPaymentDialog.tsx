@@ -82,11 +82,13 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         
         const bStatus = bookingData?.payment_status?.toLowerCase();
         const bBookingStatus = bookingData?.booking_status?.toLowerCase();
+
+        console.log(`[PAYMENT_DIALOG] Checking for booking ${bookingId}. Raw status from DB: bStatus=${bStatus}, bBookingStatus=${bBookingStatus}`);
         
         const isPaidStatus = (s: string | undefined | null) => {
           if (!s) return false;
           const status = s.toLowerCase();
-          return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled", "authorized"].includes(status);
+          return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled", "authorized", "received_by_asaas"].includes(status);
         };
 
         // Check if ANY payment row for this booking is paid
