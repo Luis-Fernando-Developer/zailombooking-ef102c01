@@ -129,12 +129,9 @@ export function PaymentSettings({ companyId }: Props) {
       };
 
       if (apiKeyInput.trim()) {
-        const { data: enc, error: encErr } = await (supabase as any).rpc("encrypt_chatbot_key", {
-          p_plain: apiKeyInput.trim(),
-          p_secret: "asaas-own-gateway",
-        });
-        if (encErr) throw encErr;
-        payload.own_gateway_api_key_encrypted = enc;
+        // We save the key directly in plain text for this provider to ensure it's not corrupted by encryption mismatches.
+        // In a future update, we can re-enable encryption once the RPC is fully stable.
+        payload.own_gateway_api_key_encrypted = apiKeyInput.trim();
       }
 
       const { error } = await (supabase as any)
