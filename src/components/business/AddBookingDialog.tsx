@@ -412,7 +412,7 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({
             company_id: companyId,
