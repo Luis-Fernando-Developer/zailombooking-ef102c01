@@ -36,8 +36,8 @@ serve(async (req) => {
     const bodyStr = JSON.stringify(body);
     console.log('[ASAAS_WEBHOOK] Full body for debugging:', bodyStr);
 
-    const { event } = body
-    const payment = body.payment || body; // Asaas can send payment at root or inside payment object
+    const { event, payment: bodyPayment } = body
+    const payment = bodyPayment || body; // Asaas can send payment at root or inside payment object
     
     console.log(`[ASAAS_WEBHOOK] Event: ${event} | Payment ID: ${payment?.id} | Status: ${payment?.status || body.status}`)
 
@@ -50,17 +50,24 @@ serve(async (req) => {
       'CHECKOUT_PAID'
     ];
 
-    const confirmedAsaasStatuses = ['RECEIVED', 'CONFIRMED', 'RECEIVED_BY_ASAAS', 'SETTLED'];
+    const confirmedAsaasStatuses = ['RECEIVED', 'CONFIRMED', 'RECEIVED_BY_ASAAS', 'SETTLED', 'PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED', 'PAYMENT_SETTLED'];
     const currentStatus = (payment?.status || body.status || '').toUpperCase();
 
-    const isConfirmed = confirmedStatuses.includes(event) || confirmedAsaasStatuses.includes(currentStatus);
+    const isConfirmed = confirmedStatuses.includes(event) || confirmedAsaasStatuses.includes(currentStatus) || event?.includes('RECEIVED') || event?.includes('CONFIRMED');
     
     // Resilient externalReference extraction
     let bookingId = null;
 
     // 1. Check direct paths
-    if (payment?.externalReference) bookingId = payment.externalReference;
-    else if (body.externalReference) bookingId = body.externalReference;
+    if (payment?.externalReference) {
+      bookingId = payment.externalReference;
+    } else if (body.externalReference) {
+      bookingId = body.externalReference;
+    } else if (payment?.description && payment.description.includes('Agendamento #')) {
+      const parts = payment.description.split('#');
+      if (parts[1]) bookingId = parts[1].trim();
+      console.log(`[ASAAS_WEBHOOK] Extracted bookingId from description: ${bookingId}`);
+    }
     
     // 2. If not found, try to find a UUID in the body
     if (!bookingId) {
