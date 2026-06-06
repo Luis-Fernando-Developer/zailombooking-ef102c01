@@ -492,19 +492,19 @@ export default function BusinessBookings() {
                         <DropdownMenuContent align="end" className="bg-card border-primary/20">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
+                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'confirmed')}>
                             <Check className="mr-2 h-4 w-4" />
                             Confirmar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
+                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'completed')}>
                             <Check className="mr-2 h-4 w-4" />
                             Marcar como Concluído
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'no_show')}>
+                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'no_show')}>
                             <AlertCircle className="mr-2 h-4 w-4" />
                             Não Realizado
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'cancelled')}>
+                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'cancelled')}>
                             <X className="mr-2 h-4 w-4" />
                             Cancelar
                           </DropdownMenuItem>
