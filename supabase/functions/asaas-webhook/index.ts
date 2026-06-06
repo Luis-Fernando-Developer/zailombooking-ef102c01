@@ -33,34 +33,32 @@ serve(async (req) => {
       })
     }
 
-    const event = body.event;
+    const event = (body.event || '').toUpperCase();
     const payment = body.payment || body; 
     const currentStatus = (payment?.status || body.status || '').toUpperCase();
     
     // Log explicitamente os dados que o Asaas envia
     console.info(`[ASAAS_WEBHOOK] Evento: ${event} | Status Pagamento: ${currentStatus} | ID Asaas: ${payment?.id}`)
 
+    // Eventos que indicam sucesso total ou parcial (autorizado já serve para liberar)
     const confirmedEvents = [
-      'PAYMENT_RECEIVED', 
       'PAYMENT_CONFIRMED', 
-      'PAYMENT_SETTLED', 
-      'PAYMENT_RECEIVED_BY_ASAAS', 
-      'PAYMENT_AUTHORIZED', 
-      'CHECKOUT_PAID',
-      'PAYMENT_DEPOSITED',
-      'PAYMENT_CREDIT_CARD_CAPTURE_CONFIRMED'
+      'PAYMENT_RECEIVED', 
+      'PAYMENT_SETTLED',
+      'PAYMENT_AUTHORIZED',
+      'PAYMENT_APPROVED_BY_RISK_ANALYSIS',
+      'PAYMENT_ANTICIPATED',
+      'CHECKOUT_PAID'
     ];
     
     // Lista exaustiva de status que indicam sucesso no Asaas
     const successStatuses = [
+      'CONFIRMED',
       'RECEIVED', 
-      'CONFIRMED', 
       'SETTLED', 
-      'AUTHORIZED', 
-      'PAYMENT_RECEIVED', 
-      'RECEIVED_IN_CASH', 
-      'DEPOSITED',
-      'DONE'
+      'AUTHORIZED',
+      'RECEIVED_IN_CASH',
+      'DEPOSITED'
     ];
     
     const isConfirmed = confirmedEvents.includes(event) || successStatuses.includes(currentStatus);
