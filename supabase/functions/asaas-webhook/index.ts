@@ -46,28 +46,46 @@ serve(async (req) => {
       'PAYMENT_SETTLED', 
       'PAYMENT_RECEIVED_BY_ASAAS', 
       'PAYMENT_AUTHORIZED', 
-      'CHECKOUT_PAID'
+      'CHECKOUT_PAID',
+      'PAYMENT_DEPOSITED',
+      'PAYMENT_CREDIT_CARD_CAPTURE_CONFIRMED'
     ];
     
     // Lista exaustiva de status que indicam sucesso no Asaas
-    const successStatuses = ['RECEIVED', 'CONFIRMED', 'SETTLED', 'AUTHORIZED', 'PAYMENT_RECEIVED', 'RECEIVED_IN_CASH'];
+    const successStatuses = [
+      'RECEIVED', 
+      'CONFIRMED', 
+      'SETTLED', 
+      'AUTHORIZED', 
+      'PAYMENT_RECEIVED', 
+      'RECEIVED_IN_CASH', 
+      'DEPOSITED',
+      'DONE'
+    ];
     
     const isConfirmed = confirmedEvents.includes(event) || successStatuses.includes(currentStatus);
 
     let bookingId = payment?.externalReference || body.externalReference || body.payment?.externalReference;
     
-    if (!bookingId && (payment?.description || body.description)?.includes('#')) {
-      const desc = payment?.description || body.description;
+    // Fallback: Tentar pegar de campos aninhados ou metadados se existirem
+    if (!bookingId && payment?.metadata?.booking_id) {
+      bookingId = payment.metadata.booking_id;
+    }
+
+    if (!bookingId && (payment?.description || body.description || "")?.includes('#')) {
+      const desc = payment?.description || body.description || "";
       const match = desc.match(/#([0-9a-f-]{36})/i);
       if (match) bookingId = match[1];
     }
     
     if (!bookingId) {
-      const uuidMatch = rawBody.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      // Regex mais robusto para UUID
+      const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      const uuidMatch = rawBody.match(uuidRegex);
       if (uuidMatch) bookingId = uuidMatch[0];
     }
 
-    console.info(`[ASAAS_WEBHOOK] Agendamento ID: ${bookingId} | Confirmado: ${isConfirmed}`)
+    console.info(`[ASAAS_WEBHOOK] Agendamento ID Extraído: ${bookingId} | Confirmado: ${isConfirmed}`)
 
     if (bookingId) {
       const now = new Date().toISOString();
