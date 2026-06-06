@@ -194,6 +194,7 @@ export default function BusinessBookings() {
   };
 
   const applyFilters = () => {
+    console.log('Aplicando filtros nos agendamentos:', bookings.length);
     let filtered = [...bookings];
 
     if (filters.status) {
