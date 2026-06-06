@@ -87,26 +87,34 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const isPaidStatus = (s: string) => {
           if (!s) return false;
           const status = s.toLowerCase().trim();
-          return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled", "authorized", "received_by_asaas"].includes(status);
+          return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled", "authorized", "received_by_asaas", "payment_received", "payment_confirmed"].includes(status);
         };
 
         const hasPaidPaymentRow = payments && payments.length > 0 && payments.some(p => isPaidStatus(p.status || ""));
         
-        if (isPaidStatus(bStatus) || hasPaidPaymentRow || isPaidStatus(bBookingStatus) || bBookingStatus === 'confirmed') { 
-          console.log("[PAYMENT_DIALOG] Confirmation detected! Completing...");
+        // Very aggressive success check
+        const isConfirmed = isPaidStatus(bStatus) || 
+                          isPaidStatus(bBookingStatus) || 
+                          bBookingStatus === 'confirmed' || 
+                          bStatus === 'confirmed' ||
+                          hasPaidPaymentRow;
+
+        if (isConfirmed) { 
+          console.log("[PAYMENT_DIALOG] SUCCESS! Confirmation detected. Booking Status:", bBookingStatus, "Payment Status:", bStatus);
           clearInterval(t); 
-          toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." }); 
+          toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado com sucesso." }); 
           setIsPaid(true);
           onPaid();
           
           setTimeout(() => {
             onClose();
-          }, 2500);
+          }, 3000);
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
       }
-    }, 2000); 
+    }, 2500); // Polling every 2.5s for stability
+
 
     
     return () => { 

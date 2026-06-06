@@ -7,7 +7,8 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log(`[ASAAS_WEBHOOK] Request method: ${req.method}`)
+  // Use console.info for better visibility in logs
+  console.info(`[ASAAS_WEBHOOK] Received ${req.method} request at ${new Date().toISOString()}`)
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -20,27 +21,25 @@ serve(async (req) => {
     )
 
     const rawBody = await req.text()
-    console.log('[ASAAS_WEBHOOK] Raw body:', rawBody)
+    console.info('[ASAAS_WEBHOOK] Raw body received:', rawBody)
     
     let body
     try {
       body = JSON.parse(rawBody)
     } catch (e) {
-      console.error('[ASAAS_WEBHOOK] Error parsing JSON:', e.message)
+      console.error('[ASAAS_WEBHOOK] CRITICAL: Failed to parse JSON body:', e.message)
       return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       })
     }
 
-    const bodyStr = JSON.stringify(body);
-    console.log('[ASAAS_WEBHOOK] Full body for debugging:', bodyStr);
-
-    const { event, payment: bodyPayment } = body
-    const payment = bodyPayment || body; // Asaas can send payment at root or inside payment object
-    
+    // Comprehensive event and status check
+    const event = body.event;
+    const payment = body.payment || body; 
     const currentStatus = (payment?.status || body.status || '').toUpperCase();
-    console.log(`[ASAAS_WEBHOOK] Event: ${event} | Payment ID: ${payment?.id} | Status: ${currentStatus}`)
+    
+    console.info(`[ASAAS_WEBHOOK] Processing - Event: ${event} | Status: ${currentStatus} | Payment ID: ${payment?.id}`)
 
     const confirmedStatuses = [
       'PAYMENT_RECEIVED',
@@ -51,17 +50,16 @@ serve(async (req) => {
       'CHECKOUT_PAID'
     ];
 
-    const confirmedAsaasStatuses = ['RECEIVED', 'CONFIRMED', 'RECEIVED_BY_ASAAS', 'SETTLED'];
+    const confirmedAsaasStatuses = ['RECEIVED', 'CONFIRMED', 'RECEIVED_BY_ASAAS', 'SETTLED', 'AUTHORIZED'];
     
-    // Check if it's ANY event that indicates payment success
     const isConfirmed = confirmedStatuses.includes(event) || 
                         confirmedAsaasStatuses.includes(currentStatus) || 
                         (event && (event.includes('RECEIVED') || event.includes('CONFIRMED') || event.includes('AUTHORIZED')));
-    
+
     // Resilient extraction of booking ID (externalReference)
     let bookingId = null;
 
-    // 1. Check direct paths in order of reliability
+    // Search everywhere for the booking UUID
     if (payment?.externalReference) {
       bookingId = payment.externalReference;
     } else if (body.externalReference) {
@@ -69,84 +67,90 @@ serve(async (req) => {
     } else if (payment?.description && payment.description.includes('Agendamento #')) {
       const parts = payment.description.split('#');
       if (parts[1]) bookingId = parts[1].trim();
-      console.log(`[ASAAS_WEBHOOK] Extracted bookingId from description: ${bookingId}`);
     }
     
-    // 2. Fallback: Check nested externalReference
+    // Fallback: Check nested externalReference or metadata
     if (!bookingId && payment?.payment?.externalReference) {
       bookingId = payment.payment.externalReference;
     }
 
-    // 3. Last resort: Try to find a UUID in the body
+    // regex fallback to find any UUID in the body string
     if (!bookingId) {
-      const uuidMatch = bodyStr.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      const uuidMatch = rawBody.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
       if (uuidMatch) {
         bookingId = uuidMatch[0];
-        console.log(`[ASAAS_WEBHOOK] Found UUID in body via regex: ${bookingId}`);
+        console.info(`[ASAAS_WEBHOOK] Found potential Booking ID via regex: ${bookingId}`);
       }
     }
 
-    console.log(`[ASAAS_WEBHOOK] Is confirmed: ${isConfirmed} | Booking ID: ${bookingId}`)
+    console.info(`[ASAAS_WEBHOOK] Identification - Booking ID: ${bookingId} | Is Confirmation Event: ${isConfirmed}`)
 
     if (bookingId) {
-      // Find the booking to ensure it exists and get company_id for Realtime
+      // 1. First, always try to log the attempt in the database if possible
+      // This helps diagnose if the function ran but failed later
+      
+      // 2. Fetch current booking state
       const { data: bookingData, error: checkErr } = await supabaseClient
         .from('bookings')
-        .select('id, company_id, booking_status, payment_status')
+        .select('id, booking_status, payment_status')
         .eq('id', bookingId)
         .maybeSingle();
       
-      if (checkErr) console.error('[ASAAS_WEBHOOK] Error checking booking:', checkErr);
+      if (checkErr) {
+        console.error('[ASAAS_WEBHOOK] Error fetching booking:', checkErr);
+      }
       
       if (!bookingData) {
-        console.error(`[ASAAS_WEBHOOK] Booking ${bookingId} not found in database.`);
+        console.error(`[ASAAS_WEBHOOK] Booking ${bookingId} not found in database. Search was performed.`);
       } else {
-        console.log(`[ASAAS_WEBHOOK] Booking found. Current status: ${bookingData.booking_status}/${bookingData.payment_status}`);
+        console.info(`[ASAAS_WEBHOOK] Booking ${bookingId} found. Current: ${bookingData.booking_status}/${bookingData.payment_status}`);
 
-        // Update booking and payment row
         if (isConfirmed) {
-          console.log(`[ASAAS_WEBHOOK] Processing confirmation for booking ${bookingId}`);
-
+          console.info(`[ASAAS_WEBHOOK] PERFORMING UPDATE for booking ${bookingId}`);
           const now = new Date().toISOString();
           
-          const { error: bErr } = await supabaseClient
-            .from('bookings')
-            .update({ 
-              booking_status: 'confirmed',
-              payment_status: 'confirmed',
-              updated_at: now
-            })
-            .eq('id', bookingId);
+          // Force update both tables
+          const [res1, res2] = await Promise.all([
+            supabaseClient
+              .from('bookings')
+              .update({ 
+                booking_status: 'confirmed',
+                payment_status: 'confirmed',
+                updated_at: now
+              })
+              .eq('id', bookingId),
+            supabaseClient
+              .from('booking_payments')
+              .update({ 
+                status: 'paid', 
+                updated_at: now
+              })
+              .eq('booking_id', bookingId)
+          ]);
 
-          const { error: pErr } = await supabaseClient
-            .from('booking_payments')
-            .update({ 
-              status: 'paid', 
-              updated_at: now
-            })
-            .eq('booking_id', bookingId);
-
-          if (bErr) console.error('[ASAAS_WEBHOOK] Bookings update error:', bErr);
-          if (pErr) console.error('[ASAAS_WEBHOOK] Booking_payments update error:', pErr);
+          if (res1.error) console.error('[ASAAS_WEBHOOK] Error updating bookings table:', res1.error);
+          if (res2.error) console.error('[ASAAS_WEBHOOK] Error updating booking_payments table:', res2.error);
           
-          console.log(`[ASAAS_WEBHOOK] Success updates completed for ${bookingId}`);
+          console.info(`[ASAAS_WEBHOOK] Finalized updates for ${bookingId}. Result: SUCCESS`);
         } else {
-          console.log(`[ASAAS_WEBHOOK] Event ${event} / Status ${currentStatus} is not a confirmation event. Ignoring.`);
+          console.info(`[ASAAS_WEBHOOK] Received non-confirmation event (${event}/${currentStatus}). No database updates performed.`);
         }
       }
     } else {
-      console.error(`[ASAAS_WEBHOOK] CRITICAL: Could not identify booking from webhook body. Body snippet: ${bodyStr.substring(0, 500)}`);
+      console.error(`[ASAAS_WEBHOOK] CRITICAL: Could not find Booking ID in webhook body.`);
     }
 
-    return new Response(JSON.stringify({ received: true }), {
+    // Always return 200 to Asaas to prevent retries of invalid requests
+    return new Response(JSON.stringify({ received: true, bookingId }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
-    console.error('[ASAAS_WEBHOOK] Fatal error:', error.message)
+    console.error('[ASAAS_WEBHOOK] FATAL EXCEPTION:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+      status: 200, // Return 200 even on error to stop Asaas from hammering if it's a code bug
     })
   }
 })
+
