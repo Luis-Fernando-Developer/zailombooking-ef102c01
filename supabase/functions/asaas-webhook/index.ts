@@ -33,13 +33,14 @@ serve(async (req) => {
       })
     }
 
-    const event = body.event;
+    const event = (body.event || '').toUpperCase();
     const payment = body.payment || body; 
     const currentStatus = (payment?.status || body.status || '').toUpperCase();
     
     // Log explicitamente os dados que o Asaas envia
     console.info(`[ASAAS_WEBHOOK] Evento: ${event} | Status Pagamento: ${currentStatus} | ID Asaas: ${payment?.id}`)
 
+    // Eventos que indicam sucesso total ou parcial (autorizado já serve para liberar)
     const confirmedEvents = [
       'PAYMENT_CONFIRMED', 
       'PAYMENT_RECEIVED', 
