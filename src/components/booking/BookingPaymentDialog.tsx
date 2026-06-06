@@ -81,11 +81,14 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const bStatus = bookingData?.payment_status?.toLowerCase();
         const bBookingStatus = bookingData?.booking_status?.toLowerCase();
         
-        const isPaidStatus = (s: string | undefined) => 
-          ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas"].includes(s?.toLowerCase() || "");
+        const isPaidStatus = (s: string | undefined | null) => {
+          if (!s) return false;
+          const status = s.toLowerCase();
+          return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled"].includes(status);
+        };
 
         // Check if ANY payment row for this booking is paid
-        const hasPaidPaymentRow = payments?.some(p => isPaidStatus(p.status));
+        const hasPaidPaymentRow = payments && payments.length > 0 && payments.some(p => isPaidStatus(p.status));
         
         console.log("[PAYMENT_DIALOG] Current status from DB:", { 
           booking_payment_status: bStatus, 
@@ -101,15 +104,17 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           toast({ title: "Pagamento confirmado!" }); 
           setIsPaid(true);
           
+          // Force a final update to make sure UI is in sync if needed
+          onPaid();
+          
           setTimeout(() => {
-            onPaid();
             onClose();
           }, 2000);
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
       }
-    }, 3000);
+    }, 2000);
     
     return () => { 
       clearInterval(t); 
