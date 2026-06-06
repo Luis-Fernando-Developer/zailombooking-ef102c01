@@ -192,10 +192,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         )}
 
         <DialogFooter className="flex-col gap-2 sm:flex-col">
-          {allowPayLater && !payment && (
+          {allowPayLater && !payment && !isPaid && (
             <Button variant="outline" onClick={onPayLater} className="w-full">Pagar no local</Button>
           )}
-          <Button variant="ghost" onClick={onClose}>Fechar</Button>
+          {!isPaid && <Button variant="ghost" onClick={onClose}>Fechar</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>
