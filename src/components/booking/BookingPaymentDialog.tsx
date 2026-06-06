@@ -32,6 +32,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   const [loading, setLoading] = useState(false);
   const [payment, setPayment] = useState<any>(null);
   const [polling, setPolling] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
 
   useEffect(() => {
     if (!open) return;
