@@ -194,6 +194,7 @@ export default function BusinessBookings() {
   };
 
   const applyFilters = () => {
+    console.log('Aplicando filtros nos agendamentos:', bookings.length);
     let filtered = [...bookings];
 
     if (filters.status) {
@@ -222,6 +223,7 @@ export default function BusinessBookings() {
   };
 
   const updateBookingStatus = async (bookingId: string, status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show') => {
+    console.log('Atualizando status do agendamento:', bookingId, 'para:', status);
     try {
       const { error } = await supabase
         .from('bookings')
@@ -235,8 +237,13 @@ export default function BusinessBookings() {
         description: "O status do agendamento foi atualizado com sucesso.",
       });
 
-      // Atualizar lista
-      await fetchBookings(company.id);
+      // Atualizar o estado local imediatamente para refletir na UI sem esperar o fetch
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, booking_status: status } : b));
+      
+      // Recarregar os dados do banco para garantir consistência
+      if (company?.id) {
+        await fetchBookings(company.id);
+      }
     } catch (error) {
       console.error('Error updating booking:', error);
       toast({
@@ -492,19 +499,19 @@ export default function BusinessBookings() {
                         <DropdownMenuContent align="end" className="bg-card border-primary/20">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'confirmed')}>
+                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
                             <Check className="mr-2 h-4 w-4" />
                             Confirmar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'completed')}>
+                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
                             <Check className="mr-2 h-4 w-4" />
                             Marcar como Concluído
                           </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'no_show')}>
+                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'no_show')}>
                             <AlertCircle className="mr-2 h-4 w-4" />
                             Não Realizado
                           </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => updateBookingStatus(booking.id, 'cancelled')}>
+                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'cancelled')}>
                             <X className="mr-2 h-4 w-4" />
                             Cancelar
                           </DropdownMenuItem>
