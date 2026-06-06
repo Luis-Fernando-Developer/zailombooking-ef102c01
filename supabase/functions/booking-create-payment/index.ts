@@ -29,7 +29,7 @@ serve(async (req) => {
       throw new Error('Corpo da requisição inválido')
     }
 
-    const { booking_id, method, payer } = body
+    const { booking_id, method, payer, amount: bodyAmount } = body
     if (!booking_id) throw new Error('booking_id é obrigatório')
 
     // 3. Buscar agendamento e empresa
@@ -134,7 +134,7 @@ serve(async (req) => {
     // B) Pagamento
     const billingType = method === 'PIX' ? 'PIX' : (method === 'CREDIT_CARD' ? 'CREDIT_CARD' : (method === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
     
-    const amount = Number(booking.total_price || 0)
+    const amount = Number(bodyAmount || booking.total_price || 0)
     console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType} | Amount: ${amount}`)
 
     if (!amount || amount <= 0) {
