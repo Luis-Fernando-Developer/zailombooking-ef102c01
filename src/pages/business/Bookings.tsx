@@ -221,7 +221,9 @@ export default function BusinessBookings() {
   };
 
   const updateBookingStatus = async (bookingId: string, status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show') => {
-    console.log('Atualizando status do agendamento:', bookingId, 'para:', status);
+    // Atualizar o estado local imediatamente
+    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, booking_status: status } : b));
+
     try {
       const { error } = await supabase
         .from('bookings')
@@ -234,16 +236,14 @@ export default function BusinessBookings() {
         title: "Status atualizado",
         description: "O status do agendamento foi atualizado com sucesso.",
       });
-
-      // Atualizar o estado local imediatamente para refletir na UI sem esperar o fetch
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, booking_status: status } : b));
       
-      // Recarregar os dados do banco para garantir consistência
-      if (company?.id) {
-        await fetchBookings(company.id);
-      }
+      // Opcional: recarregar do banco apenas para confirmar
+      // if (company?.id) await fetchBookings(company.id);
     } catch (error) {
       console.error('Error updating booking:', error);
+      // Reverter estado local em caso de erro
+      if (company?.id) await fetchBookings(company.id);
+      
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o status do agendamento.",
