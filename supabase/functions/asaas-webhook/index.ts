@@ -37,10 +37,10 @@ serve(async (req) => {
     const payment = body.payment || body; 
     const currentStatus = (payment?.status || body.status || '').toUpperCase();
     
-    // Log explicitamente os dados que o Asaas envia
-    console.info(`[ASAAS_WEBHOOK] Evento: ${event} | Status Pagamento: ${currentStatus} | ID Asaas: ${payment?.id}`)
+    // Log explicitamente os dados que o Asaas envia para debugar se necessário
+    console.info(`[ASAAS_WEBHOOK] Body ID: ${body.id} | Evento: ${event} | Status Pagamento: ${currentStatus} | ID Pagamento Asaas: ${payment?.id}`)
 
-    // Eventos e status baseados EXATAMENTE na documentação e imagens do Asaas
+    // Lista exaustiva de eventos de confirmação do Asaas (Sandbox e Produção)
     const confirmedEvents = [
       'PAYMENT_CONFIRMED', 
       'PAYMENT_RECEIVED', 
@@ -53,6 +53,7 @@ serve(async (req) => {
       'CHECKOUT_PAID'
     ];
     
+    // Status que indicam pagamento concluído
     const successStatuses = [
       'CONFIRMED',
       'RECEIVED', 
