@@ -25,18 +25,11 @@ serve(async (req) => {
 
       await supabaseClient
         .from('bookings')
-        .update({ status: 'confirmed' })
+        .update({ 
+          booking_status: 'confirmed',
+          payment_status: 'confirmed'
+        })
         .eq('id', bookingId)
-      
-      await supabaseClient
-        .from('booking_payments')
-        .upsert({
-          booking_id: bookingId,
-          status: 'paid',
-          amount: payment.value,
-          provider_id: payment.id,
-          method: payment.billingType
-        }, { onConflict: 'booking_id' })
     }
 
     return new Response(JSON.stringify({ received: true }), {
