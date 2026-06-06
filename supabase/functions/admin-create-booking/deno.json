@@ -1,5 +1,6 @@
 {
-  "functions": {
-    "importMap": "../../import_map.json"
+  "imports": {
+    "std/": "https://deno.land/std@0.168.0/"
   }
 }
+
