@@ -120,7 +120,11 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
         {payment && payment.method === "PIX" && payment.pix_qr_code && (
           <div className="space-y-3 text-center">
-            <img src={payment.pix_qr_code} alt="QR PIX" className="mx-auto w-56 h-56" />
+            <img 
+              src={payment.pix_qr_code.startsWith('data:') ? payment.pix_qr_code : `data:image/png;base64,${payment.pix_qr_code}`} 
+              alt="QR PIX" 
+              className="mx-auto w-56 h-56 bg-white p-2 rounded-lg" 
+            />
             <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(payment.pix_payload || ""); toast({ title: "Copiado!" }); }}>
               <Copy className="w-3 h-3 mr-1" /> Copiar código PIX
             </Button>
