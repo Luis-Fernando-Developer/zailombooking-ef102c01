@@ -96,18 +96,32 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const isPaidStatus = (s: string | undefined) => 
           ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(s?.toLowerCase() || "");
 
-        if (isPaidStatus(bStatus) || hasPaidPaymentRow || bBookingStatus === 'confirmed') { 
+        // If either booking or any payment row is confirmed, we finish
+        if (isPaidStatus(bStatus) || hasPaidPaymentRow || bBookingStatus === 'confirmed' || bBookingStatus === 'pago') { 
           console.log("[PAYMENT_DIALOG] Payment confirmed! Updating UI...");
           clearInterval(t); 
           toast({ title: "Pagamento confirmado!" }); 
           setIsPaid(true);
+          
+          // Small delay before closing to show success state
           setTimeout(() => {
             onPaid();
             onClose();
           }, 3000);
-        } else if (payment?.invoice_url && !isPaid) {
-          // If not confirmed yet, we can double check directly with Asaas if it's a critical flow
-          // but usually the webhook should handle it. Here we just keep polling.
+        } else if (payment?.id) {
+          // Fallback: check the booking one more time directly by ID to ensure fresh state
+          const { data: freshBooking } = await supabase
+            .from("bookings")
+            .select("payment_status")
+            .eq("id", bookingId)
+            .single();
+            
+          if (isPaidStatus(freshBooking?.payment_status)) {
+            console.log("[PAYMENT_DIALOG] Fresh check confirmed payment!");
+            clearInterval(t);
+            setIsPaid(true);
+            setTimeout(() => { onPaid(); onClose(); }, 2000);
+          }
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
