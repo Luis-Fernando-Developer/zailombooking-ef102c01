@@ -80,7 +80,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const bStatus = (bData?.payment_status || "").toLowerCase();
         const bBookingStatus = (bData?.booking_status || "").toLowerCase();
         
-        console.log(`[PAYMENT_DIALOG] Status for ${bookingId}: Book=${bBookingStatus}, Pay=${bStatus}`);
+        console.log(`[PAYMENT_DIALOG] Status para ${bookingId}: Agendamento=${bBookingStatus}, Pagamento=${bStatus}`);
 
         const isSuccess = (s: string) => ["paid", "confirmed", "received", "pago", "sucesso", "success"].includes(s.toLowerCase());
         
