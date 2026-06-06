@@ -58,10 +58,13 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
     
     const t = setInterval(async () => {
       try {
+        console.log("[PAYMENT_DIALOG] Polling status for booking:", bookingId);
         const { data, error } = await supabase
           .from("booking_payments")
           .select("status")
           .eq("booking_id", bookingId)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
         
         if (error) {
@@ -69,9 +72,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           return;
         }
         
-        console.log("[PAYMENT_DIALOG] Current status:", data?.status);
+        console.log("[PAYMENT_DIALOG] Current status from DB:", data?.status);
         
-        if (data?.status === "paid" || data?.status === "confirmed") { 
+        const currentStatus = data?.status?.toLowerCase();
+        if (currentStatus === "paid" || currentStatus === "confirmed" || currentStatus === "received") { 
           clearInterval(t); 
           console.log("[PAYMENT_DIALOG] Payment confirmed! Updating UI...");
           toast({ title: "Pagamento confirmado!" }); 
@@ -84,7 +88,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
       }
-    }, 5000);
+    }, 4000);
     
     return () => { 
       clearInterval(t); 

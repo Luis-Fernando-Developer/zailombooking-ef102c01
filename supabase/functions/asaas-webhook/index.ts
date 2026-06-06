@@ -36,9 +36,13 @@ serve(async (req) => {
     const { event, payment } = body
     console.log(`[ASAAS_WEBHOOK] Event: ${event} | Payment ID: ${payment?.id}`)
 
-    if ((event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED') && payment?.externalReference) {
+    const isConfirmedEvent = event === 'PAYMENT_RECEIVED' || 
+                            event === 'PAYMENT_CONFIRMED' || 
+                            event === 'PAYMENT_SETTLED';
+
+    if (isConfirmedEvent && payment?.externalReference) {
       const bookingId = payment.externalReference
-      console.log(`[ASAAS_WEBHOOK] Updating booking ${bookingId} to confirmed`)
+      console.log(`[ASAAS_WEBHOOK] Updating booking ${bookingId} to confirmed due to event ${event}`)
 
       // Update bookings table
       const { error: bookingError } = await supabaseClient
