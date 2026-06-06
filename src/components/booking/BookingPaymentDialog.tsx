@@ -113,7 +113,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
       }
-    }, 2500); // Polling every 2.5s for stability
+    }, 1500); // More frequent polling (1.5s) to catch it instantly
 
 
     
