@@ -167,21 +167,30 @@ export default function BusinessBookings() {
   };
 
   const fetchBookings = async (companyId: string) => {
-    const { data: bookingsData } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        client:clients(*),
-        service:services(*),
-        combo:service_combos(*),
-        employee:employees(*)
-      `)
-      .eq('company_id', companyId)
-      .order('booking_date', { ascending: false })
-      .order('start_time', { ascending: true });
+    try {
+      const { data: bookingsData, error } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          client:clients(*),
+          service:services(*),
+          combo:service_combos(*),
+          employee:employees(*)
+        `)
+        .eq('company_id', companyId)
+        .order('booking_date', { ascending: false })
+        .order('start_time', { ascending: true });
 
-    console.log('bookingsData:', bookingsData);
-    setBookings(bookingsData || []);
+      if (error) {
+        console.error('Error fetching bookings:', error);
+        return;
+      }
+
+      console.log('bookingsData fetched:', bookingsData);
+      setBookings(bookingsData || []);
+    } catch (err) {
+      console.error('Unexpected error fetching bookings:', err);
+    }
   };
 
   const applyFilters = () => {
