@@ -84,7 +84,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const isPaidStatus = (s: string | undefined | null) => {
           if (!s) return false;
           const status = s.toLowerCase();
-          return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled"].includes(status);
+          return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled", "authorized"].includes(status);
         };
 
         // Check if ANY payment row for this booking is paid
@@ -98,7 +98,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         });
 
         // If either booking or any payment row is confirmed, we finish
-        if (isPaidStatus(bStatus) || hasPaidPaymentRow || isPaidStatus(bBookingStatus)) { 
+        if (isPaidStatus(bStatus) || hasPaidPaymentRow || isPaidStatus(bBookingStatus) || bBookingStatus === 'confirmed') { 
           console.log("[PAYMENT_DIALOG] Confirmation detected! Completing...");
           clearInterval(t); 
           toast({ title: "Pagamento confirmado!" }); 
