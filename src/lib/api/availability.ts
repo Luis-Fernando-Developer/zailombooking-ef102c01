@@ -82,7 +82,7 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
       .eq('employee_id', employee_id)
       .gte('start_time', `${date}T00:00:00`)
       .lte('start_time', `${date}T23:59:59`)
-      .not('status', 'eq', 'cancelled');
+      .not('booking_status', 'in', '("cancelled", "rejected")');
 
     // 6. Get blocked slots
     const { data: blocked, error: blockedError } = await supabase
