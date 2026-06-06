@@ -17,7 +17,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { booking_id, method, payer } = await req.json()
+    // Log the raw body for debugging (only once)
+    const rawBody = await req.text()
+    console.log('--- RAW REQUEST BODY ---')
+    console.log(rawBody)
+    
+    const body = JSON.parse(rawBody)
+    const { booking_id, method, payer } = body
     console.log(`Processing payment for booking ${booking_id} via ${method}`)
 
     // 1. Get booking and company settings
@@ -42,18 +48,20 @@ serve(async (req) => {
     
     console.log('--- DIAGNOSTIC START ---')
     console.log('Company ID:', booking.company_id)
-    console.log('Stored key length:', decryptedKey.length)
+    console.log('Raw key from DB length:', decryptedKey.length)
 
     // Force cleaning of any potential invisible characters
-    decryptedKey = decryptedKey.trim().replace(/[\n\r\t]/g, '')
-    
+    decryptedKey = decryptedKey.trim()
+      .replace(/[\n\r\t]/g, '')
+      .replace(/[^\x20-\x7E]/g, '') // Remove non-printable characters
+
     if (!decryptedKey || decryptedKey.length < 10) {
       console.error('ERROR: No valid key found.')
       throw new Error('Chave de API do Asaas não encontrada. Por favor, salve a chave novamente nas configurações.')
     }
 
-    console.log('Final key length:', decryptedKey.length)
-    console.log('Final key starts with:', decryptedKey.substring(0, 10))
+    console.log('Cleaned key length:', decryptedKey.length)
+    console.log('Cleaned key starts with:', decryptedKey.substring(0, 10))
     console.log('--- DIAGNOSTIC END ---')
 
 
@@ -74,10 +82,12 @@ serve(async (req) => {
 
       let customerSearchResponse;
       try {
-        console.log('Requesting Asaas with token length:', decryptedKey.length)
+        console.log('Requesting Asaas (Search Customer)')
         customerSearchResponse = await fetch(searchUrl, {
+          method: 'GET',
           headers: { 
             'access_token': decryptedKey,
+            'Content-Type': 'application/json',
             'User-Agent': 'SupabaseEdgeFunction/1.0'
           }
         })
@@ -91,7 +101,7 @@ serve(async (req) => {
         console.error('Customer search failed. Status:', customerSearchResponse.status, 'Body:', errorText)
         
         if (customerSearchResponse.status === 401 || customerSearchResponse.status === 403) {
-          console.error('CRITICAL: Invalid API Key or Unauthorized. Token prefix:', decryptedKey.substring(0, 10))
+          console.error('CRITICAL: Invalid API Key. Token prefix used:', decryptedKey.substring(0, 10))
           throw new Error('CHAVE_API_INVALIDA')
         }
         
@@ -130,13 +140,16 @@ serve(async (req) => {
         if (!createCustomer.ok) {
           const errorText = await createCustomer.text()
           console.error('Customer creation failed:', errorText)
+          if (createCustomer.status === 401 || createCustomer.status === 403) {
+            throw new Error('CHAVE_API_INVALIDA')
+          }
           try {
             const errJson = JSON.parse(errorText)
             if (errJson.errors) throw new Error(`Erro ao criar cliente no Asaas: ${errJson.errors[0].description}`)
           } catch (e) {
             if (e.message.includes('Erro ao criar cliente')) throw e
           }
-          throw new Error(`Asaas API error (Create Customer): ${createCustomer.status} - ${errorText}`)
+          throw new Error(`Asaas API error (Create Customer): ${createCustomer.status}`)
         }
 
         const newCustomer = await createCustomer.json()
@@ -168,13 +181,16 @@ serve(async (req) => {
       if (!createPayment.ok) {
         const errorText = await createPayment.text()
         console.error('Payment creation failed:', errorText)
+        if (createPayment.status === 401 || createPayment.status === 403) {
+          throw new Error('CHAVE_API_INVALIDA')
+        }
         try {
           const errJson = JSON.parse(errorText)
           if (errJson.errors) throw new Error(`Erro ao gerar cobrança no Asaas: ${errJson.errors[0].description}`)
         } catch (e) {
           if (e.message.includes('Erro ao gerar cobrança')) throw e
         }
-        throw new Error(`Asaas API error (Create Payment): ${createPayment.status} - ${errorText}`)
+        throw new Error(`Asaas API error (Create Payment): ${createPayment.status}`)
       }
 
       const paymentResult = await createPayment.json()
@@ -183,8 +199,10 @@ serve(async (req) => {
       let pixInfo = {}
       if (billingType === 'PIX') {
         const getPix = await fetch(`${baseUrl}/payments/${paymentResult.id}/pixQrCode`, {
+          method: 'GET',
           headers: { 
             'access_token': decryptedKey,
+            'Content-Type': 'application/json',
             'User-Agent': 'SupabaseEdgeFunction/1.0'
           }
         })
@@ -232,10 +250,9 @@ serve(async (req) => {
     
     let detailedError = error.message
     
-    // Tratamento especial para erros de autenticação para retornar status 401
     if (detailedError === 'CHAVE_API_INVALIDA') {
       return new Response(JSON.stringify({ 
-        error: 'Chave de API do Asaas inválida ou sem permissão. Verifique se a chave está correta e se possui as permissões necessárias.',
+        error: 'Chave de API do Asaas inválida ou sem permissão. Verifique sua chave no painel do Asaas.',
         code: 'INVALID_API_KEY'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -243,26 +260,14 @@ serve(async (req) => {
       })
     }
 
-    try {
-      if (error.message.includes('{')) {
-        const jsonStart = error.message.indexOf('{')
-        const jsonStr = error.message.substring(jsonStart)
-        const errObj = JSON.parse(jsonStr)
-        if (errObj.errors && errObj.errors[0]) {
-          detailedError = errObj.errors[0].description
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to parse error JSON', e)
-    }
-
     return new Response(JSON.stringify({ 
       error: detailedError,
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400, // Usamos 400 em vez de 500 para erros de negócio/entrada
+      status: 400,
     })
   }
 })
+
 
