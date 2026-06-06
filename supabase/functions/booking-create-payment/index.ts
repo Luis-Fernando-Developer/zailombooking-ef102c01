@@ -46,14 +46,12 @@ serve(async (req) => {
       const rawKey = settings.own_gateway_api_key_encrypted;
       console.log('Raw key from DB length:', rawKey.length)
       
-      // DIAGNOSTIC: Log the exact content for verification (safe since it's an edge function log only visible to dev)
-      console.log('Raw key from DB content:', rawKey)
-      
-      if (rawKey.startsWith('$aact_') || rawKey.length > 50) {
-        console.log('API Key starts with $aact_ or is long enough, using as-is.')
+      // If the key is already in the Asaas format, use it directly
+      if (rawKey.startsWith('$aact_') || (rawKey.length > 50 && !rawKey.includes(':'))) {
+        console.log('API Key seems to be stored in plain text (migrated or not encrypted), using as-is.')
         decryptedKey = rawKey
       } else {
-        console.log('Key is short, attempting RPC decryption...')
+        console.log('Key appears encrypted, attempting RPC decryption...')
         try {
           const { data: decrypted, error: decErr } = await supabaseClient.rpc('decrypt_chatbot_key', {
             p_encrypted: rawKey,
@@ -64,7 +62,7 @@ serve(async (req) => {
             console.warn('RPC decryption failed:', decErr.message)
             decryptedKey = rawKey
           } else if (!decrypted) {
-            console.log('RPC returned no data, using raw key')
+            console.log('RPC returned no data (possibly already plain text but failed check), using raw key')
             decryptedKey = rawKey
           } else {
             console.log('RPC decryption successful')
@@ -77,15 +75,16 @@ serve(async (req) => {
       }
     }
 
-    if (!decryptedKey || decryptedKey.trim().length < 10) {
-      console.error('ERROR: No valid key found. Found length:', decryptedKey?.trim()?.length)
+    // Clean up the key
+    decryptedKey = decryptedKey?.trim() || ""
+    
+    if (!decryptedKey || decryptedKey.length < 10) {
+      console.error('ERROR: No valid key found. Found length:', decryptedKey.length)
       throw new Error('Chave de API do Asaas não encontrada ou inválida. Por favor, salve a chave novamente nas configurações.')
     }
 
-    // Clean up the key
-    decryptedKey = decryptedKey.trim()
-    console.log('Cleaned key length:', decryptedKey.length)
-    console.log('Cleaned key starts with:', decryptedKey.substring(0, 10))
+    console.log('Final key length:', decryptedKey.length)
+    console.log('Final key starts with:', decryptedKey.substring(0, 10))
     console.log('--- DIAGNOSTIC END ---')
 
 
