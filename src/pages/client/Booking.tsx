@@ -86,7 +86,7 @@ export default function ClientBooking() {
   const [client, setClient] = useState<any>(null);
   const [customization, setCustomization] = useState<any>(null);
   const [pendingEmployeeRestore, setPendingEmployeeRestore] = useState<string | null>(null);
-  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; bookingId?: string; amount?: number; allowLater?: boolean }>({ open: false });
+  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; bookingId?: string; amount?: number; allowLater?: boolean; wasPaid?: boolean }>({ open: false });
 
   useEffect(() => {
     fetchCompanyAndServices();
