@@ -98,12 +98,18 @@ serve(async (req) => {
       console.log('Searching customer at:', searchUrl)
 
       const customerSearch = await fetch(searchUrl, {
-        headers: { 'access_token': decryptedKey }
+        headers: { 
+          'access_token': decryptedKey,
+          'User-Agent': 'SupabaseEdgeFunction/1.0'
+        }
       })
       
       if (!customerSearch.ok) {
         const errorText = await customerSearch.text()
         console.error('Customer search failed:', errorText)
+        if (customerSearch.status === 401) {
+          throw new Error('Chave de API do Asaas inválida ou expirada. Verifique as configurações.')
+        }
         throw new Error(`Asaas API error (Search Customer): ${customerSearch.status} - ${errorText}`)
       }
 
@@ -116,7 +122,8 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'access_token': decryptedKey,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'User-Agent': 'SupabaseEdgeFunction/1.0'
           },
           body: JSON.stringify({
             name: payer.name || 'Cliente Agendamento',
@@ -158,7 +165,8 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'access_token': decryptedKey,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': 'SupabaseEdgeFunction/1.0'
         },
         body: JSON.stringify(paymentPayload)
       })
@@ -181,7 +189,10 @@ serve(async (req) => {
       let pixInfo = {}
       if (billingType === 'PIX') {
         const getPix = await fetch(`${baseUrl}/payments/${paymentResult.id}/pixQrCode`, {
-          headers: { 'access_token': decryptedKey }
+          headers: { 
+            'access_token': decryptedKey,
+            'User-Agent': 'SupabaseEdgeFunction/1.0'
+          }
         })
         
         if (!getPix.ok) {
@@ -228,20 +239,27 @@ serve(async (req) => {
     
     // Tentamos extrair o corpo da resposta se for um erro de fetch
     let detailedError = error.message
-    if (error.response) {
-      try {
-        const body = await error.response.text()
-        detailedError += ` | Response: ${body}`
-      } catch (_) {}
+    
+    // Se for um erro JSON do Asaas, vamos extrair a mensagem amigável
+    try {
+      if (error.message.includes('{')) {
+        const jsonStart = error.message.indexOf('{')
+        const jsonStr = error.message.substring(jsonStart)
+        const errObj = JSON.parse(jsonStr)
+        if (errObj.errors && errObj.errors[0]) {
+          detailedError = errObj.errors[0].description
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse error JSON', e)
     }
 
     return new Response(JSON.stringify({ 
       error: detailedError,
-      stack: error.stack,
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+      status: 200, // Retornamos 200 para que o client possa ler o erro JSON
     })
   }
 })
