@@ -62,7 +62,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       try {
         console.log("[PAYMENT_DIALOG] Polling status for booking:", bookingId);
         
-        // Use a cache-busting approach or just raw select
+        // Fetch fresh data with a direct query
         const { data: bookingData, error: bookingErr } = await supabase
           .from("bookings")
           .select("payment_status, booking_status, updated_at")
@@ -79,41 +79,35 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           return;
         }
         
-        const bStatus = bookingData?.payment_status?.toLowerCase();
-        const bBookingStatus = bookingData?.booking_status?.toLowerCase();
+        const bStatus = (bookingData?.payment_status || "").toLowerCase();
+        const bBookingStatus = (bookingData?.booking_status || "").toLowerCase();
 
-        console.log(`[PAYMENT_DIALOG] Checking for booking ${bookingId}. Raw status from DB: bStatus=${bStatus}, bBookingStatus=${bBookingStatus}, updatedAt=${bookingData?.updated_at}`);
+        console.log(`[PAYMENT_DIALOG] Checking for booking ${bookingId}. Raw status from DB: bStatus=${bStatus}, bBookingStatus=${bBookingStatus}`);
         
-        const isPaidStatus = (s: string | undefined | null) => {
+        const isPaidStatus = (s: string) => {
           if (!s) return false;
-          const status = s.toLowerCase();
+          const status = s.toLowerCase().trim();
           return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled", "authorized", "received_by_asaas"].includes(status);
         };
 
-        const hasPaidPaymentRow = payments && payments.length > 0 && payments.some(p => isPaidStatus(p.status));
+        const hasPaidPaymentRow = payments && payments.length > 0 && payments.some(p => isPaidStatus(p.status || ""));
         
-        console.log("[PAYMENT_DIALOG] Current status from DB:", { 
-          booking_payment_status: bStatus, 
-          booking_status: bBookingStatus,
-          has_paid_payment_row: hasPaidPaymentRow,
-          payment_rows_count: payments?.length || 0
-        });
-
         if (isPaidStatus(bStatus) || hasPaidPaymentRow || isPaidStatus(bBookingStatus) || bBookingStatus === 'confirmed') { 
           console.log("[PAYMENT_DIALOG] Confirmation detected! Completing...");
           clearInterval(t); 
-          toast({ title: "Pagamento confirmado!" }); 
+          toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." }); 
           setIsPaid(true);
           onPaid();
           
           setTimeout(() => {
             onClose();
-          }, 2000);
+          }, 2500);
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
       }
-    }, 3000); // Slightly slower to be gentler on the DB but still responsive
+    }, 2000); 
+
     
     return () => { 
       clearInterval(t); 
