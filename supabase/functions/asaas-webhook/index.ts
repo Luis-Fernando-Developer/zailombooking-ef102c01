@@ -65,8 +65,9 @@ serve(async (req) => {
       if (paymentError) {
         console.error('[ASAAS_WEBHOOK] Error updating booking_payment:', paymentError)
       }
+      console.log(`[ASAAS_WEBHOOK] Success processing event ${event} for booking ${bookingId}`)
     } else {
-      console.log('[ASAAS_WEBHOOK] Event ignored or missing externalReference')
+      console.log(`[ASAAS_WEBHOOK] Event ${event} received but not processed. Payment ID: ${payment?.id}, ExtRef: ${payment?.externalReference}`)
     }
 
     return new Response(JSON.stringify({ received: true }), {
