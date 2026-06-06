@@ -1,0 +1,5 @@
+{
+  "functions": {
+    "importMap": "../../import_map.json"
+  }
+}
