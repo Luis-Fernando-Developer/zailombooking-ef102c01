@@ -71,6 +71,9 @@ serve(async (req) => {
       'User-Agent': 'SupabaseEdgeFunction/1.0'
     }
 
+    console.log(`[BOOKING_PAYMENT] Auth header (prefix): ${decryptedKey.substring(0, 10)}...`)
+    console.log(`[BOOKING_PAYMENT] Auth header (suffix): ...${decryptedKey.substring(decryptedKey.length - 5)}`)
+
     // Generic Asaas Fetch with improved error logging
     const asaasFetch = async (url: string, options: any) => {
       const response = await fetch(url, options)
