@@ -95,7 +95,7 @@ export function RescheduleBookingDialog({
         .from('bookings')
         .update({
           booking_date: newDate,
-          start_time: selectedTime.includes(':') ? (selectedTime.length === 5 ? `${selectedTime}:00` : selectedTime) : `${selectedTime}:00`
+          start_time: selectedTime.includes(':') ? (selectedTime.length === 5 ? selectedTime : selectedTime.slice(0, 5)) : selectedTime
         })
         .eq('id', booking.id);
 
