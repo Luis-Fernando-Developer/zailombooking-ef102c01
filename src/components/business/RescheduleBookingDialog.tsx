@@ -121,6 +121,7 @@ export function RescheduleBookingDialog({
   };
 
   const formatCurrentDate = (date: string) => {
+    if (!date) return "";
     const [year, month, day] = date.split('-').map(Number);
     return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
       weekday: 'long',
@@ -147,7 +148,7 @@ export function RescheduleBookingDialog({
               Cliente: {booking.client?.name}
             </p>
             <p className="text-xs text-muted-foreground">
-              Data atual: {formatCurrentDate(booking.booking_date)} às {booking.start_time?.slice(0, 5)}
+              Data atual: {formatCurrentDate(booking.booking_date)} às {booking.start_time?.includes('T') ? booking.start_time.split('T')[1].slice(0, 5) : booking.start_time?.slice(0, 5)}
             </p>
           </div>
         )}
