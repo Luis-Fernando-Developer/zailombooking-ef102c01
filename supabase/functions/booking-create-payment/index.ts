@@ -151,6 +151,9 @@ serve(async (req) => {
         dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // 24h
         description: `Agendamento #${booking.id}`,
         externalReference: booking.id,
+        metadata: {
+          booking_id: booking.id
+        },
         postalCode: '12345678', // Postal code fallback for webhooks
         callback: {
           url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/asaas-webhook`,
