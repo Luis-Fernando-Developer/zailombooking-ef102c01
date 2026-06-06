@@ -64,7 +64,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("booking-create-payment", {
-        body: { booking_id: bookingId, method: selected, payer },
+        body: { booking_id: bookingId, method: selected, payer, amount },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
