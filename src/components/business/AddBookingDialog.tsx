@@ -412,7 +412,7 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({
             company_id: companyId,
@@ -489,7 +489,7 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
           Novo Agendamento
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[420px] sm:max-w-[500px] max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-[420px] sm:max-w-[500px] max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-2">
             {step !== 'service' && (
@@ -511,7 +511,7 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 pr-4 mb-4">
           {/* Step 1: Service Selection */}
           {step === 'service' && (
             <div className="space-y-4">
