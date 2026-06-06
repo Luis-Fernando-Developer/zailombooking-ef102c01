@@ -41,16 +41,26 @@ serve(async (req) => {
     
     console.info(`[ASAAS_WEBHOOK] Processing - Event: ${event} | Status: ${currentStatus} | Payment ID: ${payment?.id}`)
 
+    // Detailed lists of confirmed statuses from Asaas
     const confirmedStatuses = [
       'PAYMENT_RECEIVED',
       'PAYMENT_CONFIRMED',
       'PAYMENT_SETTLED',
       'PAYMENT_RECEIVED_BY_ASAAS',
       'PAYMENT_AUTHORIZED',
-      'CHECKOUT_PAID'
+      'CHECKOUT_PAID',
+      'TRANSFER_CONFIRMED',
+      'TRANSFER_RECEIVED'
     ];
 
-    const confirmedAsaasStatuses = ['RECEIVED', 'CONFIRMED', 'RECEIVED_BY_ASAAS', 'SETTLED', 'AUTHORIZED'];
+    const confirmedAsaasStatuses = [
+      'RECEIVED', 
+      'CONFIRMED', 
+      'RECEIVED_BY_ASAAS', 
+      'SETTLED', 
+      'AUTHORIZED',
+      'PAID'
+    ];
     
     const isConfirmed = confirmedStatuses.includes(event) || 
                         confirmedAsaasStatuses.includes(currentStatus) || 
