@@ -46,9 +46,12 @@ serve(async (req) => {
     ];
 
     const isConfirmedEvent = confirmedStatuses.includes(event);
+    
+    // We try to find the booking ID from externalReference or from a custom parsing
+    // Asaas sometimes sends it in different places depending on the event type
+    let bookingId = payment?.externalReference || body.payment?.externalReference;
 
-    if (isConfirmedEvent && payment?.externalReference) {
-      const bookingId = payment.externalReference
+    if (isConfirmedEvent && bookingId) {
       console.log(`[ASAAS_WEBHOOK] Updating booking ${bookingId} to confirmed due to event ${event}`)
 
       // Update bookings table
@@ -78,7 +81,7 @@ serve(async (req) => {
       }
       console.log(`[ASAAS_WEBHOOK] Success processing event ${event} for booking ${bookingId}`)
     } else {
-      console.log(`[ASAAS_WEBHOOK] Event ${event} received but not processed. Payment ID: ${payment?.id}, ExtRef: ${payment?.externalReference}`)
+      console.log(`[ASAAS_WEBHOOK] Event ${event} received but not processed. Payment ID: ${payment?.id}, ExtRef: ${bookingId}`)
     }
 
     return new Response(JSON.stringify({ received: true }), {
