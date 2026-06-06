@@ -7,6 +7,8 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log(`[ASAAS_WEBHOOK] Request method: ${req.method}`)
+  
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -17,19 +19,54 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const body = await req.json()
+    const rawBody = await req.text()
+    console.log('[ASAAS_WEBHOOK] Raw body:', rawBody)
+    
+    let body
+    try {
+      body = JSON.parse(rawBody)
+    } catch (e) {
+      console.error('[ASAAS_WEBHOOK] Error parsing JSON:', e.message)
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+
     const { event, payment } = body
+    console.log(`[ASAAS_WEBHOOK] Event: ${event} | Payment ID: ${payment?.id}`)
 
-    if (event === 'PAYMENT_RECEIVED' && payment.externalReference) {
+    if ((event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED') && payment?.externalReference) {
       const bookingId = payment.externalReference
+      console.log(`[ASAAS_WEBHOOK] Updating booking ${bookingId} to confirmed`)
 
-      await supabaseClient
+      // Update bookings table
+      const { error: bookingError } = await supabaseClient
         .from('bookings')
         .update({ 
           booking_status: 'confirmed',
           payment_status: 'confirmed'
         })
         .eq('id', bookingId)
+      
+      if (bookingError) {
+        console.error('[ASAAS_WEBHOOK] Error updating booking:', bookingError)
+      }
+
+      // Update booking_payments table
+      const { error: paymentError } = await supabaseClient
+        .from('booking_payments')
+        .update({ 
+          status: 'paid',
+          updated_at: new Date().toISOString()
+        })
+        .eq('booking_id', bookingId)
+      
+      if (paymentError) {
+        console.error('[ASAAS_WEBHOOK] Error updating booking_payment:', paymentError)
+      }
+    } else {
+      console.log('[ASAAS_WEBHOOK] Event ignored or missing externalReference')
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -37,6 +74,7 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error) {
+    console.error('[ASAAS_WEBHOOK] Fatal error:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
