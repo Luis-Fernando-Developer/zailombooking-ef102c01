@@ -194,14 +194,13 @@ export default function BusinessBookings() {
   };
 
   const applyFilters = () => {
-    console.log('Aplicando filtros nos agendamentos:', bookings.length);
     let filtered = [...bookings];
 
-    if (filters.status) {
+    if (filters.status && filters.status !== 'all') {
       filtered = filtered.filter(booking => booking.booking_status === filters.status);
     }
 
-    if (filters.payment) {
+    if (filters.payment && filters.payment !== 'all') {
       filtered = filtered.filter(booking => booking.payment_status === filters.payment);
     }
 
@@ -218,7 +217,6 @@ export default function BusinessBookings() {
         booking.employee?.name?.toLowerCase().includes(searchLower)
       );
     }
-    console.log('filteredBookings:', filtered);
     setFilteredBookings(filtered);
   };
 
