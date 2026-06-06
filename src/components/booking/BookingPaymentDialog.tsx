@@ -62,18 +62,17 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       try {
         console.log("[PAYMENT_DIALOG] Polling status for booking:", bookingId);
         
-        // We fetch ALL status fields from the booking and its related payments
+        // Use a cache-busting approach or just raw select
         const { data: bookingData, error: bookingErr } = await supabase
           .from("bookings")
-          .select("payment_status, booking_status")
+          .select("payment_status, booking_status, updated_at")
           .eq("id", bookingId)
-          .maybeSingle();
+          .single();
 
         const { data: payments, error: paymentErr } = await supabase
           .from("booking_payments")
-          .select("status")
-          .eq("booking_id", bookingId)
-          .order('created_at', { ascending: false });
+          .select("status, updated_at")
+          .eq("booking_id", bookingId);
         
         if (bookingErr || paymentErr) {
           console.error("[PAYMENT_DIALOG] Error polling status:", bookingErr || paymentErr);
@@ -83,7 +82,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const bStatus = bookingData?.payment_status?.toLowerCase();
         const bBookingStatus = bookingData?.booking_status?.toLowerCase();
 
-        console.log(`[PAYMENT_DIALOG] Checking for booking ${bookingId}. Raw status from DB: bStatus=${bStatus}, bBookingStatus=${bBookingStatus}`);
+        console.log(`[PAYMENT_DIALOG] Checking for booking ${bookingId}. Raw status from DB: bStatus=${bStatus}, bBookingStatus=${bBookingStatus}, updatedAt=${bookingData?.updated_at}`);
         
         const isPaidStatus = (s: string | undefined | null) => {
           if (!s) return false;
@@ -91,7 +90,6 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           return ["paid", "confirmed", "received", "pago", "sucesso", "success", "confirmed_by_asaas", "settled", "authorized", "received_by_asaas"].includes(status);
         };
 
-        // Check if ANY payment row for this booking is paid
         const hasPaidPaymentRow = payments && payments.length > 0 && payments.some(p => isPaidStatus(p.status));
         
         console.log("[PAYMENT_DIALOG] Current status from DB:", { 
@@ -101,14 +99,11 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           payment_rows_count: payments?.length || 0
         });
 
-        // If either booking or any payment row is confirmed, we finish
         if (isPaidStatus(bStatus) || hasPaidPaymentRow || isPaidStatus(bBookingStatus) || bBookingStatus === 'confirmed') { 
           console.log("[PAYMENT_DIALOG] Confirmation detected! Completing...");
           clearInterval(t); 
           toast({ title: "Pagamento confirmado!" }); 
           setIsPaid(true);
-          
-          // Force a final update to make sure UI is in sync if needed
           onPaid();
           
           setTimeout(() => {
@@ -118,7 +113,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Unexpected error in poll:", err);
       }
-    }, 2000);
+    }, 3000); // Slightly slower to be gentler on the DB but still responsive
     
     return () => { 
       clearInterval(t); 
