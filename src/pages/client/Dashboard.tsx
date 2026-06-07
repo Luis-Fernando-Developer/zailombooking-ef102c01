@@ -141,9 +141,9 @@ export default function ClientDashboard() {
 
   return (
     <SidebarProvider>
-      <div className="flex flex-col min-h-screen w-full bg-gradient-hero overflow-hidden">
+      <div className="flex flex-col h-screen w-full bg-gradient-hero overflow-hidden">
         {/* Header - Agora ocupa toda a largura no topo */}
-        <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 sticky top-0 z-20 shrink-0 w-full">
+        <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20 shrink-0 w-full">
           <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
           <div className="flex flex-col">
             <h1 className="text-xl font-bold text-gradient">
@@ -153,7 +153,7 @@ export default function ClientDashboard() {
           </div>
         </header>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           <ClientSidebar
             clientId={client?.id || ""}
             currentUser={null}
@@ -162,7 +162,8 @@ export default function ClientDashboard() {
             companyId={company?.id || ""}
           />
 
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+
 
 
           {/* Content */}
