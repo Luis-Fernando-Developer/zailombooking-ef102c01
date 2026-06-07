@@ -276,7 +276,7 @@ export default function ClientDashboard() {
                                   {formatDate(booking.booking_date)}
                                 </span>
                                 <span className="flex items-center gap-1.5 font-bold text-foreground">
-                                  às {booking.start_time?.slice(0, 5)}
+                                  {booking.start_time?.slice(0, 5)}
                                 </span>
                               </div>
                             </div>
@@ -290,9 +290,12 @@ export default function ClientDashboard() {
                             }`}>
                               {booking.booking_status === 'confirmed' ? 'Confirmado' : 'Pendente'}
                             </div>
-                            <button className="p-2 hover:bg-primary/10 rounded-full transition-colors">
-                              <div className="w-1 h-1 bg-muted-foreground rounded-full mb-0.5"></div>
-                              <div className="w-1 h-1 bg-muted-foreground rounded-full mb-0.5"></div>
+                            <button 
+                              className="p-2 hover:bg-primary/10 rounded-full transition-colors flex flex-col gap-0.5"
+                              onClick={() => navigate(`/${slug}/agendamentos`)}
+                            >
+                              <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                              <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
                               <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
                             </button>
                           </div>
