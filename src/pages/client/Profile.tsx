@@ -233,25 +233,27 @@ export default function ClientProfile() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-gradient-hero overflow-hidden">
-        <ClientSidebar
-          clientId={client?.id || ""}
-          currentUser={null}
-          companySlug={company?.slug || ""}
-          companyName={company?.name || ""}
-          companyId={company?.id || ""}
-        />
+      <div className="flex flex-col min-h-screen w-full bg-gradient-hero overflow-hidden">
+        {/* Header - Agora ocupa toda a largura no topo */}
+        <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 sticky top-0 z-20 shrink-0 w-full">
+          <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
+          <div className="flex flex-col">
+            <h1 className="text-xl font-bold text-gradient">Meu Perfil</h1>
+            <p className="text-xs text-muted-foreground">Gerencie seus dados e privacidade</p>
+          </div>
+        </header>
 
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 sticky top-0 z-10 shrink-0">
-            <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
-            <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-gradient">Meu Perfil</h1>
-              <p className="text-xs text-muted-foreground">Gerencie seus dados e privacidade</p>
-            </div>
-          </header>
+        <div className="flex flex-1 overflow-hidden">
+          <ClientSidebar
+            clientId={client?.id || ""}
+            currentUser={null}
+            companySlug={company?.slug || ""}
+            companyName={company?.name || ""}
+            companyId={company?.id || ""}
+          />
 
           <main className="flex-1 overflow-y-auto">
+
 
           {/* Content */}
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
