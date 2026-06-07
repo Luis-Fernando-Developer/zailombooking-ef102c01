@@ -7,19 +7,14 @@ import { getEdgeFunctionUrl } from "./supabaseHelpers";
 export async function syncBuilderPlan(companyId: string): Promise<void> {
   if (!companyId) return;
   try {
-    const res = await fetch(getEdgeFunctionUrl("sync-builder-plan"), {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-      },
-      body: JSON.stringify({ company_id: companyId }),
+    const { data, error } = await supabase.functions.invoke("sync-builder-plan", {
+      body: { company_id: companyId },
     });
-    const result = await res.json().catch(() => null);
-    if (!res.ok || !result?.ok) {
-      console.warn("[syncBuilderPlan] falha:", res.status, result);
+    
+    if (error || !data?.ok) {
+      console.warn("[syncBuilderPlan] falha:", error || data);
     } else {
-      console.log("[syncBuilderPlan] ok:", result);
+      console.log("[syncBuilderPlan] ok:", data);
     }
   } catch (err) {
     console.warn("[syncBuilderPlan] erro:", err);
