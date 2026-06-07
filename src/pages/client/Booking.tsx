@@ -1287,7 +1287,7 @@ export default function ClientBooking() {
       {paymentDialog.open && paymentDialog.bookingId && company && (
         <BookingPaymentDialog
           open={paymentDialog.open}
-          onClose={() => setPaymentDialog({ open: false })}
+          onClose={() => setPaymentDialog(prev => ({ ...prev, open: false }))}
           bookingId={paymentDialog.bookingId}
           companyId={company.id}
           amount={paymentDialog.amount || 0}
