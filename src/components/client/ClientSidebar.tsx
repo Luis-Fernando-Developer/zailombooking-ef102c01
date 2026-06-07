@@ -84,7 +84,7 @@ export function ClientSidebar({  companySlug, companyName, companyId, userRole, 
   });
 
   return (
-      <Sidebar className={state === "collapsed" ? "w-14" : "w-64"}>
+      <Sidebar className={state === "collapsed" ? "w-14" : "w-64"} collapsible="none">
           <SidebarContent className="bg-card/30 backdrop-blur-md border-r border-primary/20 overflow-hidden">
             {/* Background Decor */}
             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-primary/5 -skew-y-12 transform -translate-y-16"></div>
