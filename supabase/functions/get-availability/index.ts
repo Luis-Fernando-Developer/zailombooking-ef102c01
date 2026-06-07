@@ -121,14 +121,15 @@ serve(async (req) => {
     }
 
     // 5. Get existing bookings
-    // Use .not.in to filter out cancelled and rejected bookings
+    // We want to fetch all bookings that are NOT 'cancelled' and NOT 'rejected'
+    // This will include 'pending', 'confirmed', 'completed', etc.
     const { data: bookings, error: bookingsError } = await supabaseClient
       .from('bookings')
       .select('start_time, end_time, booking_status')
       .eq('employee_id', employeeId)
       .gte('start_time', `${date}T00:00:00`)
       .lte('start_time', `${date}T23:59:59`)
-      .not('booking_status', 'in', '("cancelled","rejected")')
+      .filter('booking_status', 'not.in', '("cancelled","rejected")')
 
     console.log(`Found ${bookings?.length || 0} active bookings for ${date}:`, JSON.stringify(bookings))
 
