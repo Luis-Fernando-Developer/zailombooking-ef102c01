@@ -554,7 +554,13 @@ export default function ClientBooking() {
         
         const response = await fetch(getEdgeFunctionUrl('get-availability'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-company-id': company.id,
+            'x-service-id': firstServiceId,
+            'x-employee-id': selectedEmployee.id,
+            'x-date': dateStr
+          },
           body: JSON.stringify({
             company_id: company.id,
             service_id: firstServiceId,
@@ -578,7 +584,13 @@ export default function ClientBooking() {
       
       const response = await fetch(getEdgeFunctionUrl('get-availability'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-company-id': company.id,
+          'x-service-id': selectedService.id,
+          'x-employee-id': selectedEmployee.id,
+          'x-date': dateStr
+        },
         body: JSON.stringify({
           company_id: company.id,
           service_id: selectedService.id,
