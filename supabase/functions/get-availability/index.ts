@@ -176,15 +176,19 @@ serve(async (req) => {
       }
 
       const isBooked = bookings?.some(b => {
-        const bStart = new Date(b.start_time).toISOString()
-        const bEnd = new Date(b.end_time).toISOString()
-        return (slotStart < bEnd && slotEnd > bStart)
+        const bStart = new Date(b.start_time).getTime()
+        const bEnd = new Date(b.end_time).getTime()
+        const sStart = new Date(slotStart).getTime()
+        const sEnd = new Date(slotEnd).getTime()
+        return (sStart < bEnd && sEnd > bStart)
       })
 
       const isBlocked = blocked?.some(b => {
-        const bStart = new Date(b.start_time).toISOString()
-        const bEnd = new Date(b.end_time).toISOString()
-        return (slotStart < bEnd && slotEnd > bStart)
+        const bStart = new Date(b.start_time).getTime()
+        const bEnd = new Date(b.end_time).getTime()
+        const sStart = new Date(slotStart).getTime()
+        const sEnd = new Date(slotEnd).getTime()
+        return (sStart < bEnd && sEnd > bStart)
       })
 
       if (!isBooked && !isBlocked) {
