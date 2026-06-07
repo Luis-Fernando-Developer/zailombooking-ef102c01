@@ -488,14 +488,17 @@ export default function ClientBooking() {
             return null;
           }
 
-          const data = await getAvailability({
-            data: {
+          const response = await fetch(getEdgeFunctionUrl('get-availability'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
               company_id: company.id,
               service_id: selectedService.id,
               employee_id: selectedEmployee.id,
               date: dateStr
-            }
+            })
           });
+          const data = await response.json();
           
           if (data && !data.error && data.slots && data.slots.length > 0) {
             return date;
