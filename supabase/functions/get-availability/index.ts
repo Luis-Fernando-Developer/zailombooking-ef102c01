@@ -178,13 +178,17 @@ serve(async (req) => {
 
       const isBooked = bookings?.some(b => {
         const bStart = new Date(b.start_time).getTime()
-        const bEnd = new Date(b.end_time).getTime()
+        // Handle cases where end_time might be null in the DB
+        const bEnd = b.end_time 
+          ? new Date(b.end_time).getTime() 
+          : bStart + duration * 60000 // Fallback to service duration if end_time is missing
+          
         const sStart = new Date(slotStart).getTime()
         const sEnd = new Date(slotEnd).getTime()
         
         const overlaps = (sStart < bEnd && sEnd > bStart)
         if (overlaps) {
-          console.log(`Slot ${currentFormatted} (${slotStart} - ${slotEnd}) overlaps with booking ${b.start_time} - ${b.end_time}`)
+          console.log(`Slot ${currentFormatted} overlaps with booking: start=${b.start_time}, calculated_end=${new Date(bEnd).toISOString()}, status=${b.booking_status}`)
         }
         return overlaps
       })
