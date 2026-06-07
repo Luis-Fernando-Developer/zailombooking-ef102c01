@@ -129,6 +129,7 @@ export default function ClientDashboard() {
   };
 
   const formatDate = (date: string) => {
+    if (!date) return "";
     const [year, month, day] = date.split('-').map(Number);
     return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
       day: 'numeric',
@@ -281,7 +282,7 @@ export default function ClientDashboard() {
                                   {formatDate(booking.booking_date)}
                                 </span>
                                 <span className="flex items-center gap-1.5 font-bold text-foreground">
-                                  {booking.start_time?.slice(0, 5)}
+                                  às {booking.start_time?.slice(0, 5)}
                                 </span>
                               </div>
                             </div>
