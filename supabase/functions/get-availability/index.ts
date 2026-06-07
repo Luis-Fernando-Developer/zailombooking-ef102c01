@@ -120,11 +120,11 @@ serve(async (req) => {
     // 5. Get existing bookings
     const { data: bookings, error: bookingsError } = await supabaseClient
       .from('bookings')
-      .select('start_time, end_time')
+      .select('start_time, end_time, booking_status')
       .eq('employee_id', employeeId)
       .gte('start_time', `${date}T00:00:00`)
       .lte('start_time', `${date}T23:59:59`)
-      .not('status', 'eq', 'cancelled')
+      .not('booking_status', 'in', '("cancelled", "rejected")')
 
     // 6. Get blocked slots
     const { data: blocked, error: blockedError } = await supabaseClient
