@@ -302,9 +302,8 @@ export default function ClientLayout() {
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-2 gap-x-6">
                               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/40 px-3 py-1 rounded-lg">
                                 <Calendar className="h-4 w-4 text-primary" />
-                                <span className="font-medium text-foreground">{booking.booking_date}</span>
-                                <span className="text-xs">às</span>
-                                <span className="font-bold text-primary">{booking.start_time.slice(0, 5)}</span>
+                                <span className="font-medium text-foreground">{new Date(booking.booking_date).toLocaleDateString('pt-BR')}</span>
+                                <span className="font-bold text-primary ml-1">{booking.start_time.slice(0, 5)}</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Clock className="h-4 w-4" />
