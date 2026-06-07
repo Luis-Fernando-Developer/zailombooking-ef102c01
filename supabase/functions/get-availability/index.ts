@@ -127,6 +127,8 @@ serve(async (req) => {
       .not('booking_status', 'in', '("cancelled", "rejected")')
       .not('booking_status', 'is', 'null')
 
+    console.log(`Found ${bookings?.length || 0} active bookings for ${date}`)
+
     // 6. Get blocked slots
     const { data: blocked, error: blockedError } = await supabaseClient
       .from('blocked_slots')
