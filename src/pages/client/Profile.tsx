@@ -242,167 +242,202 @@ export default function ClientProfile() {
         />
 
         <main className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="h-fit flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-sm px-4">
-            <SidebarTrigger className="text-foreground hover:bg-primary/10" />
-            <div className="ml-4 flex flex-col py-3">
-              <h1 className="text-lg font-semibold text-gradient">Meu Perfil</h1>
+          <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 sticky top-0 z-10">
+            <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold text-gradient">Meu Perfil</h1>
+              <p className="text-xs text-muted-foreground">Gerencie seus dados e privacidade</p>
             </div>
           </header>
 
           {/* Content */}
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-            <div className="space-y-6">
-              {/* Avatar Section */}
-              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="w-20 h-20">
-                      <AvatarFallback className="bg-gradient-primary text-2xl text-white">
-                        {client?.name?.charAt(0)?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h2 className="text-xl font-semibold">{client?.name}</h2>
-                      <p className="text-sm text-muted-foreground">{client?.email}</p>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
+            
+            {/* Profile Header Card */}
+            <div className="relative overflow-hidden rounded-3xl bg-card/40 border border-primary/20 p-8 card-glow">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
+              <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-gradient-primary rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                  <Avatar className="w-24 h-24 border-2 border-primary/20 relative">
+                    <AvatarFallback className="bg-gradient-primary text-3xl font-black text-white">
+                      {client?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-neon hover:scale-110 transition-transform">
+                    <Camera className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="text-center md:text-left space-y-1">
+                  <h2 className="text-3xl font-extrabold tracking-tight">{client?.name}</h2>
+                  <p className="text-muted-foreground flex items-center justify-center md:justify-start gap-2">
+                    <Mail className="w-4 h-4" /> {client?.email}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4">
+                    <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary-glow">Cliente VIP</Badge>
+                    <Badge variant="outline" className="bg-green-500/5 border-green-500/20 text-green-500">Conta Verificada</Badge>
+                  </div>
+                </div>
+                <div className="md:ml-auto flex gap-3">
+                  <Button 
+                    variant="neon" 
+                    onClick={handleSave} 
+                    disabled={isSaving}
+                    className="shadow-neon px-8"
+                  >
+                    {isSaving ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    Salvar Alterações
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {/* Left Column - Navigation/Info */}
+              <div className="space-y-6">
+                <div className="bg-card/40 border border-primary/10 rounded-2xl p-6 space-y-4">
+                  <h3 className="font-bold text-lg border-b border-primary/10 pb-2">Resumo</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Cliente desde</span>
+                      <span className="font-medium">{new Date(client?.created_at || "").toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">ID da Conta</span>
+                      <span className="font-medium text-[10px] bg-muted/20 px-2 py-0.5 rounded uppercase tracking-tighter">#{client?.id?.slice(0, 8)}</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Personal Info */}
-              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    Informações Pessoais
-                  </CardTitle>
-                  <CardDescription>Atualize seus dados pessoais</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome completo</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className="bg-background/50"
-                      />
-                    </div>
+                <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-6 space-y-4">
+                  <h3 className="font-bold text-lg text-destructive flex items-center gap-2">
+                    <Shield className="w-5 h-5" /> Zona de Perigo
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Ao excluir seus dados, você perderá acesso ao seu histórico de agendamentos.
+                  </p>
+                  <Button 
+                    variant="destructive" 
+                    className="w-full bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/20"
+                    size="sm"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Excluir Meus Dados
+                  </Button>
+                </div>
+              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              {/* Main Column - Forms */}
+              <div className="md:col-span-2 space-y-8">
+                {/* Personal Info */}
+                <Card className="bg-card/40 backdrop-blur-sm border-primary/10 overflow-hidden">
+                  <CardHeader className="bg-primary/5 border-b border-primary/10">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <User className="w-5 h-5 text-primary" /> Informações Pessoais
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nome completo</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          className="bg-background/30 border-primary/10 focus:border-primary/40 h-12"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</Label>
                         <Input
                           id="email"
                           name="email"
-                          type="email"
                           value={formData.email}
                           onChange={handleInputChange}
-                          className="pl-10 bg-background/50"
+                          className="bg-background/30 border-primary/10 focus:border-primary/40 h-12"
                         />
                       </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefone</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Telefone</Label>
                         <Input
                           id="phone"
                           name="phone"
-                          type="tel"
                           value={formData.phone}
                           onChange={handleInputChange}
                           placeholder="(11) 99999-9999"
-                          className="pl-10 bg-background/50"
+                          className="bg-background/30 border-primary/10 focus:border-primary/40 h-12"
                         />
                       </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cpf">CPF</Label>
-                      <div className="relative">
-                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <div className="space-y-2">
+                        <Label htmlFor="cpf" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CPF</Label>
                         <Input
                           id="cpf"
                           name="cpf"
                           value={formData.cpf}
                           onChange={handleInputChange}
-                          placeholder="000.000.000-00"
                           maxLength={14}
-                          className="pl-10 bg-background/50"
+                          className="bg-background/30 border-primary/10 focus:border-primary/40 h-12"
                         />
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              {/* Address */}
-              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    Endereço
-                  </CardTitle>
-                  <CardDescription>Seu endereço para contato</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Endereço</Label>
-                    <Input
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      placeholder="Rua, número, complemento"
-                      className="bg-background/50"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Address */}
+                <Card className="bg-card/40 backdrop-blur-sm border-primary/10 overflow-hidden">
+                  <CardHeader className="bg-primary/5 border-b border-primary/10">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-primary" /> Endereço
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="city">Cidade</Label>
+                      <Label htmlFor="address" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Logradouro</Label>
                       <Input
-                        id="city"
-                        name="city"
-                        value={formData.city}
+                        id="address"
+                        name="address"
+                        value={formData.address}
                         onChange={handleInputChange}
-                        className="bg-background/50"
+                        placeholder="Rua, número, complemento"
+                        className="bg-background/30 border-primary/10 focus:border-primary/40 h-12"
                       />
                     </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="city" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cidade</Label>
+                        <Input id="city" name="city" value={formData.city} onChange={handleInputChange} className="bg-background/30 border-primary/10 h-12" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="state" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estado</Label>
+                        <Input id="state" name="state" value={formData.state} onChange={handleInputChange} maxLength={2} className="bg-background/30 border-primary/10 h-12" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="zip_code" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CEP</Label>
+                        <Input id="zip_code" name="zip_code" value={formData.zip_code} onChange={handleInputChange} className="bg-background/30 border-primary/10 h-12" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="state">Estado</Label>
-                      <Input
-                        id="state"
-                        name="state"
-                        value={formData.state}
-                        onChange={handleInputChange}
-                        maxLength={2}
-                        placeholder="SP"
-                        className="bg-background/50"
+                {/* Privacy */}
+                <Card className="bg-card/40 backdrop-blur-sm border-primary/10 overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <h4 className="font-bold">Comunicações de Marketing</h4>
+                        <p className="text-sm text-muted-foreground">Receba ofertas exclusivas e lembretes por email.</p>
+                      </div>
+                      <Switch
+                        checked={formData.accepts_marketing}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, accepts_marketing: checked }))}
                       />
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="zip_code">CEP</Label>
-                      <Input
-                        id="zip_code"
-                        name="zip_code"
-                        value={formData.zip_code}
-                        onChange={handleInputChange}
-                        placeholder="00000-000"
-                        className="bg-background/50"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
 
               {/* Privacy & LGPD */}
               <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">

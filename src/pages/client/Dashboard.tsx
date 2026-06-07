@@ -151,114 +151,145 @@ export default function ClientDashboard() {
 
         <main className="flex-1 flex flex-col">
           {/* Header */}
-          <header className="h-fit flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-sm px-4">
-            <SidebarTrigger className="text-foreground hover:bg-primary/10" />
-            <div className="ml-4 flex flex-col py-3">
-              <h1 className="text-lg font-semibold text-gradient">
-                Olá, {client?.name?.split(' ')[0] || ""}!
+          <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 sticky top-0 z-10">
+            <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold text-gradient">
+                Painel do Cliente
               </h1>
-              <p className="text-sm text-muted-foreground">Bem-vindo ao seu painel</p>
+              <p className="text-xs text-muted-foreground">Gerencie seus agendamentos na {company?.name}</p>
             </div>
           </header>
 
           {/* Content */}
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-            <div className="space-y-6">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-primary/20 rounded-lg">
-                        <Calendar className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.total}</p>
-                        <p className="text-xs text-muted-foreground">Total</p>
-                      </div>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-10">
+            
+            {/* Hero Section */}
+            <section className="relative overflow-hidden rounded-3xl bg-card/40 border border-primary/20 p-8 md:p-12 card-glow group">
+              <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-primary/20 rounded-full blur-[100px] group-hover:bg-primary/30 transition-colors duration-500"></div>
+              <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-neon-pink/10 rounded-full blur-[100px]"></div>
+              
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary-glow animate-pulse">
+                    <span className="relative flex h-2 w-2 mr-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                    </span>
+                    Painel Ativo
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+                    Olá, <span className="text-neon">{client?.name?.split(' ')[0] || "Visitante"}</span>! 👋
+                  </h2>
+                  <p className="text-lg text-muted-foreground max-w-md">
+                    É bom ter você de volta. Que tal cuidar de você hoje e agendar um novo serviço?
+                  </p>
+                  <button 
+                    onClick={() => navigate(`/${slug}/agendar`)}
+                    className="mt-4 px-6 py-3 bg-gradient-primary text-white rounded-xl font-bold shadow-neon hover:shadow-neon-strong transition-all duration-300 transform hover:-translate-y-1 active:scale-95 flex items-center gap-2 group/btn w-fit"
+                  >
+                    <Calendar className="w-5 h-5 group-hover/btn:rotate-12 transition-transform" />
+                    Novo Agendamento
+                  </button>
+                </div>
+                
+                <div className="hidden lg:block">
+                  <div className="w-40 h-40 rounded-full bg-gradient-primary p-1 animate-float">
+                    <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-4xl font-bold text-gradient">
+                      {client?.name?.charAt(0) || "U"}
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-yellow-500/20 rounded-lg">
-                        <Clock className="w-5 h-5 text-yellow-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.pending + stats.confirmed}</p>
-                        <p className="text-xs text-muted-foreground">Agendados</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-500/20 rounded-lg">
-                        <CheckCircle className="w-5 h-5 text-green-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.completed}</p>
-                        <p className="text-xs text-muted-foreground">Concluídos</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-red-500/20 rounded-lg">
-                        <XCircle className="w-5 h-5 text-red-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.cancelled}</p>
-                        <p className="text-xs text-muted-foreground">Cancelados</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
+            </section>
 
-              {/* Upcoming Bookings */}
-              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-gradient">Próximos Agendamentos</CardTitle>
-                  <CardDescription>Seus compromissos agendados</CardDescription>
-                </CardHeader>
-                <CardContent>
+            {/* Stats Cards */}
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[
+                { label: "Total", value: stats.total, icon: Calendar, color: "primary" },
+                { label: "Agendados", value: stats.pending + stats.confirmed, icon: Clock, color: "yellow-500" },
+                { label: "Concluídos", value: stats.completed, icon: CheckCircle, color: "green-500" },
+                { label: "Cancelados", value: stats.cancelled, icon: XCircle, color: "red-500" }
+              ].map((stat, i) => (
+                <div key={i} className="group relative">
+                  <div className={`absolute -inset-0.5 bg-${stat.color} rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-500`}></div>
+                  <Card className="relative bg-card/50 backdrop-blur-sm border-primary/10 overflow-hidden hover:border-primary/30 transition-all duration-300">
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col items-center text-center gap-3">
+                        <div className={`p-3 bg-${stat.color}/10 rounded-2xl group-hover:scale-110 transition-transform duration-300`}>
+                          <stat.icon className={`w-6 h-6 text-${stat.color}`} />
+                        </div>
+                        <div>
+                          <p className="text-3xl font-black tracking-tighter">{stat.value}</p>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+            </section>
+
+            {/* Upcoming Bookings */}
+            <section>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gradient">Próximos Agendamentos</h3>
+                <button 
+                  onClick={() => navigate(`/${slug}/agendamentos`)}
+                  className="text-sm font-medium text-primary hover:text-primary-glow transition-colors"
+                >
+                  Ver todos
+                </button>
+              </div>
+              
+              <Card className="bg-card/40 backdrop-blur-md border-primary/10 overflow-hidden">
+                <CardContent className="p-6">
                   {upcomingBookings.length === 0 ? (
-                    <div className="text-center py-8">
-                      <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">Nenhum agendamento próximo</p>
+                    <div className="text-center py-12 space-y-4">
+                      <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto">
+                        <AlertCircle className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <p className="text-muted-foreground font-medium">Você não tem agendamentos próximos.</p>
+                      <Button variant="outline" onClick={() => navigate(`/${slug}/agendar`)}>Fazer um agendamento agora</Button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {upcomingBookings.map((booking, index) => (
                         <div 
                           key={index}
-                          className="flex items-center justify-between p-3 bg-background/30 rounded-lg border border-primary/10"
+                          className="group flex flex-col md:flex-row md:items-center justify-between p-5 bg-background/20 rounded-2xl border border-primary/5 hover:border-primary/20 transition-all duration-300 hover:translate-x-1"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-primary/20 rounded-lg">
-                              <Calendar className="w-4 h-4 text-primary" />
+                          <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 bg-gradient-to-br from-primary/20 to-neon-pink/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:rotate-3 transition-transform">
+                              <Calendar className="w-6 h-6 text-primary" />
                             </div>
-                            <div>
-                              <p className="font-medium">{booking.service?.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatDate(booking.booking_date)} às {booking.start_time?.slice(0, 5)}
-                              </p>
+                            <div className="space-y-1">
+                              <h4 className="font-bold text-lg group-hover:text-primary transition-colors">{booking.service?.name}</h4>
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1.5">
+                                  <Clock className="w-4 h-4" />
+                                  {formatDate(booking.booking_date)}
+                                </span>
+                                <span className="flex items-center gap-1.5 font-bold text-foreground">
+                                  às {booking.start_time?.slice(0, 5)}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          <div className={`text-xs px-2 py-1 rounded-full ${
-                            booking.booking_status === 'confirmed' 
-                              ? 'bg-green-500/20 text-green-500' 
-                              : 'bg-yellow-500/20 text-yellow-500'
-                          }`}>
-                            {booking.booking_status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                          
+                          <div className="mt-4 md:mt-0 flex items-center justify-between md:justify-end gap-4">
+                            <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                              booking.booking_status === 'confirmed' 
+                                ? 'bg-green-500/10 text-green-500 border-green-500/20' 
+                                : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                            }`}>
+                              {booking.booking_status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                            </div>
+                            <button className="p-2 hover:bg-primary/10 rounded-full transition-colors">
+                              <div className="w-1 h-1 bg-muted-foreground rounded-full mb-0.5"></div>
+                              <div className="w-1 h-1 bg-muted-foreground rounded-full mb-0.5"></div>
+                              <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -266,7 +297,7 @@ export default function ClientDashboard() {
                   )}
                 </CardContent>
               </Card>
-            </div>
+            </section>
           </div>
         </main>
       </div>
