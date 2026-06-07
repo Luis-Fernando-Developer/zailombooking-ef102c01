@@ -141,7 +141,7 @@ export default function ClientDashboard() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-hero">
+      <div className="flex min-h-screen w-full bg-gradient-hero overflow-hidden">
         <ClientSidebar
           clientId={client?.id || ""}
           currentUser={null}
@@ -150,9 +150,9 @@ export default function ClientDashboard() {
           companyId={company?.id || ""}
         />
 
-        <main className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Header */}
-          <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 sticky top-0 z-10">
+          <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 sticky top-0 z-10 shrink-0">
             <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
             <div className="flex flex-col">
               <h1 className="text-xl font-bold text-gradient">
@@ -161,6 +161,8 @@ export default function ClientDashboard() {
               <p className="text-xs text-muted-foreground">Gerencie seus agendamentos na {company?.name}</p>
             </div>
           </header>
+
+          <main className="flex-1 overflow-y-auto">
 
           {/* Content */}
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-10">
@@ -300,7 +302,8 @@ export default function ClientDashboard() {
               </Card>
             </section>
           </div>
-        </main>
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );
