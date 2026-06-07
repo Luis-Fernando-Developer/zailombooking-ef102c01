@@ -558,16 +558,21 @@ export default function ClientBooking() {
 
       }
       
-      const data = await getAvailability({
-        data: {
+      const response = await fetch(getEdgeFunctionUrl('get-availability'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           company_id: company.id,
           service_id: selectedService.id,
           employee_id: selectedEmployee.id,
           date: dateStr
-        }
+        })
       });
+
+      if (!response.ok) throw new Error('Erro ao carregar disponibilidade');
+      const data = await response.json();
       
-      if (data && !data.error && data.slots && data.slots.length > 0) {
+      if (data && data.slots && data.slots.length > 0) {
         setAvailableTimes(data.slots.map((slot: any) => typeof slot === 'string' ? slot : slot.time));
       } else {
         setAvailableTimes([]);
