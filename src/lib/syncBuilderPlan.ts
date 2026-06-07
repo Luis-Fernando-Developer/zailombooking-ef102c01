@@ -3,6 +3,7 @@
  * Fire-and-forget: nunca bloqueia a UI; apenas loga falhas.
  */
 import { getEdgeFunctionUrl } from "./supabaseHelpers";
+import { supabase } from "./supabaseClient";
 
 export async function syncBuilderPlan(companyId: string): Promise<void> {
   if (!companyId) return;
