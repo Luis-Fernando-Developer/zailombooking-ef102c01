@@ -6,7 +6,13 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/ClientSidebar";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, MoreVertical } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 interface Company {
   id: string;
@@ -125,7 +131,6 @@ export default function ClientDashboard() {
   const formatDate = (date: string) => {
     const [year, month, day] = date.split('-').map(Number);
     return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
-      weekday: 'short',
       day: 'numeric',
       month: 'short'
     });
@@ -290,14 +295,32 @@ export default function ClientDashboard() {
                             }`}>
                               {booking.booking_status === 'confirmed' ? 'Confirmado' : 'Pendente'}
                             </div>
-                            <button 
-                              className="p-2 hover:bg-primary/10 rounded-full transition-colors flex flex-col gap-0.5"
-                              onClick={() => navigate(`/${slug}/agendamentos`)}
-                            >
-                              <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                              <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                              <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                            </button>
+                            
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="p-2 hover:bg-primary/10 rounded-full transition-colors flex flex-col gap-0.5 outline-none">
+                                  <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                                  <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                                  <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48 bg-card/95 backdrop-blur-md border-primary/20">
+                                <DropdownMenuItem 
+                                  className="cursor-pointer focus:bg-primary/10 flex items-center gap-2"
+                                  onClick={() => navigate(`/${slug}/agendamentos`)}
+                                >
+                                  <RefreshCw className="w-4 h-4 text-primary" />
+                                  <span>Reagendar / Detalhes</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive flex items-center gap-2"
+                                  onClick={() => navigate(`/${slug}/agendamentos`)}
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  <span>Cancelar</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       ))}

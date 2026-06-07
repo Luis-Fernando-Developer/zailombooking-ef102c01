@@ -7,7 +7,13 @@ import { ClientSidebar } from "./ClientSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Calendar, Clock, DollarSign, RefreshCw, X } from "lucide-react";
+import { Calendar, Clock, DollarSign, RefreshCw, X, MoreVertical } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import { ClientRescheduleDialog } from "./ClientRescheduleDialog";
 import { ClientCancelDialog } from "./ClientCancelDialog";
 
@@ -317,33 +323,38 @@ export default function ClientLayout() {
                           </div>
                         </div>
 
-                        <div className="flex lg:flex-col justify-end gap-2 shrink-0">
-                          {canModifyBooking(booking) ? (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setRescheduleBooking(booking)}
-                                className="flex-1 lg:flex-none h-10 border-primary/20 hover:bg-primary/10 hover:border-primary/40"
-                              >
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Reagendar
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => setCancelBooking(booking)}
-                                className="flex-1 lg:flex-none h-10 bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20"
-                              >
-                                <X className="h-4 w-4 mr-2" />
-                                Cancelar
-                              </Button>
-                            </>
-                          ) : (
-                            <div className="text-xs text-muted-foreground text-right italic lg:mt-auto">
-                              Agendamento finalizado ou fora do prazo de alteração
-                            </div>
-                          )}
+                        <div className="flex items-start shrink-0">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-2 hover:bg-primary/10 rounded-full transition-colors outline-none">
+                                <MoreVertical className="h-5 w-5 text-muted-foreground" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-card/95 backdrop-blur-md border-primary/20">
+                              {canModifyBooking(booking) ? (
+                                <>
+                                  <DropdownMenuItem 
+                                    className="cursor-pointer focus:bg-primary/10 flex items-center gap-2"
+                                    onClick={() => setRescheduleBooking(booking)}
+                                  >
+                                    <RefreshCw className="h-4 w-4 text-primary" />
+                                    <span>Reagendar</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive flex items-center gap-2"
+                                    onClick={() => setCancelBooking(booking)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                    <span>Cancelar</span>
+                                  </DropdownMenuItem>
+                                </>
+                              ) : (
+                                <DropdownMenuItem disabled className="text-xs italic text-muted-foreground">
+                                  Alteração não permitida
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
 
