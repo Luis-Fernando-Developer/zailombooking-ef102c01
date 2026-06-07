@@ -534,24 +534,19 @@ export default function ClientBooking() {
           return;
         }
         
-        const response = await fetch(getEdgeFunctionUrl('get-availability'), {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        const { slots, error } = await getAvailability({
+          data: {
             company_id: company.id,
             service_id: firstServiceId,
             employee_id: selectedEmployee.id,
             date: dateStr
-          })
+          }
         });
 
-        if (!response.ok) throw new Error('Erro ao carregar disponibilidade');
-        const data = await response.json();
+        if (error) throw new Error(error);
 
-        if (data && data.slots && data.slots.length > 0) {
-          setAvailableTimes(data.slots.map((s: any) => typeof s === 'string' ? s : s.time));
+        if (slots && slots.length > 0) {
+          setAvailableTimes(slots.map((s: any) => typeof s === 'string' ? s : s.time));
           return;
         } else {
           setAvailableTimes([]);
@@ -560,24 +555,19 @@ export default function ClientBooking() {
 
       }
       
-      const response = await fetch(getEdgeFunctionUrl('get-availability'), {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { slots, error } = await getAvailability({
+        data: {
           company_id: company.id,
           service_id: selectedService.id,
           employee_id: selectedEmployee.id,
           date: dateStr
-        })
+        }
       });
 
-      if (!response.ok) throw new Error('Erro ao carregar disponibilidade');
-      const data = await response.json();
+      if (error) throw new Error(error);
       
-      if (data && data.slots && data.slots.length > 0) {
-        setAvailableTimes(data.slots.map((slot: any) => typeof slot === 'string' ? slot : slot.time));
+      if (slots && slots.length > 0) {
+        setAvailableTimes(slots.map((slot: any) => typeof slot === 'string' ? slot : slot.time));
       } else {
         setAvailableTimes([]);
       }
@@ -664,22 +654,15 @@ export default function ClientBooking() {
         console.error("Booking insert error:", bookingError);
         // Se falhar (ex: RLS), tenta via Edge Function se ela existir
         try {
-          const response = await fetch(getEdgeFunctionUrl('create-booking'), {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session?.session?.access_token}`,
-            },
-            body: JSON.stringify(payloadBase),
+          const { data, error } = await supabase.functions.invoke('create-booking', {
+            body: payloadBase
           });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao criar agendamento');
+          if (error) {
+            throw new Error(error.message || 'Erro ao criar agendamento');
           }
 
-          const result = await response.json();
-          newBookingId = result?.booking?.id;
+          newBookingId = data?.booking?.id;
         } catch (efError) {
           throw new Error('Não foi possível realizar o agendamento. Verifique suas permissões.');
         }
