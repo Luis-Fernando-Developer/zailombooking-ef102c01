@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,7 +14,7 @@ import { ClientSidebar } from "@/components/client/ClientSidebar";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatCPF, cleanCPF, validateCPF } from "@/lib/cpfValidation";
-import { User, Mail, Phone, MapPin, CreditCard, Shield, Trash2, Save, Camera } from "lucide-react";
+import { User, Mail, Phone, MapPin, CreditCard, Shield, Trash2, Save, Camera, RefreshCw } from "lucide-react";
 
 interface Company {
   id: string;
