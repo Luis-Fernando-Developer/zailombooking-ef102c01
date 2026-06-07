@@ -1284,7 +1284,10 @@ export default function ClientBooking() {
       {paymentDialog.open && paymentDialog.bookingId && company && (
         <BookingPaymentDialog
           open={paymentDialog.open}
-          onClose={() => setPaymentDialog(prev => ({ ...prev, open: false }))}
+          onClose={() => {
+            console.log("[BOOKING] Closing payment dialog. Current wasPaid:", paymentDialog.wasPaid);
+            setPaymentDialog(prev => ({ ...prev, open: false }));
+          }}
           bookingId={paymentDialog.bookingId}
           companyId={company.id}
           amount={paymentDialog.amount || 0}
@@ -1295,8 +1298,16 @@ export default function ClientBooking() {
             cpf_cnpj: client?.cpf,
           }}
           allowPayLater={paymentDialog.allowLater}
-          onPayLater={() => { setPaymentDialog(prev => ({ ...prev, open: false, wasPaid: false })); setStep(6); }}
-          onPaid={() => { setPaymentDialog(prev => ({ ...prev, wasPaid: true })); setStep(6); }}
+          onPayLater={() => { 
+            console.log("[BOOKING] Pay later selected.");
+            setPaymentDialog(prev => ({ ...prev, open: false, wasPaid: false })); 
+            setStep(6); 
+          }}
+          onPaid={() => { 
+            console.log("[BOOKING] Payment confirmed callback.");
+            setPaymentDialog(prev => ({ ...prev, wasPaid: true })); 
+            setStep(6); 
+          }}
         />
       )}
     </div>
