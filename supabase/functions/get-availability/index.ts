@@ -122,14 +122,13 @@ serve(async (req) => {
 
     // 5. Get existing bookings
     // We want to fetch all bookings that are NOT 'cancelled' and NOT 'rejected'
-    // This will include 'pending', 'confirmed', 'completed', etc.
     const { data: bookings, error: bookingsError } = await supabaseClient
       .from('bookings')
       .select('start_time, end_time, booking_status')
       .eq('employee_id', employeeId)
       .gte('start_time', `${date}T00:00:00`)
       .lte('start_time', `${date}T23:59:59`)
-      .filter('booking_status', 'not.in', '("cancelled","rejected")')
+      .or('booking_status.is.null,booking_status.not.in.("cancelled","rejected")')
 
     console.log(`Found ${bookings?.length || 0} active bookings for ${date}:`, JSON.stringify(bookings))
 
@@ -151,8 +150,8 @@ serve(async (req) => {
     const today = now.toISOString().split('T')[0];
 
     while (current.getTime() + duration * 60000 <= end.getTime()) {
-      const slotStart = current.toISOString()
-      const slotEnd = new Date(current.getTime() + duration * 60000).toISOString()
+      const slotStart = new Date(`${date}T${currentFormatted}`).toISOString()
+      const slotEnd = new Date(new Date(`${date}T${currentFormatted}`).getTime() + duration * 60000).toISOString()
       const currentFormatted = current.toTimeString().substring(0, 5)
 
       // Check if slot is in the past
