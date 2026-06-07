@@ -438,105 +438,27 @@ export default function ClientProfile() {
               </div>
             </div>
           </div>
-
-              {/* Privacy & LGPD */}
-              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="w-5 h-5" />
-                    Privacidade e LGPD
-                  </CardTitle>
-                  <CardDescription>Gerencie suas preferências de privacidade</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Receber ofertas e promoções</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receba novidades, ofertas exclusivas e promoções por email
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formData.accepts_marketing}
-                      onCheckedChange={(checked) => 
-                        setFormData(prev => ({ ...prev, accepts_marketing: checked }))
-                      }
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="font-medium text-destructive">Exclusão de dados</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Conforme a Lei Geral de Proteção de Dados (LGPD), você pode solicitar 
-                        a exclusão dos seus dados pessoais a qualquer momento.
-                      </p>
-                    </div>
-
-                    <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                      <DialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Solicitar exclusão dos meus dados
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-card border-primary/20">
-                        <DialogHeader>
-                          <DialogTitle className="text-destructive">Confirmar exclusão de dados</DialogTitle>
-                          <DialogDescription>
-                            Esta ação irá:
-                          </DialogDescription>
-                        </DialogHeader>
-                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground my-4">
-                          <li>Remover seus dados pessoais (telefone, CPF, endereço)</li>
-                          <li>Cancelar o recebimento de comunicações de marketing</li>
-                          <li>Manter apenas dados essenciais para histórico de transações</li>
-                          <li>Encerrar sua sessão atual</li>
-                        </ul>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setShowDeleteDialog(false)}
-                            className="flex-1"
-                          >
-                            Cancelar
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            onClick={handleDeleteData}
-                            disabled={isDeleting}
-                            className="flex-1"
-                          >
-                            {isDeleting ? "Processando..." : "Confirmar exclusão"}
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Save Button */}
-              <Button 
-                variant="neon" 
-                size="lg" 
-                onClick={handleSave} 
-                disabled={isSaving}
-                className="w-full"
-              >
-                {isSaving ? "Salvando..." : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar alterações
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
         </main>
       </div>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="bg-card border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Confirmar exclusão de dados</DialogTitle>
+            <DialogDescription>
+              Esta ação irá remover seus dados pessoais e encerrar sua sessão atual.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} className="flex-1">
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteData} disabled={isDeleting} className="flex-1">
+              {isDeleting ? "Processando..." : "Confirmar exclusão"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }
