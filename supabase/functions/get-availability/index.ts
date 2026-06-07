@@ -129,7 +129,7 @@ serve(async (req) => {
       .lte('start_time', `${date}T23:59:59`)
       .or('booking_status.is.null,booking_status.not.in.("cancelled","rejected")')
 
-    console.log(`Found ${bookings?.length || 0} active bookings for ${date}`)
+    console.log(`Found ${bookings?.length || 0} active bookings for ${date}:`, JSON.stringify(bookings))
 
     // 6. Get blocked slots
     const { data: blocked, error: blockedError } = await supabaseClient
