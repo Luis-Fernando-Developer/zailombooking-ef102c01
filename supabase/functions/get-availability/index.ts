@@ -181,7 +181,12 @@ serve(async (req) => {
         const bEnd = new Date(b.end_time).getTime()
         const sStart = new Date(slotStart).getTime()
         const sEnd = new Date(slotEnd).getTime()
-        return (sStart < bEnd && sEnd > bStart)
+        
+        const overlaps = (sStart < bEnd && sEnd > bStart)
+        if (overlaps) {
+          console.log(`Slot ${currentFormatted} (${slotStart} - ${slotEnd}) overlaps with booking ${b.start_time} - ${b.end_time}`)
+        }
+        return overlaps
       })
 
       const isBlocked = blocked?.some(b => {
