@@ -1175,6 +1175,7 @@ export default function ClientBooking() {
         }
 
       case 6:
+        console.log("[BOOKING] Rendering step 6. wasPaid:", paymentDialog.wasPaid);
         return (
           <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
             <CardHeader className="text-center">
