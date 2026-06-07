@@ -442,6 +442,7 @@ export default function ClientProfile() {
             </div>
           </div>
         </main>
+        </div>
       </div>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
