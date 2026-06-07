@@ -128,7 +128,7 @@ serve(async (req) => {
       .eq('employee_id', employeeId)
       .gte('start_time', `${date}T00:00:00`)
       .lte('start_time', `${date}T23:59:59`)
-      .or('booking_status.is.null,booking_status.not.in.("cancelled","rejected")')
+      .not('booking_status', 'in', '("cancelled","rejected")')
 
     console.log(`Found ${bookings?.length || 0} active bookings for ${date}:`, JSON.stringify(bookings))
 
@@ -176,15 +176,19 @@ serve(async (req) => {
       }
 
       const isBooked = bookings?.some(b => {
-        const bStart = new Date(b.start_time).toISOString()
-        const bEnd = new Date(b.end_time).toISOString()
-        return (slotStart < bEnd && slotEnd > bStart)
+        const bStart = new Date(b.start_time).getTime()
+        const bEnd = new Date(b.end_time).getTime()
+        const sStart = new Date(slotStart).getTime()
+        const sEnd = new Date(slotEnd).getTime()
+        return (sStart < bEnd && sEnd > bStart)
       })
 
       const isBlocked = blocked?.some(b => {
-        const bStart = new Date(b.start_time).toISOString()
-        const bEnd = new Date(b.end_time).toISOString()
-        return (slotStart < bEnd && slotEnd > bStart)
+        const bStart = new Date(b.start_time).getTime()
+        const bEnd = new Date(b.end_time).getTime()
+        const sStart = new Date(slotStart).getTime()
+        const sEnd = new Date(slotEnd).getTime()
+        return (sStart < bEnd && sEnd > bStart)
       })
 
       if (!isBooked && !isBlocked) {
