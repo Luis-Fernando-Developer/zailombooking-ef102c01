@@ -470,7 +470,7 @@ export default function ClientBooking() {
             
             // Check first service availability as a proxy for the whole day to speed up
             if (serviceIds.length > 0) {
-              const { data, error } = await getAvailability({
+              const { slots, error } = await getAvailability({
                 data: {
                   company_id: company.id,
                   service_id: serviceIds[0],
@@ -478,14 +478,14 @@ export default function ClientBooking() {
                   date: dateStr
                 }
               });
-              if (data && !error && data.slots && data.slots.length > 0) {
+              if (slots && !error && slots.length > 0) {
                 return date;
               }
             }
             return null;
           }
 
-          const { data, error } = await getAvailability({
+          const { slots, error } = await getAvailability({
             data: {
               company_id: company.id,
               service_id: selectedService.id,
@@ -494,7 +494,7 @@ export default function ClientBooking() {
             }
           });
           
-          if (data && !error && data.slots && data.slots.length > 0) {
+          if (slots && !error && slots.length > 0) {
             return date;
           }
         } catch (err) {
