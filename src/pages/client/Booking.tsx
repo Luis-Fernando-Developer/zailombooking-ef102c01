@@ -474,10 +474,6 @@ export default function ClientBooking() {
                 method: 'POST',
                 headers: { 
                   'Content-Type': 'application/json',
-                  'x-company-id': company.id,
-                  'x-service-id': serviceIds[0],
-                  'x-employee-id': selectedEmployee.id,
-                  'x-date': dateStr
                 },
                 body: JSON.stringify({
                   company_id: company.id,
@@ -498,10 +494,6 @@ export default function ClientBooking() {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
-              'x-company-id': company.id,
-              'x-service-id': selectedService.id,
-              'x-employee-id': selectedEmployee.id,
-              'x-date': dateStr
             },
             body: JSON.stringify({
               company_id: company.id,
@@ -556,10 +548,6 @@ export default function ClientBooking() {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'x-company-id': company.id,
-            'x-service-id': firstServiceId,
-            'x-employee-id': selectedEmployee.id,
-            'x-date': dateStr
           },
           body: JSON.stringify({
             company_id: company.id,
@@ -586,10 +574,6 @@ export default function ClientBooking() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-company-id': company.id,
-          'x-service-id': selectedService.id,
-          'x-employee-id': selectedEmployee.id,
-          'x-date': dateStr
         },
         body: JSON.stringify({
           company_id: company.id,
