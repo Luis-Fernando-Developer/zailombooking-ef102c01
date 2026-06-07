@@ -150,9 +150,9 @@ serve(async (req) => {
     const today = now.toISOString().split('T')[0];
 
     while (current.getTime() + duration * 60000 <= end.getTime()) {
+      const currentFormatted = current.toTimeString().substring(0, 5)
       const slotStart = new Date(`${date}T${currentFormatted}`).toISOString()
       const slotEnd = new Date(new Date(`${date}T${currentFormatted}`).getTime() + duration * 60000).toISOString()
-      const currentFormatted = current.toTimeString().substring(0, 5)
 
       // Check if slot is in the past
       if (date === today && current.getTime() <= now.getTime()) {
