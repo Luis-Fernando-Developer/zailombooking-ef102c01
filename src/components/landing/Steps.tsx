@@ -93,7 +93,7 @@ export function Steps() {
               ref={(el) => {
                 stepsRef.current[index] = el;
               }}
-              className={`relative flex flex-col flex-1 group ${
+              className={`relative flex flex-col flex-1 group  ${
                 index === 0 ? "items-start" : index === 1 ? "items-center text-center" : "items-end text-right"
               }`}
             >
@@ -101,7 +101,7 @@ export function Steps() {
                 <div
                   className="hidden md:block absolute top-12 h-[10px] bg-primary/30 z-0 step-line border border-red-600 p-2"
                   style={{
-                    left: index === 0 ? "3rem" : "calc(80%)",
+                    left: index === 0 ? "3rem" : "calc(80%) border border-white",
                     right: index === 1 ? "calc(-120%)" : "+6rem ",
                   }}
                 />
