@@ -19,9 +19,9 @@ export function CTASection() {
               <Zap className="w-3 h-3 fill-primary" /> PRONTO PARA ESCALAR?
             </div>
             
-            <h2 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[1] mb-8">
-              O FUTURO NÃO <br />
-              <span className="italic text-glow">ESPERA POR NINGUÉM.</span>
+            <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-[0.8] mb-8">
+              O FUTURO <br />
+              <span className="italic text-glow bg-gradient-to-r from-primary via-accent to-white bg-clip-text text-transparent">É AGORA.</span>
             </h2>
             
             <p className="text-xl text-slate-400 font-bold leading-relaxed mb-12">

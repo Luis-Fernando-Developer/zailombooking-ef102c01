@@ -56,7 +56,7 @@ export function Features() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-24 space-y-4">
           <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-primary">Arquitetura de Valor</h2>
-          <h3 className="text-4xl md:text-6xl font-black text-white tracking-tight">O que nos torna <span className="italic">inevitáveis.</span></h3>
+          <h3 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-[0.9]">O que nos torna <br /><span className="italic text-glow bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">absolutos.</span></h3>
           <p className="text-slate-400 max-w-2xl mx-auto text-lg">
             Combinamos o poder da tecnologia moderna com a sofisticação do design de luxo.
           </p>

@@ -50,10 +50,10 @@ export function Hero() {
           </div>
 
           <div className="space-y-6 max-w-5xl mb-12">
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9] animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-              <span className="text-white">TRANSFORME</span> <br />
-              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent italic">AGENDAMENTOS</span> <br />
-              <span className="text-white">EM EXPERIÊNCIA.</span>
+            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.85] animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
+              <span className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">TRANSFORME</span> <br />
+              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent italic px-2">AGENDAMENTOS</span> <br />
+              <span className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">EM ELITE.</span>
             </h1>
             
             <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
