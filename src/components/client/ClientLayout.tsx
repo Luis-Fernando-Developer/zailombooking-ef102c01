@@ -53,6 +53,14 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 };
 
 export default function ClientLayout() {
+  const formatTime = (time: string) => {
+    if (!time) return "--:--";
+    if (time.includes('T')) {
+      const timePart = time.split('T')[1];
+      return timePart.substring(0, 5);
+    }
+    return time.substring(0, 5);
+  };
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -319,7 +327,7 @@ export default function ClientLayout() {
                                     });
                                   })()}
                                 </span>
-                                <span className="font-bold text-primary ml-1">{booking.start_time ? `às ${booking.start_time.substring(0, 5)}` : "às --:--"}</span>
+                                <span className="font-bold text-primary ml-1">às {formatTime(booking.start_time)}</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Clock className="h-4 w-4" />
