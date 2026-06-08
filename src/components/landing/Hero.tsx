@@ -36,14 +36,30 @@ export function Hero({ customization }: HeroProps) {
               Chega de perder horas respondendo WhatsApp para agendar horários. Dê aos seus clientes uma página personalizada e profissional para agendarem com você 24h por dia, sem fricção.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start mb-12">
+            <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start mb-10">
               <Button size="xl" variant="hero" className="group shadow-2xl shadow-primary/20" onClick={handleStartClick}>
-                Escalar meu Negócio
+                Escalar meu Negócio agora
                 <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button size="xl" variant="glass" onClick={() => window.location.href = "/demo"}>
-                Tour do Sistema
+                Ver Demonstração
               </Button>
+            </div>
+
+            <div className="flex items-center justify-center lg:justify-start gap-4 mb-12">
+              <div className="flex -space-x-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <img
+                    key={i}
+                    src={`https://i.pravatar.cc/100?img=${i + 10}`}
+                    alt="User"
+                    className="w-8 h-8 rounded-full border-2 border-background object-cover"
+                  />
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                <span className="text-white font-bold">1.200+</span> profissionais já aceleraram
+              </p>
             </div>
 
             <div className="grid grid-cols-3 gap-6 max-w-md mx-auto lg:mx-0">
