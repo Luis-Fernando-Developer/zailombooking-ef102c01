@@ -1,78 +1,91 @@
-import { Card } from "@/components/ui/card";
-import { Check, Star, Quote } from "lucide-react";
+import { Star, Quote, Zap, Shield, Globe, Users } from "lucide-react";
 
 const stats = [
-  { label: "Usuários Ativos", value: "2.5k+" },
-  { label: "Agendamentos/mês", value: "150k+" },
-  { label: "Retenção", value: "98.2%" },
-  { label: "Redução de Faltas", value: "85%" },
+  { label: "Membros da Elite", value: "2.4k+", icon: Users },
+  { label: "Agendamentos/mês", value: "150k+", icon: Zap },
+  { label: "Uptime Garantido", value: "99.9%", icon: Shield },
+  { label: "Países Alcançados", value: "42+", icon: Globe },
 ];
 
 const testimonials = [
   {
     name: "Ricardo Mendes",
     role: "Proprietário de Clínica",
-    content: "A plataforma elevou o patamar da minha empresa. O design sóbrio transmite a seriedade que nossos clientes esperam.",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+    content: "A plataforma elevou o patamar da minha marca. O design e a fluidez transmitem a autoridade que nossos clientes esperam hoje.",
+    avatar: "https://i.pravatar.cc/150?u=ricardo"
   },
   {
     name: "Juliana Costa",
-    role: "Gestora de Spa",
-    content: "Finalmente um software que não parece um brinquedo colorido. Funcional, rápido e extremamente elegante.",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+    role: "Gestora de Spa de Luxo",
+    content: "Finalmente um software que não parece genérico. É rápido, tecnológico e extremamente elegante.",
+    avatar: "https://i.pravatar.cc/150?u=juliana"
   }
 ];
 
 export function TrustSection() {
   return (
-    <section className="py-32 bg-slate-50 dark:bg-slate-900/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-40 bg-[#0B0D12] relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-24 items-center">
-          <div className="space-y-12">
-            <div className="space-y-6">
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Escalabilidade & Confiança</span>
-              <h2 className="text-4xl md:text-5xl font-medium text-slate-900 dark:text-white leading-tight tracking-tight">
-                Construído para quem <br />
-                <span className="italic font-serif opacity-80">não aceita menos.</span>
+          <div className="space-y-16">
+            <div className="space-y-8">
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Engenharia de Confiança</span>
+              <h2 className="text-5xl md:text-7xl font-black text-white leading-[0.9] tracking-tighter">
+                CONSTRUÍDO PARA <br />
+                <span className="italic text-glow">LÍDERES DE MERCADO.</span>
               </h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400 font-light leading-relaxed max-w-lg">
-                Nossa infraestrutura foi desenhada para suportar operações complexas com zero latência, mantendo a sofisticação em cada detalhe da interface.
+              <p className="text-xl text-slate-400 font-bold leading-relaxed max-w-lg">
+                Nossa infraestrutura foi desenhada para suportar operações de alta escala com zero latência, mantendo a sofisticação visual em cada pixel.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-2 gap-12">
               {stats.map((stat, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="text-3xl font-medium text-slate-900 dark:text-white tracking-tighter">{stat.value}</div>
-                  <div className="text-xs uppercase tracking-widest text-slate-500 font-bold">{stat.label}</div>
+                <div key={i} className="group cursor-default">
+                  <div className="flex items-center gap-3 mb-2">
+                    <stat.icon className="w-5 h-5 text-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <span className="text-4xl font-black text-white tracking-tighter group-hover:text-glow transition-all">{stat.value}</span>
+                  </div>
+                  <div className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-500">{stat.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="relative">
-            <div className="space-y-6">
-              {testimonials.map((t, i) => (
-                <Card key={i} className="p-8 border-none shadow-sm bg-white dark:bg-slate-950/50 backdrop-blur-sm rounded-3xl relative overflow-hidden">
-                  <Quote className="absolute -right-4 -top-4 w-24 h-24 text-slate-100 dark:text-white/5 -z-0" />
-                  <div className="relative z-10 space-y-4">
-                    <div className="flex gap-1">
-                      {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 fill-primary text-primary" />)}
-                    </div>
-                    <p className="text-slate-700 dark:text-slate-300 italic font-light leading-relaxed">"{t.content}"</p>
-                    <div className="flex items-center gap-4 pt-4">
-                      <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full grayscale" />
-                      <div>
-                        <div className="text-sm font-bold text-slate-900 dark:text-white">{t.name}</div>
-                        <div className="text-xs text-slate-500">{t.role}</div>
-                      </div>
+          <div className="relative space-y-8">
+            {testimonials.map((t, i) => (
+              <div 
+                key={i} 
+                className="premium-card p-10 bg-white/[0.02] border-white/5 backdrop-blur-md group hover:bg-white/[0.04] transition-all duration-500"
+              >
+                <div className="flex gap-1 mb-6">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-primary text-primary" />)}
+                </div>
+                
+                <p className="text-xl text-slate-300 italic font-bold leading-relaxed mb-10 group-hover:text-white transition-colors">
+                  "{t.content}"
+                </p>
+                
+                <div className="flex items-center gap-5">
+                  <div className="relative">
+                    <img src={t.avatar} alt={t.name} className="w-14 h-14 rounded-full grayscale group-hover:grayscale-0 transition-all duration-500 border-2 border-white/10" />
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full border-2 border-[#0B0D12] flex items-center justify-center">
+                      <Shield className="w-2.5 h-2.5 text-white" />
                     </div>
                   </div>
-                </Card>
-              ))}
-            </div>
-            {/* Subtle decor line */}
-            <div className="absolute -left-8 top-1/2 -translate-y-1/2 w-px h-1/2 bg-gradient-to-b from-transparent via-slate-200 dark:via-white/10 to-transparent hidden lg:block" />
+                  <div>
+                    <div className="text-lg font-black text-white tracking-tight">{t.name}</div>
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-500">{t.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Floating Visual Decor */}
+            <div className="absolute -right-20 top-1/2 -translate-y-1/2 w-1 bg-gradient-to-b from-transparent via-primary/20 to-transparent h-2/3 hidden xl:block" />
           </div>
         </div>
       </div>
