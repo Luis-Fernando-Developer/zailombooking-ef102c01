@@ -282,7 +282,7 @@ export default function ClientDashboard() {
                                   {formatDate(booking.booking_date)}
                                 </span>
                                 <span className="flex items-center gap-1.5 font-bold text-foreground">
-                                  às {booking.start_time ? booking.start_time.substring(0, 5) : "--:--"}
+                                  {booking.start_time ? `às ${booking.start_time.substring(0, 5)}` : "às --:--"}
                                 </span>
                               </div>
                             </div>
