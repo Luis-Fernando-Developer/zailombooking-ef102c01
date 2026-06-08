@@ -99,7 +99,7 @@ export function Steps() {
             >
               {index < steps.length - 1 && (
                 <div
-                  className="hidden md:block absolute top-12 h-[2px] bg-primary/30 z-0 step-line border border-red-600"
+                  className="hidden md:block absolute top-12 h-[10px] bg-primary/30 z-0 step-line border border-red-600 p-2"
                   style={{
                     left: index === 0 ? "3rem" : "calc(80%)",
                     right: index === 1 ? "calc(-120%)" : "+6rem ",
