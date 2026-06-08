@@ -1,4 +1,5 @@
 import { Hero } from "@/components/landing/Hero";
+import { TargetAudience } from "@/components/landing/TargetAudience";
 import { Features } from "@/components/landing/Features";
 import { WhyUs } from "@/components/landing/WhyUs";
 import { Steps } from "@/components/landing/Steps";
@@ -12,6 +13,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       <Hero />
+      <TargetAudience />
       <WhyUs />
       <Steps />
       <Features />
