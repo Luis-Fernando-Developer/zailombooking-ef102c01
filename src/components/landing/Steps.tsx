@@ -98,7 +98,13 @@ export function Steps() {
               }`}
             >
               {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-12 left-[calc(50%+3rem)] right-[-2rem] h-[2px] bg-primary/30 z-0 step-line" />
+                <div 
+                  className="hidden md:block absolute top-12 h-[2px] bg-primary/30 z-0 step-line" 
+                  style={{
+                    left: index === 0 ? "6rem" : "calc(50% + 3rem)",
+                    right: index === 0 ? "calc(-50% + 3rem)" : "-3rem"
+                  }}
+                />
               )}
               <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mb-10 relative z-10 card-glow group-hover:scale-110 transition-transform duration-300">
                 <step.icon className="w-10 h-10 text-white" />
