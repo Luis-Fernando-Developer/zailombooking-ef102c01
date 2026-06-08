@@ -101,7 +101,7 @@ export function Steps() {
                 <div
                   className="hidden md:block absolute top-12 h-[10px] bg-primary/30 z-0 step-line border border-red-600 p-2"
                   style={{
-                    left: index === 0 ? "" : "calc(80%) border border-white",
+                    left: index === 0 ? "10rem" : "calc(80%) border border-white",
                     right: index === 1 ? "calc(-120%)" : " ",
                   }}
                 />
