@@ -33,7 +33,7 @@ export function BusinessLayout({ children, companySlug, companyName, companyId, 
           <div className="ml-4 flex flex-col -space-y-2 py-3">
             <h1 className="text-lg font-semibold text-gradient">{companyName} - Painel Administrativo</h1>
             <div className="flex items-center text-sm text-muted-foreground">
-              <span className="stroke-primary-glow border-dashed">https://bookingFy.com.br/{companySlug}</span>
+              <span className="stroke-primary-glow border-dashed">https://zailom.com.br/{companySlug}</span>
               <Button size="sm" variant="link" className="ml-2 p-0"><Copy className="w-4 h-4" /></Button>
             </div>
           </div>

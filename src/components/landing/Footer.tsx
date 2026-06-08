@@ -1,89 +1,61 @@
 import { BookingLogo } from "@/components/BookingLogo";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  Instagram, 
-  Twitter, 
-  Linkedin, 
-  Mail, 
-  Phone 
-} from "lucide-react";
+import { Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
 
 export function Footer() {
   const newYear = new Date().getFullYear();
   return (
-    <footer className="bg-gradient-secondary border-t border-primary/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid lg:grid-cols-4 gap-12">
+    <footer className="bg-gradient-secondary border-t border-primary/20 pt-24 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-4 gap-16 mb-20">
           <div className="lg:col-span-1">
-            <BookingLogo className="mb-6" />
-            <p className="text-muted-foreground mb-6">
-              A plataforma completa para gestão de agendamentos. 
-              Simplifique seu negócio e maximize seus resultados.
+            <BookingLogo className="mb-8" />
+            <p className="text-muted-foreground text-lg leading-relaxed mb-8">
+              A plataforma definitiva para quem cansou de perder tempo e quer escalar seu negócio com tecnologia de elite.
             </p>
-            <div className="flex space-x-4">
-              <Button variant="ghost" size="icon">
-                <Instagram className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Twitter className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Linkedin className="w-5 h-5" />
-              </Button>
+            <div className="flex gap-4">
+              {[Instagram, Linkedin, Mail].map((Icon, i) => (
+                <Button key={i} variant="glass" size="icon" className="w-12 h-12 rounded-xl border-primary/10 hover:border-primary/40 transition-all">
+                  <Icon className="w-5 h-5" />
+                </Button>
+              ))}
             </div>
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Produto</h3>
-            <ul className="space-y-3">
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Recursos</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Preços</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Demonstração</a></li>
+            <h3 className="text-white font-black text-xl mb-8 uppercase tracking-widest text-sm">Plataforma</h3>
+            <ul className="space-y-4">
+              <li><a href="#features" className="text-muted-foreground hover:text-primary transition-colors text-lg">Recursos</a></li>
+              <li><a href="#pricing" className="text-muted-foreground hover:text-primary transition-colors text-lg">Planos</a></li>
+              <li><a href="/demo" className="text-muted-foreground hover:text-primary transition-colors text-lg">Demonstração</a></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Empresa</h3>
-            <ul className="space-y-3">
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Sobre nós</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Blog</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Contato</a></li>
+            <h3 className="text-white font-black text-xl mb-8 uppercase tracking-widest text-sm">Empresa</h3>
+            <ul className="space-y-4">
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-lg">Sobre o Zailom</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-lg">Termos de Uso</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-lg">Privacidade</a></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Newsletter</h3>
-            <p className="text-muted-foreground mb-4">
-              Receba dicas e novidades sobre gestão de negócios.
-            </p>
-            <div className="space-y-3">
-              <Input 
-                placeholder="Seu email" 
-                className="bg-background/50 border-primary/30"
-              />
-              <Button variant="neon" className="w-full">
-                Inscrever-se
-              </Button>
-            </div>
+            <h3 className="text-white font-black text-xl mb-8 uppercase tracking-widest text-sm">Contato</h3>
+            <ul className="space-y-4 text-muted-foreground text-lg">
+              <li className="flex items-center gap-3"><Phone className="w-5 h-5 text-primary" /> (11) 99999-9999</li>
+              <li className="flex items-center gap-3"><Mail className="w-5 h-5 text-primary" /> contato@zailom.com</li>
+              <li className="flex items-center gap-3"><MapPin className="w-5 h-5 text-primary" /> São Paulo, Brasil</li>
+            </ul>
           </div>
         </div>
 
-        <div className="border-t border-primary/20 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                contato@zylobooking.com.br
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                (11) 99999-9999
-              </div>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <span>© {newYear} Zylo Booking. Todos os direitos reservados.</span>
-            </div>
+        <div className="border-t border-primary/10 pt-12 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-muted-foreground text-sm font-medium">
+            © {newYear} Zailom Booking. Transformando negócios através da automação.
+          </p>
+          <div className="flex gap-8">
+             <span className="text-xs text-muted-foreground/50">Feito com foco em performance</span>
           </div>
         </div>
       </div>

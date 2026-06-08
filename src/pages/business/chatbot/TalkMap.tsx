@@ -75,7 +75,7 @@ export default function ChatbotTalkMap() {
         // Se não veio subpath, manda o usuário pro workspace dele por padrão
         const initialPath = subpath || `${slug}/workspace`;
         // Builder usa HashRouter -> tudo depois do "#/"
-        setIframeSrc(`${base}/#/${initialPath}?embed_token=${encodeURIComponent(json.token)}&host=bookingfy`);
+        setIframeSrc(`${base}/#/${initialPath}?embed_token=${encodeURIComponent(json.token)}&host=zailom`);
       } catch (e) {
         setError((e as Error).message);
       } finally {
