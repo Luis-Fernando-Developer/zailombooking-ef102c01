@@ -55,12 +55,12 @@ export function TrustSection() {
           <div className="space-y-16">
             <div className="space-y-8">
               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Engenharia de Confiança</span>
-              <h2 className="text-5xl md:text-7xl font-black text-white leading-[0.9] tracking-tighter">
-                CONSTRUÍDO PARA <br />
-                <span className="italic text-glow">LÍDERES DE MERCADO.</span>
+              <h2 className="text-6xl md:text-8xl font-black text-white leading-[0.8] tracking-tighter">
+                FORJADO EM <br />
+                <span className="italic text-glow bg-gradient-to-r from-primary via-accent to-white bg-clip-text text-transparent">ALTA ESCALA.</span>
               </h2>
-              <p className="text-xl text-slate-400 font-bold leading-relaxed max-w-lg">
-                Nossa infraestrutura foi desenhada para suportar operações de alta escala com zero latência, mantendo a sofisticação visual em cada pixel.
+              <p className="text-2xl text-slate-400 font-medium leading-tight max-w-xl">
+                Não somos apenas uma plataforma. Somos o suporte invisível que garante que sua operação nunca pare, não importa o quão rápido você cresça.
               </p>
             </div>
 

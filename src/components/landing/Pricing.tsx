@@ -77,7 +77,7 @@ export function Pricing() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center space-y-6 mb-24">
           <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Estrutura de Investimento</h2>
-          <h3 className="text-4xl md:text-6xl font-black text-white tracking-tight">O preço da <span className="italic text-glow">excelência.</span></h3>
+          <h3 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-[0.8]">Invista no seu <br /><span className="italic text-glow bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Império.</span></h3>
           
           <div className="flex items-center justify-center pt-8">
             <div className="flex p-1 bg-white/5 backdrop-blur-md rounded-full border border-white/10">
