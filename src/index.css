@@ -2,73 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BookingFy Design System - Violet & Black with Neon Effects */
+/* Zylo Booking Design System - Custom Brand Colors */
 
 @layer base {
   :root {
-    /* Dark Theme - Primary Colors */
-    --background: 240 10% 8%;
-    --foreground: 280 10% 95%;
+    /* Brand Colors: #FFFFFF (Background/Text), #1E0828 (Primary Dark) */
+    --background: 284 66% 9%; /* #1E0828 translated to HSL approx */
+    --foreground: 0 0% 100%; /* #FFFFFF */
 
-    --card: 240 8% 12%;
-    --card-foreground: 280 10% 95%;
+    --card: 284 66% 12%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 240 8% 12%;
-    --popover-foreground: 280 10% 95%;
+    --popover: 284 66% 12%;
+    --popover-foreground: 0 0% 100%;
 
-    /* Violet Primary */
-    --primary: 262 73% 60%;
+    /* Brand Primary */
+    --primary: 284 66% 15%; /* Based on #1E0828 */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 262 100% 80%;
+    --primary-glow: 282 78% 21%;
 
-    /* Black Secondary */
-    --secondary: 240 5% 15%;
-    --secondary-foreground: 280 10% 95%;
+    --secondary: 0 0% 100%; /* #FFFFFF */
+    --secondary-foreground: 284 66% 9%;
 
-    --muted: 240 5% 20%;
-    --muted-foreground: 280 5% 65%;
+    --muted: 284 30% 20%;
+    --muted-foreground: 284 20% 70%;
 
-    --accent: 262 50% 25%;
-    --accent-foreground: 262 100% 85%;
+    --accent: 282 78% 21%; /* #460863 approx */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5% 25%;
-    --input: 240 5% 18%;
-    --ring: 262 73% 60%;
+    --border: 284 40% 20%;
+    --input: 284 40% 15%;
+    --ring: 282 78% 21%;
 
     --radius: 0.75rem;
 
-    /* Neon Effects */
-    --neon-violet: 262 100% 70%;
-    --neon-pink: 320 100% 70%;
+    /* Custom Gradients as requested */
+    /* G1: #920027 (0%) -> #460863 (28%) -> #1E0828 (91%) -> #000000 (100%) */
+    --gradient-primary: linear-gradient(135deg, #920027 0%, #460863 28%, #1E0828 91%, #000000 100%);
+    --gradient-secondary: linear-gradient(180deg, #1E0828 0%, #000000 100%);
+    --gradient-hero: radial-gradient(circle at center, #460863 0%, #1E0828 70%, #000000 100%);
+
+    /* Neon / Glow Colors */
+    --neon-violet: 282 78% 35%;
+    --neon-pink: 344 100% 29%; /* Based on #920027 */
     --neon-cyan: 180 100% 70%;
     --neon-green: 120 100% 70%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(262 73% 60%), hsl(320 100% 70%));
-    --gradient-secondary: linear-gradient(135deg, hsl(240 10% 8%), hsl(240 8% 15%));
-    --gradient-neon: linear-gradient(135deg, hsl(262 100% 70%), hsl(320 100% 70%), hsl(180 100% 70%));
-    --gradient-hero: linear-gradient(135deg, hsl(240 10% 8%) 0%, hsl(262 20% 15%) 50%, hsl(240 10% 8%) 100%);
-
     /* Shadows */
-    --shadow-neon: 0 0 20px hsl(var(--neon-violet) / 0.5);
-    --shadow-neon-strong: 0 0 30px hsl(var(--neon-violet) / 0.8), 0 0 60px hsl(var(--neon-violet) / 0.4);
-    --shadow-card: 0 10px 30px -5px hsl(240 10% 5% / 0.3);
+    --shadow-neon: 0 0 20px rgba(70, 8, 99, 0.5);
+    --shadow-neon-strong: 0 0 30px rgba(70, 8, 99, 0.8), 0 0 60px rgba(70, 8, 99, 0.4);
+    --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
 
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-glow: all 0.3s ease-in-out;
-
-    --sidebar-background: 240 8% 10%;
-    --sidebar-foreground: 280 10% 95%;
-    --sidebar-primary: 262 73% 60%;
+    /* Sidebar */
+    --sidebar-background: 284 66% 7%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 282 78% 21%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 15%;
-    --sidebar-accent-foreground: 280 10% 95%;
-    --sidebar-border: 240 5% 25%;
-    --sidebar-ring: 262 73% 60%;
+    --sidebar-accent: 284 66% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 284 40% 15%;
+    --sidebar-ring: 282 78% 21%;
   }
 }
 
@@ -87,27 +83,12 @@
   .btn-neon {
     @apply relative overflow-hidden;
     box-shadow: var(--shadow-neon);
-    transition: var(--transition-glow);
+    transition: all 0.3s ease-in-out;
   }
 
   .btn-neon:hover {
     box-shadow: var(--shadow-neon-strong);
     transform: translateY(-2px);
-  }
-
-  .btn-neon::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, hsl(var(--primary-glow) / 0.3), transparent);
-    transition: left 0.5s;
-  }
-
-  .btn-neon:hover::before {
-    left: 100%;
   }
 
   /* Gradient Text */
@@ -118,22 +99,14 @@
     background-clip: text;
   }
 
-  .text-neon {
-    background: var(--gradient-neon);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    filter: drop-shadow(0 0 10px hsl(var(--neon-violet) / 0.5));
-  }
-
   /* Card Glow */
   .card-glow {
     box-shadow: var(--shadow-card), 0 0 0 1px hsl(var(--border));
-    transition: var(--transition-smooth);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .card-glow:hover {
-    box-shadow: var(--shadow-card), var(--shadow-neon), 0 0 0 1px hsl(var(--primary) / 0.5);
+    box-shadow: var(--shadow-card), var(--shadow-neon), 0 0 0 1px rgba(146, 0, 39, 0.3);
     transform: translateY(-4px);
   }
 
