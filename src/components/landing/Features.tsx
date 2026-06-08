@@ -14,48 +14,33 @@ import {
 const features = [
   {
     icon: Calendar,
-    title: "Agenda Inteligente",
-    description: "Sistema completo de agendamentos com disponibilidade em tempo real e sincronização automática."
-  },
-  {
-    icon: Users,
-    title: "Gestão de Equipe",
-    description: "Controle de funcionários, permissões por nível e distribuição automática de agendamentos."
-  },
-  {
-    icon: BarChart3,
-    title: "Relatórios Avançados",
-    description: "Dashboards completos com métricas de desempenho, faturamento e análise de clientes."
-  },
-  {
-    icon: Settings,
-    title: "Personalização Total",
-    description: "Customize sua landing page, cores, logo e configure seu estabelecimento do seu jeito."
-  },
-  {
-    icon: Shield,
-    title: "Segurança Garantida",
-    description: "Proteção de dados com criptografia e backup automático. Seus dados sempre seguros."
-  },
-  {
-    icon: Smartphone,
-    title: "100% Responsivo",
-    description: "Acesse de qualquer dispositivo. Interface otimizada para mobile, tablet e desktop."
+    title: "Venda enquanto dorme",
+    description: "Seu cliente agenda o horário sozinho, 24h por dia, sem precisar que você responda um único WhatsApp."
   },
   {
     icon: Clock,
-    title: "Automação Completa",
-    description: "Lembretes automáticos, confirmações por WhatsApp e gestão de no-shows."
+    title: "Adeus, esquecimentos",
+    description: "Lembretes automáticos via WhatsApp e e-mail que reduzem faltas em até 80%. Mais faturamento real no seu bolso."
   },
   {
     icon: CreditCard,
-    title: "Pagamentos Online",
-    description: "Integração com principais gateways de pagamento. Receba antecipado pelos serviços."
+    title: "Garantia de Recebimento",
+    description: "Cobre antecipado ou taxas de reserva. Acabe com o prejuízo dos horários vazios e desistências de última hora."
   },
   {
-    icon: Bell,
-    title: "Notificações Smart",
-    description: "Sistema inteligente de notificações para clientes e estabelecimento."
+    icon: BarChart3,
+    title: "Clareza no seu Negócio",
+    description: "Saiba exatamente quem são seus melhores clientes e quanto você vai faturar no final do mês com dados reais."
+  },
+  {
+    icon: Users,
+    title: "Equipe em Sincronia",
+    description: "Gerencie múltiplos profissionais, comissões e agendas sem confusão ou conflitos de horário."
+  },
+  {
+    icon: Smartphone,
+    title: "Experiência de App Nativo",
+    description: "Seus clientes não precisam baixar nada. Uma interface rápida e fluida direto no navegador de qualquer celular."
   }
 ];
 
@@ -67,10 +52,10 @@ export function Features() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-            <span className="text-gradient">Recursos Poderosos</span>
+            <span className="text-gradient">Construído para Profissionais de Elite</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Tudo que você precisa para revolucionar a gestão do seu estabelecimento em uma única plataforma.
+            Não somos um template genérico. Somos a solução definitiva para quem cansou de gerenciar agendas manualmente.
           </p>
         </div>
 
