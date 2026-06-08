@@ -20,8 +20,8 @@ export function Hero() {
             </div>
             
             <h1 className="text-5xl lg:text-7xl font-black mb-6 tracking-tighter leading-[1.05]">
-              <span className="text-white block mb-2">Pare de agendar pelo</span>
-              <span className="text-gradient">WhatsApp e facture mais.</span>
+              <span className="text-white block mb-2">Recupere seu tempo e coloque sua</span>
+              <span className="text-gradient">agenda no piloto automático 24/7.</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-10 max-w-xl leading-relaxed">
               O Zailom Booking automatiza sua agenda 24h por dia. Seus clientes marcam horários em segundos através de um link exclusivo da sua marca, enquanto você foca no que realmente importa.
