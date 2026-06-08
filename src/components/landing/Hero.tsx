@@ -56,8 +56,8 @@ export function Hero() {
               <span className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">EM ELITE.</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-              A única plataforma que une Inteligência Artificial de elite com design cinematográfico para marcas que não aceitam o comum.
+            <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 font-medium">
+              A única plataforma que funde Inteligência Artificial de última geração com uma arquitetura visual cinematográfica. Projetada meticulosamente para marcas que exigem nada menos que o absoluto.
             </p>
           </div>
 
