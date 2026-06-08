@@ -6,71 +6,70 @@
 
 @layer base {
   :root {
-    /* FUTURISTIC PREMIUM PALETTE */
-    /* Fundo: Preto abissal com toque de obsidiana */
-    --background: 260 50% 2%; 
+    /* FUTURISTIC PREMIUM MINIMALIST PALETTE */
+    /* Fundo: Preto Puro / Obsidiana Profunda */
+    --background: 0 0% 0%; 
     --foreground: 0 0% 100%;
 
-    /* Cards: Translúcidos e profundos */
-    --card: 260 50% 4%;
+    /* Cards: Sóbrios e Elevados */
+    --card: 0 0% 3%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 260 50% 5%;
+    --popover: 0 0% 4%;
     --popover-foreground: 0 0% 100%;
 
-    /* Primary: Royal Amethyst / Deep Violet (Baseado em #1E0828, mas mais saturado para premium) */
-    --primary: 282 85% 55%; 
+    /* Primary: Verde Esmeralda Premium (Agendamento/Confirmação) */
+    --primary: 142 76% 36%; 
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 282 100% 65%;
+    --primary-glow: 142 76% 50%;
 
-    /* Secondary: Electric Silver / Chrome */
-    --secondary: 240 10% 95%;
-    --secondary-foreground: 260 50% 2%;
+    /* Secondary: Cinza Titânio */
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Muted: Midnight Slate */
-    --muted: 260 30% 12%;
-    --muted-foreground: 260 15% 65%;
+    /* Muted: Deep Graphite */
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 65%;
 
-    /* Accent: Sangre Neon (#920027) */
-    --accent: 344 100% 45%; 
-    --accent-foreground: 0 0% 100%;
+    /* Accent: Verde Neon Sutil */
+    --accent: 142 100% 45%; 
+    --accent-foreground: 0 0% 0%;
 
-    --destructive: 0 85% 60%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders: Ultra finas e sutilmente luminosas */
-    --border: 260 30% 12%;
-    --input: 260 30% 10%;
-    --ring: 282 85% 55%;
+    /* Borders: Definição Sharp */
+    --border: 0 0% 12%;
+    --input: 0 0% 10%;
+    --ring: 142 76% 36%;
 
-    --radius: 0.5rem; /* Bordas mais afiadas para look futurista */
+    --radius: 0.25rem; /* Bordas mais quadradas para um ar mais técnico/premium */
 
-    /* HIGH-CONTRAST GRADIENTS (Padrão Ousado) */
-    /* G1: Sangre (#920027) -> Amethyst (#460863) -> Obsidian (#1E0828) */
-    --gradient-primary: linear-gradient(135deg, #FF0044 0%, #7B00FF 45%, #1E0828 100%);
-    --gradient-secondary: linear-gradient(180deg, #1E0828 0%, #000000 100%);
-    --gradient-hero: radial-gradient(circle at 50% 50%, rgba(123, 0, 255, 0.15) 0%, rgba(30, 8, 40, 0.05) 50%, transparent 100%);
+    /* MINIMALIST GRADIENTS */
+    --gradient-primary: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    --gradient-secondary: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+    --gradient-hero: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
 
-    /* NEON ACCENTS */
+    /* NEON ACCENTS (Reduced Glow) */
     --neon-violet: 282 100% 60%;
     --neon-pink: 344 100% 50%;
     --neon-cyan: 190 100% 50%;
-    --neon-green: 150 100% 50%;
+    --neon-green: 142 100% 50%;
 
-    /* SHADOWS: Profundidade e Luz */
-    --shadow-neon: 0 0 25px -5px rgba(123, 0, 255, 0.4);
-    --shadow-neon-strong: 0 0 50px -10px rgba(123, 0, 255, 0.6), 0 0 20px -5px rgba(255, 0, 68, 0.3);
-    --shadow-card: 0 20px 40px -20px rgba(0, 0, 0, 0.8);
+    /* SHADOWS: Foco em Contraste, não em Brilho */
+    --shadow-neon: 0 4px 12px -2px rgba(16, 185, 129, 0.2);
+    --shadow-neon-strong: 0 8px 24px -4px rgba(16, 185, 129, 0.3);
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.05);
 
     /* SIDEBAR */
-    --sidebar-background: 260 50% 3%;
+    --sidebar-background: 0 0% 2%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 282 85% 55%;
+    --sidebar-primary: 142 76% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 260 40% 8%;
+    --sidebar-accent: 0 0% 8%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 260 30% 10%;
-    --sidebar-ring: 282 85% 55%;
+    --sidebar-border: 0 0% 10%;
+    --sidebar-ring: 142 76% 36%;
   }
 }
 
@@ -113,9 +112,9 @@
   }
 
   .card-glow:hover {
-    @apply border-primary/30 bg-card/60;
-    box-shadow: var(--shadow-card), var(--shadow-neon-strong);
-    transform: translateY(-8px) scale(1.01);
+    @apply border-primary/50 bg-card/80;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+    transform: translateY(-4px);
   }
 
   /* Floating Animation */
