@@ -4,6 +4,8 @@ import { Pricing } from "@/components/landing/Pricing";
 import { Footer } from "@/components/landing/Footer";
 import { TrustSection } from "@/components/landing/TrustSection";
 import { CTASection } from "@/components/landing/CTASection";
+import { TechSpecs } from "@/components/landing/TechSpecs";
+import { Methodology } from "@/components/landing/Methodology";
 import { BookingLogo } from "@/components/BookingLogo";
 import { Button } from "@/components/ui/button";
 
@@ -28,7 +30,9 @@ export default function LandingPage() {
       <main>
         <Hero />
         <div id="features"><Features /></div>
+        <Methodology />
         <div id="trust"><TrustSection /></div>
+        <TechSpecs />
         <div id="pricing"><Pricing /></div>
         <CTASection />
       </main>
