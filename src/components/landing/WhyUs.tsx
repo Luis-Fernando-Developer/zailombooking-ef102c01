@@ -103,7 +103,7 @@ export function WhyUs() {
             {points.map((point, index) => (
               <div 
                 key={index} 
-                ref={(el) => (cardsRef.current[index] = el)}
+                ref={(el) => { cardsRef.current[index] = el; }}
                 className="flex gap-6 p-8 rounded-3xl bg-card/40 border border-primary/10 backdrop-blur-sm group hover:border-primary/30 transition-colors shadow-xl"
               >
                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${point.gradient} flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform`}>
