@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Check, Star, Zap, Crown, Rocket } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { motion } from "framer-motion";
+
 
 interface Plan {
   id: string;
