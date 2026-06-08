@@ -105,15 +105,17 @@
     background-clip: text;
   }
 
-  /* Card Glow */
+  /* Glassmorphism & High Tech Cards */
   .card-glow {
-    box-shadow: var(--shadow-card), 0 0 0 1px hsl(var(--border));
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    @apply backdrop-blur-md bg-card/40 border border-white/5;
+    box-shadow: var(--shadow-card);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .card-glow:hover {
-    box-shadow: var(--shadow-card), var(--shadow-neon), 0 0 0 1px rgba(146, 0, 39, 0.3);
-    transform: translateY(-4px);
+    @apply border-primary/30 bg-card/60;
+    box-shadow: var(--shadow-card), var(--shadow-neon-strong);
+    transform: translateY(-8px) scale(1.01);
   }
 
   /* Floating Animation */
