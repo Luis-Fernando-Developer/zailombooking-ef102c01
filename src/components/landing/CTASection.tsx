@@ -19,13 +19,13 @@ export function CTASection() {
               <Zap className="w-3 h-3 fill-primary" /> PRONTO PARA ESCALAR?
             </div>
             
-            <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-[0.8] mb-8">
-              O FUTURO <br />
-              <span className="italic text-glow bg-gradient-to-r from-primary via-accent to-white bg-clip-text text-transparent">É AGORA.</span>
+            <h2 className="text-7xl md:text-9xl font-black text-white tracking-tighter leading-[0.75] mb-10">
+              DOMINE <br />
+              <span className="italic text-glow bg-gradient-to-r from-primary via-accent to-white bg-clip-text text-transparent">O AGORA.</span>
             </h2>
             
-            <p className="text-xl text-slate-400 font-bold leading-relaxed mb-12">
-              Junte-se à elite das empresas que transformaram o agendamento em uma experiência cinematográfica e tecnológica.
+            <p className="text-2xl md:text-4xl text-slate-300 font-medium leading-tight mb-16 tracking-tight">
+              A janela de oportunidade está fechando. Escolha entre ser o <span className="text-white font-black underline decoration-primary underline-offset-8">líder</span> ou apenas mais um na multidão.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
