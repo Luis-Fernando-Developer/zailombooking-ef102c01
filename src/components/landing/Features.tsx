@@ -5,23 +5,23 @@ export function Features() {
   const features = [
     {
       title: "Agendamento Inteligente",
-      description: "Nossa IA aprende o ritmo do seu negócio e otimiza sua agenda automaticamente, garantindo que você nunca perca uma oportunidade.",
+      description: "Nossa IA analisa o comportamento do cliente em tempo real, prevê horários de pico e fecha a agenda antes mesmo de você abrir o aplicativo.",
       icon: Cpu,
-      color: "from-blue-500/20 to-cyan-500/20",
+      color: "from-blue-600/30 to-cyan-400/30",
       iconColor: "text-blue-400"
     },
     {
       title: "Design de Próxima Geração",
-      description: "Uma interface tão fluida que seus clientes vão adorar agendar com você.",
+      description: "Esqueça interfaces travadas. Criamos uma experiência sensorial onde cada clique é satisfatório e cada transição é cinematográfica.",
       icon: Layout,
-      color: "from-purple-500/20 to-pink-500/20",
+      color: "from-purple-600/30 to-pink-400/30",
       iconColor: "text-purple-400"
     },
     {
       title: "Analytics Cinematográfico",
-      description: "Visualize o crescimento da sua marca com dashboards que parecem de outro mundo.",
+      description: "Dados não mentem. Tenha uma visão de raio-x do seu faturamento, retenção e taxas de conversão com gráficos dignos de Wall Street.",
       icon: BarChart3,
-      color: "from-emerald-500/20 to-teal-500/20",
+      color: "from-emerald-600/30 to-teal-400/30",
       iconColor: "text-emerald-400"
     },
     {
