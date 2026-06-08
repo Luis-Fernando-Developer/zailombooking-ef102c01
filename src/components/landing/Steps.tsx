@@ -79,12 +79,12 @@ export function Steps() {
             <div 
               key={index} 
               ref={(el) => { stepsRef.current[index] = el; }}
-              className="relative text-center group"
+              className="relative text-left group"
             >
               {index < steps.length - 1 && (
                 <div className="hidden md:block absolute top-12 left-1/2 w-full h-[2px] bg-gradient-to-r from-primary/50 to-transparent z-0 ml-12" />
               )}
-              <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mx-auto mb-10 relative z-10 card-glow group-hover:scale-110 transition-transform duration-300">
+              <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mr-auto mb-10 relative z-10 card-glow group-hover:scale-110 transition-transform duration-300">
                 <step.icon className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-2xl font-black mb-4">{step.title}</h3>
