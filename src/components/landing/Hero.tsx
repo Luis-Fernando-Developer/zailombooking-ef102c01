@@ -114,7 +114,7 @@ export function Hero() {
                 <img 
                   src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426" 
                   alt="Interface Revolucionária" 
-                  className="w-full h-auto opacity-80 hover:opacity-100 transition-opacity duration-1000"
+                  className="w-full h-auto opacity-90 hover:opacity-100 transition-opacity duration-1000 grayscale-[50%] hover:grayscale-0"
                 />
               </div>
             </div>
