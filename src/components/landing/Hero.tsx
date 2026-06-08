@@ -28,14 +28,12 @@ export function Hero({ customization }: HeroProps) {
               <BookingLogo />
             </div>
             
-            <h1 className="text-5xl lg:text-8xl font-black mb-6 tracking-tighter leading-[0.9]">
-              <span className="text-gradient block mb-2">Sua agenda</span>
-              <span className="text-foreground">nunca mais ficará vazia.</span>
+            <h1 className="text-5xl lg:text-7xl font-black mb-6 tracking-tighter leading-[1.05]">
+              <span className="text-white block mb-2">Seu agendamento em</span>
+              <span className="text-gradient">piloto automático.</span>
             </h1>
-            
-            <p className="text-xl lg:text-2xl text-muted-foreground mb-10 max-w-2xl leading-relaxed">
-              O Zylo Booking é o sistema de elite para quem não aceita perder tempo com burocracia. 
-              Automatize seus agendamentos, reduza faltas e foque no que realmente importa: <strong>lucrar.</strong>
+            <p className="text-lg text-muted-foreground mb-8 max-w-xl leading-relaxed">
+              Chega de perder horas respondendo WhatsApp para agendar horários. Dê aos seus clientes uma página personalizada e profissional para agendarem com você 24h por dia, sem fricção.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start mb-12">
