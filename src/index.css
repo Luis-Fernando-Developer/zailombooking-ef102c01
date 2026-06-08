@@ -2,69 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Zylo Booking Design System - Custom Brand Colors */
-
 @layer base {
   :root {
-    /* Brand Colors: #FFFFFF (Background/Text), #1E0828 (Primary Dark) */
-    --background: 284 66% 9%; /* #1E0828 translated to HSL approx */
-    --foreground: 0 0% 100%; /* #FFFFFF */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-    --card: 284 66% 12%;
-    --card-foreground: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
 
-    --popover: 284 66% 12%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    /* Brand Primary */
-    --primary: 284 66% 15%; /* Based on #1E0828 */
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 282 78% 21%;
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 0 0% 100%; /* #FFFFFF */
-    --secondary-foreground: 284 66% 9%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 284 30% 20%;
-    --muted-foreground: 284 20% 70%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 282 78% 21%; /* #460863 approx */
-    --accent-foreground: 0 0% 100%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 284 40% 20%;
-    --input: 284 40% 15%;
-    --ring: 282 78% 21%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 262.1 83.3% 57.8%;
 
     --radius: 0.75rem;
+  }
 
-    /* Custom Gradients as requested */
-    /* G1: #920027 (0%) -> #460863 (28%) -> #1E0828 (91%) -> #000000 (100%) */
-    --gradient-primary: linear-gradient(135deg, #920027 0%, #460863 28%, #1E0828 91%, #000000 100%);
-    --gradient-secondary: linear-gradient(180deg, #1E0828 0%, #000000 100%);
-    --gradient-hero: linear-gradient(180deg, #1E0828 0%, #460863 50%, #000000 100%);
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
 
-    /* Neon / Glow Colors */
-    --neon-violet: 282 78% 35%;
-    --neon-pink: 344 100% 29%; /* Based on #920027 */
-    --neon-cyan: 180 100% 70%;
-    --neon-green: 120 100% 70%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
 
-    /* Shadows */
-    --shadow-neon: 0 0 20px rgba(70, 8, 99, 0.5);
-    --shadow-neon-strong: 0 0 30px rgba(70, 8, 99, 0.8), 0 0 60px rgba(70, 8, 99, 0.4);
-    --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
 
-    /* Sidebar */
-    --sidebar-background: 284 66% 7%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 282 78% 21%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 284 66% 12%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 284 40% 15%;
-    --sidebar-ring: 282 78% 21%;
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 263.4 70% 50.4%;
   }
 }
 
@@ -72,61 +70,19 @@
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer components {
-  /* Neon Button Effects */
-  .btn-neon {
-    @apply relative overflow-hidden;
-    box-shadow: var(--shadow-neon);
-    transition: all 0.3s ease-in-out;
+  .hero-gradient {
+    @apply absolute inset-0 overflow-hidden pointer-events-none;
+    background: radial-gradient(circle at 50% -20%, hsl(var(--primary) / 0.15), transparent 70%);
   }
 
-  .btn-neon:hover {
-    box-shadow: var(--shadow-neon-strong);
-    transform: translateY(-2px);
-  }
-
-  /* Gradient Text */
-  .text-gradient {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Card Glow */
-  .card-glow {
-    box-shadow: var(--shadow-card), 0 0 0 1px hsl(var(--border));
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .card-glow:hover {
-    box-shadow: var(--shadow-card), var(--shadow-neon), 0 0 0 1px rgba(146, 0, 39, 0.3);
-    transform: translateY(-4px);
-  }
-
-  /* Floating Animation */
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-  }
-
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  /* Pulse Glow */
-  @keyframes pulse-glow {
-    0%, 100% { box-shadow: var(--shadow-neon); }
-    50% { box-shadow: var(--shadow-neon-strong); }
-  }
-
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
+  .glass-card {
+    @apply bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-xl;
   }
 }
