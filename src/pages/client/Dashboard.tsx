@@ -109,9 +109,9 @@ export default function ClientDashboard() {
             b.booking_date >= today
           )
           .sort((a, b) => {
-            const dateCompare = a.booking_date.localeCompare(b.booking_date);
+            const dateCompare = (a.booking_date || '').localeCompare(b.booking_date || '');
             if (dateCompare !== 0) return dateCompare;
-            return a.start_time.localeCompare(b.start_time);
+            return (a.start_time || '').localeCompare(b.start_time || '');
           })
           .slice(0, 5);
         setUpcomingBookings(upcoming);
@@ -282,7 +282,7 @@ export default function ClientDashboard() {
                                   {formatDate(booking.booking_date)}
                                 </span>
                                 <span className="flex items-center gap-1.5 font-bold text-foreground">
-                                  às {booking.start_time?.slice(0, 5)}
+                                  às {booking.start_time ? booking.start_time.substring(0, 5) : "--:--"}
                                 </span>
                               </div>
                             </div>
