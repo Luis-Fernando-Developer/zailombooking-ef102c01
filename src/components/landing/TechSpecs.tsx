@@ -1,4 +1,5 @@
-import { Cpu, Zap, Shield, Globe, Layers, MousePointerClick } from "lucide-react";
+import { Cpu, Zap, Shield, Globe, Layers, MousePointerClick, Database, Lock, Terminal } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 export function TechSpecs() {
   const specs = [
@@ -28,8 +29,27 @@ export function TechSpecs() {
     }
   ];
 
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!sectionRef.current) return;
+      const scrolled = window.scrollY;
+      const offset = sectionRef.current.offsetTop;
+      const distance = scrolled - offset;
+      
+      const element = sectionRef.current.querySelector('.parallax-specs');
+      if (element) {
+        (element as any).style.transform = `translateY(${distance * 0.05}px)`;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <section className="py-40 bg-[#0B0D12] relative overflow-hidden">
+    <section ref={sectionRef} className="py-48 bg-[#0B0D12] relative overflow-hidden">
       {/* Decorative Lines */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent" />
@@ -56,14 +76,23 @@ export function TechSpecs() {
                   <MousePointerClick className="w-6 h-6" />
                 </div>
                 <div>
-                  <h4 className="text-white font-black uppercase tracking-widest text-sm mb-1">Taxa de Conversão</h4>
-                  <p className="text-slate-400 text-sm leading-relaxed">Algoritmos proprietários otimizam a jornada do usuário para máxima retenção.</p>
+                  <h4 className="text-white font-black uppercase tracking-widest text-sm mb-1">Taxa de Conversão Absoluta</h4>
+                  <p className="text-slate-400 text-sm leading-relaxed">Nossos algoritmos são treinados para identificar o momento exato da decisão de compra.</p>
+                </div>
+              </div>
+              <div className="premium-card p-6 flex items-start gap-4 border-white/5 hover:border-primary/30 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white flex-shrink-0">
+                  <Database className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-white font-black uppercase tracking-widest text-sm mb-1">Backup em Tempo Real</h4>
+                  <p className="text-slate-400 text-sm leading-relaxed">Seus dados são replicados em 3 continentes instantaneamente para segurança total.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 parallax-specs">
             {specs.map((spec, i) => (
               <div key={i} className="premium-card p-8 group hover:-translate-y-2 transition-all duration-500">
                 <spec.icon className="w-8 h-8 text-primary mb-6 opacity-50 group-hover:opacity-100 transition-opacity" />

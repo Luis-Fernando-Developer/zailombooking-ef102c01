@@ -1,4 +1,5 @@
-import { Star, Quote, Zap, Shield, Globe, Users } from "lucide-react";
+import { Star, Quote, Zap, Shield, Globe, Users, TrendingUp, Award, CheckCircle } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 const stats = [
   { label: "Membros da Elite", value: "2.4k+", icon: Users },
@@ -23,13 +24,34 @@ const testimonials = [
 ];
 
 export function TrustSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!sectionRef.current) return;
+      const scrolled = window.scrollY;
+      const offset = sectionRef.current.offsetTop;
+      const distance = scrolled - offset;
+      
+      const elements = sectionRef.current.querySelectorAll('.parallax-trust');
+      elements.forEach((el: any, i) => {
+        const speed = -0.05 - (i * 0.03);
+        el.style.transform = `translateY(${distance * speed}px)`;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <section className="py-40 bg-[#0B0D12] relative overflow-hidden">
+    <section ref={sectionRef} className="py-48 bg-[#0B0D12] relative overflow-hidden">
       {/* Background Decor */}
       <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-accent/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-24 items-center">
+        <div className="grid lg:grid-cols-2 gap-24 items-start">
           <div className="space-y-16">
             <div className="space-y-8">
               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Engenharia de Confiança</span>
@@ -53,9 +75,18 @@ export function TrustSection() {
                 </div>
               ))}
             </div>
+            <div className="premium-card p-8 bg-primary/5 border-primary/20">
+              <div className="flex items-center gap-4 mb-4">
+                <Award className="w-8 h-8 text-primary" />
+                <h4 className="text-xl font-black text-white uppercase tracking-widest">Liderança Reconhecida</h4>
+              </div>
+              <p className="text-slate-400 leading-relaxed font-bold">
+                Eleito o melhor sistema de agendamento de alta performance em 2025 por especialistas do setor.
+              </p>
+            </div>
           </div>
 
-          <div className="relative space-y-8">
+          <div className="relative space-y-8 parallax-trust">
             {testimonials.map((t, i) => (
               <div 
                 key={i} 

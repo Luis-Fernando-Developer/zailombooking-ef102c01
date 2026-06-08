@@ -1,4 +1,5 @@
-import { Play, CheckCircle2, Star } from "lucide-react";
+import { Play, CheckCircle2, Star, ShieldCheck, Zap, Sparkles } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 export function Methodology() {
   const steps = [
@@ -19,8 +20,28 @@ export function Methodology() {
     }
   ];
 
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!sectionRef.current) return;
+      const scrolled = window.scrollY;
+      const offset = sectionRef.current.offsetTop;
+      const distance = scrolled - offset;
+      
+      const elements = sectionRef.current.querySelectorAll('.parallax-step');
+      elements.forEach((el: any, i) => {
+        const speed = 0.04 + (i * 0.02);
+        el.style.transform = `translateY(${distance * speed}px)`;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <section className="py-40 bg-[#0B0D12] relative overflow-hidden">
+    <section ref={sectionRef} className="py-48 bg-[#0B0D12] relative overflow-hidden">
       {/* Background radial glow */}
       <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-primary/10 to-transparent pointer-events-none" />
 
@@ -35,7 +56,7 @@ export function Methodology() {
 
         <div className="grid md:grid-cols-3 gap-12">
           {steps.map((step, i) => (
-            <div key={i} className="relative group">
+            <div key={i} className="relative group parallax-step">
               <div className="text-[8rem] font-black text-white/5 absolute -top-20 -left-4 pointer-events-none group-hover:text-primary/10 transition-colors duration-500">
                 {step.number}
               </div>
