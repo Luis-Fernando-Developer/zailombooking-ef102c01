@@ -7,19 +7,19 @@
 @layer base {
   :root {
     /* Brand Colors: #FFFFFF (Background/Text), #1E0828 (Primary Dark) */
-    --background: 284 66% 5%; 
-    --foreground: 0 0% 100%; 
+    --background: 284 66% 5%; /* Tom mais escuro e premium para o fundo */
+    --foreground: 0 0% 100%; /* #FFFFFF puríssimo */
 
-    --card: 284 66% 7%;
+    --card: 284 66% 12%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 284 66% 7%;
+    --popover: 284 66% 12%;
     --popover-foreground: 0 0% 100%;
 
-    /* Brand Primary: Vermelho Sangue / Vinho Profundo conforme as cores da marca (#920027) */
-    --primary: 344 100% 29%; /* Cor baseada no #920027 */
+    /* Brand Primary */
+    --primary: 282 78% 30%; /* Um pouco mais vibrante para destaque */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 344 100% 45%;
+    --primary-glow: 282 78% 40%;
 
     --secondary: 0 0% 100%; /* #FFFFFF */
     --secondary-foreground: 284 66% 9%;
@@ -52,8 +52,8 @@
     --neon-green: 120 100% 70%;
 
     /* Shadows */
-    --shadow-neon: 0 0 20px rgba(146, 0, 39, 0.5);
-    --shadow-neon-strong: 0 0 30px rgba(146, 0, 39, 0.8), 0 0 60px rgba(146, 0, 39, 0.4);
+    --shadow-neon: 0 0 20px rgba(70, 8, 99, 0.5);
+    --shadow-neon-strong: 0 0 30px rgba(70, 8, 99, 0.8), 0 0 60px rgba(70, 8, 99, 0.4);
     --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
 
     /* Sidebar */
