@@ -3,6 +3,7 @@ import { Features } from "@/components/landing/Features";
 import { WhyUs } from "@/components/landing/WhyUs";
 import { SocialProof } from "@/components/landing/SocialProof";
 import { Pricing } from "@/components/landing/Pricing";
+import { FAQ } from "@/components/landing/FAQ";
 import { CTAFinal } from "@/components/landing/CTAFinal";
 import { Footer } from "@/components/landing/Footer";
 
@@ -14,6 +15,7 @@ export default function LandingPage() {
       <Features />
       <SocialProof />
       <Pricing />
+      <FAQ />
       <CTAFinal />
       <Footer />
     </div>

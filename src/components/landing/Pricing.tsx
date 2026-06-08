@@ -123,10 +123,10 @@ export function Pricing() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-            <span className="text-gradient">Investimento no seu Sucesso</span>
+            Planos feitos para <span className="text-gradient">escalar</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Escolha o nível de aceleração que seu negócio precisa hoje. Cancele quando quiser, sem letras miúdas.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
+            Escolha o plano que melhor se adapta ao momento do seu negócio. Comece hoje e cresça sem limites.
           </p>
 
           <div className="flex items-center justify-center gap-4 mb-8">
