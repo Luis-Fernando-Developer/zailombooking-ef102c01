@@ -9,18 +9,18 @@ const steps = [
   {
     icon: ClipboardCheck,
     title: "1. Organize sua Casa",
-    description: "Em menos de 5 minutos, você adiciona seus serviços, define seus horários e a sua equipe."
+    description: "Em menos de 5 minutos, você adiciona seus serviços, define seus horários e a sua equipe.",
   },
   {
     icon: LinkIcon,
     title: "2. Espalhe seu Link",
-    description: "Coloque seu link exclusivo na Bio do Instagram, no botão do WhatsApp e no Google Meu Negócio."
+    description: "Coloque seu link exclusivo na Bio do Instagram, no botão do WhatsApp e no Google Meu Negócio.",
   },
   {
     icon: Sparkles,
     title: "3. Fature no Automático",
-    description: "Relaxe. O Zailom Booking organiza tudo, envia os lembretes e você foca apenas em atender bem."
-  }
+    description: "Relaxe. O Zailom Booking organiza tudo, envia os lembretes e você foca apenas em atender bem.",
+  },
 ];
 
 export function Steps() {
@@ -35,7 +35,7 @@ export function Steps() {
           start: "top 60%",
           end: "bottom 80%",
           scrub: 1,
-        }
+        },
       });
 
       stepsRef.current.forEach((step, index) => {
@@ -43,10 +43,10 @@ export function Steps() {
 
         tl.fromTo(
           step,
-          { 
+          {
             x: -150,
             opacity: 0,
-            scale: 0.8
+            scale: 0.8,
           },
           {
             x: 0,
@@ -54,7 +54,7 @@ export function Steps() {
             scale: 1,
             duration: 1,
             ease: "power2.out",
-          }
+          },
         );
       });
     }, containerRef);
@@ -76,21 +76,21 @@ export function Steps() {
 
         <div className="grid md:grid-cols-3 gap-16">
           {steps.map((step, index) => (
-            <div 
-              key={index} 
-              ref={(el) => { stepsRef.current[index] = el; }}
+            <div
+              key={index}
+              ref={(el) => {
+                stepsRef.current[index] = el;
+              }}
               className="relative text-center group"
             >
               {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-12 left-1/2 w-full h-[2px] bg-gradient-to-r from-primary/50 to-transparent z-0 ml-12" />
+                <div className="hidden md:block absolute top-12 w-full h-[2px] bg-gradient-to-r from-primary/50 to-transparent z-0 ml-12" />
               )}
               <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mx-auto mb-10 relative z-10 card-glow group-hover:scale-110 transition-transform duration-300">
                 <step.icon className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-2xl font-black mb-4 text-center">{step.title}</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed text-left">
-                {step.description}
-              </p>
+              <p className="text-muted-foreground text-lg leading-relaxed text-left">{step.description}</p>
             </div>
           ))}
         </div>
