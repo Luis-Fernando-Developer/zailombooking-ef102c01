@@ -16,7 +16,7 @@ export function CTASection() {
           
           <div className="space-y-8 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">
-              <Zap className="w-3 h-3 fill-primary" /> Ready to scale?
+              <Zap className="w-3 h-3 fill-primary" /> PRONTO PARA ESCALAR?
             </div>
             
             <h2 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[1] mb-8">
