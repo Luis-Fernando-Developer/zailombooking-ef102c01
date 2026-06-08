@@ -29,13 +29,22 @@ export function Steps() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 60%",
+          end: "bottom 80%",
+          scrub: 1,
+        }
+      });
+
       stepsRef.current.forEach((step, index) => {
         if (!step) return;
 
-        gsap.fromTo(
+        tl.fromTo(
           step,
           { 
-            x: -100,
+            x: -150,
             opacity: 0,
             scale: 0.8
           },
@@ -44,13 +53,7 @@ export function Steps() {
             opacity: 1,
             scale: 1,
             duration: 1,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: step,
-              start: "top 85%",
-              end: "top 60%",
-              scrub: 1,
-            }
+            ease: "power2.out",
           }
         );
       });
