@@ -102,7 +102,7 @@ export function Steps() {
                   className="hidden md:block absolute top-12 h-[2px] bg-primary/30 z-0 step-line"
                   style={{
                     left: index === 0 ? "3rem bg-red-600" : "calc(10% + 3rem) bg-red-600",
-                    right: index === 1 ? "calc(-80% + 3rem)" : "-3rem",
+                    right: index === 1 ? "calc(-100% + 3rem) bg-red-600" : "-3rem",
                   }}
                 />
               )}
