@@ -30,7 +30,7 @@ const faqs = [
 
 export function FAQ() {
   return (
-    <section className="py-24 bg-background relative overflow-hidden">
+    <section id="faq" className="py-24 bg-background relative overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-6xl font-black mb-6">
