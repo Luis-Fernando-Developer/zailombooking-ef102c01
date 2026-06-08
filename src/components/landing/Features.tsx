@@ -55,31 +55,24 @@ export function Features() {
   return (
     <section className="py-32 relative bg-white dark:bg-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
-          <div className="max-w-2xl space-y-6">
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-primary">Funcionalidades Premium</h2>
-            <h3 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white leading-tight">
-              Tudo o que você precisa em uma <span className="text-primary italic">única plataforma.</span>
-            </h3>
-          </div>
-          <p className="text-lg text-slate-500 dark:text-slate-400 max-w-sm">
-            Focamos na simplicidade e na potência. Ferramentas profissionais que qualquer um consegue usar.
-          </p>
+        <div className="flex flex-col space-y-4 mb-24 max-w-3xl">
+          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Excelência Operacional</span>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-medium text-slate-900 dark:text-white leading-tight tracking-tight">
+            Arquitetura pensada para <br />
+            <span className="italic font-serif opacity-80">alta performance.</span>
+          </h2>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-3xl overflow-hidden shadow-sm">
           {features.map((feature, index) => (
-            <div key={index} className="group p-8 rounded-[2rem] glass-effect card-hover">
-              <div className={`w-14 h-14 ${feature.color} rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-black/10 transition-transform group-hover:scale-110 duration-500`}>
-                <feature.icon className="w-7 h-7 text-white" />
+            <div key={index} className="group p-10 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors duration-500">
+              <div className="w-10 h-10 mb-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-white/10 text-slate-400 group-hover:text-primary dark:group-hover:text-white transition-colors">
+                <feature.icon className="w-5 h-5" />
               </div>
-              <h4 className="text-2xl font-black mb-4 text-slate-900 dark:text-white">{feature.title}</h4>
-              <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+              <h4 className="text-xl font-medium mb-3 text-slate-900 dark:text-white tracking-tight">{feature.title}</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-light">
                 {feature.description}
               </p>
-              <div className="flex items-center text-primary font-bold gap-2 cursor-pointer group-hover:gap-4 transition-all">
-                Saiba mais <ArrowRight className="w-4 h-4" />
-              </div>
             </div>
           ))}
         </div>
