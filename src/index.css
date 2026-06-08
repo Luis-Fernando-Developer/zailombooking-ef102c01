@@ -7,8 +7,8 @@
 @layer base {
   :root {
     /* Brand Colors: #FFFFFF (Background/Text), #1E0828 (Primary Dark) */
-    --background: 284 66% 9%; /* #1E0828 translated to HSL approx */
-    --foreground: 0 0% 100%; /* #FFFFFF */
+    --background: 284 66% 5%; /* Tom mais escuro e premium para o fundo */
+    --foreground: 0 0% 100%; /* #FFFFFF puríssimo */
 
     --card: 284 66% 12%;
     --card-foreground: 0 0% 100%;
@@ -17,9 +17,9 @@
     --popover-foreground: 0 0% 100%;
 
     /* Brand Primary */
-    --primary: 284 66% 15%; /* Based on #1E0828 */
+    --primary: 282 78% 30%; /* Um pouco mais vibrante para destaque */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 282 78% 21%;
+    --primary-glow: 282 78% 40%;
 
     --secondary: 0 0% 100%; /* #FFFFFF */
     --secondary-foreground: 284 66% 9%;
