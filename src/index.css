@@ -37,9 +37,16 @@
   }
 
   .dark {
-    /* Keeping it same for dark mode as base is already dark */
     --background: 222 25% 6%;
     --foreground: 210 40% 98%;
+  }
+
+  .perspective-container {
+    perspective: 2000px;
+  }
+
+  .parallax-element {
+    transition: transform 0.1s ease-out;
   }
 }
 
