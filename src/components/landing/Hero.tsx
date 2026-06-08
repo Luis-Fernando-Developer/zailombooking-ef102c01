@@ -71,10 +71,12 @@ export function Hero({ customization }: HeroProps) {
           </div>
 
           <div className="relative">
-            <div className="relative z-10">
-              <div className="aspect-video bg-card/30 rounded-2xl shadow-2xl card-glow flex items-center justify-center border border-primary/20">
-                <span className="text-muted-foreground">Hero Image Placeholder</span>
-              </div>
+            <div className="relative z-10 overflow-hidden rounded-2xl shadow-2xl card-glow border border-primary/20">
+              <img 
+                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=1200" 
+                alt="Zylo Booking Dashboard" 
+                className="w-full h-full object-cover aspect-video opacity-90"
+              />
             </div>
             <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-primary rounded-full blur-xl opacity-60 animate-float"></div>
             <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-neon-pink/30 rounded-full blur-xl opacity-60 animate-pulse-glow"></div>

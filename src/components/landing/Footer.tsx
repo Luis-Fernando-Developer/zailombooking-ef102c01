@@ -74,7 +74,7 @@ export function Footer() {
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
-                contato@bookingfy.com.br
+                contato@zylobooking.com.br
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4" />
@@ -82,7 +82,7 @@ export function Footer() {
               </div>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <span>© {newYear} BookingFy. Todos os direitos reservados.</span>
+              <span>© {newYear} Zylo Booking. Todos os direitos reservados.</span>
             </div>
           </div>
         </div>
