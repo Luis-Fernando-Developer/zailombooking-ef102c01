@@ -319,7 +319,7 @@ export default function ClientLayout() {
                                     });
                                   })()}
                                 </span>
-                                <span className="font-bold text-primary ml-1">às {booking.start_time ? booking.start_time.substring(0, 5) : "--:--"}</span>
+                                <span className="font-bold text-primary ml-1">{booking.start_time ? `às ${booking.start_time.substring(0, 5)}` : "às --:--"}</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Clock className="h-4 w-4" />
