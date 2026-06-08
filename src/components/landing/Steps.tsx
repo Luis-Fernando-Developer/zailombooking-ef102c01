@@ -84,7 +84,7 @@ export function Steps() {
               className="relative text-left group"
             >
               {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-12 w-full h-[2px] bg-gradient-to-r from-primary/50 to-transparent z-0 ml-12" />
+                <div className="hidden md:block absolute top-12 w-full left-1/2 h-[2px] bg-gradient-to-r from-primary/50 to-transparent z-0 ml-12" />
               )}
               <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mx-auto mb-10 relative z-10 card-glow group-hover:scale-110 transition-transform duration-300">
                 <step.icon className="w-10 h-10 text-white" />
