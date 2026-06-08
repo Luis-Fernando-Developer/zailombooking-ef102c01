@@ -14,33 +14,33 @@ import {
 const features = [
   {
     icon: Calendar,
-    title: "Venda enquanto dorme",
-    description: "Seu cliente agenda o horário sozinho, 24h por dia, sem precisar que você responda um único WhatsApp."
+    title: "Agenda Online 24/7",
+    description: "Seu cliente agenda o horário pelo seu link personalizado, a qualquer hora. Sem intermediários, sem mensagens esquecidas."
   },
   {
-    icon: Clock,
-    title: "Adeus, esquecimentos",
-    description: "Lembretes automáticos via WhatsApp e e-mail que reduzem faltas em até 80%. Mais faturamento real no seu bolso."
-  },
-  {
-    icon: CreditCard,
-    title: "Garantia de Recebimento",
-    description: "Cobre antecipado ou taxas de reserva. Acabe com o prejuízo dos horários vazios e desistências de última hora."
-  },
-  {
-    icon: BarChart3,
-    title: "Clareza no seu Negócio",
-    description: "Saiba exatamente quem são seus melhores clientes e quanto você vai faturar no final do mês com dados reais."
+    icon: Bell,
+    title: "Lembretes Automáticos",
+    description: "Reduza no-shows em até 80%. O sistema envia lembretes inteligentes via WhatsApp e e-mail antes do horário marcado."
   },
   {
     icon: Users,
-    title: "Equipe em Sincronia",
-    description: "Gerencie múltiplos profissionais, comissões e agendas sem confusão ou conflitos de horário."
+    title: "Página Profissional Única",
+    description: "Nada de perfis genéricos. Você ganha uma página com a sua marca para transmitir autoridade e confiança desde o primeiro acesso."
   },
   {
-    icon: Smartphone,
-    title: "Experiência de App Nativo",
-    description: "Seus clientes não precisam baixar nada. Uma interface rápida e fluida direto no navegador de qualquer celular."
+    icon: BarChart3,
+    title: "Gestão Descomplicada",
+    description: "Veja seu faturamento, histórico de clientes e performance de colaboradores em um painel simples e sem curva de aprendizado."
+  },
+  {
+    icon: CreditCard,
+    title: "Agendamento Inteligente",
+    description: "Configure horários de intervalo, bloqueios automáticos e regras de atendimento. O sistema organiza tudo para você."
+  },
+  {
+    icon: Shield,
+    title: "Segurança de Elite",
+    description: "Seus dados estão protegidos com criptografia de ponta e backups automáticos. Foco total em crescer seu negócio."
   }
 ];
 

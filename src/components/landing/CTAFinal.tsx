@@ -11,11 +11,11 @@ export function CTAFinal() {
             <Rocket className="w-8 h-8 text-primary animate-pulse-glow" />
           </div>
           <h2 className="text-4xl lg:text-6xl font-black mb-8 leading-tight">
-            Pronto para levar seu negócio ao <span className="text-gradient">próximo nível?</span>
+            Pare de perder clientes por <span className="text-gradient">falta de tempo.</span>
           </h2>
-          <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Não deixe para amanhã a organização que pode dobrar seu faturamento hoje. 
-            Crie sua conta em menos de 2 minutos.
+          <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+            Seus concorrentes já estão automatizando. Não fique para trás. 
+            Comece sua jornada com o Zylo Booking agora e veja a diferença no primeiro dia.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="xl" variant="hero" onClick={() => window.location.href = "/signup"}>
@@ -27,7 +27,7 @@ export function CTAFinal() {
             </Button>
           </div>
           <p className="mt-8 text-sm text-muted-foreground">
-            Sem cartão de crédito • Teste grátis por 7 dias • Suporte humano
+            Sem cartão de crédito • Configuração em 2 min • Suporte prioritário
           </p>
         </div>
       </div>

@@ -27,10 +27,10 @@ export function SocialProof() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-            Quem <span className="text-gradient">já acelerou</span> com o Zylo Booking
+            Quem <span className="text-gradient">não aceita menos</span> que o topo
           </h2>
           <p className="text-muted-foreground text-lg">
-            Junte-se a centenas de profissionais que transformaram a gestão de seus negócios.
+            Empresários e profissionais que decidiram parar de perder tempo e começaram a lucrar de verdade.
           </p>
         </div>
 

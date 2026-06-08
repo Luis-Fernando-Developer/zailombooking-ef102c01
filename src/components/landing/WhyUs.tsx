@@ -35,10 +35,10 @@ export function WhyUs() {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <h2 className="text-4xl lg:text-5xl font-bold mb-8 leading-tight">
-              Por que o <span className="text-gradient">Zylo Booking</span> é a sua melhor escolha?
+              Recupere as horas perdidas no <span className="text-gradient">WhatsApp</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-10 leading-relaxed">
-              Diferente de sistemas genéricos que apenas listam horários, nós focamos na sua <strong>conversão</strong> e <strong>retenção de clientes</strong>.
+              Você trabalha para crescer seu negócio ou para ser uma secretária do seu próprio celular? O Zylo Booking foi criado para eliminar o "Oi, tem horário?" e dar a você o controle absoluto da sua rotina.
             </p>
             <div className="space-y-6">
               {points.map((point, index) => (
