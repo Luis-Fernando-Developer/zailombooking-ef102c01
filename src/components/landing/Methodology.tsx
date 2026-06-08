@@ -20,8 +20,28 @@ export function Methodology() {
     }
   ];
 
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!sectionRef.current) return;
+      const scrolled = window.scrollY;
+      const offset = sectionRef.current.offsetTop;
+      const distance = scrolled - offset;
+      
+      const elements = sectionRef.current.querySelectorAll('.parallax-step');
+      elements.forEach((el: any, i) => {
+        const speed = 0.04 + (i * 0.02);
+        el.style.transform = `translateY(${distance * speed}px)`;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <section className="py-40 bg-[#0B0D12] relative overflow-hidden">
+    <section ref={sectionRef} className="py-48 bg-[#0B0D12] relative overflow-hidden">
       {/* Background radial glow */}
       <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-primary/10 to-transparent pointer-events-none" />
 
