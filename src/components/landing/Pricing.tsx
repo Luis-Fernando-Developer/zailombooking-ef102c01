@@ -104,10 +104,10 @@ export function Pricing() {
             return (
               <div 
                 key={plan.id} 
-                className={`premium-card p-12 flex flex-col group transition-all duration-500 ${
+                className={`premium-card p-12 flex flex-col group transition-all duration-700 hover:scale-[1.02] ${
                   isPopular 
-                    ? 'border-primary/40 bg-primary/5 scale-105 shadow-[0_0_50px_rgba(91,140,255,0.1)] z-10' 
-                    : 'hover:bg-white/5'
+                    ? 'border-primary/50 bg-primary/5 scale-105 shadow-[0_0_80px_rgba(91,140,255,0.15)] z-10 ring-1 ring-primary/20' 
+                    : 'hover:bg-white/[0.03]'
                 }`}
               >
                 {isPopular && (
