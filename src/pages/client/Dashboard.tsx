@@ -137,6 +137,16 @@ export default function ClientDashboard() {
     });
   };
 
+  const formatTime = (time: string) => {
+    if (!time) return "--:--";
+    // Check if it's an ISO string (contains T) or just HH:mm:ss
+    if (time.includes('T')) {
+      const timePart = time.split('T')[1];
+      return timePart.substring(0, 5);
+    }
+    return time.substring(0, 5);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero">
@@ -282,7 +292,7 @@ export default function ClientDashboard() {
                                   {formatDate(booking.booking_date)}
                                 </span>
                                 <span className="flex items-center gap-1.5 font-bold text-foreground">
-                                  {booking.start_time ? `às ${booking.start_time.substring(0, 5)}` : "às --:--"}
+                                  às {formatTime(booking.start_time)}
                                 </span>
                               </div>
                             </div>
