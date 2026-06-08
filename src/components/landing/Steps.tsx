@@ -79,7 +79,7 @@ export function Steps() {
             <div 
               key={index} 
               ref={(el) => { stepsRef.current[index] = el; }}
-              className="relative text-center group"
+              className="relative text-left group"
             >
               {index < steps.length - 1 && (
                 <div className="hidden md:block absolute top-12 left-1/2 w-full h-[2px] bg-gradient-to-r from-primary/50 to-transparent z-0 ml-12" />
