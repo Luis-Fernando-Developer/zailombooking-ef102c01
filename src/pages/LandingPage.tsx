@@ -2,6 +2,8 @@ import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
 import { Pricing } from "@/components/landing/Pricing";
 import { Footer } from "@/components/landing/Footer";
+import { TrustSection } from "@/components/landing/TrustSection";
+import { CTASection } from "@/components/landing/CTASection";
 import { BookingLogo } from "@/components/BookingLogo";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +16,7 @@ export default function LandingPage() {
           <BookingLogo />
           <div className="hidden md:flex items-center gap-10">
             <a href="#features" className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">Funcionalidades</a>
+            <a href="#trust" className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">Confiança</a>
             <a href="#pricing" className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">Preços</a>
             <div className="h-4 w-px bg-border" />
             <Button variant="ghost" className="text-sm font-semibold" onClick={() => window.location.href = "/login"}>Entrar</Button>
@@ -22,11 +25,12 @@ export default function LandingPage() {
         </div>
       </nav>
 
-
       <main>
         <Hero />
         <div id="features"><Features /></div>
+        <div id="trust"><TrustSection /></div>
         <div id="pricing"><Pricing /></div>
+        <CTASection />
       </main>
       <Footer />
     </div>
