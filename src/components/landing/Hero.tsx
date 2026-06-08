@@ -50,14 +50,14 @@ export function Hero() {
           </div>
 
           <div className="space-y-6 max-w-5xl mb-12">
-            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.85] animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
-              <span className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">TRANSFORME</span> <br />
-              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent italic px-2">AGENDAMENTOS</span> <br />
-              <span className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">EM ELITE.</span>
+            <h1 className="text-7xl md:text-9xl lg:text-[10rem] font-black tracking-tighter leading-[0.8] animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-100">
+              <span className="text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] block">AGENDA</span>
+              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent italic px-4 block">IMPLACÁVEL</span>
+              <span className="text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] block">RESULTADO.</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 font-medium">
-              A única plataforma que funde Inteligência Artificial de última geração com uma arquitetura visual cinematográfica. Projetada meticulosamente para marcas que exigem nada menos que o absoluto.
+            <p className="text-xl md:text-3xl text-slate-400 max-w-4xl mx-auto leading-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 font-medium tracking-tight">
+              Pare de perder clientes para sistemas lentos e genéricos. Domine o mercado com a IA que <span className="text-white font-bold">prende a atenção</span> e converte cliques em lucro real, em milissegundos.
             </p>
           </div>
 
