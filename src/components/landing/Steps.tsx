@@ -1,4 +1,9 @@
+import { useEffect, useRef } from "react";
 import { ClipboardCheck, Link as LinkIcon, Sparkles } from "lucide-react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const steps = [
   {
@@ -19,8 +24,43 @@ const steps = [
 ];
 
 export function Steps() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const stepsRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      stepsRef.current.forEach((step, index) => {
+        if (!step) return;
+
+        gsap.fromTo(
+          step,
+          { 
+            x: -100,
+            opacity: 0,
+            scale: 0.8
+          },
+          {
+            x: 0,
+            opacity: 1,
+            scale: 1,
+            duration: 1,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: step,
+              start: "top 85%",
+              end: "top 60%",
+              scrub: 1,
+            }
+          }
+        );
+      });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section className="py-24 bg-primary/5 relative overflow-hidden">
+    <section ref={containerRef} className="py-24 bg-primary/5 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-20">
           <h2 className="text-4xl lg:text-6xl font-black mb-6">
@@ -33,7 +73,11 @@ export function Steps() {
 
         <div className="grid md:grid-cols-3 gap-16">
           {steps.map((step, index) => (
-            <div key={index} className="relative text-center group">
+            <div 
+              key={index} 
+              ref={(el) => (stepsRef.current[index] = el)}
+              className="relative text-center group"
+            >
               {index < steps.length - 1 && (
                 <div className="hidden md:block absolute top-12 left-1/2 w-full h-[2px] bg-gradient-to-r from-primary/50 to-transparent z-0 ml-12" />
               )}
