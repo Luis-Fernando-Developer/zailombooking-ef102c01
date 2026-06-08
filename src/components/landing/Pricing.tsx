@@ -35,12 +35,11 @@ export function Pricing() {
 
   const fetchPlans = async () => {
     try {
-      // Dummy data as fallback
       const dummyPlans = [
-        { id: '1', name: 'Prata', monthly_price: 49, quarterly_price: 132, annual_price: 470, is_active: true, features: ['100 agendamentos', 'Suporte básico', 'Relatórios simples'] },
-        { id: '2', name: 'Ouro', monthly_price: 99, quarterly_price: 267, annual_price: 950, is_active: true, features: ['Agendamentos ilimitados', 'Suporte prioratário', 'Relatórios avançados', 'Multiusuário'] },
-        { id: '3', name: 'Diamante', monthly_price: 199, quarterly_price: 537, annual_price: 1910, is_active: true, features: ['Tudo do Ouro', 'Customização total', 'API de integração', 'Account manager'] },
-        { id: '4', name: 'Ruby', monthly_price: 0, quarterly_price: 0, annual_price: 0, is_active: true, features: ['Sob medida', 'SLA garantido', 'Instalação on-premise'] },
+        { id: '1', name: 'Prata', monthly_price: 49, quarterly_price: 132, annual_price: 470, is_active: true, features: ['Até 100 agendamentos/mês', 'Página Personalizada', 'Lembretes via WhatsApp', 'Relatórios Básicos'] },
+        { id: '2', name: 'Ouro', monthly_price: 99, quarterly_price: 267, annual_price: 950, is_active: true, features: ['Agendamentos Ilimitados', 'Multi-usuário (Equipe)', 'Gestão de Comissões', 'Suporte Prioritário', 'Chatbot TalkMap'] },
+        { id: '3', name: 'Diamante', monthly_price: 199, quarterly_price: 537, annual_price: 1910, is_active: true, features: ['Tudo do Plano Ouro', 'Domínio Personalizado', 'Customização Total de Design', 'Gerente de Contas Dedicado'] },
+        { id: '4', name: 'Ruby', monthly_price: 0, quarterly_price: 0, annual_price: 0, is_active: true, features: ['Solução On-Premise', 'API de Integração Total', 'SLA de 99.9%', 'Segurança de nível Bancário'] },
       ];
 
       const { data, error } = await supabase
@@ -69,39 +68,10 @@ export function Pricing() {
 
   const getPrice = (plan: Plan) => {
     switch (billingPeriod) {
-      case 'quarterly':
-        return plan.quarterly_price;
-      case 'annual':
-        return plan.annual_price;
-      default:
-        return plan.monthly_price;
+      case 'quarterly': return plan.quarterly_price;
+      case 'annual': return plan.annual_price;
+      default: return plan.monthly_price;
     }
-  };
-
-  const getPeriodLabel = () => {
-    switch (billingPeriod) {
-      case 'quarterly':
-        return '/trimestre';
-      case 'annual':
-        return '/ano';
-      default:
-        return '/mês';
-    }
-  };
-
-  const getDiscount = () => {
-    switch (billingPeriod) {
-      case 'quarterly':
-        return '10% OFF';
-      case 'annual':
-        return '20% OFF';
-      default:
-        return null;
-    }
-  };
-
-  const handleSelectPlan = (plan: Plan) => {
-    navigate(`/signup?plan=${plan.id}&period=${billingPeriod}`);
   };
 
   const formatPrice = (price: number) => {
@@ -114,103 +84,60 @@ export function Pricing() {
   };
 
   return (
-    <section id="pricing" className="py-24 relative">
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-neon-violet/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-neon-pink/5 rounded-full blur-3xl"></div>
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="pricing" className="py-24 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-            Planos feitos para <span className="text-gradient">escalar</span>
+          <h2 className="text-4xl lg:text-6xl font-black mb-8">
+            Invista no seu <span className="text-gradient">Crescimento</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            Escolha o plano que melhor se adapta ao momento do seu negócio. Comece hoje e cresça sem limites.
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+            Menos do que o valor de um café por dia para ter sua agenda rodando no automático. Escolha o plano ideal.
           </p>
 
           <div className="flex items-center justify-center gap-4 mb-8">
-            <span className="text-sm text-muted-foreground">Período de cobrança:</span>
-            <Select value={billingPeriod} onValueChange={(value: 'monthly' | 'quarterly' | 'annual') => setBillingPeriod(value)}>
-              <SelectTrigger className="w-48 bg-card/50 border-primary/30">
+            <Select value={billingPeriod} onValueChange={(value: any) => setBillingPeriod(value)}>
+              <SelectTrigger className="w-56 bg-card/50 border-primary/30 h-12 text-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-card border-primary/20">
-                <SelectItem value="monthly">Mensal</SelectItem>
+                <SelectItem value="monthly">Cobrança Mensal</SelectItem>
                 <SelectItem value="quarterly">Trimestral (10% OFF)</SelectItem>
                 <SelectItem value="annual">Anual (20% OFF)</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
-          {getDiscount() && (
-            <div className="inline-block bg-gradient-primary text-white px-4 py-2 rounded-full text-sm font-medium animate-pulse-glow mb-4">
-              🎉 Economize {getDiscount()} pagando {billingPeriod === 'quarterly' ? 'trimestralmente' : 'anualmente'}!
-            </div>
-          )}
         </div>
 
         {loading ? (
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
+          <div className="flex justify-center h-64 items-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
         ) : (
-          <div className="grid lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-4 gap-6">
             {plans.map((plan, index) => {
               const Icon = iconMap[plan.name] || Zap;
               const isPopular = index === 1;
               return (
-                <Card 
-                  key={plan.id} 
-                  className={`relative card-glow transition-all duration-300 ${
-                    isPopular 
-                      ? 'border-primary bg-gradient-to-b from-primary/10 to-transparent scale-105' 
-                      : 'bg-card/50 backdrop-blur-sm border-primary/20'
-                  }`}
-                >
-                  {isPopular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-gradient-primary text-white px-4 py-1 rounded-full text-sm font-medium animate-pulse-glow">
-                        Mais Popular
-                      </div>
-                    </div>
-                  )}
-
-                  <CardHeader className="text-center pb-2">
-                    <div className="w-16 h-16 bg-gradient-primary rounded-xl flex items-center justify-center mx-auto mb-4">
-                      <Icon className="w-8 h-8 text-white" />
-                    </div>
-                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                    <CardDescription>Plano {plan.name}</CardDescription>
-                    <div className="pt-4">
-                      {plan.name === 'Ruby' || getPrice(plan) === 0 ? (
-                        <span className="text-2xl font-bold text-gradient">Sob consulta</span>
-                      ) : (
-                        <>
-                          <span className="text-4xl font-bold text-gradient">{formatPrice(getPrice(plan))}</span>
-                          <span className="text-muted-foreground">{getPeriodLabel()}</span>
-                        </>
+                <Card key={plan.id} className={`relative card-glow border-primary/20 bg-card/40 backdrop-blur-md ${isPopular ? 'border-primary ring-2 ring-primary/20 scale-105 z-10' : ''}`}>
+                  {isPopular && <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-primary text-white px-6 py-1 rounded-full text-xs font-black uppercase tracking-widest">Mais Vendido</div>}
+                  <CardHeader className="text-center">
+                    <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6"><Icon className="w-8 h-8 text-white" /></div>
+                    <CardTitle className="text-2xl font-black">{plan.name}</CardTitle>
+                    <div className="mt-4">
+                      {plan.monthly_price === 0 ? <span className="text-3xl font-black text-gradient">Sob Consulta</span> : (
+                        <><span className="text-5xl font-black text-white">{formatPrice(getPrice(plan))}</span><span className="text-muted-foreground text-sm ml-2">/{billingPeriod === 'monthly' ? 'mês' : billingPeriod === 'quarterly' ? 'tri' : 'ano'}</span></>
                       )}
                     </div>
                   </CardHeader>
-
                   <CardContent>
-                    <ul className="space-y-3 mb-8">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center gap-3">
-                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                          <span className="text-sm">{feature}</span>
+                    <ul className="space-y-4 mb-10">
+                      {plan.features.map((f, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                          <span className="text-sm leading-tight text-muted-foreground">{f}</span>
                         </li>
                       ))}
                     </ul>
-
-                    <Button 
-                      variant={isPopular ? "neon" : "outline"} 
-                      className="w-full"
-                      size="lg"
-                      onClick={() => handleSelectPlan(plan)}
-                    >
-                      {plan.name === 'Ruby' ? "Fale Conosco" : isPopular ? "Começar Agora" : "Escolher Plano"}
+                    <Button variant={isPopular ? "neon" : "outline"} size="lg" className="w-full font-black text-md h-12" onClick={() => navigate(`/signup?plan=${plan.id}`)}>
+                      {plan.monthly_price === 0 ? "Falar com Consultor" : "Começar Agora"}
                     </Button>
                   </CardContent>
                 </Card>
