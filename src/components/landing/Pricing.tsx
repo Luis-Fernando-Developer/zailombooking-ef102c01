@@ -27,9 +27,9 @@ export function Pricing() {
   const fetchPlans = async () => {
     try {
       const dummyPlans = [
-        { id: '1', name: 'Prata', monthly_price: 49, quarterly_price: 132, annual_price: 470, is_active: true, features: ['100 agendamentos', 'Suporte via Chat', 'Dashboard básico'] },
-        { id: '2', name: 'Ouro', monthly_price: 99, quarterly_price: 267, annual_price: 950, is_active: true, features: ['Agendamentos ilimitados', 'Até 5 usuários', 'Relatórios Pro', 'WhatsApp integrado'] },
-        { id: '3', name: 'Diamante', monthly_price: 199, quarterly_price: 537, annual_price: 1910, is_active: true, features: ['Usuários ilimitados', 'Multifiliais', 'Prioridade total', 'Gestor de conta'] }
+        { id: '1', name: 'Prata', monthly_price: 49, quarterly_price: 132, annual_price: 470, is_active: true, features: ['100 agendamentos mensais', 'Suporte prioritário via Chat', 'Dashboard analítico básico', 'Lembretes automáticos'] },
+        { id: '2', name: 'Ouro', monthly_price: 99, quarterly_price: 267, annual_price: 950, is_active: true, features: ['Agendamentos ilimitados', 'Até 5 usuários simultâneos', 'Relatórios Pro avançados', 'Integração direta com WhatsApp', 'Personalização premium'] },
+        { id: '3', name: 'Diamante', monthly_price: 199, quarterly_price: 537, annual_price: 1910, is_active: true, features: ['Usuários e filiais ilimitadas', 'Prioridade total no suporte', 'Gestor de conta exclusivo', 'API de integração total', 'Segurança nível Enterprise'] }
       ];
 
       const { data, error } = await supabase

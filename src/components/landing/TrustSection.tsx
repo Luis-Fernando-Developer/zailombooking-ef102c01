@@ -59,7 +59,7 @@ export function TrustSection() {
             {testimonials.map((t, i) => (
               <div 
                 key={i} 
-                className="premium-card p-10 bg-white/[0.02] border-white/5 backdrop-blur-md group hover:bg-white/[0.04] transition-all duration-500"
+                className="premium-card p-10 bg-white/[0.02] border-white/5 backdrop-blur-md group hover:bg-white/[0.04] transition-all duration-700"
               >
                 <div className="flex gap-1 mb-6">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-primary text-primary" />)}

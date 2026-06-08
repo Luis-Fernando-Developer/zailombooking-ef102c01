@@ -4,7 +4,7 @@ export function Features() {
   const features = [
     {
       title: "Agendamento Inteligente",
-      description: "Nossa IA aprende o ritmo do seu negócio e otimiza sua agenda automaticamente.",
+      description: "Nossa IA aprende o ritmo do seu negócio e otimiza sua agenda automaticamente, garantindo que você nunca perca uma oportunidade.",
       icon: Cpu,
       color: "from-blue-500/20 to-cyan-500/20",
       iconColor: "text-blue-400"

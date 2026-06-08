@@ -19,8 +19,8 @@ export default function LandingPage() {
             <a href="#trust" className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-primary transition-all">Confiança</a>
             <a href="#pricing" className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-primary transition-all">Preços</a>
             <div className="h-4 w-px bg-white/10" />
-            <Button variant="ghost" className="text-sm font-bold text-slate-300 hover:text-white" onClick={() => window.location.href = "/login"}>Login</Button>
-            <button className="bg-white text-black px-6 py-2.5 rounded-full text-sm font-black tracking-tight hover:scale-105 transition-all duration-300" onClick={() => window.location.href = "/signup"}>JOIN THE ELITE</button>
+            <Button variant="ghost" className="text-sm font-bold text-slate-300 hover:text-white" onClick={() => window.location.href = "/login"}>Entrar</Button>
+            <button className="bg-white text-black px-6 py-2.5 rounded-full text-sm font-black tracking-tight hover:scale-105 transition-all duration-300" onClick={() => window.location.href = "/signup"}>QUERO O MELHOR</button>
           </div>
         </div>
       </nav>
