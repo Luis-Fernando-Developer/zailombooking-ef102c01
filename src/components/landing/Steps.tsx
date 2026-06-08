@@ -41,12 +41,13 @@ export function Steps() {
       stepsRef.current.forEach((step, index) => {
         if (!step) return;
 
+        // Animate the step content
         tl.fromTo(
           step,
           {
-            x: -150,
+            x: -50,
             opacity: 0,
-            scale: 0.8,
+            scale: 0.9,
           },
           {
             x: 0,
@@ -54,8 +55,19 @@ export function Steps() {
             scale: 1,
             duration: 1,
             ease: "power2.out",
-          },
+          }
         );
+
+        // Animate the connecting line if it exists
+        const line = step.querySelector(".step-line");
+        if (line) {
+          tl.fromTo(
+            line,
+            { scaleX: 0, transformOrigin: "left center" },
+            { scaleX: 1, duration: 0.5, ease: "none" },
+            ">-=0.2" // Start slightly before step finishes
+          );
+        }
       });
     }, containerRef);
 
@@ -86,7 +98,7 @@ export function Steps() {
               }`}
             >
               {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-12 left-[calc(100%-1.5rem)] w-[calc(100%-3rem)] h-[2px] bg-primary/30 z-0" />
+                <div className="hidden md:block absolute top-12 left-[calc(100%-1rem)] w-[calc(100%-4rem)] h-[2px] bg-primary/30 z-0 step-line" />
               )}
               <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mb-10 relative z-10 card-glow group-hover:scale-110 transition-transform duration-300">
                 <step.icon className="w-10 h-10 text-white" />
