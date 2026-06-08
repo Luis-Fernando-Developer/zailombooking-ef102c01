@@ -41,9 +41,9 @@
 
     /* Custom Gradients as requested */
     /* G1: #920027 (0%) -> #460863 (28%) -> #1E0828 (91%) -> #000000 (100%) */
-    --gradient-primary: linear-gradient(135deg, #920027 0%, #460863 45%, #1E0828 100%);
+    --gradient-primary: linear-gradient(135deg, #920027 0%, #460863 28%, #1E0828 91%, #000000 100%);
     --gradient-secondary: linear-gradient(180deg, #1E0828 0%, #000000 100%);
-    --gradient-hero: radial-gradient(circle at top right, #460863 0%, #1E0828 40%, #000000 100%);
+    --gradient-hero: linear-gradient(180deg, #1E0828 0%, #460863 50%, #000000 100%);
 
     /* Neon / Glow Colors */
     --neon-violet: 282 78% 35%;
