@@ -1,4 +1,5 @@
-import { Play, CheckCircle2, Star } from "lucide-react";
+import { Play, CheckCircle2, Star, ShieldCheck, Zap, Sparkles } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 export function Methodology() {
   const steps = [
@@ -35,7 +36,7 @@ export function Methodology() {
 
         <div className="grid md:grid-cols-3 gap-12">
           {steps.map((step, i) => (
-            <div key={i} className="relative group">
+            <div key={i} className="relative group parallax-step">
               <div className="text-[8rem] font-black text-white/5 absolute -top-20 -left-4 pointer-events-none group-hover:text-primary/10 transition-colors duration-500">
                 {step.number}
               </div>

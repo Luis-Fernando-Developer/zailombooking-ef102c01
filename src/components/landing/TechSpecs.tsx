@@ -29,8 +29,27 @@ export function TechSpecs() {
     }
   ];
 
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!sectionRef.current) return;
+      const scrolled = window.scrollY;
+      const offset = sectionRef.current.offsetTop;
+      const distance = scrolled - offset;
+      
+      const element = sectionRef.current.querySelector('.parallax-specs');
+      if (element) {
+        (element as any).style.transform = `translateY(${distance * 0.05}px)`;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <section className="py-40 bg-[#0B0D12] relative overflow-hidden">
+    <section ref={sectionRef} className="py-48 bg-[#0B0D12] relative overflow-hidden">
       {/* Decorative Lines */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent" />
