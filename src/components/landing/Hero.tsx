@@ -28,23 +28,23 @@ export function Hero({ customization }: HeroProps) {
               <BookingLogo />
             </div>
             
-            <h1 className="text-5xl lg:text-7xl font-bold mb-6 tracking-tight leading-tight">
-              <span className="text-gradient block mb-2">Chega de perder</span>
-              <span className="text-foreground">clientes por falta de agenda.</span>
+            <h1 className="text-5xl lg:text-8xl font-black mb-6 tracking-tighter leading-[0.9]">
+              <span className="text-gradient block mb-2">Sua agenda</span>
+              <span className="text-foreground">nunca mais ficará vazia.</span>
             </h1>
             
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl leading-relaxed">
-              O Zylo Booking não é apenas um sistema de agendamento. É o motor de crescimento do seu negócio. 
-              Recupere seu tempo, automatize suas vendas e ofereça uma experiência que seus clientes vão amar.
+            <p className="text-xl lg:text-2xl text-muted-foreground mb-10 max-w-2xl leading-relaxed">
+              O Zylo Booking é o sistema de elite para quem não aceita perder tempo com burocracia. 
+              Automatize seus agendamentos, reduza faltas e foque no que realmente importa: <strong>lucrar.</strong>
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
-              <Button variant="hero" className="group" onClick={handleStartClick}>
-                Começar Agora
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start mb-12">
+              <Button size="xl" variant="hero" className="group shadow-2xl shadow-primary/20" onClick={handleStartClick}>
+                Escalar meu Negócio
+                <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button variant="glass" size="lg" onClick={() => window.location.href = "/demo"}>
-                Ver Demonstração
+              <Button size="xl" variant="glass" onClick={() => window.location.href = "/demo"}>
+                Tour do Sistema
               </Button>
             </div>
 

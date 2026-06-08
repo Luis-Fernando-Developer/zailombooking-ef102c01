@@ -50,12 +50,13 @@ export function Features() {
       <div className="absolute inset-0 bg-gradient-secondary"></div>
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-            <span className="text-gradient">Construído para Profissionais de Elite</span>
+        <div className="text-center mb-20">
+          <h2 className="text-4xl lg:text-6xl font-black mb-6">
+            Recursos que <span className="text-gradient">dominam o mercado</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Não somos um template genérico. Somos a solução definitiva para quem cansou de gerenciar agendas manualmente.
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            Eliminamos cada fricção no caminho do seu cliente. Do primeiro clique ao pagamento confirmado, 
+            tudo é desenhado para converter.
           </p>
         </div>
 
