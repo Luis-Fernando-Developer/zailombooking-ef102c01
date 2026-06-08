@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Zap, Crown, Rocket, Gem } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check, Zap, Crown, Rocket, Gem, Star } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Plan {
@@ -26,7 +25,7 @@ const iconMap: Record<string, any> = {
 export function Pricing() {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,12 +34,10 @@ export function Pricing() {
 
   const fetchPlans = async () => {
     try {
-      // Dummy data as fallback
       const dummyPlans = [
-        { id: '1', name: 'Prata', monthly_price: 49, quarterly_price: 132, annual_price: 470, is_active: true, features: ['100 agendamentos', 'Suporte básico', 'Relatórios simples'] },
-        { id: '2', name: 'Ouro', monthly_price: 99, quarterly_price: 267, annual_price: 950, is_active: true, features: ['Agendamentos ilimitados', 'Suporte prioratário', 'Relatórios avançados', 'Multiusuário'] },
-        { id: '3', name: 'Diamante', monthly_price: 199, quarterly_price: 537, annual_price: 1910, is_active: true, features: ['Tudo do Ouro', 'Customização total', 'API de integração', 'Account manager'] },
-        { id: '4', name: 'Ruby', monthly_price: 0, quarterly_price: 0, annual_price: 0, is_active: true, features: ['Sob medida', 'SLA garantido', 'Instalação on-premise'] },
+        { id: '1', name: 'Prata', monthly_price: 49, quarterly_price: 132, annual_price: 470, is_active: true, features: ['100 agendamentos', 'Suporte via Chat', 'Dashboard básico'] },
+        { id: '2', name: 'Ouro', monthly_price: 99, quarterly_price: 267, annual_price: 950, is_active: true, features: ['Agendamentos ilimitados', 'Até 5 usuários', 'Relatórios Pro', 'WhatsApp integrado'] },
+        { id: '3', name: 'Diamante', monthly_price: 199, quarterly_price: 537, annual_price: 1910, is_active: true, features: ['Usuários ilimitados', 'Multifiliais', 'Prioridade total', 'Gestor de conta'] }
       ];
 
       const { data, error } = await supabase
@@ -68,156 +65,95 @@ export function Pricing() {
   };
 
   const getPrice = (plan: Plan) => {
-    switch (billingPeriod) {
-      case 'quarterly':
-        return plan.quarterly_price;
-      case 'annual':
-        return plan.annual_price;
-      default:
-        return plan.monthly_price;
-    }
-  };
-
-  const getPeriodLabel = () => {
-    switch (billingPeriod) {
-      case 'quarterly':
-        return '/trimestre';
-      case 'annual':
-        return '/ano';
-      default:
-        return '/mês';
-    }
-  };
-
-  const getDiscount = () => {
-    switch (billingPeriod) {
-      case 'quarterly':
-        return '10% OFF';
-      case 'annual':
-        return '20% OFF';
-      default:
-        return null;
-    }
-  };
-
-  const handleSelectPlan = (plan: Plan) => {
-    navigate(`/signup?plan=${plan.id}&period=${billingPeriod}`);
+    return billingPeriod === 'annual' ? plan.annual_price / 12 : plan.monthly_price;
   };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      currency: 'BRL'
     }).format(price);
   };
 
   return (
-    <section id="pricing" className="py-24 relative">
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-neon-violet/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-neon-pink/5 rounded-full blur-3xl"></div>
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-            <span className="text-gradient">Planos Flexíveis</span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Escolha o plano ideal para o seu negócio. Sem taxa de setup, sem fidelidade, cancele quando quiser.
-          </p>
-
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <span className="text-sm text-muted-foreground">Período de cobrança:</span>
-            <Select value={billingPeriod} onValueChange={(value: 'monthly' | 'quarterly' | 'annual') => setBillingPeriod(value)}>
-              <SelectTrigger className="w-48 bg-card/50 border-primary/30">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-primary/20">
-                <SelectItem value="monthly">Mensal</SelectItem>
-                <SelectItem value="quarterly">Trimestral (10% OFF)</SelectItem>
-                <SelectItem value="annual">Anual (20% OFF)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {getDiscount() && (
-            <div className="inline-block bg-gradient-primary text-white px-4 py-2 rounded-full text-sm font-medium animate-pulse-glow mb-4">
-              🎉 Economize {getDiscount()} pagando {billingPeriod === 'quarterly' ? 'trimestralmente' : 'anualmente'}!
+    <section id="pricing" className="py-32 bg-slate-50 dark:bg-slate-900/50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center space-y-4 mb-16">
+          <h2 className="text-sm font-black uppercase tracking-widest text-primary">Preços Justos</h2>
+          <h3 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white">Invista no seu <span className="italic underline decoration-primary">crescimento.</span></h3>
+          
+          <div className="flex items-center justify-center pt-8">
+            <div className="flex p-1 bg-slate-200 dark:bg-slate-800 rounded-2xl gap-1">
+              <button 
+                onClick={() => setBillingPeriod('monthly')}
+                className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${billingPeriod === 'monthly' ? 'bg-white dark:bg-slate-700 shadow-md text-slate-900 dark:text-white' : 'text-slate-500'}`}
+              >
+                Mensal
+              </button>
+              <button 
+                onClick={() => setBillingPeriod('annual')}
+                className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${billingPeriod === 'annual' ? 'bg-white dark:bg-slate-700 shadow-md text-slate-900 dark:text-white' : 'text-slate-500'}`}
+              >
+                Anual
+                <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter">-20%</span>
+              </button>
             </div>
-          )}
+          </div>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <div className="grid lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-            {plans.map((plan, index) => {
-              const Icon = iconMap[plan.name] || Zap;
-              const isPopular = index === 1;
-              return (
-                <Card 
-                  key={plan.id} 
-                  className={`relative card-glow transition-all duration-300 ${
-                    isPopular 
-                      ? 'border-primary bg-gradient-to-b from-primary/10 to-transparent scale-105' 
-                      : 'bg-card/50 backdrop-blur-sm border-primary/20'
-                  }`}
-                >
-                  {isPopular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-gradient-primary text-white px-4 py-1 rounded-full text-sm font-medium animate-pulse-glow">
-                        Mais Popular
+        <div className="grid lg:grid-cols-3 gap-10 max-w-6xl mx-auto">
+          {plans.map((plan, index) => {
+            const isPopular = index === 1;
+            return (
+              <div 
+                key={plan.id} 
+                className={`relative p-10 rounded-[2.5rem] flex flex-col transition-all duration-500 ${
+                  isPopular 
+                    ? 'bg-slate-900 text-white scale-105 shadow-2xl z-10' 
+                    : 'glass-effect text-slate-900 dark:text-white hover:scale-105'
+                }`}
+              >
+                {isPopular && (
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                    <Star className="w-3 h-3 fill-white" />
+                    Mais Escolhido
+                  </div>
+                )}
+
+                <div className="mb-8">
+                  <h4 className="text-xl font-bold mb-4 opacity-70 uppercase tracking-tighter">{plan.name}</h4>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-5xl font-black">{formatPrice(getPrice(plan))}</span>
+                    <span className="opacity-60 text-sm">/mês</span>
+                  </div>
+                </div>
+
+                <ul className="space-y-4 mb-10 flex-grow">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isPopular ? 'bg-primary' : 'bg-primary/20'}`}>
+                        <Check className={`w-3 h-3 ${isPopular ? 'text-white' : 'text-primary'}`} />
                       </div>
-                    </div>
-                  )}
+                      <span className="text-sm font-medium opacity-90">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
 
-                  <CardHeader className="text-center pb-2">
-                    <div className="w-16 h-16 bg-gradient-primary rounded-xl flex items-center justify-center mx-auto mb-4">
-                      <Icon className="w-8 h-8 text-white" />
-                    </div>
-                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                    <CardDescription>Plano {plan.name}</CardDescription>
-                    <div className="pt-4">
-                      {plan.name === 'Ruby' || getPrice(plan) === 0 ? (
-                        <span className="text-2xl font-bold text-gradient">Sob consulta</span>
-                      ) : (
-                        <>
-                          <span className="text-4xl font-bold text-gradient">{formatPrice(getPrice(plan))}</span>
-                          <span className="text-muted-foreground">{getPeriodLabel()}</span>
-                        </>
-                      )}
-                    </div>
-                  </CardHeader>
-
-                  <CardContent>
-                    <ul className="space-y-3 mb-8">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center gap-3">
-                          <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                          <span className="text-sm">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Button 
-                      variant={isPopular ? "neon" : "outline"} 
-                      className="w-full"
-                      size="lg"
-                      onClick={() => handleSelectPlan(plan)}
-                    >
-                      {plan.name === 'Ruby' ? "Fale Conosco" : isPopular ? "Começar Agora" : "Escolher Plano"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                <Button 
+                  size="lg"
+                  className={`h-14 rounded-2xl font-black text-md transition-all ${
+                    isPopular 
+                      ? 'btn-primary-gradient border-none' 
+                      : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90'
+                  }`}
+                  onClick={() => navigate(`/signup?plan=${plan.id}`)}
+                >
+                  Começar Agora
+                </Button>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
