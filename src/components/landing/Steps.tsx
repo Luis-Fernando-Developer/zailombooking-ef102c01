@@ -98,11 +98,11 @@ export function Steps() {
               }`}
             >
               {index < steps.length - 1 && (
-                <div 
-                  className="hidden md:block absolute top-12 h-[2px] bg-primary/30 z-0 step-line" 
+                <div
+                  className="hidden md:block absolute top-12 h-[2px] bg-primary/30 z-0 step-line"
                   style={{
-                    left: index === 0 ? "6rem" : "calc(50% + 3rem)",
-                    right: index === 0 ? "calc(-50% + 3rem)" : "-3rem"
+                    left: index === 0 ? "6rem" : "calc(100% + 3rem)",
+                    right: index === 0 ? "calc(50% + 3rem)" : "-3rem",
                   }}
                 />
               )}
