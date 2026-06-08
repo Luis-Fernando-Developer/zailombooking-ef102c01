@@ -1,50 +1,67 @@
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Zap } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Zap, Globe, Shield, Star, Award, Compass, ChevronRight } from "lucide-react";
+
 
 export function CTASection() {
   return (
-    <section className="py-40 relative overflow-hidden bg-[#0B0D12]">
-      {/* Cinematic Glows */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 blur-[150px] rounded-full opacity-50" />
+    <section className="section-padding relative overflow-hidden bg-[#0B0D12]">
+      {/* Atmospheric Background */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-primary/5 blur-[180px] rounded-full" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(91,140,255,0.15),transparent_50%)]" />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="glass-morphism rounded-[4rem] p-16 md:p-28 text-center border-white/5 relative overflow-hidden">
-          {/* Decorative Elements */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+      <div className="max-w-6xl mx-auto relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1 }}
+          className="relative premium-glass p-16 md:p-32 rounded-[4rem] text-center border-white/5 overflow-hidden group"
+        >
+          {/* Animated Gradient Border Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
           
-          <div className="space-y-8 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">
-              <Zap className="w-3 h-3 fill-primary" /> Ready to scale?
-            </div>
+          <div className="relative z-10 max-w-4xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.4em] mb-12"
+            >
+              <Compass className="w-4 h-4 text-primary animate-spin-slow" />
+              Chart Your New Course
+            </motion.div>
             
-            <h2 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[1] mb-8">
-              O FUTURO NÃO <br />
-              <span className="italic text-glow">ESPERA POR NINGUÉM.</span>
+            <h2 className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-[0.85] mb-12">
+              THE FUTURE IS <br />
+              <span className="text-highlight">OBSOLETE WITHOUT YOU.</span>
             </h2>
             
-            <p className="text-xl text-slate-400 font-bold leading-relaxed mb-12">
-              Junte-se à elite das empresas que transformaram o agendamento em uma experiência cinematográfica e tecnológica.
+            <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed mb-16 max-w-2xl mx-auto">
+              The window for digital dominance is narrowing. Secure your position among the elite today.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <button 
-                className="btn-cinematic"
-                onClick={() => window.location.href = "/signup"}
-              >
-                COMEÇAR AGORA
-                <ArrowRight className="inline-block ml-2 h-5 w-5" />
+            <div className="flex flex-col sm:flex-row gap-8 justify-center items-center">
+              <button className="btn-premium w-full sm:w-auto">
+                Begin Transformation
+                <ArrowRight className="inline-block ml-3 w-5 h-5" />
               </button>
-              <Button 
-                variant="outline" 
-                className="h-16 px-12 rounded-full border-white/10 bg-white/5 text-white font-black uppercase tracking-widest text-xs hover:bg-white/10 transition-all duration-300"
-              >
-                Falar com consultor
-              </Button>
+              <button className="text-white text-xs font-black uppercase tracking-[0.3em] hover:text-primary transition-colors flex items-center gap-3">
+                Request Private Demo
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
-        </div>
+
+          {/* Decorative Corner Icons */}
+          <div className="absolute top-12 left-12 opacity-10 group-hover:opacity-30 transition-opacity">
+            <Award className="w-12 h-12 text-white" />
+          </div>
+          <div className="absolute bottom-12 right-12 opacity-10 group-hover:opacity-30 transition-opacity">
+            <Star className="w-12 h-12 text-white" />
+          </div>
+        </motion.div>
       </div>
     </section>
   );

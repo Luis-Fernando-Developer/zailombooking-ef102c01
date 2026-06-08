@@ -4,87 +4,36 @@
 
 @layer base {
   :root {
-    /* Deep Slate / Dark Theme as Default */
-    --background: 222 25% 6%;    /* #0B0D12 approx */
+    --background: 222 25% 4%;
     --foreground: 210 40% 98%;
-
-    --card: 222 25% 10%;         /* #131722 approx */
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 25% 6%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 222 100% 68%;    /* #5B8CFF */
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 222 25% 12%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 222 25% 12%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 202 100% 74%;     /* #7CC9FF */
-    --accent-foreground: 222 47.4% 11.2%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
+    --primary: 220 95% 65%;
+    --accent: 195 100% 70%;
+    --card: 222 25% 8%;
     --border: 222 25% 15%;
-    --input: 222 25% 15%;
-    --ring: 222 100% 68%;
-
-    --radius: 1rem;
   }
 
-  .dark {
-    /* Keeping it same for dark mode as base is already dark */
-    --background: 222 25% 6%;
-    --foreground: 210 40% 98%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/30;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    background-color: #0B0D12;
+    @apply bg-[hsl(var(--background))] text-foreground antialiased selection:bg-primary/30 selection:text-white;
+    background: radial-gradient(circle at 50% -20%, #1a2233 0%, #0B0D12 70%);
+    font-family: 'Inter', sans-serif;
   }
 }
 
 @layer components {
-  .cinematic-bg {
-    background: radial-gradient(circle at 50% -20%, rgba(91, 140, 255, 0.15) 0%, transparent 80%),
-                radial-gradient(circle at 0% 100%, rgba(124, 201, 255, 0.05) 0%, transparent 50%);
+  .premium-glass {
+    @apply bg-[#131722]/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)];
   }
 
-  .text-glow {
-    text-shadow: 0 0 20px rgba(91, 140, 255, 0.3);
+  .text-highlight {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent italic;
   }
 
-  .glass-morphism {
-    @apply bg-[#131722]/60 backdrop-blur-2xl border border-white/5 shadow-2xl;
-  }
-  
-  .premium-card {
-    @apply relative overflow-hidden rounded-2xl bg-[#131722] border border-white/5 transition-all duration-500 hover:border-primary/50;
+  .btn-premium {
+    @apply relative overflow-hidden bg-primary text-white px-10 py-5 rounded-full font-black uppercase tracking-[0.2em] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(91,140,255,0.3)];
   }
 
-  .btn-cinematic {
-    @apply relative overflow-hidden bg-primary text-white px-8 py-4 rounded-full font-bold tracking-wide 
-           transition-all duration-500 hover:scale-105 hover:shadow-[0_0_30px_rgba(91,140,255,0.4)]
-           active:scale-95;
-  }
-
-  .floating {
-    animation: floating 6s ease-in-out infinite;
-  }
-
-  @keyframes floating {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-    100% { transform: translateY(0px); }
+  .section-padding {
+    @apply py-32 md:py-48 px-6;
   }
 }
+
