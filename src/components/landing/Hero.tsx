@@ -12,25 +12,26 @@ export function Hero({ customization }: HeroProps) {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-hero"></div>
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+      <div className="absolute inset-0 bg-[#000000]"></div>
+      <div className="absolute inset-0 bg-gradient-hero opacity-60"></div>
       
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-neon-violet/10 rounded-full blur-3xl animate-pulse-glow"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-neon-pink/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-neon-cyan/10 rounded-full blur-3xl animate-pulse-glow" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-[#920027]/10 rounded-full blur-3xl animate-pulse-glow"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#460863]/20 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-[#1E0828]/30 rounded-full blur-3xl animate-pulse-glow"></div>
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left">
-            <div className="mb-8 flex justify-center lg:justify-start">
-              <BookingLogo />
+            <div className="mb-10 flex justify-center lg:justify-start pt-6">
+              <BookingLogo className="scale-110" />
             </div>
             
-            <h1 className="text-5xl lg:text-7xl font-bold mb-6">
-              <span className="text-neon block mb-2">Agendamentos</span>
-              <span className="text-foreground">Inteligentes</span>
+            <h1 className="text-5xl lg:text-7xl font-bold mb-6 tracking-tight">
+              <span className="text-white block mb-2 drop-shadow-sm">Agendamentos</span>
+              <span className="text-gradient">Inteligentes</span>
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl">
