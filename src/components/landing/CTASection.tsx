@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Zap, Globe, Shield, Star, Award, Compass } from "lucide-react";
+import { ArrowRight, Zap, Globe, Shield, Star, Award, Compass, ChevronRight } from "lucide-react";
+
 
 export function CTASection() {
   return (

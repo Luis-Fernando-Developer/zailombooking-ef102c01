@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Play, Zap, Shield, ChevronRight, Globe, Layers, Command } from "lucide-react";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { ArrowRight, Play, Zap, Shield, Globe, Layers, Command } from "lucide-react";
+import { motion, useScroll, useTransform } from "framer-motion";
+
 
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
