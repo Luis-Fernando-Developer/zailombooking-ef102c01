@@ -82,7 +82,7 @@ export function Features() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-40 bg-[#0B0D12] relative overflow-hidden">
+    <section ref={sectionRef} className="py-40 bg-[#0B0D12] relative overflow-visible z-20">
       {/* Background Decor */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none opacity-20">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 blur-[150px] rounded-full" />
@@ -91,10 +91,10 @@ export function Features() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-32 space-y-6">
-          <h2 className="text-sm font-black uppercase tracking-[0.5em] text-primary drop-shadow-[0_0_10px_rgba(91,140,255,0.5)]">Poder Tecnológico</h2>
-          <h3 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-[0.8]">Arsenal de <br /><span className="italic text-glow bg-gradient-to-r from-primary via-accent to-white bg-clip-text text-transparent">Guerra Digital.</span></h3>
+          <h2 className="text-sm font-black uppercase tracking-[0.5em] text-primary drop-shadow-[0_0_10px_rgba(91,140,255,0.5)]">Funcionalidades de Elite</h2>
+          <h3 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-[0.9]">Tudo o que você precisa <br /><span className="italic text-glow bg-gradient-to-r from-primary via-accent to-white bg-clip-text text-transparent">para crescer.</span></h3>
           <p className="text-slate-400 max-w-3xl mx-auto text-xl font-medium leading-tight">
-            Não entregamos apenas "funcionalidades". Entregamos uma vantagem competitiva desleal que coloca você anos-luz à frente da concorrência.
+            Nossa plataforma foi construída ouvindo as necessidades reais de quem gerencia agendamentos todos os dias.
           </p>
         </div>
 

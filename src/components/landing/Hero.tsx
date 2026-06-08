@@ -24,7 +24,7 @@ export function Hero() {
   }, []);
 
   return (
-    <section ref={containerRef} className="relative min-h-[110vh] flex items-center justify-center overflow-hidden pt-32 pb-20 cinematic-bg">
+    <section ref={containerRef} className="relative min-h-[110vh] flex items-center justify-center overflow-visible pt-32 pb-20 cinematic-bg">
       {/* Dynamic Background Particles/Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
         <div className="absolute top-[10%] left-[10%] w-[500px] h-[500px] bg-primary/20 blur-[120px] rounded-full animate-pulse" />
@@ -50,14 +50,14 @@ export function Hero() {
           </div>
 
           <div className="space-y-6 max-w-5xl mb-12">
-            <h1 className="text-7xl md:text-9xl lg:text-[10rem] font-black tracking-tighter leading-[0.8] animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-100">
-              <span className="text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] block">AGENDA</span>
-              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent italic px-4 block">IMPLACÁVEL</span>
-              <span className="text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] block">RESULTADO.</span>
+            <h1 className="text-6xl md:text-8xl lg:text-[9rem] font-black tracking-tighter leading-[0.8] animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-100">
+              <span className="text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] block">SISTEMA DE</span>
+              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent italic px-4 block">AGENDAMENTO</span>
+              <span className="text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] block">PROFISSIONAL.</span>
             </h1>
             
-            <p className="text-xl md:text-3xl text-slate-400 max-w-4xl mx-auto leading-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 font-medium tracking-tight">
-              Pare de perder clientes para sistemas lentos e genéricos. Domine o mercado com a IA que <span className="text-white font-bold">prende a atenção</span> e converte cliques em lucro real, em milissegundos.
+            <p className="text-xl md:text-2xl text-slate-400 max-w-4xl mx-auto leading-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 font-medium tracking-tight">
+              Aumente sua conversão com o sistema de agendamento mais rápido e elegante do mercado. <span className="text-white font-bold">Gerencie seus clientes, automatize lembretes</span> e escale seu negócio com tecnologia de elite.
             </p>
           </div>
 

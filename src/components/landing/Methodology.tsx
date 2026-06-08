@@ -41,16 +41,16 @@ export function Methodology() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-48 bg-[#0B0D12] relative overflow-hidden">
+    <section ref={sectionRef} className="py-48 bg-[#0B0D12] relative overflow-visible z-30">
       {/* Background radial glow */}
       <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-primary/10 to-transparent pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-24">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Nossa Metodologia</span>
-          <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter mt-4">
-            O CAMINHO PARA O <br />
-            <span className="italic text-glow">DOMÍNIO DO MERCADO.</span>
+          <h2 className="text-5xl md:text-6xl font-black text-white tracking-tighter mt-4 leading-tight">
+            DO AGENDAMENTO AO <br />
+            <span className="italic text-glow">SUCESSO DO CLIENTE.</span>
           </h2>
         </div>
 

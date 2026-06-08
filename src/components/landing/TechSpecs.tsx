@@ -49,7 +49,7 @@ export function TechSpecs() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-48 bg-[#0B0D12] relative overflow-hidden">
+    <section ref={sectionRef} className="py-48 bg-[#0B0D12] relative overflow-visible z-40">
       {/* Decorative Lines */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent" />

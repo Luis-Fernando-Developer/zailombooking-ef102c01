@@ -3,7 +3,7 @@ import { ArrowRight, Zap } from "lucide-react";
 
 export function CTASection() {
   return (
-    <section className="py-40 relative overflow-hidden bg-[#0B0D12]">
+    <section className="py-40 relative overflow-visible bg-[#0B0D12] z-50">
       {/* Cinematic Glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 blur-[150px] rounded-full opacity-50" />
