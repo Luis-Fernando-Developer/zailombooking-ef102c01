@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/lib/supabaseClient";
 import { syncBuilderPlan } from "@/lib/syncBuilderPlan";
+import { useToast } from "@/hooks/use-toast";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { SuperAdminSidebar } from "@/components/admin/SuperAdminSidebar";
 
