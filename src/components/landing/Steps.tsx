@@ -94,7 +94,7 @@ export function Steps() {
                   
                   {/* Linha de conexão */}
                   {index < steps.length - 1 && (
-                    <div className="hidden md:block absolute top-12 left-24 w-[calc(100vw/3-96px)] h-[2px] bg-primary/30 z-0 overflow-hidden">
+                    <div className="hidden md:block absolute top-12 left-24 w-[calc(100%*1.5-96px)] lg:w-[calc(100%*1.5-96px)] h-[2px] bg-primary/30 z-0 overflow-hidden">
                       <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
                     </div>
                   )}
