@@ -13,16 +13,20 @@ export function Hero() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="mb-12">
+          <div className="mb-8 flex justify-center lg:justify-start">
+            <BookingLogo />
+          </div>
+          <h1 className="text-5xl lg:text-7xl font-black mb-0 tracking-tighter leading-[1.05] text-center lg:text-left">
+            <span className="text-white block">Recupere seu tempo e coloque sua</span>
+          </h1>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
           <div className="text-center lg:text-left">
-            <div className="mb-8 flex justify-center lg:justify-start">
-              <BookingLogo />
-            </div>
-            
-            <h1 className="text-5xl lg:text-7xl font-black mb-6 tracking-tighter leading-[1.05]">
-              <span className="text-white block mb-2">Recupere seu tempo e coloque sua</span>
+            <h2 className="text-5xl lg:text-7xl font-black mb-6 tracking-tighter leading-[1.05]">
               <span className="text-gradient">agenda no piloto automático 24/7.</span>
-            </h1>
+            </h2>
             <p className="text-xl text-muted-foreground mb-10 max-w-xl leading-relaxed">
               O Zailom Booking automatiza sua agenda 24h por dia. Seus clientes marcam horários em segundos através de um link exclusivo da sua marca, enquanto você foca no que realmente importa.
             </p>
@@ -47,7 +51,7 @@ export function Hero() {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative lg:mt-2">
             <div className="relative z-10 rounded-2xl shadow-2xl border border-primary/20 overflow-hidden bg-card/50">
               <div className="absolute inset-0 bg-gradient-primary opacity-20"></div>
               <img 
