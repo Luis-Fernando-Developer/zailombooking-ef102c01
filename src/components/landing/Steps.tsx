@@ -38,33 +38,21 @@ export function Steps() {
         },
       });
 
-      stepsRef.current.forEach((step, index) => {
-        if (!step) return;
+      // Animate lines first
+      const lines = containerRef.current?.querySelectorAll(".step-line");
+      lines?.forEach((line) => {
+        tl.to(line, { scaleX: 1, duration: 1, ease: "none" });
+      });
 
-        // Animate the step content
+      // Animate the step content
+      stepsRef.current.forEach((step) => {
+        if (!step) return;
         tl.fromTo(
           step,
-          {
-            y: 30,
-            opacity: 0,
-          },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.8,
-            ease: "power2.out",
-          }
+          { y: 30, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5 },
+          "<" // Start at the same time as previous animation
         );
-
-        // Animate the connecting lines
-        const lines = step.querySelectorAll(".step-line, .step-line-prev");
-        lines.forEach((line) => {
-          tl.to(
-            line,
-            { scaleX: 1, duration: 0.5, ease: "none" },
-            "-=0.4"
-          );
-        });
       });
     }, containerRef);
 
