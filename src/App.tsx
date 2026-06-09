@@ -9,6 +9,9 @@ import { RequireSuperAdmin } from "@/components/admin/RequireSuperAdmin";
 import LandingPage from "./pages/LandingPage";
 import AdminLogin from "./pages/admin/Login";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
+import SuperAdminInstances from "./pages/super-admin/Instances";
+import SuperAdminPlans from "./pages/super-admin/Plans";
+import SuperAdminSettings from "./pages/super-admin/Settings";
 import CreateCompany from "./pages/admin/CreateCompany";
 import SignUp from "./pages/SignUp";
 import SignupPending from "./pages/SignupPending";
@@ -49,6 +52,10 @@ const App = () => (
             <Route path="/:slug/admin/login" element={<BusinessLogin />} />
             <Route path="/super-admin/login" element={<AdminLogin />} />
             <Route path="/super-admin/painel" element={<RequireSuperAdmin><SuperAdminDashboard /></RequireSuperAdmin>} />
+            <Route path="/super-admin/empresas" element={<RequireSuperAdmin><SuperAdminDashboard /></RequireSuperAdmin>} />
+            <Route path="/super-admin/instancias" element={<RequireSuperAdmin><SuperAdminInstances /></RequireSuperAdmin>} />
+            <Route path="/super-admin/planos" element={<RequireSuperAdmin><SuperAdminPlans /></RequireSuperAdmin>} />
+            <Route path="/super-admin/configuracoes" element={<RequireSuperAdmin><SuperAdminSettings /></RequireSuperAdmin>} />
             <Route path="/super-admin/add-company" element={<RequireSuperAdmin><CreateCompany /></RequireSuperAdmin>} />
             <Route path="/:slug/admin/dashboard" element={<RequireBusinessAuth><BusinessDashboard /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/agendamentos" element={<RequireBusinessAuth><BusinessBookings /></RequireBusinessAuth>} />
