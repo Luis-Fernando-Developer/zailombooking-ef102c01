@@ -72,6 +72,26 @@ export function Steps() {
         </div>
 
         <div className="relative">
+          {/* Linhas de conexão dinâmicas baseadas nos ícones */}
+          <div className="hidden md:block absolute top-12 left-0 w-full h-[2px] z-0 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto flex justify-between items-center h-full">
+              {/* Linha 1: Entre ícone 1 e 2 */}
+              <div className="flex-1 px-12 relative overflow-hidden h-full">
+                <div className="bg-primary/30 w-full h-full relative overflow-hidden">
+                  <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
+                </div>
+              </div>
+              {/* Espaço para o ícone central (compensando o justify-between) */}
+              <div className="w-24 flex-shrink-0" />
+              {/* Linha 2: Entre ícone 2 e 3 */}
+              <div className="flex-1 px-12 relative overflow-hidden h-full">
+                <div className="bg-primary/30 w-full h-full relative overflow-hidden">
+                  <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-col md:flex-row justify-between items-start gap-12 md:gap-0 relative">
             {steps.map((step, index) => (
               <div
@@ -87,17 +107,8 @@ export function Steps() {
                       : "items-end text-right"
                 }`}
               >
-                <div className="relative">
-                  <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mb-10 card-glow group-hover:scale-110 transition-transform duration-300 flex-shrink-0 relative z-20">
-                    <step.icon className="w-10 h-10 text-white" />
-                  </div>
-                  
-                  {/* Linha de conexão */}
-                  {index < steps.length - 1 && (
-                    <div className="hidden md:block absolute top-12 left-24 w-[calc(100%*1.5-96px)] lg:w-[calc(100%*1.5-96px)] h-[2px] bg-primary/30 z-0 overflow-hidden">
-                      <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
-                    </div>
-                  )}
+                <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mb-10 card-glow group-hover:scale-110 transition-transform duration-300 flex-shrink-0 relative z-20">
+                  <step.icon className="w-10 h-10 text-white" />
                 </div>
 
                 <div className="max-w-[290px]">
