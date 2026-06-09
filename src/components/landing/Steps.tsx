@@ -99,9 +99,9 @@ export function Steps() {
             >
               {index < steps.length - 1 && (
                 <div
-                  className="hidden md:block absolute top-12 h-[10px] w-full bg-primary/30 z-0 step-line border border-red-600 p-2"
+                  className="hidden md:block absolute top-12 h-[10px] w-full bg-primary/30 z-0 step-line border p-2"
                   style={{
-                    left: index === 0 ? "6rem" : "calc(80%) border border-white",
+                    left: index === 0 ? "6rem border border-white" : "calc(80%) border border-white",
                     right: index === 1 ? "calc(-120%)" : " ",
                   }}
                 />
