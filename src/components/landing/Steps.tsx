@@ -51,7 +51,7 @@ export function Steps() {
           step,
           { y: 30, opacity: 0 },
           { y: 0, opacity: 1, duration: 0.5 },
-          "<" // Start at the same time as previous animation
+          "<", // Start at the same time as previous animation
         );
       });
     }, containerRef);
@@ -93,14 +93,18 @@ export function Steps() {
                   stepsRef.current[index] = el;
                 }}
                 className={`flex flex-col md:w-1/3 group ${
-                  index === 0 ? "items-start text-left" : index === 1 ? "items-center text-center" : "items-end text-right"
+                  index === 0
+                    ? "items-start text-left"
+                    : index === 1
+                      ? "items-center text-center"
+                      : "items-end text-right"
                 }`}
               >
                 <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mb-10 card-glow group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
                   <step.icon className="w-10 h-10 text-white" />
                 </div>
-                
-                <div className="max-w-[280px]">
+
+                <div className="max-w-[290px]">
                   <h3 className="text-2xl font-black mb-4">{step.title}</h3>
                   <p className="text-muted-foreground text-lg leading-relaxed">{step.description}</p>
                 </div>
