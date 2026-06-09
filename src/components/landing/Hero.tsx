@@ -15,7 +15,7 @@ export function Hero() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12">
           <div className="mb-8 flex justify-center lg:justify-start">
-            <BookingLogo />
+            <BookingLogo showText={false} />
           </div>
           <h1 className="text-5xl lg:text-7xl font-black mb-0 tracking-tighter leading-[1.05] text-center lg:text-left">
             <span className="text-white block">Recupere seu tempo e coloque sua</span>
