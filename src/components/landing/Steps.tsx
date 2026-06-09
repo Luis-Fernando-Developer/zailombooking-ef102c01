@@ -73,18 +73,18 @@ export function Steps() {
 
         <div className="relative">
           {/* Linhas de conexão dinâmicas baseadas nos ícones */}
-          <div className="hidden md:block absolute top-12 left-0 w-full h-[2px] z-0 px-4 sm:px-6 lg:px-8">
+          <div className="hidden md:block absolute top-12 left-0 w-full h-[2px] z-0">
             <div className="max-w-7xl mx-auto flex justify-between items-center h-full">
               {/* Linha 1: Entre ícone 1 e 2 */}
-              <div className="flex-1 px-12 relative overflow-hidden h-full">
+              <div className="flex-1 px-0 relative overflow-hidden h-full">
                 <div className="bg-primary/30 w-full h-full relative overflow-hidden">
                   <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
                 </div>
               </div>
-              {/* Espaço para o ícone central (compensando o justify-between) */}
-              <div className="w-24 flex-shrink-0" />
+              {/* Espaço para o ícone central diminuído para a linha avançar mais */}
+              <div className="w-12 flex-shrink-0" />
               {/* Linha 2: Entre ícone 2 e 3 */}
-              <div className="flex-1 px-12 relative overflow-hidden h-full">
+              <div className="flex-1 px-0 relative overflow-hidden h-full">
                 <div className="bg-primary/30 w-full h-full relative overflow-hidden">
                   <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
                 </div>
