@@ -42,7 +42,7 @@ export function Steps() {
       const stepsElements = stepsRef.current;
 
       // Animate Step 1
-      tl.fromTo(stepsElements[0], { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 });
+      tl.fromTo(stepsElements[0], { x: -50, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5 });
       
       // Animate Line 1
       if (lines?.[0]) {
@@ -50,7 +50,7 @@ export function Steps() {
       }
 
       // Animate Step 2
-      tl.fromTo(stepsElements[1], { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 });
+      tl.fromTo(stepsElements[1], { x: -50, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5 });
 
       // Animate Line 2
       if (lines?.[1]) {
@@ -58,7 +58,7 @@ export function Steps() {
       }
 
       // Animate Step 3
-      tl.fromTo(stepsElements[2], { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 });
+      tl.fromTo(stepsElements[2], { x: -50, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5 });
     }, containerRef);
 
     return () => ctx.revert();
