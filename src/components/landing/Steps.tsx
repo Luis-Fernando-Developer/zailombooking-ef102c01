@@ -38,22 +38,27 @@ export function Steps() {
         },
       });
 
-      // Animate lines first
       const lines = containerRef.current?.querySelectorAll(".step-line");
-      lines?.forEach((line) => {
-        tl.to(line, { scaleX: 1, duration: 1, ease: "none" });
-      });
+      const stepsElements = stepsRef.current;
 
-      // Animate the step content
-      stepsRef.current.forEach((step) => {
-        if (!step) return;
-        tl.fromTo(
-          step,
-          { y: 30, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.5 },
-          "<", // Start at the same time as previous animation
-        );
-      });
+      // Animate Step 1
+      tl.fromTo(stepsElements[0], { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 });
+      
+      // Animate Line 1
+      if (lines?.[0]) {
+        tl.to(lines[0], { scaleX: 1, duration: 0.8, ease: "none" });
+      }
+
+      // Animate Step 2
+      tl.fromTo(stepsElements[1], { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 });
+
+      // Animate Line 2
+      if (lines?.[1]) {
+        tl.to(lines[1], { scaleX: 1, duration: 0.8, ease: "none" });
+      }
+
+      // Animate Step 3
+      tl.fromTo(stepsElements[2], { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 });
     }, containerRef);
 
     return () => ctx.revert();
