@@ -86,28 +86,36 @@ export function Steps() {
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start gap-12 md:gap-8 relative">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-12 md:gap-0 relative">
           {steps.map((step, index) => (
             <div
               key={index}
               ref={(el) => {
                 stepsRef.current[index] = el;
               }}
-              className="relative flex flex-col flex-1 group"
+              className={`relative flex flex-col group ${index === 1 ? 'flex-1' : ''}`}
             >
               <div className="flex items-center w-full mb-10 relative">
+                {/* Linha que vem da esquerda (para o card 2 e 3) */}
+                {index > 0 && (
+                  <div className="hidden md:block flex-1 h-[2px] bg-primary/30 mr-4 relative overflow-hidden">
+                    <div className="step-line-prev absolute inset-0 bg-primary origin-left scale-x-0" />
+                  </div>
+                )}
+
                 <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center relative z-10 card-glow group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
                   <step.icon className="w-10 h-10 text-white" />
                 </div>
                 
+                {/* Linha que vai para a direita (para o card 1 e 2) */}
                 {index < steps.length - 1 && (
-                  <div className="hidden md:block flex-1 h-[2px] bg-primary/30 mx-4 relative overflow-hidden">
+                  <div className="hidden md:block flex-1 h-[2px] bg-primary/30 ml-4 relative overflow-hidden">
                     <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
                   </div>
                 )}
               </div>
 
-              <div className="relative z-10">
+              <div className={`relative z-10 ${index === 1 ? 'text-center' : index === 2 ? 'text-right' : ''}`}>
                 <h3 className="text-2xl font-black mb-4">{step.title}</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">{step.description}</p>
               </div>
