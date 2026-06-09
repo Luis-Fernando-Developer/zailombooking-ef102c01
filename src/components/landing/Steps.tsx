@@ -45,29 +45,26 @@ export function Steps() {
         tl.fromTo(
           step,
           {
-            x: -50,
+            y: 30,
             opacity: 0,
-            scale: 0.9,
           },
           {
-            x: 0,
+            y: 0,
             opacity: 1,
-            scale: 1,
-            duration: 1,
+            duration: 0.8,
             ease: "power2.out",
-          },
+          }
         );
 
-        // Animate the connecting line if it exists
-        const line = step.querySelector(".step-line");
-        if (line) {
-          tl.fromTo(
+        // Animate the connecting lines
+        const lines = step.querySelectorAll(".step-line, .step-line-prev");
+        lines.forEach((line) => {
+          tl.to(
             line,
-            { scaleX: 0, transformOrigin: "left center" },
             { scaleX: 1, duration: 0.5, ease: "none" },
-            ">-=0.2", // Start slightly before step finishes
+            "-=0.4"
           );
-        }
+        });
       });
     }, containerRef);
 
