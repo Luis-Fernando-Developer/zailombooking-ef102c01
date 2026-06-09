@@ -86,31 +86,31 @@ export function Steps() {
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-stretch gap-16 relative">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-12 md:gap-8 relative">
           {steps.map((step, index) => (
             <div
               key={index}
               ref={(el) => {
                 stepsRef.current[index] = el;
               }}
-              className={`relative flex flex-col flex-1 group  ${
-                index === 0 ? "items-start" : index === 1 ? "items-center text-center" : "items-end text-right"
-              }`}
+              className="relative flex flex-col flex-1 group"
             >
-              {index < steps.length - 1 && (
-                <div
-                  className="hidden md:block absolute top-12 h-[10px] w-full bg-primary/30 z-0 step-line border p-2"
-                  style={{
-                    left: index === 0 ? "6rem border-white" : "calc(150%-6rem) border-white",
-                    right: index === 1 ? "calc(-120%)" : " ",
-                  }}
-                />
-              )}
-              <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mb-10 relative z-10 card-glow group-hover:scale-110 transition-transform duration-300">
-                <step.icon className="w-10 h-10 text-white" />
+              <div className="flex items-center w-full mb-10 relative">
+                <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center relative z-10 card-glow group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                  <step.icon className="w-10 h-10 text-white" />
+                </div>
+                
+                {index < steps.length - 1 && (
+                  <div className="hidden md:block flex-1 h-[2px] bg-primary/30 mx-4 relative overflow-hidden">
+                    <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
+                  </div>
+                )}
               </div>
-              <h3 className="text-2xl font-black mb-4 w-full">{step.title}</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed w-full">{step.description}</p>
+
+              <div className="relative z-10">
+                <h3 className="text-2xl font-black mb-4">{step.title}</h3>
+                <p className="text-muted-foreground text-lg leading-relaxed">{step.description}</p>
+              </div>
             </div>
           ))}
         </div>
