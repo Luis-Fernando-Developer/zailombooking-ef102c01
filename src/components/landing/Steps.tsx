@@ -83,41 +83,42 @@ export function Steps() {
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start gap-12 md:gap-0 relative">
-          {steps.map((step, index) => (
-            <div
-              key={index}
-              ref={(el) => {
-                stepsRef.current[index] = el;
-              }}
-              className={`relative flex flex-col group ${index === 1 ? 'flex-1' : ''}`}
-            >
-              <div className="flex items-center w-full mb-10 relative">
-                {/* Linha que vem da esquerda (para o card 2 e 3) */}
-                {index > 0 && (
-                  <div className="hidden md:block flex-1 h-[2px] bg-primary/30 mr-4 relative overflow-hidden">
-                    <div className="step-line-prev absolute inset-0 bg-primary origin-left scale-x-0" />
-                  </div>
-                )}
+        <div className="relative">
+          {/* Linhas de conexão absolutas */}
+          <div className="hidden md:block absolute top-12 left-0 w-full h-[2px] z-0">
+            <div className="flex justify-between items-center h-full px-12">
+              <div className="flex-1 h-full bg-primary/30 relative overflow-hidden mx-4">
+                <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
+              </div>
+              <div className="w-24 flex-shrink-0" /> {/* Espaço para o ícone central */}
+              <div className="flex-1 h-full bg-primary/30 relative overflow-hidden mx-4">
+                <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
+              </div>
+            </div>
+          </div>
 
-                <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center relative z-10 card-glow group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-12 md:gap-0 relative z-10">
+            {steps.map((step, index) => (
+              <div
+                key={index}
+                ref={(el) => {
+                  stepsRef.current[index] = el;
+                }}
+                className={`flex flex-col md:w-1/3 group ${
+                  index === 0 ? "items-start text-left" : index === 1 ? "items-center text-center" : "items-end text-right"
+                }`}
+              >
+                <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center mb-10 card-glow group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
                   <step.icon className="w-10 h-10 text-white" />
                 </div>
                 
-                {/* Linha que vai para a direita (para o card 1 e 2) */}
-                {index < steps.length - 1 && (
-                  <div className="hidden md:block flex-1 h-[2px] bg-primary/30 ml-4 relative overflow-hidden">
-                    <div className="step-line absolute inset-0 bg-primary origin-left scale-x-0" />
-                  </div>
-                )}
+                <div className="max-w-[280px]">
+                  <h3 className="text-2xl font-black mb-4">{step.title}</h3>
+                  <p className="text-muted-foreground text-lg leading-relaxed">{step.description}</p>
+                </div>
               </div>
-
-              <div className={`relative z-10 ${index === 1 ? 'text-center' : index === 2 ? 'text-right' : ''}`}>
-                <h3 className="text-2xl font-black mb-4">{step.title}</h3>
-                <p className="text-muted-foreground text-lg leading-relaxed">{step.description}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>
