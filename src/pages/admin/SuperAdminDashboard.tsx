@@ -40,6 +40,8 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { syncBuilderPlan } from "@/lib/syncBuilderPlan";
 import { useToast } from "@/hooks/use-toast";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SuperAdminSidebar } from "@/components/admin/SuperAdminSidebar";
 
 interface Company {
   id: string;
@@ -230,207 +232,213 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero ">
-      {/* Header */}
-      <header className="border-b border-primary/20 bg-card/30 backdrop-blur-sm border ">
-          <div className="flex items-center justify-between px-3">
-            <div className="flex flex-col items-center justify-center relative py-2">
-              <BookingLogo className="flex items-center justify-center  "/>
-              <span className="absolute w-full bottom-1 left-[90%] transform -translate-x-[85%] text-center text-sm text-muted-foreground">Super Admin</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm">
-                Sair
-              </Button>
-            </div>
-
-          </div>
-        
-      </header>
-
-      <div className=" w-full px-3 lg:px-8 py-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gradient mb-2">Dashboard Super Admin</h1>
-          <p className="text-muted-foreground">Gerencie todas as empresas e monitore o sistema</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Empresas</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gradient">{stats.totalCompanies}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.activeCompanies} ativas
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receita Mensal</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gradient">R$ {stats.totalRevenue.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                +12% vs mês anterior
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Agendamentos</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gradient">{stats.totalBookings}</div>
-              <p className="text-xs text-muted-foreground">
-                Este mês
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Crescimento</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gradient">+24%</div>
-              <p className="text-xs text-muted-foreground">
-                Novos clientes
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Companies Table */}
-        <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-          <CardHeader>
-            <div className="flex flex-col lg:flex-row items-start gap-4 justify-between">
-              <div>
-                <CardTitle>Empresas Cadastradas</CardTitle>
-                <CardDescription>
-                  Gerencie todas as empresas do sistema
-                </CardDescription>
-              </div>
-              <Button className="w-full lg:static" variant="neon" onClick={() => navigate("/super-admin/add-company")}>
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Empresa
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {companies.map((company) => (
-                <div key={company.id} className="flex flex-col relative gap-3 items-start lg:flex-row justify-between p-4 px-4 pt-10 border border-primary/20 rounded-lg bg-background/30 ">
-                  <div className="flex items-center space-x-4 ">
-                    <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-                      <Building2 className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex flex-col">
-                      <h3 className="font-semibold">{company.name} </h3>
-                      <p className="text-sm text-muted-foreground">{company.owner_name}</p>
-                      <p className="text-sm text-muted-foreground">{company.owner_email}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-6  w-full justify-between">
-                    <div className="text-center">
-                      <p className="text-sm font-medium">Plano</p>
-                      <p className="text-xs text-muted-foreground">
-                        {company.company_subscriptions?.[0]?.subscription_plans?.name || "Sem Plano"}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium">Status</p>
-                      {getStatusBadge(company.status ?? 'active')}
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium">Receita</p>
-                      <p className="text-xs text-muted-foreground">R$ 0</p>
-                    </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild className=" absolute top-1 right-3 border border-red-600 w-full">
-                        <Button variant="ghost" className="h-8 w-8 p-0 ">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="center" side="right" className=" border border-red-600 border-primary/20 w-full ">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        
-                        <DropdownMenuItem onClick={() => handleEditCompany(company)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateCompanyStatus(company.id, 'active')}>
-                          <Play className="mr-2 h-4 w-4" />
-                          Ativar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateCompanyStatus(company.id, 'paused')}>
-                          <Pause className="mr-2 h-4 w-4" />
-                          Pausar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateCompanyStatus(company.id, 'blocked')}>
-                          <Ban className="mr-2 h-4 w-4" />
-                          Bloquear
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCompany(company)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-hero">
+        <SuperAdminSidebar />
+        <SidebarInset className="flex-1 bg-transparent">
+          {/* Header Mobile / Trigger */}
+          <header className="border-b border-primary/20 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex items-center justify-between px-4 h-16">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <div className="flex items-center gap-2 lg:hidden">
+                  <BookingLogo showText={false} className="h-8 w-8" />
+                  <span className="font-bold text-gradient">Super Admin</span>
                 </div>
-              ))}
+              </div>
+              <div className="flex items-center gap-4">
+                <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()}>
+                  Sair
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </header>
+
+          <main className="p-4 lg:p-8">
+            {/* Page Title */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gradient mb-2">Dashboard Super Admin</h1>
+              <p className="text-muted-foreground">Gerencie todas as empresas e monitore o sistema</p>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Empresas</CardTitle>
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gradient">{stats.totalCompanies}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {stats.activeCompanies} ativas
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Receita Mensal</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gradient">R$ {stats.totalRevenue.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +12% vs mês anterior
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Agendamentos</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gradient">{stats.totalBookings}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Este mês
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Taxa de Crescimento</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gradient">+24%</div>
+                  <p className="text-xs text-muted-foreground">
+                    Novos clientes
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Companies Table */}
+            <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+              <CardHeader>
+                <div className="flex flex-col lg:flex-row items-start gap-4 justify-between">
+                  <div>
+                    <CardTitle>Empresas Cadastradas</CardTitle>
+                    <CardDescription>
+                      Gerencie todas as empresas do sistema
+                    </CardDescription>
+                  </div>
+                  <Button className="w-full lg:static" variant="neon" onClick={() => navigate("/super-admin/add-company")}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Empresa
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {companies.map((company) => (
+                    <div key={company.id} className="flex flex-col relative gap-3 items-start lg:flex-row justify-between p-4 px-4 pt-10 border border-primary/20 rounded-lg bg-background/30 ">
+                      <div className="flex items-center space-x-4 ">
+                        <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
+                          <Building2 className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex flex-col">
+                          <h3 className="font-semibold">{company.name} </h3>
+                          <p className="text-sm text-muted-foreground">{company.owner_name}</p>
+                          <p className="text-sm text-muted-foreground">{company.owner_email}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-6  w-full justify-between">
+                        <div className="text-center">
+                          <p className="text-sm font-medium">Plano</p>
+                          <p className="text-xs text-muted-foreground">
+                            {company.company_subscriptions?.[0]?.subscription_plans?.name || "Sem Plano"}
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-medium">Status</p>
+                          {getStatusBadge(company.status ?? 'active')}
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-medium">Receita</p>
+                          <p className="text-xs text-muted-foreground">R$ 0</p>
+                        </div>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild className=" absolute top-1 right-3 w-8 h-8">
+                            <Button variant="ghost" className="h-8 w-8 p-0 ">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="border-primary/20">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            
+                            <DropdownMenuItem onClick={() => handleEditCompany(company)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateCompanyStatus(company.id, 'active')}>
+                              <Play className="mr-2 h-4 w-4" />
+                              Ativar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateCompanyStatus(company.id, 'paused')}>
+                              <Pause className="mr-2 h-4 w-4" />
+                              Pausar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateCompanyStatus(company.id, 'blocked')}>
+                              <Ban className="mr-2 h-4 w-4" />
+                              Bloquear
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCompany(company)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </main>
+        </SidebarInset>
+
+        {/* Edit Company Dialog */}
+        <EditCompanyDialog
+          company={editingCompany ? {
+            ...editingCompany,
+            owner_name: editingCompany.owner_name || "",
+            owner_email: editingCompany.owner_email || "",
+            owner_phone: editingCompany.owner_phone || "",
+            status: editingCompany.status || "active",
+            address: editingCompany.address || ""
+          } : null}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSuccess={fetchData}
+        />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent className="bg-card border-primary/20">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir a empresa "{companyToDelete?.name}"? 
+                Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteCompany} className="bg-destructive hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-
-      {/* Edit Company Dialog */}
-      <EditCompanyDialog
-        company={editingCompany ? {
-          ...editingCompany,
-          owner_name: editingCompany.owner_name || "",
-          owner_email: editingCompany.owner_email || "",
-          owner_phone: editingCompany.owner_phone || "",
-          status: editingCompany.status || "active",
-          address: editingCompany.address || ""
-        } : null}
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        onSuccess={fetchData}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card border-primary/20">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a empresa "{companyToDelete?.name}"? 
-              Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteCompany} className="bg-destructive hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    </SidebarProvider>
   );
 }
