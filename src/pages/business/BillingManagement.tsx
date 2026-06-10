@@ -215,7 +215,7 @@ export default function BillingManagement() {
                     <CardTitle>{plan?.name || "Sem plano ativo"}</CardTitle>
                     <CardDescription>
                       {subscription ? (
-                        <>R$ {subscription.subscription_plans?.name === 'Starter' ? '79,00' : subscription.subscription_plans?.name === 'Professional' ? '149,00' : subscription.subscription_plans?.name === 'Enterprise' ? '249,00' : Number(subscription.original_price).toFixed(2)} / {labelPeriod(subscription.billing_period)}</>
+                        <>R$ {plan?.name === 'Starter' ? '79,00' : plan?.name === 'Professional' ? '149,00' : plan?.name === 'Enterprise' ? '249,00' : Number(subscription.original_price).toFixed(2)} / {labelPeriod(subscription.billing_period)}</>
                       ) : "Nenhuma assinatura encontrada"}
                     </CardDescription>
                   </div>
@@ -232,7 +232,7 @@ export default function BillingManagement() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Tier no builder:</span>
-                    <div className="font-medium capitalize">{plan?.builder_tier || "—"}</div>
+                    <div className="font-medium capitalize">{plan?.name || "—"}</div>
                   </div>
                 </div>
 
@@ -411,10 +411,11 @@ export default function BillingManagement() {
 }
 
 function LimitItem({ label, value }: { label: string; value: number | null }) {
+  const displayValue = value === null || value === -1 || value >= 999999 ? "Ilimitado" : value;
   return (
     <div className="rounded-md border p-3">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-semibold">{value === null || value === undefined ? "Ilimitado" : value}</div>
+      <div className="text-lg font-semibold">{displayValue}</div>
     </div>
   );
 }
