@@ -115,7 +115,7 @@ export default function ChatbotTalkMap() {
     if (!iframeRef.current || !iframeSrc) return;
     const target = subpath || `${slug}/workspace`;
     iframeRef.current.contentWindow?.postMessage(
-      { type: "talkmap:set-path", path: `/${target}` },
+      { type: "zailomflow:set-path", path: `/${target}` },
       builderBaseUrl,
     );
   }, [subpath, iframeSrc, slug, builderBaseUrl]);
