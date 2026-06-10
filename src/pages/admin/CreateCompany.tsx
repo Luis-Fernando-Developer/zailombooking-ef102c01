@@ -175,7 +175,7 @@ export default function CreateCompany() {
           console.warn('⚠️ Falha ao provisionar ZailomFlow:', provResult.error);
         }
       } catch (provErr) {
-        console.warn('⚠️ Erro ao provisionar TalkMap (não bloqueante):', provErr);
+        console.warn('⚠️ Erro ao provisionar ZailomFlow (não bloqueante):', provErr);
       }
 
       // Sincronizar tier do plano com o builder
