@@ -5,6 +5,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CreditCard } from "lucide-react";
 
 export default function SuperAdminPlans() {
+  const plans = [
+    {
+      name: 'Starter',
+      monthly: 79,
+      quarterly: 207,
+      quarterlyMonthly: 69,
+      annual: 708,
+      annualMonthly: 59,
+      savingsQuarterly: 'R$ 24',
+      savingsAnnual: 'R$ 240'
+    },
+    {
+      name: 'Professional',
+      monthly: 149,
+      quarterly: 402,
+      quarterlyMonthly: 134,
+      annual: 1308,
+      annualMonthly: 109,
+      savingsQuarterly: 'R$ 45',
+      savingsAnnual: 'R$ 480'
+    },
+    {
+      name: 'Enterprise',
+      monthly: 249,
+      quarterly: 672,
+      quarterlyMonthly: 224,
+      annual: 2268,
+      annualMonthly: 189,
+      savingsQuarterly: 'R$ 75',
+      savingsAnnual: 'R$ 720'
+    }
+  ];
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-hero">
@@ -38,15 +78,31 @@ export default function SuperAdminPlans() {
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-3 gap-6">
-                  {/* Mocked plans */}
-                  {['Starter', 'Professional', 'Enterprise'].map((plan) => (
-                    <Card key={plan} className="bg-background/40 border-primary/10">
+                  {plans.map((plan) => (
+                    <Card key={plan.name} className="bg-background/40 border-primary/10">
                       <CardHeader>
-                        <CardTitle className="text-lg">{plan}</CardTitle>
-                        <CardDescription>Recursos do plano {plan}</CardDescription>
+                        <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
+                        <CardDescription>Configurações de preço</CardDescription>
                       </CardHeader>
-                      <CardContent>
-                        <p className="text-2xl font-bold text-gradient">R$ 99,00/mês</p>
+                      <CardContent className="space-y-4">
+                        <div className="p-3 rounded-lg bg-black/20 border border-primary/5">
+                          <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Mensal</p>
+                          <p className="text-2xl font-bold text-gradient">{formatCurrency(plan.monthly)}</p>
+                        </div>
+                        
+                        <div className="p-3 rounded-lg bg-black/20 border border-primary/5">
+                          <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Trimestral</p>
+                          <p className="text-xl font-bold text-white">{formatCurrency(plan.quarterlyMonthly)}/mês</p>
+                          <p className="text-xs text-primary">Total: {formatCurrency(plan.quarterly)}</p>
+                          <p className="text-[10px] text-muted-foreground">Economia de {plan.savingsQuarterly}</p>
+                        </div>
+
+                        <div className="p-3 rounded-lg bg-black/20 border border-primary/5">
+                          <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Anual</p>
+                          <p className="text-xl font-bold text-white">{formatCurrency(plan.annualMonthly)}/mês</p>
+                          <p className="text-xs text-primary">Total: {formatCurrency(plan.annual)}</p>
+                          <p className="text-[10px] text-muted-foreground">Economia de {plan.savingsAnnual}</p>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
