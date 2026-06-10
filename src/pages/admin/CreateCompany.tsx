@@ -170,9 +170,9 @@ export default function CreateCompany() {
         });
         const provResult = await provRes.json();
         if (provResult.ok) {
-          console.log('✅ Conta TalkMap provisionada:', provResult);
+          console.log('✅ Conta ZailomFlow provisionada:', provResult);
         } else {
-          console.warn('⚠️ Falha ao provisionar TalkMap:', provResult.error);
+          console.warn('⚠️ Falha ao provisionar ZailomFlow:', provResult.error);
         }
       } catch (provErr) {
         console.warn('⚠️ Erro ao provisionar TalkMap (não bloqueante):', provErr);
