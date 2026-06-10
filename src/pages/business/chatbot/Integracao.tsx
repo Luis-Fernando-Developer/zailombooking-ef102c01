@@ -100,7 +100,7 @@ export default function ChatbotIntegracao() {
           talkmap_provisioned_at: value ? new Date().toISOString() : null,
         });
       }
-      toast.success(value ? "Conta marcada como criada no TalkMap" : "Marcação removida");
+      toast.success(value ? "Conta marcada como criada no ZailomFlow" : "Marcação removida");
       await refreshStatus(companyId);
     } catch (e) {
       toast.error((e as Error).message);
