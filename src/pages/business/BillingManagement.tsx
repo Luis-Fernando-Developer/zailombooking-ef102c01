@@ -215,7 +215,13 @@ export default function BillingManagement() {
                     <CardTitle>{plan?.name || "Sem plano ativo"}</CardTitle>
                     <CardDescription>
                       {subscription ? (
-                        <>R$ {plan?.name === 'Starter' ? '79,00' : plan?.name === 'Professional' ? '149,00' : plan?.name === 'Enterprise' ? '249,00' : Number(subscription.original_price).toFixed(2)} / {labelPeriod(subscription.billing_period)}</>
+                        <>R$ {
+                          subscription.billing_period === 'annual' 
+                            ? (plan?.name === 'Starter' ? '758,40' : plan?.name === 'Professional' ? '1.430,40' : plan?.name === 'Enterprise' ? '2.390,40' : Number(subscription.original_price).toFixed(2))
+                            : subscription.billing_period === 'quarterly'
+                            ? (plan?.name === 'Starter' ? '213,30' : plan?.name === 'Professional' ? '402,30' : plan?.name === 'Enterprise' ? '672,30' : Number(subscription.original_price).toFixed(2))
+                            : (plan?.name === 'Starter' ? '79,00' : plan?.name === 'Professional' ? '149,00' : plan?.name === 'Enterprise' ? '249,00' : Number(subscription.original_price).toFixed(2))
+                        } / {labelPeriod(subscription.billing_period)}</>
                       ) : "Nenhuma assinatura encontrada"}
                     </CardDescription>
                   </div>
@@ -244,13 +250,13 @@ export default function BillingManagement() {
 
                 {limits && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-                    <LimitItem label="Funcionários" value={limits.max_employees} />
-                    <LimitItem label="Serviços" value={limits.max_services} />
-                    <LimitItem label="Agend./mês" value={limits.max_bookings_month} />
-                    <LimitItem label="Chatbots" value={limits.max_chatbots} />
-                    <LimitItem label="Mensagens" value={limits.max_chatbot_messages} />
-                    <LimitItem label="Instâncias WhatsApp" value={limits.max_whatsapp_instances || limits.max_integrations} />
-                    <LimitItem label="Integrações" value={limits.max_integrations} />
+                    <LimitItem label="Funcionários" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 5 : 1)} />
+                    <LimitItem label="Serviços" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 12 : 5)} />
+                    <LimitItem label="Agend./mês" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 700 : 200)} />
+                    <LimitItem label="Chatbots" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 3 : 1)} />
+                    <LimitItem label="Mensagens" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 5000 : 700)} />
+                    <LimitItem label="Instâncias WhatsApp" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 3 : 1)} />
+                    <LimitItem label="Integrações" value={plan?.name === 'Enterprise' ? -1 : 2} />
                   </div>
                 )}
 
@@ -352,7 +358,13 @@ export default function BillingManagement() {
                 <SelectContent>
                   {allPlans.map(p => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name} — R$ {Number(p.monthly_price).toFixed(2)}/mês
+                      {p.name} — R$ {
+                        selectedPeriod === 'annual' 
+                          ? Number(p.annual_price).toFixed(2) 
+                          : selectedPeriod === 'quarterly' 
+                          ? Number(p.quarterly_price).toFixed(2) 
+                          : Number(p.monthly_price).toFixed(2)
+                      }/{labelPeriod(selectedPeriod)}
                     </SelectItem>
                   ))}
                 </SelectContent>
