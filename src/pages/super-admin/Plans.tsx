@@ -98,28 +98,36 @@ export default function SuperAdminPlans() {
                             {plan.name === 'Starter' && (
                               <>
                                 <li>200 agendamentos por Mês</li>
-                                <li>1 profissional / 5 serviços</li>
+                                <li>1 profissional</li>
+                                <li>5 serviços</li>
                                 <li>1 Chatbot básico</li>
-                                <li>1 conexão WhatsApp</li>
-                                <li>700 Mensagens/mês</li>
+                                <li>1 conexão para whatsapp</li>
+                                <li>700 Mensagens por mes</li>
+                                <li>Suporte por email</li>
                               </>
                             )}
                             {plan.name === 'Professional' && (
                               <>
-                                <li>700 Agendamentos por mês</li>
-                                <li>Até 5 profissionais / 12 serviços</li>
-                                <li>3 Chatbots inclusos</li>
-                                <li>3 conexões WhatsApp</li>
-                                <li>5.000 Mensagens/mês</li>
+                                <li>700 Agendamentos por mes</li>
+                                <li>ate 5 profissional</li>
+                                <li>ate 12 serviços</li>
+                                <li>3 Chatbot inclusos</li>
+                                <li>3 conexão para whatsapp</li>
+                                <li>5.000 Mensagens por mes</li>
+                                <li>Relatórios avançados</li>
+                                <li>Suporte prioritário</li>
                               </>
                             )}
                             {plan.name === 'Enterprise' && (
                               <>
                                 <li>Agendamentos Ilimitados</li>
-                                <li>Profissionais/Serviços Ilimitados</li>
+                                <li>Profissionais ilimitados</li>
+                                <li>serviços Ilimitados</li>
                                 <li>Chatbots Ilimitados</li>
-                                <li>Conexões WhatsApp Ilimitadas</li>
-                                <li>Mensagens Ilimitadas</li>
+                                <li>conexões para whatsapp Ilimitada</li>
+                                <li>Mensagens por mes Ilimitadas</li>
+                                <li>API Completa</li>
+                                <li>Gerente de conta dedicado</li>
                               </>
                             )}
                           </ul>
