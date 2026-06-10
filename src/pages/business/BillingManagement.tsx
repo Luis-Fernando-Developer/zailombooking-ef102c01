@@ -121,10 +121,8 @@ export default function BillingManagement() {
         billing_period: selectedPeriod,
       });
       toast({
-        title: result.action === "upgrade" ? "Upgrade aplicado" : "Downgrade agendado",
-        description: result.action === "upgrade"
-          ? `Cobrança proporcional: R$ ${Number(result.proration || 0).toFixed(2)}`
-          : `Efetivo em ${formatDate(result.effective_at)}`,
+        title: result.changeType === "plan_upgrade" ? "Upgrade aplicado" : "Alteração realizada",
+        description: `Nova data de cobrança: ${formatDate(result.next_billing_date)}`,
       });
       setChangePlanOpen(false);
       fetchAll();
@@ -370,7 +368,7 @@ export default function BillingManagement() {
               </Select>
             </div>
             <p className="text-xs text-muted-foreground">
-              Upgrades aplicam cobrança proporcional imediata. Downgrades só entram em vigor no próximo ciclo.
+              Alterações de plano ou ciclo mantêm seus dias já pagos. A nova cobrança será realizada apenas após o término do período atual.
             </p>
           </div>
           <DialogFooter>

@@ -1,6 +1,5 @@
-// Proporção (proration) para mudanças de plano.
-// Mesma lógica usada no painel super admin (frontend) e nas edge functions
-// (cópia em supabase/functions/_shared/proration.ts).
+// Lógica para mudanças de plano baseada em tempo (dias restantes)
+// Substitui o modelo de crédito financeiro pelo modelo de crédito temporal.
 
 export type BillingPeriod = "monthly" | "quarterly" | "annual";
 
@@ -15,93 +14,80 @@ export const addPeriod = (from: Date, p: BillingPeriod): Date => {
   return d;
 };
 
+// Hieraquia dos planos conforme solicitado pelo usuário
+export const PLAN_HIERARCHY: Record<string, number> = {
+  "starter": 1,
+  "professional": 2,
+  "enterprise": 3
+};
+
+export type ChangeType = "cycle_change" | "plan_upgrade" | "plan_downgrade";
+
 export interface ProrationInput {
-  /** Valor que a empresa pagou no ciclo atual (já com desconto, se houver). */
-  currentPaidValue: number;
+  currentPlanId: string;
   currentPeriod: BillingPeriod;
   /** Início do ciclo atual (starts_at da assinatura). */
   cycleStart: Date;
   /** Fim do ciclo atual (next_billing_date). */
   cycleEnd: Date;
-  /** Novo valor cheio do plano escolhido (no novo período). */
-  newValue: number;
+  newPlanId: string;
   newPeriod: BillingPeriod;
-  /** Saldo de créditos disponíveis (já somado). */
-  availableCredits?: number;
   /** Data de referência (default: agora). */
   now?: Date;
 }
 
 export interface ProrationResult {
-  /** Crédito gerado a favor da empresa (downgrade ou troca de período). 0 se não houver. */
-  creditGenerated: number;
-  /** Valor a cobrar agora no upgrade (já abatendo créditos). 0 em downgrade. */
-  chargeNow: number;
-  /** Créditos que serão consumidos imediatamente. */
-  creditsConsumed: number;
-  /** Próxima data de cobrança após a mudança. */
+  /** Quantos dias restam da assinatura atual. */
+  remainingDays: number;
+  /** Próxima data de cobrança após a mudança (mantendo os dias restantes). */
   nextBillingDate: Date;
-  /** "upgrade" | "downgrade" | "same" */
-  action: "upgrade" | "downgrade" | "same";
+  /** Tipo da alteração baseada na hierarquia. */
+  changeType: ChangeType;
   /** Detalhamento para exibir ao usuário. */
   details: {
-    daysRemaining: number;
     cycleDays: number;
-    unusedCredit: number;
-    newCostForRemainingDays: number;
-    rawDiff: number;
+    currentPlanName: string;
+    newPlanName: string;
   };
 }
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
-
-export function calculateProration(input: ProrationInput): ProrationResult {
+export function calculateTemporalProration(input: ProrationInput): ProrationResult {
   const now = input.now ?? new Date();
+  
+  // Calcular dias totais do ciclo atual (aproximado pelo banco ou real entre datas)
   const totalDays = Math.max(1, Math.round((input.cycleEnd.getTime() - input.cycleStart.getTime()) / 86400000));
-  const daysRemaining = Math.max(0, Math.ceil((input.cycleEnd.getTime() - now.getTime()) / 86400000));
+  
+  // Calcular dias restantes
+  const remainingDays = Math.max(0, Math.ceil((input.cycleEnd.getTime() - now.getTime()) / 86400000));
 
-  // Crédito não usado do plano atual
-  const unusedCredit = round2((input.currentPaidValue * daysRemaining) / totalDays);
+  // Determinar tipo de mudança pela hierarquia
+  const currentRank = PLAN_HIERARCHY[input.currentPlanId.toLowerCase()] || 0;
+  const newRank = PLAN_HIERARCHY[input.newPlanId.toLowerCase()] || 0;
 
-  // Valor proporcional do novo plano para os dias restantes (no período atual)
-  // Convertemos o novo valor para o "preço diário" do novo período
-  const newDaily = input.newValue / cycleDays(input.newPeriod);
-  const newCostForRemainingDays = round2(newDaily * daysRemaining);
-
-  const rawDiff = round2(newCostForRemainingDays - unusedCredit);
-
-  let action: ProrationResult["action"] = "same";
-  if (rawDiff > 0.5) action = "upgrade";
-  else if (rawDiff < -0.5) action = "downgrade";
-
-  let creditGenerated = 0;
-  let chargeNow = 0;
-  let creditsConsumed = 0;
-
-  if (action === "upgrade") {
-    const credits = input.availableCredits ?? 0;
-    creditsConsumed = Math.min(credits, rawDiff);
-    chargeNow = round2(rawDiff - creditsConsumed);
-  } else if (action === "downgrade") {
-    creditGenerated = round2(-rawDiff);
+  let changeType: ChangeType = "cycle_change";
+  if (newRank > currentRank) {
+    changeType = "plan_upgrade";
+  } else if (newRank < currentRank) {
+    changeType = "plan_downgrade";
+  } else if (input.currentPeriod !== input.newPeriod) {
+    changeType = "cycle_change";
   }
 
-  // Próxima cobrança: a partir de agora, conforme novo período.
-  // (no upgrade pago, o próximo ciclo começa hoje)
-  const nextBillingDate = addPeriod(now, input.newPeriod);
+  // No novo modelo, mantemos os dias restantes.
+  // A próxima cobrança ocorre após o término desses dias + o novo período? 
+  // O usuário disse: "Cliente mantém 180 dias de acesso já pagos. Próxima cobrança ocorrerá somente após os 180 dias terminarem."
+  // E também disse: "Apenas a próxima cobrança utilizará o novo ciclo."
+  // Portanto, next_billing_date = now + remainingDays.
+  const nextBillingDate = new Date(now.getTime() + remainingDays * 86400000);
 
   return {
-    creditGenerated,
-    chargeNow,
-    creditsConsumed,
+    remainingDays,
     nextBillingDate,
-    action,
+    changeType,
     details: {
-      daysRemaining,
       cycleDays: totalDays,
-      unusedCredit,
-      newCostForRemainingDays,
-      rawDiff,
+      currentPlanName: input.currentPlanId,
+      newPlanName: input.newPlanId,
     },
   };
 }
@@ -113,3 +99,9 @@ export function formatBRL(n: number) {
 export function periodLabel(p: BillingPeriod) {
   return p === "annual" ? "Anual" : p === "quarterly" ? "Trimestral" : "Mensal";
 }
+
+// Deprecated functions kept for compatibility during transition if needed
+export function calculateProration(_: any): any {
+  return null;
+}
+

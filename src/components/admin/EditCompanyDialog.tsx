@@ -17,8 +17,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabaseClient";
 import { syncBuilderPlan } from "@/lib/syncBuilderPlan";
 import { useToast } from "@/hooks/use-toast";
-import { Calculator, Percent, AlertTriangle, X, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
-import { calculateProration, type BillingPeriod, formatBRL } from "@/lib/proration";
+import { Calculator, Percent, AlertTriangle, X, ArrowRightCircle, CalendarClock } from "lucide-react";
+import { calculateTemporalProration, type BillingPeriod, formatBRL } from "@/lib/proration";
 import { CompanyCreditsPanel } from "./CompanyCreditsPanel";
 
 // Aligned with database schema - companies table
@@ -226,39 +226,22 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
     }
   };
 
-  // Cálculo de proporção em tempo real (apenas se já existe subscription).
+  // Cálculo de proporção temporal em tempo real.
   const proration = (() => {
     if (!subscription || !selectedPlanId) return null;
     const planChanged = subscription.plan_id !== selectedPlanId || subscription.billing_period !== billingPeriod;
     if (!planChanged) return null;
-    const newValue = getCurrentPlanPrice();
+    
     const cycleStart = subscription.starts_at ? new Date(subscription.starts_at) : new Date();
     const cycleEnd = subscription.next_billing_date ? new Date(subscription.next_billing_date) : new Date(Date.now() + 30 * 86400000);
 
-    // Se o valor pago original for zero ou não existir (como em novos usuários/testes),
-    // podemos considerar o valor atual do plano como base se o usuário pediu para ignorar o histórico.
-    // O usuário relatou que ainda mostra 99 reais (plano antigo).
-    // Para resolver, vamos garantir que o currentPaidValue reflita o valor ATUAL do plano no banco se necessário,
-    // mas a instrução é remover por completo os valores anteriores.
-    
-    // Pegamos o preço atual do plano que a empresa JÁ TEM, no período que ela JÁ TEM
-    const currentPlanInDb = plans.find(p => p.id === subscription.plan_id);
-    let currentBasePrice = Number(subscription.original_price || 0);
-    
-    if (currentPlanInDb) {
-      if (subscription.billing_period === 'quarterly') currentBasePrice = currentPlanInDb.quarterly_price;
-      else if (subscription.billing_period === 'annual') currentBasePrice = currentPlanInDb.annual_price;
-      else currentBasePrice = currentPlanInDb.monthly_price;
-    }
-
-    return calculateProration({
-      currentPaidValue: currentBasePrice,
+    return calculateTemporalProration({
+      currentPlanId: subscription.plan_id,
       currentPeriod: (subscription.billing_period as BillingPeriod) || "monthly",
       cycleStart,
       cycleEnd,
-      newValue,
+      newPlanId: selectedPlanId,
       newPeriod: billingPeriod as BillingPeriod,
-      availableCredits,
       now: new Date(),
     });
   })();
@@ -309,7 +292,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             discount_cycles_remaining: discountCycles,
             pending_plan_change: null,
             status: 'active',
-            next_billing_date: nextBilling.toISOString(),
+            next_billing_date: proration ? proration.nextBillingDate.toISOString() : nextBilling.toISOString(),
           };
 
           // Only include starts_at if it's explicitly allowed/exists (handling schema cache issues)
@@ -332,7 +315,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             discount_percentage: discountPercentage,
             discount_cycles_remaining: discountCycles,
             status: 'active',
-            next_billing_date: nextBilling.toISOString(),
+            next_billing_date: proration ? proration.nextBillingDate.toISOString() : nextBilling.toISOString(),
           };
 
           const { error: subError } = await supabase
@@ -342,48 +325,9 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
           if (subError) throw subError;
         }
 
-        // Aplicar proporção: gerar crédito (downgrade) ou consumir crédito (upgrade)
+        // No novo modelo temporal, não geramos nem consumimos créditos financeiros.
         if (proration) {
-          const expiresAt = new Date();
-          expiresAt.setMonth(expiresAt.getMonth() + 12);
-
-          if (proration.creditGenerated > 0) {
-            await supabase.from("company_credits").insert([{
-              company_id: company.id,
-              amount: proration.creditGenerated,
-              original_amount: proration.creditGenerated,
-              reason: `Crédito proporcional gerado em mudança de plano via painel super admin (${proration.details.daysRemaining} dias restantes)`,
-              source: "admin_change",
-              status: "active",
-              source_subscription_id: subscription?.id ?? null,
-              expires_at: expiresAt.toISOString(),
-            }]);
-          }
-
-          if (proration.creditsConsumed > 0) {
-            const { data: activeCredits } = await supabase
-              .from("company_credits")
-              .select("*")
-              .eq("company_id", company.id)
-              .eq("status", "active")
-              .order("expires_at", { ascending: true });
-            let remaining = proration.creditsConsumed;
-            for (const c of (activeCredits as any[]) || []) {
-              if (remaining <= 0) break;
-              const used = Math.min(Number(c.amount), remaining);
-              const newAmount = Number(c.amount) - used;
-              await supabase
-                .from("company_credits")
-                .update({
-                  amount: newAmount,
-                  status: newAmount <= 0.01 ? "used" : "active",
-                  used_at: newAmount <= 0.01 ? new Date().toISOString() : null,
-                })
-                .eq("id", c.id);
-              remaining -= used;
-            }
-          }
-          setCreditsRefreshKey((k) => k + 1);
+          console.log("Alteração de plano realizada com crédito temporal:", proration);
         }
       }
 
@@ -540,43 +484,40 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             </p>
           )}
 
-          {/* Preview de proporção */}
+          {/* Preview de alteração temporal */}
           {proration && (
-            <Card className={proration.action === "upgrade" ? "border-blue-500/40 bg-blue-500/5" : "border-emerald-500/40 bg-emerald-500/5"}>
-              <CardContent className="pt-4 space-y-2 text-sm">
-                <div className="flex items-center gap-2 font-semibold">
-                  {proration.action === "upgrade" ? (
-                    <><ArrowUpCircle className="w-4 h-4 text-blue-500" /> Upgrade detectado</>
-                  ) : (
-                    <><ArrowDownCircle className="w-4 h-4 text-emerald-500" /> Downgrade detectado</>
-                  )}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="pt-4 space-y-3 text-sm">
+                <div className="flex items-center gap-2 font-semibold text-primary">
+                  <ArrowRightCircle className="w-4 h-4" /> 
+                  {proration.changeType === "plan_upgrade" && "Upgrade de Plano"}
+                  {proration.changeType === "plan_downgrade" && "Downgrade de Plano"}
+                  {proration.changeType === "cycle_change" && "Mudança de Ciclo"}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {proration.details.daysRemaining} dias restantes do ciclo atual ({proration.details.cycleDays}d).
-                  Crédito não usado do plano anterior: {formatBRL(proration.details.unusedCredit)}.
-                  Custo proporcional do novo plano para o período restante: {formatBRL(proration.details.newCostForRemainingDays)}.
-                </p>
-                {proration.action === "upgrade" && (
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    {proration.creditsConsumed > 0 && (
-                      <p className="text-xs">Créditos disponíveis serão abatidos: <span className="font-semibold">{formatBRL(proration.creditsConsumed)}</span></p>
-                    )}
-                    <p className="font-semibold">A cobrar agora: {formatBRL(proration.chargeNow)}</p>
-                    <p className="text-xs text-muted-foreground">Próxima cobrança: {proration.nextBillingDate.toLocaleDateString("pt-BR")}</p>
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Dias restantes</p>
+                    <p className="text-lg font-bold">{proration.remainingDays} dias</p>
                   </div>
-                )}
-                {proration.action === "downgrade" && (
-                  <div className="space-y-1">
-                    <p className="font-semibold text-emerald-600">Crédito gerado: {formatBRL(proration.creditGenerated)}</p>
-                    <p className="text-xs text-muted-foreground">Validade: 12 meses. Será abatido automaticamente em mudanças/futuras faturas.</p>
+                  <div className="space-y-1 text-right">
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Próxima cobrança</p>
+                    <p className="text-lg font-bold flex items-center justify-end gap-1">
+                      <CalendarClock className="w-4 h-4 text-primary" />
+                      {proration.nextBillingDate.toLocaleDateString("pt-BR")}
+                    </p>
                   </div>
-                )}
+                </div>
+
+                <div className="pt-2 border-t border-primary/10">
+                  <p className="text-xs text-muted-foreground">
+                    O acesso pago atual será mantido integralmente. O novo plano/ciclo entrará em vigor para fins de cobrança apenas na data indicada acima.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Painel de créditos da empresa */}
-          {company && <CompanyCreditsPanel companyId={company.id} refreshKey={creditsRefreshKey} />}
 
           {/* Pending Plan Change (downgrade/upgrade scheduled) */}
           {subscription?.pending_plan_change && (
