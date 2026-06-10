@@ -153,7 +153,7 @@ export default function ChatbotTalkMap() {
       <iframe
         ref={iframeRef}
         src={iframeSrc}
-        title="TalkMap Builder"
+        title="ZailomFlow Builder"
         className="w-full border-0"
         style={{ height: "calc(100vh - 64px)" }}
         allow="clipboard-read; clipboard-write"
