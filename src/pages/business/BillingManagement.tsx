@@ -318,13 +318,13 @@ export default function BillingManagement() {
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Limites do Plano</h3>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <LimitCard label="Mensagens" value={limits?.max_chatbot_messages} icon={<MessageSquare className="w-4 h-4 text-green-500" />} companyId={company?.id} />
-                    <LimitCard label="Funcionários" value={limits?.max_employees} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
-                    <LimitCard label="Serviços" value={limits?.max_services} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
-                    <LimitCard label="Chatbots" value={limits?.max_chatbots} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
-                    <LimitCard label="Instâncias" value={limits?.max_whatsapp_instances} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
-                    <LimitCard label="Agendamentos" value={limits?.max_bookings_month} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
-                    <LimitCard label="Integrações" value={limits?.max_integrations} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                    <LimitCard label="Mensagens" value={limits?.max_chatbot_messages ?? null} icon={<MessageSquare className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                    <LimitCard label="Funcionários" value={limits?.max_employees ?? null} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                    <LimitCard label="Serviços" value={limits?.max_services ?? null} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                    <LimitCard label="Chatbots" value={limits?.max_chatbots ?? null} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                    <LimitCard label="Instâncias" value={limits?.max_whatsapp_instances ?? null} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                    <LimitCard label="Agendamentos" value={limits?.max_bookings_month ?? null} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                    <LimitCard label="Integrações" value={limits?.max_integrations ?? null} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
                   </div>
                 </div>
 
