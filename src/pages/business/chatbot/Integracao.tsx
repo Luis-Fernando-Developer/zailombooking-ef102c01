@@ -255,8 +255,8 @@ export default function ChatbotIntegracao() {
         {!status?.connected && (
           <Card>
             <CardHeader>
-              <CardTitle>Conectar TalkMap</CardTitle>
-              <CardDescription>Cole abaixo a chave de API gerada no seu workspace do TalkMap.</CardDescription>
+              <CardTitle>Conectar ZailomFlow</CardTitle>
+              <CardDescription>Cole abaixo a chave de API gerada no seu workspace do ZailomFlow.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
