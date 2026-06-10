@@ -64,23 +64,23 @@ export function Pricing() {
         },
       ];
 
+      // Use dummy plans by default to avoid issues with empty database tables or RLS
+      setPlans(dummyPlans);
+
+      // Attempt to fetch from Supabase if data exists
       const { data, error } = await supabase
         .from('subscription_plans')
         .select('*')
         .eq('is_active', true)
         .order('monthly_price');
 
-      if (error) {
-        setPlans(dummyPlans);
-        return;
+      if (!error && data && data.length > 0) {
+        const parsedPlans = data.map(plan => ({
+          ...plan,
+          features: Array.isArray(plan.features) ? plan.features : JSON.parse(plan.features as string || '[]')
+        }));
+        setPlans(parsedPlans);
       }
-      
-      const parsedPlans = (data || []).map(plan => ({
-        ...plan,
-        features: Array.isArray(plan.features) ? plan.features : JSON.parse(plan.features as string || '[]')
-      }));
-      
-      setPlans(parsedPlans.length > 0 ? parsedPlans : dummyPlans);
     } catch (error) {
       console.error('Error fetching plans:', error);
     } finally {
