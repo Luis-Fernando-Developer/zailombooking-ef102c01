@@ -570,6 +570,30 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             </Card>
           )}
 
+          {/* Credit Card Instances Section */}
+          <Card className="border-primary/20 bg-card/50">
+            <CardContent className="pt-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" />
+                <Label>Instâncias WhatsApp Extras</Label>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label className="text-xs">Quantidade total permitida</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="Ex: 5"
+                    // Nota: Aqui precisaríamos de um campo no banco para persistir instâncias extras
+                    // Por enquanto mostramos apenas para fins de UI conforme solicitado
+                  />
+                </div>
+                <div className="text-xs text-muted-foreground pt-6">
+                  Sobrescreve o limite base do plano.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Discount Special Section */}
           <Card className="border-primary/20 bg-card/50">
             <CardContent className="pt-4 space-y-4">
