@@ -63,7 +63,7 @@ export default function ChatbotIntegracao() {
         ? {
             api_key_prefix: data.api_key_prefix,
             builder_workspace_slug: data.builder_workspace_slug,
-            builder_base_url: data.builder_base_url ?? "https://talkbuilder.lovable.app",
+            builder_base_url: data.builder_base_url ?? "https://flow-builder.zailom.com",
             connected_at: data.connected_at,
             is_active: data.is_active,
             talkmap_provisioned: data.talkmap_provisioned ?? false,
@@ -94,13 +94,13 @@ export default function ChatbotIntegracao() {
       } else {
         await supabase.from("chatbot_integration").insert({
           company_id: companyId,
-          builder_base_url: "https://talkbuilder.lovable.app",
+          builder_base_url: "https://flow-builder.zailom.com",
           is_active: false,
           talkmap_provisioned: value,
           talkmap_provisioned_at: value ? new Date().toISOString() : null,
         });
       }
-      toast.success(value ? "Conta marcada como criada no TalkMap" : "Marcação removida");
+      toast.success(value ? "Conta marcada como criada no ZailomFlow" : "Marcação removida");
       await refreshStatus(companyId);
     } catch (e) {
       toast.error((e as Error).message);
@@ -164,7 +164,7 @@ export default function ChatbotIntegracao() {
       <div className="p-6 max-w-3xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Plug className="h-6 w-6" /> Integração Chatbot</h1>
-          <p className="text-muted-foreground mt-1">Conecte seu workspace do TalkMap para usar o construtor de chatbot dentro do Flow-Appoint.</p>
+          <p className="text-muted-foreground mt-1">Conecte seu workspace do ZailomFlow para usar o construtor de chatbot dentro do Flow-Appoint.</p>
         </div>
 
         {/* Card 1 — Status do provisionamento da conta TalkMap */}
@@ -177,7 +177,7 @@ export default function ChatbotIntegracao() {
                 ) : (
                   <UserX className="h-5 w-5 text-amber-500" />
                 )}
-                Conta no TalkMap
+                Conta no ZailomFlow
               </span>
               {status?.integration?.talkmap_provisioned ? (
                 <Badge className="bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" /> Provisionada</Badge>
@@ -189,16 +189,16 @@ export default function ChatbotIntegracao() {
             </CardTitle>
             <CardDescription>
               {status?.integration?.talkmap_provisioned
-                ? "Sua conta no TalkMap já foi criada. Você pode conectar a chave de API abaixo."
-                : "Você ainda precisa criar manualmente sua conta no TalkMap usando o mesmo e-mail e senha cadastrados aqui."}
+                ? "Sua conta no ZailomFlow já foi criada. Você pode conectar a chave de API abaixo."
+                : "Você ainda precisa criar manualmente sua conta no ZailomFlow usando o mesmo e-mail e senha cadastrados aqui."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {!status?.integration?.talkmap_provisioned && (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-md p-3 space-y-2 text-foreground/90">
-                <p className="font-medium">📝 Passos para criar sua conta no TalkMap:</p>
+                <p className="font-medium">📝 Passos para criar sua conta no ZailomFlow:</p>
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                  <li>Acesse <a href="https://talkbuilder.lovable.app" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">talkbuilder.lovable.app <ExternalLink className="h-3 w-3" /></a></li>
+                  <li>Acesse <a href="https://flow-builder.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">flow-builder.zailom.com <ExternalLink className="h-3 w-3" /></a></li>
                   <li>Clique em <strong>Cadastrar</strong></li>
                   <li>Use o <strong>mesmo e-mail e senha</strong> da sua conta Flow-Appoint</li>
                   <li>No campo <strong>URL personalizada</strong>, use: <code className="bg-muted px-1.5 py-0.5 rounded">{status?.integration?.builder_workspace_slug || slug}</code></li>
@@ -224,7 +224,7 @@ export default function ChatbotIntegracao() {
               ) : (
                 <UserCheck className="h-4 w-4 mr-2" />
               )}
-              {status?.integration?.talkmap_provisioned ? "Desmarcar" : "Já criei minha conta no TalkMap"}
+              {status?.integration?.talkmap_provisioned ? "Desmarcar" : "Já criei minha conta no ZailomFlow"}
             </Button>
           </CardContent>
         </Card>
@@ -255,8 +255,8 @@ export default function ChatbotIntegracao() {
         {!status?.connected && (
           <Card>
             <CardHeader>
-              <CardTitle>Conectar TalkMap</CardTitle>
-              <CardDescription>Cole abaixo a chave de API gerada no seu workspace do TalkMap.</CardDescription>
+              <CardTitle>Conectar ZailomFlow</CardTitle>
+              <CardDescription>Cole abaixo a chave de API gerada no seu workspace do ZailomFlow.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -276,7 +276,7 @@ export default function ChatbotIntegracao() {
             <CardTitle>Como obter sua chave</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>1. Acesse <a href="https://talkbuilder.lovable.app" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">talkbuilder.lovable.app <ExternalLink className="h-3 w-3" /></a></p>
+            <p>1. Acesse <a href="https://flow-builder.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">flow-builder.zailom.com <ExternalLink className="h-3 w-3" /></a></p>
             <p>2. Faça login e abra <strong>Workspace → Configurações → API Keys</strong></p>
             <p>3. Clique em <strong>Gerar Nova Chave</strong> e copie o token (começa com <code>tmk_</code>)</p>
             <p>4. Cole acima e clique em Conectar</p>

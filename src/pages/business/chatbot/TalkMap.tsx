@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
- * Embeda o builder externo (TalkMap) como iframe.
+ * Embeda o builder externo (ZailomFlow) como iframe.
  * - Captura qualquer subpath após /admin/chatbot/talkmap/* e repassa pro builder
  *   como rota interna (HashRouter): https://talkbuilder.lovable.app/#/<subpath>
- * - Recebe mensagens postMessage do builder do tipo { type: "talkmap:navigate", path }
+ * - Recebe mensagens postMessage do builder do tipo { type: "zailomflow:navigate", path }
  *   e reflete na URL do Flow-Appoint (sem reload).
  * - Quando o usuário navega no Flow-Appoint (back/forward), envia
- *   { type: "talkmap:set-path", path } pro iframe.
+ *   { type: "zailomflow:set-path", path } pro iframe.
  */
 export default function ChatbotTalkMap() {
   const { slug, "*": splat } = useParams();
@@ -26,7 +26,7 @@ export default function ChatbotTalkMap() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string>("");
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
-  const [builderBaseUrl, setBuilderBaseUrl] = useState<string>("https://talkbuilder.lovable.app");
+  const [builderBaseUrl, setBuilderBaseUrl] = useState<string>("https://flow-builder.zailom.com");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { guard } = usePlanLimits(companyId || undefined);
@@ -69,7 +69,7 @@ export default function ChatbotTalkMap() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Falha ao gerar token de integração");
 
-        const base = (json.builder_base_url || "https://talkbuilder.lovable.app").replace(/\/+$/, "");
+        const base = (json.builder_base_url || "https://flow-builder.zailom.com").replace(/\/+$/, "");
         setBuilderBaseUrl(base);
 
         // Se não veio subpath, manda o usuário pro workspace dele por padrão
@@ -95,7 +95,7 @@ export default function ChatbotTalkMap() {
         if (allowed && ev.origin && !allowed.startsWith(ev.origin)) return;
         const data = ev.data;
         if (!data || typeof data !== "object") return;
-        if (data.type === "talkmap:navigate" && typeof data.path === "string") {
+        if (data.type === "zailomflow:navigate" && typeof data.path === "string") {
           const innerPath = data.path.replace(/^\/+/, "").replace(/^#\/?/, "");
           const target = `/${slug}/admin/chatbot/talkmap/${innerPath}`;
           if (target !== location.pathname) {
@@ -115,7 +115,7 @@ export default function ChatbotTalkMap() {
     if (!iframeRef.current || !iframeSrc) return;
     const target = subpath || `${slug}/workspace`;
     iframeRef.current.contentWindow?.postMessage(
-      { type: "talkmap:set-path", path: `/${target}` },
+      { type: "zailomflow:set-path", path: `/${target}` },
       builderBaseUrl,
     );
   }, [subpath, iframeSrc, slug, builderBaseUrl]);
@@ -139,7 +139,7 @@ export default function ChatbotTalkMap() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-muted-foreground">{error || "É necessário conectar uma chave de API do TalkMap antes de usar o construtor."}</p>
+              <p className="text-muted-foreground">{error || "É necessário conectar uma chave de API do ZailomFlow antes de usar o construtor."}</p>
               <Button onClick={() => navigate(`/${slug}/admin/chatbot/integracao`)}>Ir para Integração</Button>
             </CardContent>
           </Card>
@@ -153,7 +153,7 @@ export default function ChatbotTalkMap() {
       <iframe
         ref={iframeRef}
         src={iframeSrc}
-        title="TalkMap Builder"
+        title="ZailomFlow Builder"
         className="w-full border-0"
         style={{ height: "calc(100vh - 64px)" }}
         allow="clipboard-read; clipboard-write"

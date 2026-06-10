@@ -139,14 +139,14 @@ export default function CreateCompany() {
         throw new Error(`Erro ao criar funcionário: ${employeeError.message}`);
       }
 
-      // Provisionar conta automaticamente no builder-flow-api (TalkMap)
+      // Provisionar conta automaticamente no builder-flow-api (ZailomFlow)
       try {
         // Criar stub da integração
         await supabase
           .from('chatbot_integration')
           .insert([{
             company_id: companyData.id,
-            builder_base_url: 'https://talkbuilder.lovable.app',
+            builder_base_url: 'https://flow-builder.zailom.com',
             builder_workspace_slug: formData.slug,
             is_active: false,
             talkmap_provisioned: false,
@@ -170,12 +170,12 @@ export default function CreateCompany() {
         });
         const provResult = await provRes.json();
         if (provResult.ok) {
-          console.log('✅ Conta TalkMap provisionada:', provResult);
+          console.log('✅ Conta ZailomFlow provisionada:', provResult);
         } else {
-          console.warn('⚠️ Falha ao provisionar TalkMap:', provResult.error);
+          console.warn('⚠️ Falha ao provisionar ZailomFlow:', provResult.error);
         }
       } catch (provErr) {
-        console.warn('⚠️ Erro ao provisionar TalkMap (não bloqueante):', provErr);
+        console.warn('⚠️ Erro ao provisionar ZailomFlow (não bloqueante):', provErr);
       }
 
       // Sincronizar tier do plano com o builder
