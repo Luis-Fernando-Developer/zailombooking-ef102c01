@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLink, Check } from "lucide-react";
+import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLink, Check, MessageSquare } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,6 +38,7 @@ type Limits = {
   max_employees: number | null; max_services: number | null;
   max_bookings_month: number | null; max_chatbots: number | null;
   max_chatbot_messages: number | null; max_integrations: number | null;
+  max_whatsapp_instances: number | null;
   features: any;
 };
 
@@ -214,7 +215,7 @@ export default function BillingManagement() {
                     <CardTitle>{plan?.name || "Sem plano ativo"}</CardTitle>
                     <CardDescription>
                       {subscription ? (
-                        <>R$ {Number(subscription.original_price).toFixed(2)} / {labelPeriod(subscription.billing_period)}</>
+                        <>R$ {subscription.subscription_plans?.name === 'Starter' ? '79,00' : subscription.subscription_plans?.name === 'Professional' ? '149,00' : subscription.subscription_plans?.name === 'Enterprise' ? '249,00' : Number(subscription.original_price).toFixed(2)} / {labelPeriod(subscription.billing_period)}</>
                       ) : "Nenhuma assinatura encontrada"}
                     </CardDescription>
                   </div>
@@ -248,6 +249,7 @@ export default function BillingManagement() {
                     <LimitItem label="Agend./mês" value={limits.max_bookings_month} />
                     <LimitItem label="Chatbots" value={limits.max_chatbots} />
                     <LimitItem label="Mensagens" value={limits.max_chatbot_messages} />
+                    <LimitItem label="Instâncias WhatsApp" value={limits.max_whatsapp_instances || limits.max_integrations} />
                     <LimitItem label="Integrações" value={limits.max_integrations} />
                   </div>
                 )}
