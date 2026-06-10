@@ -433,8 +433,8 @@ export default function BillingManagement() {
 
       {/* DIALOGO MUDAR PLANO */}
       <Dialog open={changePlanOpen} onOpenChange={setChangePlanOpen}>
-        <DialogContent className="sm:max-w-[450px] max-h-[95vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[450px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-2">
             <DialogTitle>Mudar de plano</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
