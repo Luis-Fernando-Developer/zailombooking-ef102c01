@@ -139,7 +139,7 @@ export default function CreateCompany() {
         throw new Error(`Erro ao criar funcionário: ${employeeError.message}`);
       }
 
-      // Provisionar conta automaticamente no builder-flow-api (TalkMap)
+      // Provisionar conta automaticamente no builder-flow-api (ZailomFlow)
       try {
         // Criar stub da integração
         await supabase
