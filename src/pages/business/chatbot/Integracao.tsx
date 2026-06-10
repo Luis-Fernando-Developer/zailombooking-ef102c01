@@ -196,9 +196,9 @@ export default function ChatbotIntegracao() {
           <CardContent className="space-y-3 text-sm">
             {!status?.integration?.talkmap_provisioned && (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-md p-3 space-y-2 text-foreground/90">
-                <p className="font-medium">📝 Passos para criar sua conta no TalkMap:</p>
+                <p className="font-medium">📝 Passos para criar sua conta no ZailomFlow:</p>
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                  <li>Acesse <a href="https://talkbuilder.lovable.app" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">talkbuilder.lovable.app <ExternalLink className="h-3 w-3" /></a></li>
+                  <li>Acesse <a href="https://flow-builder.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">flow-builder.zailom.com <ExternalLink className="h-3 w-3" /></a></li>
                   <li>Clique em <strong>Cadastrar</strong></li>
                   <li>Use o <strong>mesmo e-mail e senha</strong> da sua conta Flow-Appoint</li>
                   <li>No campo <strong>URL personalizada</strong>, use: <code className="bg-muted px-1.5 py-0.5 rounded">{status?.integration?.builder_workspace_slug || slug}</code></li>
