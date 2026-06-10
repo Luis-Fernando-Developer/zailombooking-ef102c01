@@ -358,7 +358,13 @@ export default function BillingManagement() {
                 <SelectContent>
                   {allPlans.map(p => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name} — R$ {Number(p.monthly_price).toFixed(2)}/mês
+                      {p.name} — R$ {
+                        selectedPeriod === 'annual' 
+                          ? Number(p.annual_price).toFixed(2) 
+                          : selectedPeriod === 'quarterly' 
+                          ? Number(p.quarterly_price).toFixed(2) 
+                          : Number(p.monthly_price).toFixed(2)
+                      }/{labelPeriod(selectedPeriod)}
                     </SelectItem>
                   ))}
                 </SelectContent>
