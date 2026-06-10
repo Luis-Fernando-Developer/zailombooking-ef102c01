@@ -14,7 +14,7 @@ import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLi
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
-import { calculateSubscriptionChange, formatBRL, periodLabel, PLAN_LEVELS } from "@/lib/proration";
+import { calculateSubscriptionChange, formatBRL, periodLabel, PLAN_LEVELS, PLAN_PRICES } from "@/lib/proration";
 
 type Plan = {
   id: string; 
@@ -300,14 +300,13 @@ export default function BillingManagement() {
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Limites do Plano</h3>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      <LimitItem label="Funcionários" value={limits.max_employees} />
-                      <LimitItem label="Serviços" value={limits.max_services} />
-                      <LimitItem label="Agend./mês" value={limits.max_bookings_month} />
-                      <LimitItem label="Chatbots" value={limits.max_chatbots} />
-                      <LimitItem label="Mensagens" value={limits.max_chatbot_messages} />
-                      <LimitItem label="Instâncias WhatsApp" value={limits.max_whatsapp_instances} />
-                      <LimitItem label="Integrações" value={limits.max_integrations} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <LimitCard label="Profissionais" value={limits.max_employees} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Serviços" value={limits.max_services} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Agendamentos / Mês" value={limits.max_bookings_month} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Chatbots" value={limits.max_chatbots} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Mensagens" value={limits.max_chatbot_messages} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Integrações" value={limits.max_integrations} icon={<Check className="w-4 h-4 text-green-500" />} />
                     </div>
                   </div>
                 )}
@@ -408,7 +407,11 @@ export default function BillingManagement() {
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label>Novo Plano</Label>
-              <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+              <Select value={selectedPlan} onValueChange={(val) => {
+                setSelectedPlan(val);
+                // Reset period when changing plan to avoid confusion if needed, 
+                // but usually better to keep what user selected
+              }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione um plano" />
                 </SelectTrigger>
@@ -418,10 +421,10 @@ export default function BillingManagement() {
                       {p.name} — {
                         formatBRL(
                           selectedPeriod === 'annual' 
-                            ? p.annual_price 
+                            ? (PLAN_PRICES[p.name.toLowerCase()]?.annual || p.annual_price)
                             : selectedPeriod === 'quarterly' 
-                            ? p.quarterly_price 
-                            : p.monthly_price
+                            ? (PLAN_PRICES[p.name.toLowerCase()]?.quarterly || p.quarterly_price)
+                            : (PLAN_PRICES[p.name.toLowerCase()]?.monthly || p.monthly_price)
                         )
                       }/{periodLabel(selectedPeriod)}
                     </SelectItem>
@@ -490,6 +493,25 @@ export default function BillingManagement() {
                           <span className="font-medium">{formatDate(change.effectiveDate.toISOString())}</span>
                         </div>
                       </div>
+                      
+                      <div className="mt-3 p-2 rounded border border-blue-500/20 bg-blue-500/5 text-[11px] text-blue-700 leading-tight">
+                        <p className="font-semibold mb-1">Nota importante:</p>
+                        <p>
+                          Seu plano atual é <strong>{periodLabel(subscription.billing_period)}</strong>. 
+                          A diferença cobrada agora (R$ {change.upgradeAmount.toFixed(2)}) refere-se apenas ao upgrade proporcional até a próxima renovação.
+                        </p>
+                        <p className="mt-1">
+                          No próximo ciclo ({formatDate(change.effectiveDate.toISOString())}), você passará a ser cobrado o valor total de {
+                            formatBRL(
+                              selectedPeriod === 'annual' 
+                                ? (PLAN_PRICES[selectedPlan.toLowerCase()]?.annual || allPlans.find(p => p.id === selectedPlan)?.annual_price || 0)
+                                : selectedPeriod === 'quarterly' 
+                                ? (PLAN_PRICES[selectedPlan.toLowerCase()]?.quarterly || allPlans.find(p => p.id === selectedPlan)?.quarterly_price || 0)
+                                : (PLAN_PRICES[selectedPlan.toLowerCase()]?.monthly || allPlans.find(p => p.id === selectedPlan)?.monthly_price || 0)
+                            )
+                          } referente ao plano <strong>{allPlans.find(p => p.id === selectedPlan)?.name} ({periodLabel(selectedPeriod)})</strong>.
+                        </p>
+                      </div>
 
                       <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
                         {change.isImmediate 
@@ -543,12 +565,17 @@ export default function BillingManagement() {
   );
 }
 
-function LimitItem({ label, value }: { label: string; value: number | null }) {
+function LimitCard({ label, value, icon }: { label: string; value: number | null; icon?: React.ReactNode }) {
   const displayValue = value === null || value === -1 || value >= 999999 ? "Ilimitado" : value;
   return (
-    <div className="rounded-md border p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-semibold">{displayValue}</div>
+    <div className="flex items-center gap-3 rounded-lg border bg-card p-4 shadow-sm transition-all hover:border-green-500/50">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <p className="text-xl font-bold">{displayValue}</p>
+      </div>
     </div>
   );
 }
