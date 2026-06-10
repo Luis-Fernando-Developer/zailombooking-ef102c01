@@ -293,6 +293,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             pending_plan_change: null,
             status: 'active',
             next_billing_date: proration ? proration.nextBillingDate.toISOString() : nextBilling.toISOString(),
+            starts_at: now.toISOString(),
           };
 
           // Only include starts_at if it's explicitly allowed/exists (handling schema cache issues)
@@ -316,6 +317,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             discount_cycles_remaining: discountCycles,
             status: 'active',
             next_billing_date: proration ? proration.nextBillingDate.toISOString() : nextBilling.toISOString(),
+            starts_at: now.toISOString(),
           };
 
           const { error: subError } = await supabase
