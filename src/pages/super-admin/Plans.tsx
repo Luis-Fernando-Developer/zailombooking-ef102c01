@@ -82,26 +82,47 @@ export default function SuperAdminPlans() {
                     <Card key={plan.name} className="bg-background/40 border-primary/10">
                       <CardHeader>
                         <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
-                        <CardDescription>Configurações de preço</CardDescription>
+                        <CardDescription>Configurações e Benefícios</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="p-3 rounded-lg bg-black/20 border border-primary/5">
-                          <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Mensal</p>
-                          <p className="text-2xl font-bold text-gradient">{formatCurrency(plan.monthly)}</p>
+                          <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Preços</p>
+                          <p className="text-lg font-bold text-gradient">{formatCurrency(plan.monthly)}/mês</p>
+                          <p className="text-sm text-primary">Trimestral: {formatCurrency(plan.quarterlyMonthly)}/mês</p>
+                          <p className="text-sm text-primary">Anual: {formatCurrency(plan.annualMonthly)}/mês</p>
                         </div>
                         
                         <div className="p-3 rounded-lg bg-black/20 border border-primary/5">
-                          <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Trimestral</p>
-                          <p className="text-xl font-bold text-white">{formatCurrency(plan.quarterlyMonthly)}/mês</p>
-                          <p className="text-xs text-primary">Total: {formatCurrency(plan.quarterly)}</p>
-                          <p className="text-[10px] text-muted-foreground">Economia de {plan.savingsQuarterly}</p>
-                        </div>
-
-                        <div className="p-3 rounded-lg bg-black/20 border border-primary/5">
-                          <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Anual</p>
-                          <p className="text-xl font-bold text-white">{formatCurrency(plan.annualMonthly)}/mês</p>
-                          <p className="text-xs text-primary">Total: {formatCurrency(plan.annual)}</p>
-                          <p className="text-[10px] text-muted-foreground">Economia de {plan.savingsAnnual}</p>
+                          <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Benefícios</p>
+                          <ul className="text-xs space-y-1 text-muted-foreground">
+                            {plan.name === 'Starter' && (
+                              <>
+                                <li>200 agendamentos por Mês</li>
+                                <li>1 profissional / 5 serviços</li>
+                                <li>1 Chatbot básico</li>
+                                <li>1 conexão WhatsApp</li>
+                                <li>700 Mensagens/mês</li>
+                              </>
+                            )}
+                            {plan.name === 'Professional' && (
+                              <>
+                                <li>700 Agendamentos por mês</li>
+                                <li>Até 5 profissionais / 12 serviços</li>
+                                <li>3 Chatbots inclusos</li>
+                                <li>3 conexões WhatsApp</li>
+                                <li>5.000 Mensagens/mês</li>
+                              </>
+                            )}
+                            {plan.name === 'Enterprise' && (
+                              <>
+                                <li>Agendamentos Ilimitados</li>
+                                <li>Profissionais/Serviços Ilimitados</li>
+                                <li>Chatbots Ilimitados</li>
+                                <li>Conexões WhatsApp Ilimitadas</li>
+                                <li>Mensagens Ilimitadas</li>
+                              </>
+                            )}
+                          </ul>
                         </div>
                       </CardContent>
                     </Card>

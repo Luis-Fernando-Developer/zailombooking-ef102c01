@@ -42,7 +42,15 @@ export function Pricing() {
           quarterly_price: 213, // 71 * 3
           annual_price: 708, // 59 * 12
           is_active: true, 
-          features: ['Agendamentos ilimitados', '1 profissional', 'Chat básico', 'Suporte por email'] 
+          features: [
+            '200 agendamentos por Mes',
+            '1 profissional',
+            '5 serviços',
+            '1 Chatbot básico',
+            '1 conexão para whatsapp',
+            '700 Mensagens por mes',
+            'Suporte por email'
+          ] 
         },
         { 
           id: 'professional', 
@@ -51,7 +59,16 @@ export function Pricing() {
           quarterly_price: 402, // 134 * 3
           annual_price: 1308, // 109 * 12
           is_active: true, 
-          features: ['Agendamentos ilimitados', '5 profissionais', 'Chatbot completo', 'Relatórios avançados', 'Suporte prioritário'] 
+          features: [
+            '700 Agendamentos por mes',
+            'Até 5 profissionais',
+            'Até 12 serviços',
+            '3 Chatbots inclusos',
+            '3 conexões para whatsapp',
+            '5.000 Mensagens por mes',
+            'Relatórios avançados',
+            'Suporte prioritário'
+          ] 
         },
         { 
           id: 'enterprise', 
@@ -60,7 +77,16 @@ export function Pricing() {
           quarterly_price: 672, // 224 * 3
           annual_price: 2268, // 189 * 12
           is_active: true, 
-          features: ['Agendamentos ilimitados', 'Profissionais ilimitados', 'Chatbot IA avançado', 'API completa', 'Gerente de conta dedicado'] 
+          features: [
+            'Agendamentos Ilimitados',
+            'Profissionais ilimitados',
+            'Serviços Ilimitados',
+            'Chatbots Ilimitados',
+            'Conexões para whatsapp Ilimitadas',
+            'Mensagens por mes Ilimitadas',
+            'API Completa',
+            'Gerente de conta dedicado'
+          ] 
         },
       ];
 
