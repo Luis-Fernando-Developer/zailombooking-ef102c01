@@ -26,7 +26,7 @@ export default function ChatbotTalkMap() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string>("");
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
-  const [builderBaseUrl, setBuilderBaseUrl] = useState<string>("https://talkbuilder.lovable.app");
+  const [builderBaseUrl, setBuilderBaseUrl] = useState<string>("https://flow-builder.zailom.com");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { guard } = usePlanLimits(companyId || undefined);
