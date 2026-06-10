@@ -301,12 +301,13 @@ export default function BillingManagement() {
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Limites do Plano</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <LimitCard label="Profissionais" value={limits.max_employees} icon={<Check className="w-4 h-4 text-green-500" />} />
-                      <LimitCard label="Serviços" value={limits.max_services} icon={<Check className="w-4 h-4 text-green-500" />} />
-                      <LimitCard label="Agendamentos / Mês" value={limits.max_bookings_month} icon={<Check className="w-4 h-4 text-green-500" />} />
-                      <LimitCard label="Chatbots" value={limits.max_chatbots} icon={<Check className="w-4 h-4 text-green-500" />} />
-                      <LimitCard label="Mensagens" value={limits.max_chatbot_messages} icon={<Check className="w-4 h-4 text-green-500" />} />
-                      <LimitCard label="Integrações" value={limits.max_integrations} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Mensagens" value={limits.max_chatbot_messages} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                      <LimitCard label="Profissionais" value={limits.max_employees} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                      <LimitCard label="Serviços" value={limits.max_services} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                      <LimitCard label="Chatbots" value={limits.max_chatbots} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                      <LimitCard label="Instâncias" value={limits.max_whatsapp_instances} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                      <LimitCard label="Agendamentos" value={limits.max_bookings_month} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
+                      <LimitCard label="Integrações" value={limits.max_integrations} icon={<Check className="w-4 h-4 text-green-500" />} companyId={company?.id} />
                     </div>
                   </div>
                 )}
@@ -567,15 +568,59 @@ export default function BillingManagement() {
   );
 }
 
-function LimitCard({ label, value, icon }: { label: string; value: number | null; icon?: React.ReactNode }) {
+function LimitCard({ label, value, icon, companyId }: { label: string; value: number | null; icon?: React.ReactNode; companyId?: string }) {
+  const [usage, setUsage] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!companyId) return;
+
+    const fetchUsage = async () => {
+      // Map labels to resources for usePlanLimits/RPC
+      const labelMap: Record<string, string> = {
+        "Mensagens": "chatbot_messages",
+        "Profissionais": "employees",
+        "Serviços": "services",
+        "Chatbots": "chatbots",
+        "Instâncias": "whatsapp_instances",
+        "Agendamentos": "bookings_month",
+        "Integrações": "integrations"
+      };
+
+      const resource = labelMap[label];
+      if (!resource) return;
+
+      try {
+        const { data, error } = await supabase.rpc("check_plan_limit", {
+          _company_id: companyId,
+          _resource: resource,
+        });
+        if (!error && data) {
+          setUsage((data as any).current);
+        }
+      } catch (e) {
+        console.error(`Error fetching usage for ${label}:`, e);
+      }
+    };
+
+    fetchUsage();
+  }, [label, companyId]);
+
   const displayValue = value === null || value === -1 || value >= 999999 ? "Ilimitado" : value;
+  
   return (
     <div className="flex items-center gap-3 rounded-lg border bg-card p-4 shadow-sm transition-all hover:border-green-500/50">
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
         {icon}
       </div>
-      <div>
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <div className="flex-1">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          {usage !== null && (
+            <span className="text-[10px] font-bold bg-muted px-1.5 py-0.5 rounded uppercase">
+              Em uso: {usage}
+            </span>
+          )}
+        </div>
         <p className="text-xl font-bold">{displayValue}</p>
       </div>
     </div>
