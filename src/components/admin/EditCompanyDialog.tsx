@@ -507,20 +507,12 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
                     <p className="text-[10px] uppercase text-muted-foreground font-bold">Upgrade Proporcional</p>
                     <p className="font-medium text-green-600">{formatBRL(proration.upgradeAmount)}</p>
                   </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase text-muted-foreground font-bold">Dias restantes</p>
+                    <p className="font-medium">{proration.remainingDays} dias</p>
+                  </div>
                 </div>
 
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Dias restantes</p>
-                    <p className="text-lg font-bold">{proration.remainingDays} dias</p>
-                  </div>
-                  <div className="space-y-1 text-right">
-                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Próxima cobrança</p>
-                    <p className="text-lg font-bold flex items-center justify-end gap-1">
-                      <CalendarClock className="w-4 h-4 text-primary" />
-                      {proration.nextBillingDate.toLocaleDateString("pt-BR")}
-                    </p>
-                  </div>
-                </div>
 
                 <div className="pt-2 border-t border-primary/10">
                   <p className="text-xs text-muted-foreground">
