@@ -146,7 +146,7 @@ export default function CreateCompany() {
           .from('chatbot_integration')
           .insert([{
             company_id: companyData.id,
-            builder_base_url: 'https://talkbuilder.lovable.app',
+            builder_base_url: 'https://flow-builder.zailom.com',
             builder_workspace_slug: formData.slug,
             is_active: false,
             talkmap_provisioned: false,
