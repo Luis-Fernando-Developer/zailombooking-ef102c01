@@ -228,8 +228,25 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
     const newValue = getCurrentPlanPrice();
     const cycleStart = subscription.starts_at ? new Date(subscription.starts_at) : new Date();
     const cycleEnd = subscription.next_billing_date ? new Date(subscription.next_billing_date) : new Date(Date.now() + 30 * 86400000);
+
+    // Se o valor pago original for zero ou não existir (como em novos usuários/testes),
+    // podemos considerar o valor atual do plano como base se o usuário pediu para ignorar o histórico.
+    // O usuário relatou que ainda mostra 99 reais (plano antigo).
+    // Para resolver, vamos garantir que o currentPaidValue reflita o valor ATUAL do plano no banco se necessário,
+    // mas a instrução é remover por completo os valores anteriores.
+    
+    // Pegamos o preço atual do plano que a empresa JÁ TEM, no período que ela JÁ TEM
+    const currentPlanInDb = plans.find(p => p.id === subscription.plan_id);
+    let currentBasePrice = Number(subscription.original_price || 0);
+    
+    if (currentPlanInDb) {
+      if (subscription.billing_period === 'quarterly') currentBasePrice = currentPlanInDb.quarterly_price;
+      else if (subscription.billing_period === 'annual') currentBasePrice = currentPlanInDb.annual_price;
+      else currentBasePrice = currentPlanInDb.monthly_price;
+    }
+
     return calculateProration({
-      currentPaidValue: Number(subscription.original_price || 0),
+      currentPaidValue: currentBasePrice,
       currentPeriod: (subscription.billing_period as BillingPeriod) || "monthly",
       cycleStart,
       cycleEnd,
