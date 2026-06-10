@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLink, Check, MessageSquare } from "lucide-react";
+import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLink, Check, MessageSquare, CalendarClock } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
