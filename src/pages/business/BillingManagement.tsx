@@ -122,26 +122,42 @@ export default function BillingManagement() {
       setMethods(pm as any || []);
       setInvoices(inv as any || []);
 
-      const currentPlanId = sub?.plan_id || "starter";
+      const currentPlanName = sub?.subscription_plans?.name?.toLowerCase() || "starter";
       
-      const { data: lim } = await supabase
-        .from("plan_limits").select("*").eq("plan_id", currentPlanId).maybeSingle();
-      
-      if (lim) {
-        setLimits(lim as any);
-      } else {
-        // Fallback robusto se a tabela plan_limits não retornar nada
-        setLimits({
-          max_chatbot_messages: 100,
-          max_employees: 3,
+      const planResourceLimits: Record<string, Limits> = {
+        starter: {
+          max_bookings_month: 200,
+          max_employees: 1,
           max_services: 5,
           max_chatbots: 1,
           max_whatsapp_instances: 1,
-          max_bookings_month: 50,
+          max_chatbot_messages: 700,
           max_integrations: 1,
-          features: {}
-        });
-      }
+          features: { support: "Email" }
+        },
+        professional: {
+          max_bookings_month: 700,
+          max_employees: 5,
+          max_services: 12,
+          max_chatbots: 3,
+          max_whatsapp_instances: 3,
+          max_chatbot_messages: 5000,
+          max_integrations: 1,
+          features: { support: "Prioritário", reports: "Avançados" }
+        },
+        enterprise: {
+          max_bookings_month: -1,
+          max_employees: -1,
+          max_services: -1,
+          max_chatbots: -1,
+          max_whatsapp_instances: -1,
+          max_chatbot_messages: -1,
+          max_integrations: -1,
+          features: { support: "Gerente de conta dedicado", api: "Completa" }
+        }
+      };
+
+      setLimits(planResourceLimits[currentPlanName] || planResourceLimits.starter);
       
       if (sub) {
         setSelectedPlan(sub.plan_id);
