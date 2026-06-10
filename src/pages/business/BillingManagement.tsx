@@ -400,11 +400,11 @@ export default function BillingManagement() {
 
       {/* DIALOGO MUDAR PLANO */}
       <Dialog open={changePlanOpen} onOpenChange={setChangePlanOpen}>
-        <DialogContent className="sm:max-w-[450px]">
+        <DialogContent className="sm:max-w-[450px] max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Mudar de plano</DialogTitle>
           </DialogHeader>
-          <div className="space-y-6 py-4">
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Novo Plano</Label>
               <Select value={selectedPlan} onValueChange={(val) => {
@@ -448,7 +448,7 @@ export default function BillingManagement() {
             </div>
 
             {subscription && selectedPlan && (
-              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                 {(() => {
                   const change = calculateSubscriptionChange(
                     subscription.subscription_plans.name.toLowerCase(),
@@ -468,7 +468,7 @@ export default function BillingManagement() {
                         )}
                         Informações da alteração
                       </h4>
-                      <div className="space-y-2 text-xs">
+                      <div className="space-y-1.5 text-xs">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Tipo da alteração:</span>
                           <span className="font-medium">
