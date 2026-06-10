@@ -17,10 +17,9 @@ interface Plan {
 }
 
 const iconMap: Record<string, any> = {
-  'Prata': Zap,
-  'Ouro': Crown,
-  'Diamante': Rocket,
-  'Ruby': Gem
+  'Starter': Zap,
+  'Professional': Crown,
+  'Enterprise': Gem
 };
 
 export function Pricing() {
@@ -36,10 +35,33 @@ export function Pricing() {
   const fetchPlans = async () => {
     try {
       const dummyPlans = [
-        { id: '1', name: 'Prata', monthly_price: 49, quarterly_price: 132, annual_price: 470, is_active: true, features: ['Até 100 agendamentos/mês', 'Página Personalizada', 'Lembretes via WhatsApp', 'Relatórios Básicos'] },
-        { id: '2', name: 'Ouro', monthly_price: 99, quarterly_price: 267, annual_price: 950, is_active: true, features: ['Agendamentos Ilimitados', 'Multi-usuário (Equipe)', 'Gestão de Comissões', 'Suporte Prioritário', 'Chatbot TalkMap'] },
-        { id: '3', name: 'Diamante', monthly_price: 199, quarterly_price: 537, annual_price: 1910, is_active: true, features: ['Tudo do Plano Ouro', 'Domínio Personalizado', 'Customização Total de Design', 'Gerente de Contas Dedicado'] },
-        { id: '4', name: 'Ruby', monthly_price: 0, quarterly_price: 0, annual_price: 0, is_active: true, features: ['Solução On-Premise', 'API de Integração Total', 'SLA de 99.9%', 'Segurança de nível Bancário'] },
+        { 
+          id: 'starter', 
+          name: 'Starter', 
+          monthly_price: 79, 
+          quarterly_price: 207, // 69 * 3
+          annual_price: 708, // 59 * 12
+          is_active: true, 
+          features: ['Agendamentos ilimitados', '1 profissional', 'Chat básico', 'Suporte por email'] 
+        },
+        { 
+          id: 'professional', 
+          name: 'Professional', 
+          monthly_price: 149, 
+          quarterly_price: 402, // 134 * 3
+          annual_price: 1308, // 109 * 12
+          is_active: true, 
+          features: ['Agendamentos ilimitados', '5 profissionais', 'Chatbot completo', 'Relatórios avançados', 'Suporte prioritário'] 
+        },
+        { 
+          id: 'enterprise', 
+          name: 'Enterprise', 
+          monthly_price: 249, 
+          quarterly_price: 672, // 224 * 3
+          annual_price: 2268, // 189 * 12
+          is_active: true, 
+          features: ['Agendamentos ilimitados', 'Profissionais ilimitados', 'Chatbot IA avançado', 'API completa', 'Gerente de conta dedicado'] 
+        },
       ];
 
       const { data, error } = await supabase
@@ -66,12 +88,24 @@ export function Pricing() {
     }
   };
 
-  const getPrice = (plan: Plan) => {
+  const getDisplayMonthlyPrice = (plan: Plan) => {
     switch (billingPeriod) {
-      case 'quarterly': return plan.quarterly_price;
-      case 'annual': return plan.annual_price;
+      case 'quarterly': return plan.quarterly_price / 3;
+      case 'annual': return plan.annual_price / 12;
       default: return plan.monthly_price;
     }
+  };
+
+  const getSavingsLabel = (plan: Plan) => {
+    if (billingPeriod === 'quarterly') {
+      const savings = (plan.monthly_price * 3) - plan.quarterly_price;
+      return `Economia de R$${savings} no trimestre`;
+    }
+    if (billingPeriod === 'annual') {
+      const savings = (plan.monthly_price * 12) - plan.annual_price;
+      return `Economia de R$${savings} no ano`;
+    }
+    return null;
   };
 
   const formatPrice = (price: number) => {
@@ -111,24 +145,31 @@ export function Pricing() {
         {loading ? (
           <div className="flex justify-center h-64 items-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
         ) : (
-          <div className="grid lg:grid-cols-4 gap-6">
+          <div className="grid lg:grid-cols-3 gap-8">
             {plans.map((plan, index) => {
               const Icon = iconMap[plan.name] || Zap;
-              const isPopular = index === 1;
+              const isPopular = plan.name === 'Professional';
+              const displayPrice = getDisplayMonthlyPrice(plan);
+              const savingsLabel = getSavingsLabel(plan);
+
               return (
-                <Card key={plan.id} className={`relative card-glow border-primary/20 bg-card/40 backdrop-blur-md ${isPopular ? 'border-primary ring-2 ring-primary/20 scale-105 z-10' : ''}`}>
+                <Card key={plan.id} className={`relative card-glow border-primary/20 bg-card/40 backdrop-blur-md flex flex-col ${isPopular ? 'border-primary ring-2 ring-primary/20 scale-105 z-10' : ''}`}>
                   {isPopular && <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-primary text-white px-6 py-1 rounded-full text-xs font-black uppercase tracking-widest">Mais Vendido</div>}
                   <CardHeader className="text-center">
                     <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6"><Icon className="w-8 h-8 text-white" /></div>
                     <CardTitle className="text-2xl font-black">{plan.name}</CardTitle>
                     <div className="mt-4">
-                      {plan.monthly_price === 0 ? <span className="text-3xl font-black text-gradient">Sob Consulta</span> : (
-                        <><span className="text-5xl font-black text-white">{formatPrice(getPrice(plan))}</span><span className="text-muted-foreground text-sm ml-2">/{billingPeriod === 'monthly' ? 'mês' : billingPeriod === 'quarterly' ? 'tri' : 'ano'}</span></>
-                      )}
+                      <span className="text-5xl font-black text-white">{formatPrice(displayPrice)}</span>
+                      <span className="text-muted-foreground text-sm ml-2">/mês</span>
                     </div>
+                    {savingsLabel && (
+                      <div className="mt-2 text-primary text-xs font-bold uppercase tracking-tight">
+                        {savingsLabel}
+                      </div>
+                    )}
                   </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-4 mb-10">
+                  <CardContent className="flex-grow flex flex-col">
+                    <ul className="space-y-4 mb-10 flex-grow">
                       {plan.features.map((f, i) => (
                         <li key={i} className="flex items-start gap-3">
                           <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -137,7 +178,7 @@ export function Pricing() {
                       ))}
                     </ul>
                     <Button variant={isPopular ? "neon" : "outline"} size="lg" className="w-full font-black text-md h-12" onClick={() => navigate(`/signup?plan=${plan.id}`)}>
-                      {plan.monthly_price === 0 ? "Falar com Consultor" : "Começar Agora"}
+                      Começar Agora
                     </Button>
                   </CardContent>
                 </Card>
