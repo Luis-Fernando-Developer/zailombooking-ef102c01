@@ -122,14 +122,25 @@ export default function BillingManagement() {
       setMethods(pm as any || []);
       setInvoices(inv as any || []);
 
-      // NEW: Force use of subscription's plan_id if available, otherwise fallback to "starter"
       const currentPlanId = sub?.plan_id || "starter";
       
-      const { data: lim, error: limErr } = await supabase
+      const { data: lim } = await supabase
         .from("plan_limits").select("*").eq("plan_id", currentPlanId).maybeSingle();
       
       if (lim) {
         setLimits(lim as any);
+      } else {
+        // Fallback robusto se a tabela plan_limits não retornar nada
+        setLimits({
+          max_chatbot_messages: 100,
+          max_employees: 3,
+          max_services: 5,
+          max_chatbots: 1,
+          max_whatsapp_instances: 1,
+          max_bookings_month: 50,
+          max_integrations: 1,
+          features: {}
+        });
       }
       
       if (sub) {
@@ -138,7 +149,7 @@ export default function BillingManagement() {
       }
     } catch (e: any) {
       console.error(e);
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
+      toast({ title: "Erro ao carregar dados", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
