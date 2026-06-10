@@ -112,7 +112,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
 
   const fetchPlans = async () => {
     const dummyPlans: Plan[] = [
-      { id: 'starter', name: 'Starter', monthly_price: 79, quarterly_price: 207, annual_price: 708 },
+      { id: 'starter', name: 'Starter', monthly_price: 79, quarterly_price: 213, annual_price: 708 },
       { id: 'professional', name: 'Professional', monthly_price: 149, quarterly_price: 402, annual_price: 1308 },
       { id: 'enterprise', name: 'Enterprise', monthly_price: 249, quarterly_price: 672, annual_price: 2268 },
     ];

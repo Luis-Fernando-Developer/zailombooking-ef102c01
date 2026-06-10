@@ -39,7 +39,7 @@ export function Pricing() {
           id: 'starter', 
           name: 'Starter', 
           monthly_price: 79, 
-          quarterly_price: 207, // 69 * 3
+          quarterly_price: 213, // 71 * 3
           annual_price: 708, // 59 * 12
           is_active: true, 
           features: ['Agendamentos ilimitados', '1 profissional', 'Chat básico', 'Suporte por email'] 
