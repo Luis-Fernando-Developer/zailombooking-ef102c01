@@ -127,7 +127,13 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
       const updatedPlans = data.map(dbPlan => {
         const dummy = dummyPlans.find(d => d.name.toLowerCase() === dbPlan.name.toLowerCase());
         if (dummy) {
-          return { ...dbPlan, ...dummy, id: dbPlan.id }; // Keep DB ID but use new values
+          return { 
+            ...dbPlan, 
+            monthly_price: dummy.monthly_price,
+            quarterly_price: dummy.quarterly_price,
+            annual_price: dummy.annual_price,
+            id: dbPlan.id 
+          };
         }
         return dbPlan;
       });
