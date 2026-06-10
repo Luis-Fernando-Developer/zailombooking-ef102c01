@@ -407,7 +407,11 @@ export default function BillingManagement() {
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label>Novo Plano</Label>
-              <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+              <Select value={selectedPlan} onValueChange={(val) => {
+                setSelectedPlan(val);
+                // Reset period when changing plan to avoid confusion if needed, 
+                // but usually better to keep what user selected
+              }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione um plano" />
                 </SelectTrigger>
