@@ -421,10 +421,10 @@ export default function BillingManagement() {
                       {p.name} — {
                         formatBRL(
                           selectedPeriod === 'annual' 
-                            ? (PLAN_PRICES[p.name.toLowerCase()]?.annual || p.annual_price)
+                            ? (PLAN_PRICES[p.name.toLowerCase()]?.annual || 0)
                             : selectedPeriod === 'quarterly' 
-                            ? (PLAN_PRICES[p.name.toLowerCase()]?.quarterly || p.quarterly_price)
-                            : (PLAN_PRICES[p.name.toLowerCase()]?.monthly || p.monthly_price)
+                            ? (PLAN_PRICES[p.name.toLowerCase()]?.quarterly || 0)
+                            : (PLAN_PRICES[p.name.toLowerCase()]?.monthly || 0)
                         )
                       }/{periodLabel(selectedPeriod)}
                     </SelectItem>
