@@ -410,7 +410,7 @@ export default function BillingManagement() {
   );
 }
 
-function LimitItem({ label, value }: { label, value }: { label: string; value: number | null }) {
+function LimitItem({ label, value }: { label: string; value: number | null }) {
   const displayValue = value === null || value === -1 || value >= 999999 ? "Ilimitado" : value;
   return (
     <div className="rounded-md border p-3">
