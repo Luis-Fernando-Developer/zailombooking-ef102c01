@@ -250,15 +250,17 @@ export default function BillingManagement() {
                     <CardTitle>{plan?.name || "Sem plano ativo"}</CardTitle>
                     <CardDescription>
                       {subscription ? (
-                        <>R$ {
-                          subscription.billing_period === 'annual' 
-                            ? (plan?.name === 'Starter' ? '758,40' : plan?.name === 'Professional' ? '1.430,40' : plan?.name === 'Enterprise' ? '2.390,40' : Number(subscription.original_price).toFixed(2))
-                            : subscription.billing_period === 'quarterly'
-                            ? (plan?.name === 'Starter' ? '213,30' : plan?.name === 'Professional' ? '402,30' : plan?.name === 'Enterprise' ? '672,30' : Number(subscription.original_price).toFixed(2))
-                            : (plan?.name === 'Starter' ? '79,00' : plan?.name === 'Professional' ? '149,00' : plan?.name === 'Enterprise' ? '249,00' : Number(subscription.original_price).toFixed(2))
-                        } / {labelPeriod(subscription.billing_period)}</>
+                        <div className="flex flex-col">
+                          <span>
+                            {formatBRL(subscription.original_price)} / {periodLabel(subscription.billing_period)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Modelo Profissional de Gerenciamento
+                          </span>
+                        </div>
                       ) : "Nenhuma assinatura encontrada"}
                     </CardDescription>
+
                   </div>
                   <Badge variant={subscription?.status === "active" ? "default" : "destructive"}>
                     {subscription?.status || "inativo"}
