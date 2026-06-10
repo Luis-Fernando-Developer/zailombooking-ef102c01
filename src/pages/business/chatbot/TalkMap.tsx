@@ -95,7 +95,7 @@ export default function ChatbotTalkMap() {
         if (allowed && ev.origin && !allowed.startsWith(ev.origin)) return;
         const data = ev.data;
         if (!data || typeof data !== "object") return;
-        if (data.type === "talkmap:navigate" && typeof data.path === "string") {
+        if (data.type === "zailomflow:navigate" && typeof data.path === "string") {
           const innerPath = data.path.replace(/^\/+/, "").replace(/^#\/?/, "");
           const target = `/${slug}/admin/chatbot/talkmap/${innerPath}`;
           if (target !== location.pathname) {
