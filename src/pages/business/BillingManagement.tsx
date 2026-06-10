@@ -529,10 +529,10 @@ export default function BillingManagement() {
                       
                       {((subscription.plan_id !== selectedPlan) || (subscription.billing_period !== selectedPeriod)) && (
                         <div className="mt-3 p-2 rounded border border-blue-500/20 bg-blue-500/5 text-[11px] text-blue-700 leading-tight">
-                          <p className="font-semibold mb-1">Nota importante:</p>
+                          <p className="font-semibold mb-1">Resumo do Ciclo:</p>
                           <p>
-                            Seu plano atual é <strong>{periodLabel(subscription.billing_period)}</strong>. 
-                            A diferença cobrada agora (R$ {change.upgradeAmount.toFixed(2)}) refere-se apenas ao upgrade proporcional até a próxima renovação.
+                            Atualmente em <strong>{periodLabel(subscription.billing_period)}</strong>. 
+                            {change.upgradeAmount > 0 && `A diferença cobrada agora (${formatBRL(change.upgradeAmount)}) refere-se ao upgrade proporcional.`}
                           </p>
                           <p className="mt-1">
                             No próximo ciclo ({formatDate(change.effectiveDate.toISOString())}), você passará a ser cobrado o valor total de {
