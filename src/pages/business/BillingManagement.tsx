@@ -578,7 +578,7 @@ function LimitCard({ label, value, icon, companyId }: { label: string; value: nu
       // Map labels to resources for usePlanLimits/RPC
       const labelMap: Record<string, string> = {
         "Mensagens": "chatbot_messages",
-        "Profissionais": "employees",
+        "Funcionários": "employees",
         "Serviços": "services",
         "Chatbots": "chatbots",
         "Instâncias": "whatsapp_instances",
