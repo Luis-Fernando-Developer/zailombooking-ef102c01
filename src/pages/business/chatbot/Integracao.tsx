@@ -63,7 +63,7 @@ export default function ChatbotIntegracao() {
         ? {
             api_key_prefix: data.api_key_prefix,
             builder_workspace_slug: data.builder_workspace_slug,
-            builder_base_url: data.builder_base_url ?? "https://talkbuilder.lovable.app",
+            builder_base_url: data.builder_base_url ?? "https://flow-builder.zailom.com",
             connected_at: data.connected_at,
             is_active: data.is_active,
             talkmap_provisioned: data.talkmap_provisioned ?? false,
