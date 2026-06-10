@@ -292,7 +292,8 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             discount_cycles_remaining: discountCycles,
             pending_plan_change: null,
             status: 'active',
-            next_billing_date: proration ? proration.nextBillingDate.toISOString() : nextBilling.toISOString(),
+            next_billing_date: proration ? new Date(Date.now() + proration.remainingDays * 86400000).toISOString() : nextBilling.toISOString(),
+
             starts_at: now.toISOString(),
           };
 
@@ -316,7 +317,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             discount_percentage: discountPercentage,
             discount_cycles_remaining: discountCycles,
             status: 'active',
-            next_billing_date: proration ? proration.nextBillingDate.toISOString() : nextBilling.toISOString(),
+            next_billing_date: proration ? new Date(Date.now() + proration.remainingDays * 86400000).toISOString() : nextBilling.toISOString(),
             starts_at: now.toISOString(),
           };
 
