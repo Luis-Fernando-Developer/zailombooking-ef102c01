@@ -177,7 +177,7 @@ export default function ChatbotIntegracao() {
                 ) : (
                   <UserX className="h-5 w-5 text-amber-500" />
                 )}
-                Conta no TalkMap
+                Conta no ZailomFlow
               </span>
               {status?.integration?.talkmap_provisioned ? (
                 <Badge className="bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" /> Provisionada</Badge>
