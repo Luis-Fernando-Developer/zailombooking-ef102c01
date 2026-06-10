@@ -9,8 +9,8 @@ export default function SuperAdminPlans() {
     {
       name: 'Starter',
       monthly: 79,
-      quarterly: 207,
-      quarterlyMonthly: 69,
+      quarterly: 213,
+      quarterlyMonthly: 71,
       annual: 708,
       annualMonthly: 59,
       savingsQuarterly: 'R$ 24',
