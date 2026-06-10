@@ -137,3 +137,11 @@
     animation: pulse-glow 2s ease-in-out infinite;
   }
 }
+
+/* Hide Lovable badge */
+#lovable-badge,
+#lovable-badge-v2,
+[id^="lovable-badge"],
+a[href*="lovable.dev"][target="_blank"] {
+  display: none !important;
+}
