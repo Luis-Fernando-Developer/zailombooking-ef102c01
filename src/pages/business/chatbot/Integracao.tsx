@@ -94,7 +94,7 @@ export default function ChatbotIntegracao() {
       } else {
         await supabase.from("chatbot_integration").insert({
           company_id: companyId,
-          builder_base_url: "https://talkbuilder.lovable.app",
+          builder_base_url: "https://flow-builder.zailom.com",
           is_active: false,
           talkmap_provisioned: value,
           talkmap_provisioned_at: value ? new Date().toISOString() : null,
