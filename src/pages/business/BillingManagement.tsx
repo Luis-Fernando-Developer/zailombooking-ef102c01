@@ -122,12 +122,17 @@ export default function BillingManagement() {
       setMethods(pm as any || []);
       setInvoices(inv as any || []);
 
-      console.log("[Billing] Buscando limites para plan_id:", sub?.plan_id);
-      if (sub?.plan_id) {
-        const { data: lim, error: limErr } = await supabase
-          .from("plan_limits").select("*").eq("plan_id", sub.plan_id).maybeSingle();
-        console.log("[Billing] Limites encontrados:", lim, "Erro:", limErr);
+      // NEW: Force use of subscription's plan_id if available, otherwise fallback to "starter"
+      const currentPlanId = sub?.plan_id || "starter";
+      
+      const { data: lim, error: limErr } = await supabase
+        .from("plan_limits").select("*").eq("plan_id", currentPlanId).maybeSingle();
+      
+      if (lim) {
         setLimits(lim as any);
+      }
+      
+      if (sub) {
         setSelectedPlan(sub.plan_id);
         setSelectedPeriod(sub.billing_period || "monthly");
       }
