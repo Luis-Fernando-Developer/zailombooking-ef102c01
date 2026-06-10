@@ -189,8 +189,8 @@ export default function ChatbotIntegracao() {
             </CardTitle>
             <CardDescription>
               {status?.integration?.talkmap_provisioned
-                ? "Sua conta no TalkMap já foi criada. Você pode conectar a chave de API abaixo."
-                : "Você ainda precisa criar manualmente sua conta no TalkMap usando o mesmo e-mail e senha cadastrados aqui."}
+                ? "Sua conta no ZailomFlow já foi criada. Você pode conectar a chave de API abaixo."
+                : "Você ainda precisa criar manualmente sua conta no ZailomFlow usando o mesmo e-mail e senha cadastrados aqui."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
