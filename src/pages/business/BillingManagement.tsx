@@ -121,9 +121,12 @@ export default function BillingManagement() {
         new_plan_id: selectedPlan,
         billing_period: selectedPeriod,
       });
+      
+      const nextDate = formatDate(result.next_billing_date);
+      
       toast({
-        title: result.changeType === "plan_upgrade" ? "Upgrade aplicado" : "Alteração realizada",
-        description: `Nova data de cobrança: ${formatDate(result.next_billing_date)}`,
+        title: "Alteração solicitada",
+        description: `O novo plano será aplicado após o término do período atual. Próxima cobrança: ${nextDate}`,
       });
       setChangePlanOpen(false);
       fetchAll();
@@ -348,47 +351,86 @@ export default function BillingManagement() {
 
       {/* DIALOGO MUDAR PLANO */}
       <Dialog open={changePlanOpen} onOpenChange={setChangePlanOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Mudar de plano</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Plano</Label>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Mudar de plano</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label>Novo Plano</Label>
               <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione um plano" />
+                </SelectTrigger>
                 <SelectContent>
                   {allPlans.map(p => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name} — R$ {
-                        selectedPeriod === 'annual' 
-                          ? Number(p.annual_price).toFixed(2) 
-                          : selectedPeriod === 'quarterly' 
-                          ? Number(p.quarterly_price).toFixed(2) 
-                          : Number(p.monthly_price).toFixed(2)
+                      {p.name} — {
+                        new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL'
+                        }).format(
+                          selectedPeriod === 'annual' 
+                            ? p.annual_price 
+                            : selectedPeriod === 'quarterly' 
+                            ? p.quarterly_price 
+                            : p.monthly_price
+                        )
                       }/{labelPeriod(selectedPeriod)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div>
+
+            <div className="space-y-2">
               <Label>Periodicidade</Label>
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="monthly">Mensal</SelectItem>
-                  <SelectItem value="quarterly">Trimestral</SelectItem>
-                  <SelectItem value="annual">Anual</SelectItem>
+                  <SelectItem value="quarterly">Trimestral (10% OFF)</SelectItem>
+                  <SelectItem value="annual">Anual (20% OFF)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Alterações de plano ou ciclo mantêm seus dias já pagos. A nova cobrança será realizada apenas após o término do período atual.
-            </p>
+
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-500" /> 
+                Como funciona a mudança?
+              </h4>
+              <ul className="text-xs text-muted-foreground space-y-2">
+                <li className="flex gap-2">
+                  <span className="text-primary">•</span>
+                  <span>Você mantém o acesso ao plano atual até o fim do período já pago.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary">•</span>
+                  <span>Os dias restantes são convertidos em tempo proporcional no novo plano.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary">•</span>
+                  <span>A nova cobrança será realizada apenas na data prevista abaixo.</span>
+                </li>
+              </ul>
+              {subscription?.next_billing_date && (
+                <div className="pt-2 border-t border-border/50">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Próxima cobrança estimada</p>
+                  <p className="text-sm font-medium">{formatDate(subscription.next_billing_date)}</p>
+                </div>
+              )}
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setChangePlanOpen(false)}>Cancelar</Button>
-            <Button onClick={handleChangePlan} disabled={busy}>
-              {busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Confirmar
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setChangePlanOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleChangePlan} disabled={busy} className="bg-green-600 hover:bg-green-700 text-white">
+              {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+              Confirmar Alteração
             </Button>
           </DialogFooter>
         </DialogContent>
