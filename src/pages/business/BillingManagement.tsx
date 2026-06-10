@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,37 +10,69 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLink, Check, MessageSquare } from "lucide-react";
+import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLink, Check, MessageSquare, CalendarClock } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
+import { calculateSubscriptionChange, formatBRL, periodLabel, PLAN_LEVELS } from "@/lib/proration";
+
 type Plan = {
-  id: string; name: string; monthly_price: number; quarterly_price: number; annual_price: number;
-  builder_tier: string; features: any;
+  id: string; 
+  name: string; 
+  monthly_price: number; 
+  quarterly_price: number; 
+  annual_price: number;
+  builder_tier: string; 
+  features: any;
 };
+
 type Subscription = {
-  id: string; company_id: string; plan_id: string; billing_period: string;
-  status: string; original_price: number; next_billing_date: string | null;
-  pending_plan_change: any; current_payment_method_id: string | null;
+  id: string; 
+  company_id: string; 
+  plan_id: string; 
+  billing_period: string;
+  status: string; 
+  original_price: number; 
+  next_billing_date: string | null;
+  pending_plan_change: any; 
+  current_payment_method_id: string | null;
   asaas_subscription_id: string | null;
   subscription_plans: Plan;
 };
+
 type PaymentMethod = {
-  id: string; type: string; brand: string | null; last_digits: string | null;
-  display_label: string | null; is_default: boolean; is_active: boolean;
+  id: string; 
+  type: string; 
+  brand: string | null; 
+  last_digits: string | null;
+  display_label: string | null; 
+  is_default: boolean; 
+  is_active: boolean;
 };
+
 type Invoice = {
-  id: string; amount: number; status: string; billing_type: string | null;
-  due_date: string; paid_at: string | null; invoice_url: string | null;
-  bank_slip_url: string | null; description: string | null;
+  id: string; 
+  amount: number; 
+  status: string; 
+  billing_type: string | null;
+  due_date: string; 
+  paid_at: string | null; 
+  invoice_url: string | null;
+  bank_slip_url: string | null; 
+  description: string | null;
 };
+
 type Limits = {
-  max_employees: number | null; max_services: number | null;
-  max_bookings_month: number | null; max_chatbots: number | null;
-  max_chatbot_messages: number | null; max_integrations: number | null;
+  max_employees: number | null; 
+  max_services: number | null;
+  max_bookings_month: number | null; 
+  max_chatbots: number | null;
+  max_chatbot_messages: number | null; 
+  max_integrations: number | null;
   max_whatsapp_instances: number | null;
   features: any;
 };
+
 
 export default function BillingManagement() {
   const { slug } = useParams<{ slug: string }>();
@@ -218,15 +250,17 @@ export default function BillingManagement() {
                     <CardTitle>{plan?.name || "Sem plano ativo"}</CardTitle>
                     <CardDescription>
                       {subscription ? (
-                        <>R$ {
-                          subscription.billing_period === 'annual' 
-                            ? (plan?.name === 'Starter' ? '758,40' : plan?.name === 'Professional' ? '1.430,40' : plan?.name === 'Enterprise' ? '2.390,40' : Number(subscription.original_price).toFixed(2))
-                            : subscription.billing_period === 'quarterly'
-                            ? (plan?.name === 'Starter' ? '213,30' : plan?.name === 'Professional' ? '402,30' : plan?.name === 'Enterprise' ? '672,30' : Number(subscription.original_price).toFixed(2))
-                            : (plan?.name === 'Starter' ? '79,00' : plan?.name === 'Professional' ? '149,00' : plan?.name === 'Enterprise' ? '249,00' : Number(subscription.original_price).toFixed(2))
-                        } / {labelPeriod(subscription.billing_period)}</>
+                        <div className="flex flex-col">
+                          <span>
+                            {formatBRL(subscription.original_price)} / {periodLabel(subscription.billing_period)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Modelo Profissional de Gerenciamento
+                          </span>
+                        </div>
                       ) : "Nenhuma assinatura encontrada"}
                     </CardDescription>
+
                   </div>
                   <Badge variant={subscription?.status === "active" ? "default" : "destructive"}>
                     {subscription?.status || "inativo"}
@@ -246,22 +280,38 @@ export default function BillingManagement() {
                 </div>
 
                 {pending && (
-                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-                    Mudança agendada: novo plano em <strong>{formatDate(pending.effective_at)}</strong>.
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-amber-600 font-semibold">
+                      <CalendarClock className="w-4 h-4" />
+                      Alteração Agendada
+                    </div>
+                    <p className="text-sm">
+                      Seu plano mudará para <strong>{allPlans.find(p => p.id === pending.plan_id)?.name || pending.plan_id} ({periodLabel(pending.billing_period)})</strong> em <strong>{formatDate(pending.effective_at || subscription?.next_billing_date)}</strong>.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Até lá, você continua com acesso total aos recursos do plano {plan?.name}.
+                    </p>
                   </div>
                 )}
 
+
                 {limits && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-                    <LimitItem label="Funcionários" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 5 : 1)} />
-                    <LimitItem label="Serviços" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 12 : 5)} />
-                    <LimitItem label="Agend./mês" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 700 : 200)} />
-                    <LimitItem label="Chatbots" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 3 : 1)} />
-                    <LimitItem label="Mensagens" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 5000 : 700)} />
-                    <LimitItem label="Instâncias WhatsApp" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 3 : 1)} />
-                    <LimitItem label="Integrações" value={plan?.name === 'Enterprise' ? -1 : 2} />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Limites do Plano</h3>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <LimitItem label="Funcionários" value={limits.max_employees} />
+                      <LimitItem label="Serviços" value={limits.max_services} />
+                      <LimitItem label="Agend./mês" value={limits.max_bookings_month} />
+                      <LimitItem label="Chatbots" value={limits.max_chatbots} />
+                      <LimitItem label="Mensagens" value={limits.max_chatbot_messages} />
+                      <LimitItem label="Instâncias WhatsApp" value={limits.max_whatsapp_instances} />
+                      <LimitItem label="Integrações" value={limits.max_integrations} />
+                    </div>
                   </div>
                 )}
+
 
                 <div className="flex gap-2 pt-2">
                   <Button onClick={() => setChangePlanOpen(true)}>Mudar de plano</Button>
@@ -351,7 +401,7 @@ export default function BillingManagement() {
 
       {/* DIALOGO MUDAR PLANO */}
       <Dialog open={changePlanOpen} onOpenChange={setChangePlanOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle>Mudar de plano</DialogTitle>
           </DialogHeader>
@@ -366,17 +416,14 @@ export default function BillingManagement() {
                   {allPlans.map(p => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name} — {
-                        new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL'
-                        }).format(
+                        formatBRL(
                           selectedPeriod === 'annual' 
                             ? p.annual_price 
                             : selectedPeriod === 'quarterly' 
                             ? p.quarterly_price 
                             : p.monthly_price
                         )
-                      }/{labelPeriod(selectedPeriod)}
+                      }/{periodLabel(selectedPeriod)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -397,32 +444,63 @@ export default function BillingManagement() {
               </Select>
             </div>
 
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-              <h4 className="text-sm font-semibold flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" /> 
-                Como funciona a mudança?
-              </h4>
-              <ul className="text-xs text-muted-foreground space-y-2">
-                <li className="flex gap-2">
-                  <span className="text-primary">•</span>
-                  <span>Você mantém o acesso ao plano atual até o fim do período já pago.</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary">•</span>
-                  <span>Os dias restantes são convertidos em tempo proporcional no novo plano.</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary">•</span>
-                  <span>A nova cobrança será realizada apenas na data prevista abaixo.</span>
-                </li>
-              </ul>
-              {subscription?.next_billing_date && (
-                <div className="pt-2 border-t border-border/50">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Próxima cobrança estimada</p>
-                  <p className="text-sm font-medium">{formatDate(subscription.next_billing_date)}</p>
-                </div>
-              )}
-            </div>
+            {subscription && selectedPlan && (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                {(() => {
+                  const change = calculateSubscriptionChange(
+                    subscription.subscription_plans.name.toLowerCase(),
+                    subscription.billing_period as any,
+                    new Date(subscription.next_billing_date || new Date()),
+                    allPlans.find(p => p.id === selectedPlan)?.name.toLowerCase() || "",
+                    selectedPeriod as any
+                  );
+
+                  return (
+                    <>
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        {change.isImmediate ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Package className="w-4 h-4 text-amber-500" />
+                        )}
+                        Informações da alteração
+                      </h4>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Tipo da alteração:</span>
+                          <span className="font-medium">
+                            {change.changeType === 'plan_upgrade' && "Upgrade de Plano"}
+                            {change.changeType === 'plan_downgrade' && "Downgrade Agendado"}
+                            {change.changeType === 'cycle_change' && "Mudança de Ciclo Agendada"}
+                            {change.changeType === 'upgrade_with_cycle_change' && "Upgrade Imediato + Ciclo Agendado"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Dias restantes:</span>
+                          <span className="font-medium">{change.remainingDays} dias</span>
+                        </div>
+                        {change.upgradeAmount > 0 && (
+                          <div className="flex justify-between border-t border-border/50 pt-2">
+                            <span className="text-muted-foreground font-semibold">Valor proporcional a pagar:</span>
+                            <span className="font-bold text-green-600">{formatBRL(change.upgradeAmount)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Data da alteração:</span>
+                          <span className="font-medium">{formatDate(change.effectiveDate.toISOString())}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
+                        {change.isImmediate 
+                          ? "O upgrade será aplicado imediatamente após a confirmação do pagamento proporcional." 
+                          : "A alteração será aplicada automaticamente na próxima data de renovação."}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setChangePlanOpen(false)}>
@@ -430,11 +508,12 @@ export default function BillingManagement() {
             </Button>
             <Button onClick={handleChangePlan} disabled={busy} className="bg-green-600 hover:bg-green-700 text-white">
               {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-              Confirmar Alteração
+              Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* DIALOGO ADICIONAR CARTÃO */}
       <Dialog open={addCardOpen} onOpenChange={setAddCardOpen}>

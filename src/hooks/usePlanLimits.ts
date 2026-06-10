@@ -38,18 +38,62 @@ export function usePlanLimits(companyId?: string) {
   const check = useCallback(
     async (resource: PlanResource): Promise<PlanLimitCheck | null> => {
       if (!companyId) return null;
+      
+      // First, get the company's current plan
+      const { data: sub } = await supabase
+        .from("company_subscriptions")
+        .select("plan_id")
+        .eq("company_id", companyId)
+        .maybeSingle();
+      
+      const planId = sub?.plan_id || 'starter';
+
+      // Then get limits from plan_limits table (the new source of truth)
+      const { data: limitData } = await supabase
+        .from("plan_limits")
+        .select("*")
+        .eq("plan_id", planId)
+        .maybeSingle();
+
+      if (!limitData) return null;
+
+      // Map resource to database column
+      const columnMap: Record<PlanResource, string> = {
+        employees: "max_employees",
+        services: "max_services",
+        combos: "max_services", // Usually tied to services or separate
+        bookings_month: "max_bookings_month",
+        chatbots: "max_chatbots",
+        chatbot_messages: "max_chatbot_messages",
+        integrations: "max_integrations"
+      };
+
+      const limit = limitData[columnMap[resource]] ?? -1;
+      
+      // Perform local check or RPC for current usage
+      // For now, we still rely on the RPC for the usage calculation logic
       const { data, error } = await supabase.rpc("check_plan_limit", {
         _company_id: companyId,
         _resource: resource,
       });
+
       if (error) {
         console.error("[usePlanLimits] erro:", error);
         return null;
       }
-      return data as unknown as PlanLimitCheck;
+      
+      // Override the limit with the one from our new table if needed
+      const result = data as unknown as PlanLimitCheck;
+      return {
+        ...result,
+        limit: limit === -1 ? null : limit,
+        unlimited: limit === -1,
+        allowed: limit === -1 || result.current < limit
+      };
     },
     [companyId]
   );
+
 
   /** Returns true if allowed; otherwise shows a toast and returns false. */
   const guard = useCallback(
