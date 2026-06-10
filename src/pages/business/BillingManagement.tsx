@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -278,22 +278,38 @@ export default function BillingManagement() {
                 </div>
 
                 {pending && (
-                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-                    Mudança agendada: novo plano em <strong>{formatDate(pending.effective_at)}</strong>.
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-amber-600 font-semibold">
+                      <CalendarClock className="w-4 h-4" />
+                      Alteração Agendada
+                    </div>
+                    <p className="text-sm">
+                      Seu plano mudará para <strong>{allPlans.find(p => p.id === pending.plan_id)?.name || pending.plan_id} ({periodLabel(pending.billing_period)})</strong> em <strong>{formatDate(pending.effective_at || subscription?.next_billing_date)}</strong>.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Até lá, você continua com acesso total aos recursos do plano {plan?.name}.
+                    </p>
                   </div>
                 )}
 
+
                 {limits && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-                    <LimitItem label="Funcionários" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 5 : 1)} />
-                    <LimitItem label="Serviços" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 12 : 5)} />
-                    <LimitItem label="Agend./mês" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 700 : 200)} />
-                    <LimitItem label="Chatbots" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 3 : 1)} />
-                    <LimitItem label="Mensagens" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 5000 : 700)} />
-                    <LimitItem label="Instâncias WhatsApp" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 3 : 1)} />
-                    <LimitItem label="Integrações" value={plan?.name === 'Enterprise' ? -1 : 2} />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Limites do Plano</h3>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <LimitItem label="Funcionários" value={limits.max_employees} />
+                      <LimitItem label="Serviços" value={limits.max_services} />
+                      <LimitItem label="Agend./mês" value={limits.max_bookings_month} />
+                      <LimitItem label="Chatbots" value={limits.max_chatbots} />
+                      <LimitItem label="Mensagens" value={limits.max_chatbot_messages} />
+                      <LimitItem label="Instâncias WhatsApp" value={limits.max_whatsapp_instances} />
+                      <LimitItem label="Integrações" value={limits.max_integrations} />
+                    </div>
                   </div>
                 )}
+
 
                 <div className="flex gap-2 pt-2">
                   <Button onClick={() => setChangePlanOpen(true)}>Mudar de plano</Button>
