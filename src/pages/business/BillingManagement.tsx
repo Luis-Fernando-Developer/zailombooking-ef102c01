@@ -122,26 +122,42 @@ export default function BillingManagement() {
       setMethods(pm as any || []);
       setInvoices(inv as any || []);
 
-      const currentPlanId = sub?.plan_id || "starter";
+      const currentPlanName = sub?.subscription_plans?.name?.toLowerCase() || "starter";
       
-      const { data: lim } = await supabase
-        .from("plan_limits").select("*").eq("plan_id", currentPlanId).maybeSingle();
-      
-      if (lim) {
-        setLimits(lim as any);
-      } else {
-        // Fallback robusto se a tabela plan_limits não retornar nada
-        setLimits({
-          max_chatbot_messages: 100,
-          max_employees: 3,
+      const planResourceLimits: Record<string, Limits> = {
+        starter: {
+          max_bookings_month: 200,
+          max_employees: 1,
           max_services: 5,
           max_chatbots: 1,
           max_whatsapp_instances: 1,
-          max_bookings_month: 50,
+          max_chatbot_messages: 700,
           max_integrations: 1,
-          features: {}
-        });
-      }
+          features: { support: "Email" }
+        },
+        professional: {
+          max_bookings_month: 700,
+          max_employees: 5,
+          max_services: 12,
+          max_chatbots: 3,
+          max_whatsapp_instances: 3,
+          max_chatbot_messages: 5000,
+          max_integrations: 1,
+          features: { support: "Prioritário", reports: "Avançados" }
+        },
+        enterprise: {
+          max_bookings_month: -1,
+          max_employees: -1,
+          max_services: -1,
+          max_chatbots: -1,
+          max_whatsapp_instances: -1,
+          max_chatbot_messages: -1,
+          max_integrations: -1,
+          features: { support: "Gerente de conta dedicado", api: "Completa" }
+        }
+      };
+
+      setLimits(planResourceLimits[currentPlanName] || planResourceLimits.starter);
       
       if (sub) {
         setSelectedPlan(sub.plan_id);
@@ -417,8 +433,8 @@ export default function BillingManagement() {
 
       {/* DIALOGO MUDAR PLANO */}
       <Dialog open={changePlanOpen} onOpenChange={setChangePlanOpen}>
-        <DialogContent className="sm:max-w-[450px] max-h-[95vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[450px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-2">
             <DialogTitle>Mudar de plano</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -513,10 +529,10 @@ export default function BillingManagement() {
                       
                       {((subscription.plan_id !== selectedPlan) || (subscription.billing_period !== selectedPeriod)) && (
                         <div className="mt-3 p-2 rounded border border-blue-500/20 bg-blue-500/5 text-[11px] text-blue-700 leading-tight">
-                          <p className="font-semibold mb-1">Nota importante:</p>
+                          <p className="font-semibold mb-1">Resumo do Ciclo:</p>
                           <p>
-                            Seu plano atual é <strong>{periodLabel(subscription.billing_period)}</strong>. 
-                            A diferença cobrada agora (R$ {change.upgradeAmount.toFixed(2)}) refere-se apenas ao upgrade proporcional até a próxima renovação.
+                            Atualmente em <strong>{periodLabel(subscription.billing_period)}</strong>. 
+                            {change.upgradeAmount > 0 && `A diferença cobrada agora (${formatBRL(change.upgradeAmount)}) refere-se ao upgrade proporcional.`}
                           </p>
                           <p className="mt-1">
                             No próximo ciclo ({formatDate(change.effectiveDate.toISOString())}), você passará a ser cobrado o valor total de {
