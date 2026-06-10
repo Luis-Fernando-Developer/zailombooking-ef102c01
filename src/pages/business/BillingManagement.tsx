@@ -541,7 +541,7 @@ export default function BillingManagement() {
 
       {/* DIALOGO ADICIONAR CARTÃO */}
       <Dialog open={addCardOpen} onOpenChange={setAddCardOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[95vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Adicionar cartão</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2"><Label>Nome impresso</Label><Input value={card.holderName} onChange={e=>setCard({...card,holderName:e.target.value})} /></div>
