@@ -164,7 +164,7 @@ export default function ChatbotIntegracao() {
       <div className="p-6 max-w-3xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Plug className="h-6 w-6" /> Integração Chatbot</h1>
-          <p className="text-muted-foreground mt-1">Conecte seu workspace do TalkMap para usar o construtor de chatbot dentro do Flow-Appoint.</p>
+          <p className="text-muted-foreground mt-1">Conecte seu workspace do ZailomFlow para usar o construtor de chatbot dentro do Flow-Appoint.</p>
         </div>
 
         {/* Card 1 — Status do provisionamento da conta TalkMap */}
