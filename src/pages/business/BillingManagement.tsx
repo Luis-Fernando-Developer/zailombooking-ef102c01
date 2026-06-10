@@ -14,33 +14,65 @@ import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLi
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
+import { calculateSubscriptionChange, formatBRL, periodLabel, PLAN_LEVELS } from "@/lib/proration";
+
 type Plan = {
-  id: string; name: string; monthly_price: number; quarterly_price: number; annual_price: number;
-  builder_tier: string; features: any;
+  id: string; 
+  name: string; 
+  monthly_price: number; 
+  quarterly_price: number; 
+  annual_price: number;
+  builder_tier: string; 
+  features: any;
 };
+
 type Subscription = {
-  id: string; company_id: string; plan_id: string; billing_period: string;
-  status: string; original_price: number; next_billing_date: string | null;
-  pending_plan_change: any; current_payment_method_id: string | null;
+  id: string; 
+  company_id: string; 
+  plan_id: string; 
+  billing_period: string;
+  status: string; 
+  original_price: number; 
+  next_billing_date: string | null;
+  pending_plan_change: any; 
+  current_payment_method_id: string | null;
   asaas_subscription_id: string | null;
   subscription_plans: Plan;
 };
+
 type PaymentMethod = {
-  id: string; type: string; brand: string | null; last_digits: string | null;
-  display_label: string | null; is_default: boolean; is_active: boolean;
+  id: string; 
+  type: string; 
+  brand: string | null; 
+  last_digits: string | null;
+  display_label: string | null; 
+  is_default: boolean; 
+  is_active: boolean;
 };
+
 type Invoice = {
-  id: string; amount: number; status: string; billing_type: string | null;
-  due_date: string; paid_at: string | null; invoice_url: string | null;
-  bank_slip_url: string | null; description: string | null;
+  id: string; 
+  amount: number; 
+  status: string; 
+  billing_type: string | null;
+  due_date: string; 
+  paid_at: string | null; 
+  invoice_url: string | null;
+  bank_slip_url: string | null; 
+  description: string | null;
 };
+
 type Limits = {
-  max_employees: number | null; max_services: number | null;
-  max_bookings_month: number | null; max_chatbots: number | null;
-  max_chatbot_messages: number | null; max_integrations: number | null;
+  max_employees: number | null; 
+  max_services: number | null;
+  max_bookings_month: number | null; 
+  max_chatbots: number | null;
+  max_chatbot_messages: number | null; 
+  max_integrations: number | null;
   max_whatsapp_instances: number | null;
   features: any;
 };
+
 
 export default function BillingManagement() {
   const { slug } = useParams<{ slug: string }>();
@@ -351,7 +383,7 @@ export default function BillingManagement() {
 
       {/* DIALOGO MUDAR PLANO */}
       <Dialog open={changePlanOpen} onOpenChange={setChangePlanOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle>Mudar de plano</DialogTitle>
           </DialogHeader>
@@ -366,17 +398,14 @@ export default function BillingManagement() {
                   {allPlans.map(p => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name} — {
-                        new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL'
-                        }).format(
+                        formatBRL(
                           selectedPeriod === 'annual' 
                             ? p.annual_price 
                             : selectedPeriod === 'quarterly' 
                             ? p.quarterly_price 
                             : p.monthly_price
                         )
-                      }/{labelPeriod(selectedPeriod)}
+                      }/{periodLabel(selectedPeriod)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -397,32 +426,63 @@ export default function BillingManagement() {
               </Select>
             </div>
 
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-              <h4 className="text-sm font-semibold flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" /> 
-                Como funciona a mudança?
-              </h4>
-              <ul className="text-xs text-muted-foreground space-y-2">
-                <li className="flex gap-2">
-                  <span className="text-primary">•</span>
-                  <span>Você mantém o acesso ao plano atual até o fim do período já pago.</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary">•</span>
-                  <span>Os dias restantes são convertidos em tempo proporcional no novo plano.</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary">•</span>
-                  <span>A nova cobrança será realizada apenas na data prevista abaixo.</span>
-                </li>
-              </ul>
-              {subscription?.next_billing_date && (
-                <div className="pt-2 border-t border-border/50">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Próxima cobrança estimada</p>
-                  <p className="text-sm font-medium">{formatDate(subscription.next_billing_date)}</p>
-                </div>
-              )}
-            </div>
+            {subscription && selectedPlan && (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                {(() => {
+                  const change = calculateSubscriptionChange(
+                    subscription.subscription_plans.name.toLowerCase(),
+                    subscription.billing_period as any,
+                    new Date(subscription.next_billing_date || new Date()),
+                    allPlans.find(p => p.id === selectedPlan)?.name.toLowerCase() || "",
+                    selectedPeriod as any
+                  );
+
+                  return (
+                    <>
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        {change.isImmediate ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Package className="w-4 h-4 text-amber-500" />
+                        )}
+                        Informações da alteração
+                      </h4>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Tipo da alteração:</span>
+                          <span className="font-medium">
+                            {change.changeType === 'plan_upgrade' && "Upgrade de Plano"}
+                            {change.changeType === 'plan_downgrade' && "Downgrade Agendado"}
+                            {change.changeType === 'cycle_change' && "Mudança de Ciclo Agendada"}
+                            {change.changeType === 'upgrade_with_cycle_change' && "Upgrade Imediato + Ciclo Agendado"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Dias restantes:</span>
+                          <span className="font-medium">{change.remainingDays} dias</span>
+                        </div>
+                        {change.upgradeAmount > 0 && (
+                          <div className="flex justify-between border-t border-border/50 pt-2">
+                            <span className="text-muted-foreground font-semibold">Valor proporcional a pagar:</span>
+                            <span className="font-bold text-green-600">{formatBRL(change.upgradeAmount)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Data da alteração:</span>
+                          <span className="font-medium">{formatDate(change.effectiveDate.toISOString())}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
+                        {change.isImmediate 
+                          ? "O upgrade será aplicado imediatamente após a confirmação do pagamento proporcional." 
+                          : "A alteração será aplicada automaticamente na próxima data de renovação."}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setChangePlanOpen(false)}>
@@ -430,11 +490,12 @@ export default function BillingManagement() {
             </Button>
             <Button onClick={handleChangePlan} disabled={busy} className="bg-green-600 hover:bg-green-700 text-white">
               {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-              Confirmar Alteração
+              Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* DIALOGO ADICIONAR CARTÃO */}
       <Dialog open={addCardOpen} onOpenChange={setAddCardOpen}>
