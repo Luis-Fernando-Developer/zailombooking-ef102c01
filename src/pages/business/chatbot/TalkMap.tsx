@@ -139,7 +139,7 @@ export default function ChatbotTalkMap() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-muted-foreground">{error || "É necessário conectar uma chave de API do TalkMap antes de usar o construtor."}</p>
+              <p className="text-muted-foreground">{error || "É necessário conectar uma chave de API do ZailomFlow antes de usar o construtor."}</p>
               <Button onClick={() => navigate(`/${slug}/admin/chatbot/integracao`)}>Ir para Integração</Button>
             </CardContent>
           </Card>
