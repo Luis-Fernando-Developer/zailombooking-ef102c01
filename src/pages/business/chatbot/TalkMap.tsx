@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
- * Embeda o builder externo (TalkMap) como iframe.
+ * Embeda o builder externo (ZailomFlow) como iframe.
  * - Captura qualquer subpath após /admin/chatbot/talkmap/* e repassa pro builder
  *   como rota interna (HashRouter): https://talkbuilder.lovable.app/#/<subpath>
  * - Recebe mensagens postMessage do builder do tipo { type: "talkmap:navigate", path }
