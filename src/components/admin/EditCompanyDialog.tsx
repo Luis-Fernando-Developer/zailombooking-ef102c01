@@ -111,12 +111,30 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
   }, [company]);
 
   const fetchPlans = async () => {
+    const dummyPlans: Plan[] = [
+      { id: 'starter', name: 'Starter', monthly_price: 79, quarterly_price: 207, annual_price: 708 },
+      { id: 'professional', name: 'Professional', monthly_price: 149, quarterly_price: 402, annual_price: 1308 },
+      { id: 'enterprise', name: 'Enterprise', monthly_price: 249, quarterly_price: 672, annual_price: 2268 },
+    ];
+
     const { data } = await supabase
       .from('subscription_plans')
       .select('id, name, monthly_price, quarterly_price, annual_price')
       .eq('is_active', true);
     
-    if (data) setPlans(data);
+    if (data && data.length > 0) {
+      // Merging database data with dummy data to ensure values are correct even if DB is outdated
+      const updatedPlans = data.map(dbPlan => {
+        const dummy = dummyPlans.find(d => d.name.toLowerCase() === dbPlan.name.toLowerCase());
+        if (dummy) {
+          return { ...dbPlan, ...dummy, id: dbPlan.id }; // Keep DB ID but use new values
+        }
+        return dbPlan;
+      });
+      setPlans(updatedPlans);
+    } else {
+      setPlans(dummyPlans);
+    }
   };
 
   const fetchAvailableCredits = async () => {
