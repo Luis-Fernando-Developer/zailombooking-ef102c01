@@ -300,14 +300,13 @@ export default function BillingManagement() {
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Limites do Plano</h3>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      <LimitItem label="Funcionários" value={limits.max_employees} />
-                      <LimitItem label="Serviços" value={limits.max_services} />
-                      <LimitItem label="Agend./mês" value={limits.max_bookings_month} />
-                      <LimitItem label="Chatbots" value={limits.max_chatbots} />
-                      <LimitItem label="Mensagens" value={limits.max_chatbot_messages} />
-                      <LimitItem label="Instâncias WhatsApp" value={limits.max_whatsapp_instances} />
-                      <LimitItem label="Integrações" value={limits.max_integrations} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <LimitCard label="Profissionais" value={limits.max_employees} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Serviços" value={limits.max_services} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Agendamentos / Mês" value={limits.max_bookings_month} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Chatbots" value={limits.max_chatbots} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Mensagens" value={limits.max_chatbot_messages} icon={<Check className="w-4 h-4 text-green-500" />} />
+                      <LimitCard label="Integrações" value={limits.max_integrations} icon={<Check className="w-4 h-4 text-green-500" />} />
                     </div>
                   </div>
                 )}
@@ -562,12 +561,17 @@ export default function BillingManagement() {
   );
 }
 
-function LimitItem({ label, value }: { label: string; value: number | null }) {
+function LimitCard({ label, value, icon }: { label: string; value: number | null; icon?: React.ReactNode }) {
   const displayValue = value === null || value === -1 || value >= 999999 ? "Ilimitado" : value;
   return (
-    <div className="rounded-md border p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-semibold">{displayValue}</div>
+    <div className="flex items-center gap-3 rounded-lg border bg-card p-4 shadow-sm transition-all hover:border-green-500/50">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <p className="text-xl font-bold">{displayValue}</p>
+      </div>
     </div>
   );
 }
