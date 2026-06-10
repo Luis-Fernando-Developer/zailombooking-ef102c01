@@ -224,7 +224,7 @@ export default function ChatbotIntegracao() {
               ) : (
                 <UserCheck className="h-4 w-4 mr-2" />
               )}
-              {status?.integration?.talkmap_provisioned ? "Desmarcar" : "Já criei minha conta no TalkMap"}
+              {status?.integration?.talkmap_provisioned ? "Desmarcar" : "Já criei minha conta no ZailomFlow"}
             </Button>
           </CardContent>
         </Card>
