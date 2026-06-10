@@ -250,13 +250,13 @@ export default function BillingManagement() {
 
                 {limits && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-                    <LimitItem label="Funcionários" value={limits.max_employees} />
-                    <LimitItem label="Serviços" value={limits.max_services} />
-                    <LimitItem label="Agend./mês" value={limits.max_bookings_month} />
-                    <LimitItem label="Chatbots" value={limits.max_chatbots} />
-                    <LimitItem label="Mensagens" value={limits.max_chatbot_messages} />
-                    <LimitItem label="Instâncias WhatsApp" value={limits.max_whatsapp_instances || limits.max_integrations} />
-                    <LimitItem label="Integrações" value={limits.max_integrations} />
+                    <LimitItem label="Funcionários" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 5 : 1)} />
+                    <LimitItem label="Serviços" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 12 : 5)} />
+                    <LimitItem label="Agend./mês" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 700 : 200)} />
+                    <LimitItem label="Chatbots" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 3 : 1)} />
+                    <LimitItem label="Mensagens" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 5000 : 700)} />
+                    <LimitItem label="Instâncias WhatsApp" value={plan?.name === 'Enterprise' ? -1 : (plan?.name === 'Professional' ? 3 : 1)} />
+                    <LimitItem label="Integrações" value={plan?.name === 'Enterprise' ? -1 : 2} />
                   </div>
                 )}
 
