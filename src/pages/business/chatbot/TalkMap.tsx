@@ -69,7 +69,7 @@ export default function ChatbotTalkMap() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Falha ao gerar token de integração");
 
-        const base = (json.builder_base_url || "https://talkbuilder.lovable.app").replace(/\/+$/, "");
+        const base = (json.builder_base_url || "https://flow-builder.zailom.com").replace(/\/+$/, "");
         setBuilderBaseUrl(base);
 
         // Se não veio subpath, manda o usuário pro workspace dele por padrão
