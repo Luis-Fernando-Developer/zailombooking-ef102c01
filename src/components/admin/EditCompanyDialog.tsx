@@ -165,23 +165,32 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
   const fetchSubscription = async () => {
     if (!company) return;
     
-    const { data } = await supabase
-      .from('company_subscriptions')
-      .select('*')
-      .eq('company_id', company.id)
-      .maybeSingle();
-    
-    if (data) {
-      setSubscription(data as Subscription);
-      setSelectedPlanId(data.plan_id);
-      setBillingPeriod(data.billing_period || "monthly");
-      if (data.discount_percentage > 0) {
-        setDescontoEspecial(true);
-        setDiscountData({
-          percentage: data.discount_percentage,
-          cycles: data.discount_cycles_remaining,
-        });
+    try {
+      const { data, error } = await supabase
+        .from('company_subscriptions')
+        .select('*')
+        .eq('company_id', company.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        return;
       }
+
+      if (data) {
+        setSubscription(data as Subscription);
+        setSelectedPlanId(data.plan_id);
+        setBillingPeriod(data.billing_period || "monthly");
+        if (data.discount_percentage > 0) {
+          setDescontoEspecial(true);
+          setDiscountData({
+            percentage: data.discount_percentage,
+            cycles: data.discount_cycles_remaining,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching subscription:', err);
     }
   };
 
@@ -293,20 +302,17 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             pending_plan_change: null,
             status: 'active',
             next_billing_date: proration ? new Date(Date.now() + proration.remainingDays * 86400000).toISOString() : nextBilling.toISOString(),
-
-            starts_at: now.toISOString(),
           };
-
-          // Only include starts_at if it's explicitly allowed/exists (handling schema cache issues)
-          // Based on user error, starts_at might be missing from cache or table
-          // updateData.starts_at = now.toISOString(); 
 
           const { error: subError } = await supabase
             .from('company_subscriptions')
             .update(updateData)
             .eq('id', subscription.id);
             
-          if (subError) throw subError;
+          if (subError) {
+            console.error('Error updating subscription:', subError);
+            throw subError;
+          }
         } else {
           // Create new subscription
           const insertData: any = {
@@ -318,14 +324,16 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             discount_cycles_remaining: discountCycles,
             status: 'active',
             next_billing_date: proration ? new Date(Date.now() + proration.remainingDays * 86400000).toISOString() : nextBilling.toISOString(),
-            starts_at: now.toISOString(),
           };
 
           const { error: subError } = await supabase
             .from('company_subscriptions')
             .insert([insertData]);
             
-          if (subError) throw subError;
+          if (subError) {
+            console.error('Error inserting subscription:', subError);
+            throw subError;
+          }
         }
 
         // No novo modelo temporal, não geramos nem consumimos créditos financeiros.
