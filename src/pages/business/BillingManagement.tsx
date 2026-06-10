@@ -14,7 +14,7 @@ import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLi
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
-import { calculateSubscriptionChange, formatBRL, periodLabel, PLAN_LEVELS } from "@/lib/proration";
+import { calculateSubscriptionChange, formatBRL, periodLabel, PLAN_LEVELS, PLAN_PRICES } from "@/lib/proration";
 
 type Plan = {
   id: string; 
@@ -418,10 +418,10 @@ export default function BillingManagement() {
                       {p.name} — {
                         formatBRL(
                           selectedPeriod === 'annual' 
-                            ? p.annual_price 
+                            ? (PLAN_PRICES[p.name.toLowerCase()]?.annual || p.annual_price)
                             : selectedPeriod === 'quarterly' 
-                            ? p.quarterly_price 
-                            : p.monthly_price
+                            ? (PLAN_PRICES[p.name.toLowerCase()]?.quarterly || p.quarterly_price)
+                            : (PLAN_PRICES[p.name.toLowerCase()]?.monthly || p.monthly_price)
                         )
                       }/{periodLabel(selectedPeriod)}
                     </SelectItem>
@@ -489,6 +489,25 @@ export default function BillingManagement() {
                           <span className="text-muted-foreground">Data da alteração:</span>
                           <span className="font-medium">{formatDate(change.effectiveDate.toISOString())}</span>
                         </div>
+                      </div>
+                      
+                      <div className="mt-3 p-2 rounded border border-blue-500/20 bg-blue-500/5 text-[11px] text-blue-700 leading-tight">
+                        <p className="font-semibold mb-1">Nota importante:</p>
+                        <p>
+                          Seu plano atual é <strong>{periodLabel(subscription.billing_period)}</strong>. 
+                          A diferença cobrada agora (R$ {change.upgradeAmount.toFixed(2)}) refere-se apenas ao upgrade proporcional até a próxima renovação.
+                        </p>
+                        <p className="mt-1">
+                          No próximo ciclo ({formatDate(change.effectiveDate.toISOString())}), você passará a ser cobrado o valor total de {
+                            formatBRL(
+                              selectedPeriod === 'annual' 
+                                ? (PLAN_PRICES[selectedPlan.toLowerCase()]?.annual || allPlans.find(p => p.id === selectedPlan)?.annual_price || 0)
+                                : selectedPeriod === 'quarterly' 
+                                ? (PLAN_PRICES[selectedPlan.toLowerCase()]?.quarterly || allPlans.find(p => p.id === selectedPlan)?.quarterly_price || 0)
+                                : (PLAN_PRICES[selectedPlan.toLowerCase()]?.monthly || allPlans.find(p => p.id === selectedPlan)?.monthly_price || 0)
+                            )
+                          } referente ao plano <strong>{allPlans.find(p => p.id === selectedPlan)?.name} ({periodLabel(selectedPeriod)})</strong>.
+                        </p>
                       </div>
 
                       <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">

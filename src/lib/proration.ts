@@ -7,9 +7,9 @@ export const PLAN_LEVELS: Record<string, number> = {
 };
 
 export const PLAN_PRICES: Record<string, Record<BillingPeriod, number>> = {
-  "starter": { monthly: 79.00, quarterly: 213.30, annual: 758.40 },
-  "professional": { monthly: 149.00, quarterly: 402.30, annual: 1430.40 },
-  "enterprise": { monthly: 249.00, quarterly: 672.30, annual: 2390.40 }
+  "starter": { monthly: 79.00, quarterly: 213.00, annual: 708.00 },
+  "professional": { monthly: 149.00, quarterly: 402.00, annual: 1308.00 },
+  "enterprise": { monthly: 249.00, quarterly: 672.00, annual: 2268.00 }
 };
 
 export type ChangeType = "plan_upgrade" | "plan_downgrade" | "cycle_change" | "upgrade_with_cycle_change";
