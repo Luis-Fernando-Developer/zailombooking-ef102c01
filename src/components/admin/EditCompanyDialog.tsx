@@ -18,8 +18,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { syncBuilderPlan } from "@/lib/syncBuilderPlan";
 import { useToast } from "@/hooks/use-toast";
 import { Calculator, Percent, AlertTriangle, X, ArrowRightCircle, CalendarClock, MessageSquare } from "lucide-react";
-import { calculateTemporalProration, type BillingPeriod, formatBRL } from "@/lib/proration";
+import { calculateSubscriptionChange, type BillingPeriod, formatBRL, periodLabel } from "@/lib/proration";
 import { CompanyCreditsPanel } from "./CompanyCreditsPanel";
+
 
 // Aligned with database schema - companies table
 interface Company {
@@ -226,25 +227,24 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
     }
   };
 
-  // Cálculo de proporção temporal em tempo real.
+  // Cálculo de alteração de assinatura
   const proration = (() => {
     if (!subscription || !selectedPlanId) return null;
     const planChanged = subscription.plan_id !== selectedPlanId || subscription.billing_period !== billingPeriod;
     if (!planChanged) return null;
     
-    const cycleStart = subscription.starts_at ? new Date(subscription.starts_at) : new Date();
-    const cycleEnd = subscription.next_billing_date ? new Date(subscription.next_billing_date) : new Date(Date.now() + 30 * 86400000);
+    const nextBillingDate = subscription.next_billing_date ? new Date(subscription.next_billing_date) : new Date(Date.now() + 30 * 86400000);
 
-    return calculateTemporalProration({
-      currentPlanId: subscription.plan_id,
-      currentPeriod: (subscription.billing_period as BillingPeriod) || "monthly",
-      cycleStart,
-      cycleEnd,
-      newPlanId: selectedPlanId,
-      newPeriod: billingPeriod as BillingPeriod,
-      now: new Date(),
-    });
+    return calculateSubscriptionChange(
+      subscription.plan_id,
+      (subscription.billing_period as BillingPeriod) || "monthly",
+      nextBillingDate,
+      selectedPlanId,
+      billingPeriod as BillingPeriod,
+      new Date()
+    );
   })();
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -495,9 +495,20 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
                   {proration.changeType === "plan_upgrade" && "Upgrade de Plano"}
                   {proration.changeType === "plan_downgrade" && "Downgrade de Plano"}
                   {proration.changeType === "cycle_change" && "Mudança de Ciclo"}
+                  {proration.changeType === "upgrade_with_cycle_change" && "Upgrade + Mudança de Ciclo"}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase text-muted-foreground font-bold">Data Efetiva</p>
+                    <p className="font-medium">{new Date(proration.effectiveDate).toLocaleDateString("pt-BR")}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase text-muted-foreground font-bold">Upgrade Proporcional</p>
+                    <p className="font-medium text-green-600">{formatBRL(proration.upgradeAmount)}</p>
+                  </div>
+                </div>
+
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Dias restantes</p>
                     <p className="text-lg font-bold">{proration.remainingDays} dias</p>
