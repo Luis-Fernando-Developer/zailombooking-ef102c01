@@ -238,7 +238,7 @@ export default function CreateCompany() {
       console.error("Erro ao criar empresa:", error);
       toast({
         title: "Erro ao criar empresa",
-        description: "Ocorreu um erro ao cadastrar a empresa. Tente novamente.",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao cadastrar a empresa. Tente novamente.",
         variant: "destructive",
       });
     } finally {
