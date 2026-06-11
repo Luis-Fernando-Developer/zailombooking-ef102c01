@@ -57,18 +57,21 @@ export default function ChatbotZailomFlow() {
         }
 
         const { data: { session } } = await supabase.auth.getSession();
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chatbot-integration/sign-embed-token`;
-        const res = await fetch(url, {
+        
+        console.log("Invocando chatbot-integration/sign-embed-token...");
+        const { data: json, error: invokeError } = await supabase.functions.invoke('chatbot-integration', {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          body: { 
+            action: 'sign-embed-token',
+            company_id: company.id, 
+            user_id: user.id, 
+            plan: "pro" 
           },
-          body: JSON.stringify({ company_id: company.id, user_id: user.id, plan: "pro" }),
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Falha ao gerar token de integração");
+
+        if (invokeError || !json) {
+          throw new Error(invokeError?.message || json?.error || "Falha ao gerar token de integração");
+        }
 
         const base = (json.builder_base_url || "https://flow-builder.zailom.com").replace(/\/+$/, "");
         setBuilderBaseUrl(base);

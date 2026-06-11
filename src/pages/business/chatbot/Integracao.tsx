@@ -114,18 +114,17 @@ export default function ChatbotIntegracao() {
     setSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chatbot-integration/save`;
-      const res = await fetch(url, {
+      
+      const { data: json, error: invokeError } = await supabase.functions.invoke('chatbot-integration', {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`, 
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY 
+        body: { 
+          action: 'save',
+          company_id: companyId, 
+          api_key: apiKey.trim() 
         },
-        body: JSON.stringify({ company_id: companyId, api_key: apiKey.trim() }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro ao salvar");
+
+      if (invokeError || !json) throw new Error(invokeError?.message || json?.error || "Erro ao salvar");
       toast.success("Integração conectada!");
       setApiKey("");
       await refreshStatus(companyId);
@@ -142,15 +141,16 @@ export default function ChatbotIntegracao() {
     setSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chatbot-integration/disconnect?company_id=${companyId}`;
-      const res = await fetch(url, {
-        method: "DELETE",
-        headers: { 
-          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`, 
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY 
+      
+      const { data, error: invokeError } = await supabase.functions.invoke('chatbot-integration', {
+        method: "POST",
+        body: { 
+          action: 'disconnect',
+          company_id: companyId 
         },
       });
-      if (!res.ok) throw new Error("Erro ao desconectar");
+
+      if (invokeError) throw new Error(invokeError.message || "Erro ao desconectar");
       toast.success("Integração desconectada");
       await refreshStatus(companyId);
     } catch (e) {
