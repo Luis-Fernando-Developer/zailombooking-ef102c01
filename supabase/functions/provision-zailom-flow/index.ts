@@ -19,7 +19,7 @@ async function signProvisionJwt(secret: string): Promise<string> {
   const header = { alg: "HS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
   const payload = {
-    iss: "booking-zailom", // Identificador deste sistema
+    iss: "flow-appoint", // Ajustado para bater com o padrão que o builder espera
     aud: "builder-flow-api",
     purpose: "provision",
     iat: now,
