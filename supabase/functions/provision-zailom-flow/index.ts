@@ -165,11 +165,13 @@ serve(async (req) => {
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
+    // O outro projeto espera o campo 'userId' para o insert em profiles, 
+    // mas na função provision-account ele tenta criar o auth.user primeiro.
+    // O código da função no outro projeto usa: const { email, password, full_name, limits } = await req.json();
     const flowPayload = {
       email,
       password,
-      display_name: display_name || slug,
-      company_id,
+      full_name: display_name || slug,
       limits: limits, 
     };
 
