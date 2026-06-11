@@ -158,7 +158,7 @@ serve(async (req) => {
     }
 
     const provisionToken = await signProvisionJwt(embedSharedSecret);
-    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
+    const targetUrl = `${flowBaseUrl}/functions/v1/provision-talkmap`;
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
@@ -174,8 +174,7 @@ serve(async (req) => {
         slug,
         display_name,
         company_id,
-        embed_source: "booking",
-        embed_plan_tier: plan_id,
+        plan: plan_id,
         limits,
       }),
     });
