@@ -1,14 +1,33 @@
 services:
-  zailom-booking-frontend:
+  frontend:
+    image: zailom-booking-frontend:latest
     build:
       context: .
       dockerfile: Dockerfile
       args:
         - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
         - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
-    ports:
-      - "8080:80"
+        - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+        - VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID}
+    container_name: zailom-booking-frontend
     restart: always
-    environment:
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
-      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    networks:
+      - bookingZailom_net
+    labels:
+      - "traefik.enable=true"
+      # Router HTTPS
+      - "traefik.http.routers.zailom-booking-frontend.rule=Host(`booking.zailom.com`)"
+      - "traefik.http.routers.zailom-booking-frontend.entrypoints=websecure"
+      - "traefik.http.routers.zailom-booking-frontend.tls=true"
+      # Router HTTP (Redirecionamento para HTTPS)
+      - "traefik.http.routers.zailom-booking-frontend-http.rule=Host(`booking.zailom.com`)"
+      - "traefik.http.routers.zailom-booking-frontend-http.entrypoints=web"
+      - "traefik.http.routers.zailom-booking-frontend-http.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      # Service
+      - "traefik.http.services.zailom-booking-frontend.loadbalancer.server.port=80"
+      - "traefik.docker.network=bookingZailom_net"
+
+networks:
+  bookingZailom_net:
+    external: true
