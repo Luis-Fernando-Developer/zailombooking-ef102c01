@@ -165,10 +165,9 @@ serve(async (req) => {
     const flowPayload = {
       email,
       password,
-      slug,
       display_name: display_name || slug,
       company_id,
-      plan: plan_id || "starter",
+      limits: limits, // Enviando os limites que o servidor de destino espera
     };
 
     console.log(`[Provisioning] Payload sendo enviado:`, JSON.stringify(flowPayload));
