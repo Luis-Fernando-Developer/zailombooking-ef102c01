@@ -24,7 +24,8 @@ serve(async (req) => {
     const embedSharedSecret = Deno.env.get("EMBED_SHARED_SECRET") ?? "";
 
     console.log("[Provisioning] Iniciando processo...");
-    const flowBaseUrl = "https://flow-builder.zailom.com";
+    // A URL deve ser o endpoint direto da Edge Function no Supabase do Flow
+    const flowBaseUrl = "https://pmczddukpylhdeaemmyv.supabase.co";
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
