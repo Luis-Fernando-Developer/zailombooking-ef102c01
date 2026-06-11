@@ -118,7 +118,7 @@ serve(async (req) => {
     }
 
     if (action === "sign-embed-token") {
-      const { company_id, user_id, plan } = body;
+      const { company_id, user_id, plan, limits } = body;
       if (!company_id || !user_id) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
           status: 400,
@@ -140,7 +140,8 @@ serve(async (req) => {
         purpose: "embed",
         company_id,
         user_id,
-        plan: (plan === "professional" ? "pro" : (plan || "starter")),
+        plan: plan || "starter",
+        limits: limits || null,
         iat: now,
         exp: now + 3600, // Valid for 1 hour
       };
