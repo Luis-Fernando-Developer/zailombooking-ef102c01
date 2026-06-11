@@ -58,14 +58,23 @@ export default function ChatbotZailomFlow() {
 
         const { data: { session } } = await supabase.auth.getSession();
         
-        console.log("Invocando chatbot-integration/sign-embed-token...");
+        // Buscar o plano atual da empresa para passar ao builder
+        const { data: subscription } = await supabase
+          .from("company_subscriptions")
+          .select("plan_id")
+          .eq("company_id", company.id)
+          .maybeSingle();
+
+        const planTier = subscription?.plan_id || "starter";
+
+        console.log("Invocando chatbot-integration/sign-embed-token com plano:", planTier);
         const { data: json, error: invokeError } = await supabase.functions.invoke('chatbot-integration', {
           method: "POST",
           body: { 
             action: 'sign-embed-token',
             company_id: company.id, 
             user_id: user.id, 
-            plan: "pro" 
+            plan: planTier 
           },
         });
 
