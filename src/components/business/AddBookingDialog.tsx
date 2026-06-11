@@ -406,40 +406,31 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
       if (!serviceDetails) throw new Error('Serviço não encontrado');
 
       // Call the edge function to create booking
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-booking`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({
-            company_id: companyId,
-            company_slug: companySlug,
-            service_id: selectedType === 'service' ? selectedServiceId : null,
-            combo_id: selectedType === 'combo' ? selectedComboId : null,
-            combo_items: selectedType === 'combo' 
-              ? combos.find(c => c.id === selectedComboId)?.service_combo_items.map(i => i.service_id)
-              : null,
-            employee_id: selectedEmployeeId,
-            booking_date: format(selectedDate!, 'yyyy-MM-dd'),
-            booking_time: selectedTime,
-            duration_minutes: serviceDetails.duration,
-            price: serviceDetails.price,
-            client_name: clientForm.name,
-            client_email: clientForm.email,
-            client_phone: clientForm.phone,
-            client_password: clientForm.password,
-            is_new_client: !existingClient
-          })
+      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-create-booking', {
+        method: 'POST',
+        body: {
+          company_id: companyId,
+          company_slug: companySlug,
+          service_id: selectedType === 'service' ? selectedServiceId : null,
+          combo_id: selectedType === 'combo' ? selectedComboId : null,
+          combo_items: selectedType === 'combo' 
+            ? combos.find(c => c.id === selectedComboId)?.service_combo_items.map(i => i.service_id)
+            : null,
+          employee_id: selectedEmployeeId,
+          booking_date: format(selectedDate!, 'yyyy-MM-dd'),
+          booking_time: selectedTime,
+          duration_minutes: serviceDetails.duration,
+          price: serviceDetails.price,
+          client_name: clientForm.name,
+          client_email: clientForm.email,
+          client_phone: clientForm.phone,
+          client_password: clientForm.password,
+          is_new_client: !existingClient
         }
-      );
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao criar agendamento');
+      if (invokeError) {
+        throw new Error(invokeError.message || 'Erro ao criar agendamento');
       }
 
       toast({
