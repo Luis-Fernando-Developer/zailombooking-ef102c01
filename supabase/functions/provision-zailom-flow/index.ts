@@ -126,10 +126,10 @@ serve(async (req) => {
     console.log(`[Provisioning] Resposta do Flow: ${flowResponse.status}`);
     const result = await flowResponse.json();
 
-    if (!response.ok || !result.success) {
+    if (!flowResponse.ok || !result.success) {
       console.error("Erro no provisionamento do Zailom Flow:", result);
-      return new Response(JSON.stringify({ success: false, error: result.error || "Erro no Flow" }), {
-        status: 500,
+      return new Response(JSON.stringify({ success: false, error: result.error || "Erro no Flow", details: result }), {
+        status: flowResponse.status === 200 ? 500 : flowResponse.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
