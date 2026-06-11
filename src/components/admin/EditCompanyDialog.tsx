@@ -280,6 +280,14 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
 
       // Handle subscription/discount
       if (selectedPlanId) {
+        // Validar se o ID é um UUID válido (evita enviar 'starter', 'professional', etc)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedPlanId);
+        
+        if (!isUUID) {
+          console.error('Tentativa de salvar com ID de plano inválido:', selectedPlanId);
+          throw new Error("ID de plano inválido. Por favor, recarregue a página e tente novamente.");
+        }
+
         const originalPrice = getCurrentPlanPrice();
         const hasDiscount = descontoEspecial;
         const discountPercentage = hasDiscount ? discountData.percentage : 0;
