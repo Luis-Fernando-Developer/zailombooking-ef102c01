@@ -191,7 +191,7 @@ serve(async (req) => {
       }
     };
 
-    console.log(`[Provisioning] Payload sendo enviado:`, JSON.stringify(flowPayload));
+    console.log(`[Provisioning] Payload sendo enviado para Flow:`, JSON.stringify(flowPayload));
 
     const flowResponse = await fetch(targetUrl, {
       method: "POST",
