@@ -194,7 +194,6 @@ export default function CreateCompany() {
             talkmap_provisioned: false,
           }]);
 
-        const { data: session } = await supabase.auth.getSession();
         const { data: provResult, error: provError } = await supabase.functions.invoke('provision-zailom-flow', {
           body: {
             email: formData.owner_email,
@@ -203,22 +202,18 @@ export default function CreateCompany() {
             display_name: formData.owner_name,
             plan_id: 'starter',
             company_id: companyData.id,
-          },
-          headers: {
-            Authorization: `Bearer ${session?.session?.access_token}`
           }
         });
+
+        if (provError) {
+          console.error('❌ Erro RPC ao chamar Edge Function:', provError);
+          throw provError;
+        }
 
         if (provResult?.success) {
           console.log('✅ Conta ZailomFlow provisionada:', provResult);
         } else {
-          console.warn('⚠️ Falha ao provisionar ZailomFlow:', provError || provResult?.error);
-        }
-
-        if (provResult.success) {
-          console.log('✅ Conta ZailomFlow provisionada:', provResult);
-        } else {
-          console.warn('⚠️ Falha ao provisionar ZailomFlow:', provResult.error);
+          console.warn('⚠️ Falha no provisionamento retornado pela função:', provResult?.error);
         }
 
       } catch (provErr) {
