@@ -154,9 +154,11 @@ serve(async (req) => {
         user_id,
         userId: user_id,
         email,
+        // Enviar os nomes originais e mapeados para cobrir todas as validações do Flow
         plan: plan || "starter",
         plan_id: plan_id || plan || "starter",
-        plan_tier: plan || "starter",
+        plan_tier: plan === "pro" ? "professional" : (plan === "business" ? "enterprise" : "starter"),
+        planTier: plan === "pro" ? "professional" : (plan === "business" ? "enterprise" : "starter"),
         embed_plan_tier: plan || "starter",
         embed_company_id: company_id,
         embed_source: "booking",
