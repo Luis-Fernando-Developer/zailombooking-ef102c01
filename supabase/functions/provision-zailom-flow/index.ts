@@ -3,9 +3,44 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+// ─── JWT HS256 helper (necessário para o builder-flow-api) ───────────────────
+function toBase64Url(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function signProvisionJwt(secret: string): Promise<string> {
+  const header = { alg: "HS256", typ: "JWT" };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: "booking-zailom", // Identificador deste sistema
+    aud: "builder-flow-api",
+    purpose: "provision",
+    iat: now,
+    exp: now + 300, // 5 minutos de validade
+  };
+
+  const enc = new TextEncoder();
+  const headerB64 = toBase64Url(enc.encode(JSON.stringify(header)).buffer);
+  const payloadB64 = toBase64Url(enc.encode(JSON.stringify(payload)).buffer);
+  const signingInput = `${headerB64}.${payloadB64}`;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(signingInput));
+  return `${signingInput}.${toBase64Url(sig)}`;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -24,8 +59,10 @@ serve(async (req) => {
     const embedSharedSecret = Deno.env.get("EMBED_SHARED_SECRET") ?? "";
 
     console.log("[Provisioning] Iniciando processo...");
-    // A URL deve ser o endpoint direto da Edge Function no Supabase do Flow
-    const flowBaseUrl = "https://pmczddukpylhdeaemmyv.supabase.co";
+    console.log(`[Provisioning] Verificação de segredos: internalSecret=${!!internalProvisionSecret}, embedSecret=${!!embedSharedSecret}`);
+    
+    // A URL correta do projeto Flow Builder (fwoescubnnagdvwasbjl)
+    const flowBaseUrl = "https://fwoescubnnagdvwasbjl.supabase.co";
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
@@ -55,7 +92,6 @@ serve(async (req) => {
               .eq("user_id", user.id)
               .maybeSingle();
 
-            // Verificar se o registro existe. O campo de ativação pode ser 'active' ou 'is_active'
             const isActive = superAdmin?.active ?? superAdmin?.is_active;
 
             if (!dbError && superAdmin && isActive !== false) {
@@ -65,11 +101,9 @@ serve(async (req) => {
             } else {
               console.error(`[Provisioning] Falha na autorização: userFound=${!!superAdmin}, active=${isActive}, dbError=${dbError?.message}`);
             }
-          } else if (authError) {
-            console.error("[Provisioning] Erro ao validar JWT:", authError.message);
           }
         } catch (e) {
-          console.error("[Provisioning] Erro inesperado na validação do token:", e);
+          console.error("[Provisioning] Erro na validação do token:", e);
         }
       }
     }
@@ -91,7 +125,7 @@ serve(async (req) => {
       });
     }
 
-    // Definir limites baseados no plano (O Flow apenas obedece)
+    // Definir limites baseados no plano
     let limits = {
       max_chatbots: 1,
       max_messages: 700,
@@ -112,17 +146,27 @@ serve(async (req) => {
       };
     }
 
-    console.log(`[Provisioning][${authMethod}] Invocado para ${email} (${slug}) plano: ${plan_id}`);
-    console.log(`[Provisioning] Chamando Flow em: ${flowBaseUrl}/functions/v1/provision-account`);
-    // Debug URL completa
-    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`.replace(/([^:]\/)\/+/g, "$1");
-    console.log(`[Provisioning] URL final limpa: ${targetUrl}`);
+    console.log(`[Provisioning][${authMethod}] Invocado para ${email} (${slug})`);
+    
+    // Gerar JWT para autenticação com o Flow Builder
+    if (!embedSharedSecret) {
+      console.error("[Provisioning] EMBED_SHARED_SECRET não configurado.");
+      return new Response(JSON.stringify({ success: false, error: "Configuração incompleta: EMBED_SHARED_SECRET faltando." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const provisionToken = await signProvisionJwt(embedSharedSecret);
+    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
+
+    console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
     const flowResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${embedSharedSecret}`,
+        "Authorization": `Bearer ${provisionToken}`,
       },
       body: JSON.stringify({
         email,
@@ -137,12 +181,9 @@ serve(async (req) => {
     });
 
     console.log(`[Provisioning] Resposta do Flow status: ${flowResponse.status}`);
-    const contentType = flowResponse.headers.get("content-type") || "";
-    console.log(`[Provisioning] Content-Type da resposta: ${contentType}`);
-    
-    let result;
     const responseText = await flowResponse.text();
     
+    let result;
     try {
       result = JSON.parse(responseText);
     } catch (e) {
@@ -158,9 +199,13 @@ serve(async (req) => {
       });
     }
 
-    if (!flowResponse.ok || !result.success) {
+    if (!flowResponse.ok || (result.ok === false) || (result.success === false)) {
       console.error("Erro no provisionamento do Zailom Flow:", result);
-      return new Response(JSON.stringify({ success: false, error: result.error || "Erro no Flow", details: result }), {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: result.error || "Erro no Flow", 
+        details: result 
+      }), {
         status: flowResponse.status === 200 ? 500 : flowResponse.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -202,4 +247,3 @@ serve(async (req) => {
     });
   }
 });
-
