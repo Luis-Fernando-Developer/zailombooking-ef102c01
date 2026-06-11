@@ -347,7 +347,7 @@ export default function SignUp() {
               <div className="space-y-2">
                 <Label htmlFor="customUrl">URL Personalizada *</Label>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">flow-builder.zailom.com/</span>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">booking.zailom.com/</span>
                   <div className="relative flex-1">
                     <Input id="customUrl" placeholder="viking-barbearia" value={formData.customUrl} onChange={(e) => handleInputChange("customUrl", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} className="bg-background/50 border-primary/30 focus:border-primary" required />
                     {formData.customUrl && (
