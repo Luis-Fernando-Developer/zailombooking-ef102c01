@@ -119,12 +119,18 @@ serve(async (req) => {
     const { email, password, slug, display_name, company_id, plan_id, full_name } = await req.json();
 
     // Mapeamento de planos para os tiers esperados pelo Flow
-    const planTierMap: Record<string, string> = {
-      'starter': 'starter',
-      'professional': 'pro',
-      'enterprise': 'business'
-    };
-    const embed_plan_tier = planTierMap[plan_id] || 'starter';
+    // O plan_id aqui costuma vir como UUID, então mapeamos o tier baseado na lógica do sistema
+    // starter = free/starter, professional = pro, enterprise = business
+    
+    // Buscar detalhes do plano no banco se necessário, ou usar o tier direto se vier no body
+    let embed_plan_tier = 'starter';
+    const planInput = (body.plan || body.plan_id || '').toLowerCase();
+    
+    if (planInput.includes('professional') || planInput.includes('pro') || planInput === '294e3c1b-55ac-49bd-803e-22657a7c8eb7') {
+      embed_plan_tier = 'pro';
+    } else if (planInput.includes('enterprise') || planInput.includes('business')) {
+      embed_plan_tier = 'business';
+    }
 
     if (!email || !password || !slug || !company_id) {
       return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes" }), {
@@ -133,7 +139,7 @@ serve(async (req) => {
       });
     }
 
-    // Definir limites baseados no plano
+    // Definir limites baseados no plano para o provisionamento inicial
     let limits = {
       max_bots: 1,
       max_chatbots: 1,
@@ -141,14 +147,14 @@ serve(async (req) => {
       max_integrations: 1,
     };
 
-    if (plan_id === "professional") {
+    if (embed_plan_tier === "pro") {
       limits = {
-        max_bots: 3,
-        max_chatbots: 3,
-        max_messages: 5000,
-        max_integrations: 3,
+        max_bots: 10,
+        max_chatbots: 10,
+        max_messages: 10000,
+        max_integrations: 10,
       };
-    } else if (plan_id === "enterprise") {
+    } else if (embed_plan_tier === "business") {
       limits = {
         max_bots: 9999,
         max_chatbots: 9999,
