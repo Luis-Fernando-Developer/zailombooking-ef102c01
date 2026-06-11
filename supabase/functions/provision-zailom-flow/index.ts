@@ -61,8 +61,8 @@ serve(async (req) => {
     console.log("[Provisioning] Iniciando processo...");
     console.log(`[Provisioning] Verificação de segredos: internalSecret=${!!internalProvisionSecret}, embedSecret=${!!embedSharedSecret}`);
     
-    // A URL correta do projeto Flow Builder (fwoescubnnagdvwasbjl)
-    const flowBaseUrl = "https://pmczddukpylhdeaemmyv.supabase.co";
+    // URL da API do Flow Builder (projeto fwoescubnnagdvwasbjl)
+    const flowBaseUrl = "https://fwoescubnnagdvwasbjl.supabase.co";
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
