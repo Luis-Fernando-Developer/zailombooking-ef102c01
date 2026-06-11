@@ -23,35 +23,53 @@ serve(async (req) => {
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // 1. Validar se quem está chamando é um SuperAdmin
+    const internalProvisionSecret = Deno.env.get("INTERNAL_PROVISION_SECRET") ?? "";
+    console.log("[AdminCreateUser] Iniciando validação...");
+
+    // 1. Validar Autenticação
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let isAuthorized = false;
+    let requesterId = null;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+
+      // Verificar se é a chave de provisionamento interno
+      if (internalProvisionSecret !== "" && token === internalProvisionSecret) {
+        isAuthorized = true;
+        console.log("[AdminCreateUser] Autorizado via INTERNAL_PROVISION_SECRET");
+      } else {
+        // Verificar se é um JWT de usuário (SuperAdmin)
+        try {
+          const { data: { user: requester }, error: authError } = await supabaseClient.auth.getUser(token);
+          
+          if (!authError && requester) {
+            requesterId = requester.id;
+            // Consultar a tabela super_admins
+            const { data: superAdmin, error: dbError } = await supabaseClient
+              .from("super_admins")
+              .select("id, is_active")
+              .eq("user_id", requester.id)
+              .maybeSingle();
+
+            if (!dbError && superAdmin?.is_active) {
+              isAuthorized = true;
+              console.log(`[AdminCreateUser] Autorizado via SuperAdmin: ${requester.email}`);
+            } else {
+              console.error(`[AdminCreateUser] Falha na autorização: is_active=${superAdmin?.is_active}, dbError=${dbError?.message}`);
+            }
+          } else if (authError) {
+            console.error("[AdminCreateUser] Erro ao validar JWT:", authError.message);
+          }
+        } catch (e) {
+          console.error("[AdminCreateUser] Erro inesperado na validação do token:", e);
+        }
+      }
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user: requester }, error: authError } = await supabaseClient.auth.getUser(token);
-
-    if (authError || !requester) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Consultar a tabela super_admins
-    const { data: superAdmin, error: dbError } = await supabaseClient
-      .from("super_admins")
-      .select("id")
-      .eq("user_id", requester.id)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (dbError || !superAdmin) {
-      return new Response(JSON.stringify({ error: "Only active SuperAdmins can create users" }), {
+    if (!isAuthorized) {
+      console.error("[AdminCreateUser] Acesso NEGADO.");
+      return new Response(JSON.stringify({ error: "Only active SuperAdmins or valid secret can call this function" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
