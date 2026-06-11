@@ -56,12 +56,13 @@ export default function ChatbotZailomFlow() {
           return;
         }
 
+        const { data: { session } } = await supabase.auth.getSession();
         const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chatbot-integration/sign-embed-token`;
         const res = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
           body: JSON.stringify({ company_id: company.id, user_id: user.id, plan: "pro" }),
