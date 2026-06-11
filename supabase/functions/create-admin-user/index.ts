@@ -105,7 +105,14 @@ serve(async (req) => {
       
       let errorMessage = createError.message;
       if (createError.message.toLowerCase().includes("already") || createError.status === 422) {
-        errorMessage = "Este e-mail já está em uso por outro usuário.";
+        // Se o usuário já existir, retornamos um erro 409 (Conflict) específico
+        return new Response(JSON.stringify({ 
+          error: "Este e-mail já está sendo usado por outro usuário/empresa.",
+          code: "user_already_exists"
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       return new Response(JSON.stringify({ error: errorMessage }), {
