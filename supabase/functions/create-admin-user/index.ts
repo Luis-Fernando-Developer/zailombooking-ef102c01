@@ -100,43 +100,20 @@ serve(async (req) => {
     });
 
     if (createError) {
-      // Se o erro for que o usuário já existe, vamos buscá-lo para retornar o ID
+      console.error("[AdminCreateUser] Erro ao criar usuário:", createError);
+      
+      let errorMessage = createError.message;
       if (createError.message.toLowerCase().includes("already") || createError.status === 422) {
-        console.log(`[AdminCreateUser] Usuário já existe, buscando ID...`);
-        
-        // Listar usuários para encontrar o ID do existente
-        // Paginamos se necessário, mas geralmente o usuário estará nas primeiras páginas
-        const { data: { users }, error: listError } = await supabaseClient.auth.admin.listUsers();
-        
-        if (listError) {
-          console.error("[AdminCreateUser] Erro ao listar usuários:", listError);
-          throw createError; // Lança o erro original de criação se não conseguir listar
-        }
-
-        const existingUser = users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
-
-        if (existingUser) {
-          console.log(`[AdminCreateUser] Usuário encontrado: ${existingUser.id}. Atualizando metadata...`);
-          
-          // Opcional: Atualizar metadata do usuário existente para garantir que ele tenha o company_id correto
-          await supabaseClient.auth.admin.updateUserById(existingUser.id, {
-            user_metadata: { ...existingUser.user_metadata, ...metadata }
-          });
-
-          return new Response(JSON.stringify({ user: existingUser, existing: true }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+        errorMessage = "Este e-mail já está em uso por outro usuário.";
       }
 
-      console.error("[AdminCreateUser] Erro ao criar usuário:", createError);
-      return new Response(JSON.stringify({ error: createError.message }), {
+      return new Response(JSON.stringify({ error: errorMessage }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ user: createData.user, existing: false }), {
+    return new Response(JSON.stringify({ user: createData.user }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
