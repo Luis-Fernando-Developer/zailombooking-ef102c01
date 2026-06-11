@@ -162,21 +162,24 @@ serve(async (req) => {
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
+    const flowPayload = {
+      email,
+      password,
+      slug,
+      display_name: display_name || slug,
+      company_id,
+      plan: plan_id || "starter",
+    };
+
+    console.log(`[Provisioning] Payload sendo enviado:`, JSON.stringify(flowPayload));
+
     const flowResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${provisionToken}`,
       },
-      body: JSON.stringify({
-        email,
-        password,
-        slug,
-        display_name,
-        company_id,
-        plan: plan_id,
-        limits,
-      }),
+      body: JSON.stringify(flowPayload),
     });
 
     console.log(`[Provisioning] Resposta do Flow status: ${flowResponse.status}`);
