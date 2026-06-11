@@ -98,8 +98,10 @@ export default function ChatbotZailomFlow() {
           body: { 
             action: 'sign-embed-token',
             company_id: company.id, 
-            user_id: user.id, 
+            user_id: user.id,
+            email: user.email,
             plan: mappedTier,
+            plan_id: subscription?.plan_id,
             limits: limits,
             // Adicionando um timestamp extra no corpo para garantir unicidade do token se necessário
             _t: Date.now()
@@ -116,7 +118,7 @@ export default function ChatbotZailomFlow() {
         // Se não veio subpath, manda o usuário pro workspace dele por padrão
         const initialPath = subpath || `${slug}/workspace`;
         // Builder usa HashRouter -> tudo depois do "#/"
-        setIframeSrc(`${base}/#/${initialPath}?embed_token=${encodeURIComponent(json.token)}&host=zailom`);
+        setIframeSrc(`${base}/#/${initialPath}?token=${encodeURIComponent(json.token)}&embed_token=${encodeURIComponent(json.token)}&jwt=${encodeURIComponent(json.token)}&host=zailom&source=booking`);
       } catch (e) {
         setError((e as Error).message);
       } finally {

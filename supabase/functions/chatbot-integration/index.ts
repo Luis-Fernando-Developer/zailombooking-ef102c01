@@ -118,7 +118,7 @@ serve(async (req) => {
     }
 
     if (action === "sign-embed-token") {
-      const { company_id, user_id, plan, limits } = body;
+      const { company_id, user_id, email, plan, plan_id, limits } = body;
       if (!company_id || !user_id) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
           status: 400,
@@ -147,21 +147,34 @@ serve(async (req) => {
         iss: "zailom-booking",
         aud: "builder-flow-api",
         purpose: "embed",
+        context: "embed",
+        source: "booking",
         company_id,
+        companyId: company_id,
         user_id,
-        // Campos que o Zailom Flow espera para atualizar a tabela profiles
+        userId: user_id,
+        email,
         plan: plan || "starter",
-        embed_plan_tier: plan || "starter", 
-        // Se for "pro", o Zailom Flow espera receber "pro" na coluna plan/embed_plan_tier
-        limits: limits || null,
+        plan_id: plan_id || plan || "starter",
+        plan_tier: plan || "starter",
+        embed_plan_tier: plan || "starter",
+        embed_company_id: company_id,
+        embed_source: "booking",
         embed_max_chatbots: limits?.chatbots ?? 1,
         embed_max_messages: limits?.messages ?? 700,
         embed_max_integrations: limits?.integrations ?? 1,
-        // Forçar atualização
-        synced_at: new Date().toISOString(),
+        limits: {
+          max_chatbots: limits?.chatbots ?? 1,
+          max_messages: limits?.messages ?? 700,
+          max_integrations: limits?.integrations ?? 1,
+          chatbots: limits?.chatbots ?? 1,
+          messages: limits?.messages ?? 700,
+          integrations: limits?.integrations ?? 1,
+        },
         embed_plan_synced_at: new Date().toISOString(),
+        synced_at: new Date().toISOString(),
         iat: now,
-        exp: now + (3600 * 24), // Aumentando expiração para 24h para evitar problemas de sessão
+        exp: now + (3600 * 24),
       };
 
 
