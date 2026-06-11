@@ -141,6 +141,7 @@ serve(async (req) => {
         company_id,
         user_id,
         plan: plan || "starter",
+        limits: limits || null,
         iat: now,
         exp: now + 3600, // Valid for 1 hour
       };
