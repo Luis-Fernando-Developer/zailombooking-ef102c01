@@ -144,20 +144,25 @@ serve(async (req) => {
       
       const now = Math.floor(Date.now() / 1000);
       const payload = {
-        iss: "booking", // Alinhado com embed_source no banco do Flow
+        iss: "zailom-booking",
         aud: "builder-flow-api",
         purpose: "embed",
         company_id,
         user_id,
         email,
-        // Mapeamento direto para as colunas do banco de dados do Zailom Flow
         plan: plan || "starter",
-        embed_plan_tier: plan || "starter", 
+        plan_tier: plan || "starter",
+        embed_plan_tier: plan || "starter",
         embed_company_id: company_id,
         embed_source: "booking",
         embed_max_chatbots: limits?.chatbots ?? 1,
         embed_max_messages: limits?.messages ?? 700,
         embed_max_integrations: limits?.integrations ?? 1,
+        limits: {
+          max_chatbots: limits?.chatbots ?? 1,
+          max_messages: limits?.messages ?? 700,
+          max_integrations: limits?.integrations ?? 1,
+        },
         embed_plan_synced_at: new Date().toISOString(),
         iat: now,
         exp: now + (3600 * 24),
