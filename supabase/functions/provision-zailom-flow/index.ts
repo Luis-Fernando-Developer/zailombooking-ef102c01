@@ -37,21 +37,29 @@ serve(async (req) => {
         authMethod = "internal_secret";
       } else {
         // Verificar se é um JWT de usuário (SuperAdmin)
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-        
-        if (!authError && user) {
-          // Consultar a tabela super_admins para validar permissão
-          const { data: superAdmin, error: dbError } = await supabaseClient
-            .from("super_admins")
-            .select("id, is_active")
-            .eq("user_id", user.id)
-            .eq("is_active", true)
-            .maybeSingle();
+        try {
+          const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+          
+          if (!authError && user) {
+            // Consultar a tabela super_admins para validar permissão
+            const { data: superAdmin, error: dbError } = await supabaseClient
+              .from("super_admins")
+              .select("id, is_active")
+              .eq("user_id", user.id)
+              .eq("is_active", true)
+              .maybeSingle();
 
-          if (!dbError && superAdmin) {
-            isAuthorized = true;
-            authMethod = "super_admin_jwt";
+            if (!dbError && superAdmin) {
+              isAuthorized = true;
+              authMethod = "super_admin_jwt";
+            } else if (dbError) {
+              console.error("[Provisioning] Erro ao buscar super_admin:", dbError);
+            }
+          } else if (authError) {
+            console.error("[Provisioning] Erro ao validar JWT:", authError.message);
           }
+        } catch (e) {
+          console.error("[Provisioning] Erro inesperado na validação do token:", e);
         }
       }
     }
