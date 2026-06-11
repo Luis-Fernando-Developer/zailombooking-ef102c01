@@ -66,11 +66,23 @@ export default function ChatbotZailomFlow() {
           .eq("company_id", company.id)
           .maybeSingle();
 
-        const planTier = (subscription?.subscription_plans as any)?.builder_tier || 
-                         (subscription?.subscription_plans as any)?.name?.toLowerCase() || 
-                         "starter";
+        // Log para depuração dos dados reais do plano
+        console.log("Dados da assinatura recuperados:", subscription);
 
-        const mappedTier = planTier === "professional" ? "pro" : (planTier === "enterprise" ? "business" : planTier);
+        let planTier = (subscription?.subscription_plans as any)?.builder_tier || 
+                       (subscription?.subscription_plans as any)?.name?.toLowerCase() || 
+                       "starter";
+
+        // Mapeamento rigoroso baseado na tabela fornecida pelo usuário
+        // Zailom Booking: starter, professional, enterprise
+        // Zailom Flow: starter, pro, business
+        let mappedTier = "starter";
+        if (planTier.includes("enterprise")) {
+          mappedTier = "business";
+        } else if (planTier.includes("professional") || planTier.includes("pro")) {
+          mappedTier = "pro";
+        }
+
         
         // Determinar limites específicos baseado no mapeamento para sincronização do profile se necessário
         const limits = {

@@ -149,13 +149,20 @@ serve(async (req) => {
         purpose: "embed",
         company_id,
         user_id,
+        // Campos que o Zailom Flow espera para atualizar a tabela profiles
         plan: plan || "starter",
+        embed_plan_tier: plan || "starter", 
         limits: limits || null,
-        // Adicionando timestamp de sincronização para forçar atualização no builder
+        embed_max_chatbots: limits?.chatbots || 1,
+        embed_max_messages: limits?.messages || 700,
+        embed_max_integrations: limits?.integrations || 1,
+        // Forçar atualização
         synced_at: new Date().toISOString(),
+        embed_plan_synced_at: new Date().toISOString(),
         iat: now,
-        exp: now + 3600, // Valid for 1 hour
+        exp: now + (3600 * 24), // Aumentando expiração para 24h para evitar problemas de sessão
       };
+
 
       const token = await signJwt(payload, embedSharedSecret);
 
