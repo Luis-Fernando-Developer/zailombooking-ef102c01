@@ -19,7 +19,7 @@ async function signProvisionJwt(secret: string): Promise<string> {
   const header = { alg: "HS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
   const payload = {
-    iss: "flow-appoint", // Ajustado para bater com o padrão que o builder espera
+    iss: "zailom-booking", // Atualizado para bater com o JWT esperado pelo outro projeto
     aud: "builder-flow-api",
     purpose: "provision",
     iat: now,
