@@ -179,7 +179,7 @@ serve(async (req) => {
     const flowPayload = {
       email,
       password,
-      display_name: display_name || slug,
+      full_name: full_name || display_name || slug,
       slug,
       company_id,
       embed_source: 'booking',
