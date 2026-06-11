@@ -116,7 +116,7 @@ serve(async (req) => {
       });
     }
 
-    const { email, password, slug, display_name, company_id, plan_id } = await req.json();
+    const { email, password, slug, display_name, company_id, plan_id, full_name } = await req.json();
 
     // Mapeamento de planos para os tiers esperados pelo Flow
     const planTierMap: Record<string, string> = {
