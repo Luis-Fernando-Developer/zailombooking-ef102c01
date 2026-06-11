@@ -100,6 +100,7 @@ export default function CreateCompany() {
       if (companyError) throw companyError;
 
       // 3. Criar usuário no Supabase Auth via Edge Function (Admin) para evitar limites de email
+      console.log("Invocando create-admin-user...");
       const { data: authData, error: authError } = await supabase.functions.invoke('create-admin-user', {
         body: {
           email: formData.owner_email,
@@ -189,6 +190,7 @@ export default function CreateCompany() {
             talkmap_provisioned: false,
           }]);
 
+        console.log("Invocando provision-zailom-flow...");
         const { data: provResult, error: provError } = await supabase.functions.invoke('provision-zailom-flow', {
           body: {
             email: formData.owner_email,
