@@ -103,8 +103,9 @@ serve(async (req) => {
     }
 
     console.log(`[Provisioning][${authMethod}] Invocado para ${email} (${slug}) plano: ${plan_id}`);
+    console.log(`[Provisioning] Chamando Flow em: ${flowBaseUrl}/functions/v1/provision-account`);
 
-    const response = await fetch(`${flowBaseUrl}/functions/v1/provision-account`, {
+    const flowResponse = await fetch(`${flowBaseUrl}/functions/v1/provision-account`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -122,7 +123,8 @@ serve(async (req) => {
       }),
     });
 
-    const result = await response.json();
+    console.log(`[Provisioning] Resposta do Flow: ${flowResponse.status}`);
+    const result = await flowResponse.json();
 
     if (!response.ok || !result.success) {
       console.error("Erro no provisionamento do Zailom Flow:", result);
