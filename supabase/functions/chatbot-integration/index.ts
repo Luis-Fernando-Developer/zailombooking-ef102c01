@@ -133,6 +133,15 @@ serve(async (req) => {
         });
       }
 
+      // NOVO: Buscar o profile do usuário no banco de dados do Zailom Flow
+      // para garantir que ele esteja sincronizado antes de gerar o token.
+      // Assumimos que o SUPABASE_URL/KEY aqui são do projeto Booking, 
+      // mas precisamos atualizar o profile no banco de dados do Zailom Flow se o plano mudou.
+      
+      // NOTA: Como não temos acesso direto ao DB do Zailom Flow via Edge Function de forma trivial 
+      // sem as credenciais dele, o builder deve ler o token e se auto-atualizar.
+      // No entanto, o usuário mostrou que o DB do Zailom Flow tem colunas como 'embed_plan_tier'.
+      
       const now = Math.floor(Date.now() / 1000);
       const payload = {
         iss: "zailom-booking",
@@ -142,6 +151,8 @@ serve(async (req) => {
         user_id,
         plan: plan || "starter",
         limits: limits || null,
+        // Adicionando timestamp de sincronização para forçar atualização no builder
+        synced_at: new Date().toISOString(),
         iat: now,
         exp: now + 3600, // Valid for 1 hour
       };
