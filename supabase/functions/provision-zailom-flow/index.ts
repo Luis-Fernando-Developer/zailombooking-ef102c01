@@ -50,7 +50,7 @@ serve(async (req) => {
             // Consultar a tabela super_admins para validar permissão
             const { data: superAdmin, error: dbError } = await supabaseClient
               .from("super_admins")
-              .select("id, active")
+              .select("active")
               .eq("user_id", user.id)
               .maybeSingle();
 
