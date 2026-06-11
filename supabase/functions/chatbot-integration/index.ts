@@ -152,10 +152,11 @@ serve(async (req) => {
         // Campos que o Zailom Flow espera para atualizar a tabela profiles
         plan: plan || "starter",
         embed_plan_tier: plan || "starter", 
+        // Se for "pro", o Zailom Flow espera receber "pro" na coluna plan/embed_plan_tier
         limits: limits || null,
-        embed_max_chatbots: limits?.chatbots || 1,
-        embed_max_messages: limits?.messages || 700,
-        embed_max_integrations: limits?.integrations || 1,
+        embed_max_chatbots: limits?.chatbots ?? 1,
+        embed_max_messages: limits?.messages ?? 700,
+        embed_max_integrations: limits?.integrations ?? 1,
         // Forçar atualização
         synced_at: new Date().toISOString(),
         embed_plan_synced_at: new Date().toISOString(),

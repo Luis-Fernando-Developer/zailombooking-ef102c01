@@ -69,17 +69,18 @@ export default function ChatbotZailomFlow() {
         // Log para depuração dos dados reais do plano
         console.log("Dados da assinatura recuperados:", subscription);
 
-        let planTier = (subscription?.subscription_plans as any)?.builder_tier || 
-                       (subscription?.subscription_plans as any)?.name?.toLowerCase() || 
-                       "starter";
+        let planName = (subscription?.subscription_plans as any)?.name?.toLowerCase() || "";
+        let builderTier = (subscription?.subscription_plans as any)?.builder_tier?.toLowerCase() || "";
 
         // Mapeamento rigoroso baseado na tabela fornecida pelo usuário
         // Zailom Booking: starter, professional, enterprise
         // Zailom Flow: starter, pro, business
         let mappedTier = "starter";
-        if (planTier.includes("enterprise")) {
+        
+        // Verifica tanto o nome quanto o builder_tier para cobrir todas as possibilidades
+        if (planName.includes("enterprise") || builderTier.includes("enterprise") || builderTier === "business") {
           mappedTier = "business";
-        } else if (planTier.includes("professional") || planTier.includes("pro")) {
+        } else if (planName.includes("professional") || planName.includes("pro") || builderTier === "professional" || builderTier === "pro") {
           mappedTier = "pro";
         }
 
