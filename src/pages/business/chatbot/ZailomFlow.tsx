@@ -59,15 +59,20 @@ export default function ChatbotZailomFlow() {
         const { data: { session } } = await supabase.auth.getSession();
         
         // Buscar o plano atual da empresa para passar ao builder
+        // Pegamos o builder_tier ou o nome do plano para o builder saber o nível de recursos
         const { data: subscription } = await supabase
           .from("company_subscriptions")
-          .select("plan_id")
+          .select("plan_id, subscription_plans(name, builder_tier)")
           .eq("company_id", company.id)
           .maybeSingle();
 
-        const planTier = subscription?.plan_id || "starter";
+        const planTier = (subscription?.subscription_plans as any)?.builder_tier || 
+                         (subscription?.subscription_plans as any)?.name?.toLowerCase() || 
+                         "starter";
 
-        console.log("Invocando chatbot-integration/sign-embed-token com plano:", planTier);
+        const mappedTier = planTier === "professional" ? "pro" : planTier;
+
+        console.log("Invocando chatbot-integration/sign-embed-token com plano:", mappedTier);
         const { data: json, error: invokeError } = await supabase.functions.invoke('chatbot-integration', {
           method: "POST",
           body: { 
