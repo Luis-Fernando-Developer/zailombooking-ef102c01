@@ -70,7 +70,7 @@ export default function ChatbotZailomFlow() {
                          (subscription?.subscription_plans as any)?.name?.toLowerCase() || 
                          "starter";
 
-        const mappedTier = planTier === "professional" ? "pro" : planTier;
+        const mappedTier = planTier === "professional" ? "pro" : (planTier === "enterprise" ? "business" : planTier);
 
         console.log("Invocando chatbot-integration/sign-embed-token com plano:", mappedTier);
         const { data: json, error: invokeError } = await supabase.functions.invoke('chatbot-integration', {
@@ -79,7 +79,7 @@ export default function ChatbotZailomFlow() {
             action: 'sign-embed-token',
             company_id: company.id, 
             user_id: user.id, 
-            plan: planTier 
+            plan: mappedTier 
           },
         });
 
