@@ -71,6 +71,13 @@ export default function ChatbotZailomFlow() {
                          "starter";
 
         const mappedTier = planTier === "professional" ? "pro" : (planTier === "enterprise" ? "business" : planTier);
+        
+        // Determinar limites específicos baseado no mapeamento para sincronização do profile se necessário
+        const limits = {
+          pro: { chatbots: 5, messages: 5000, integrations: 5 },
+          business: { chatbots: 50, messages: 50000, integrations: 50 },
+          starter: { chatbots: 1, messages: 700, integrations: 1 }
+        }[mappedTier as "pro" | "business" | "starter"] || { chatbots: 1, messages: 700, integrations: 1 };
 
         console.log("Invocando chatbot-integration/sign-embed-token com plano:", mappedTier);
         const { data: json, error: invokeError } = await supabase.functions.invoke('chatbot-integration', {
@@ -79,7 +86,8 @@ export default function ChatbotZailomFlow() {
             action: 'sign-embed-token',
             company_id: company.id, 
             user_id: user.id, 
-            plan: mappedTier 
+            plan: mappedTier,
+            limits: limits
           },
         });
 
