@@ -11,7 +11,7 @@ interface BusinessLayoutProps {
   children: ReactNode;
   companySlug: string;
   companyName: string;
-  companyId: string;
+  companyId?: string;
   userRole: string;
   currentUser?: SupabaseUser | null;
   hideHeader?: boolean;
