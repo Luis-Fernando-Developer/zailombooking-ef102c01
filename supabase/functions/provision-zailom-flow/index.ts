@@ -132,8 +132,25 @@ serve(async (req) => {
       }),
     });
 
-    console.log(`[Provisioning] Resposta do Flow: ${flowResponse.status}`);
-    const result = await flowResponse.json();
+    console.log(`[Provisioning] Resposta do Flow status: ${flowResponse.status}`);
+    
+    let result;
+    const responseText = await flowResponse.text();
+    
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      console.error("[Provisioning] Erro ao parsear JSON do Flow. Resposta bruta:", responseText);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Resposta inválida do Flow (não é JSON)", 
+        status: flowResponse.status,
+        details: responseText.substring(0, 200) 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!flowResponse.ok || !result.success) {
       console.error("Erro no provisionamento do Zailom Flow:", result);

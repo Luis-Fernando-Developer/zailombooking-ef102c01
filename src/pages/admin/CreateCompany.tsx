@@ -179,16 +179,24 @@ export default function CreateCompany() {
 
       // Provisionar conta automaticamente no builder-flow-api (ZailomFlow)
       try {
-        // Criar stub da integração
-        await supabase
+        // Verificar se já existe integração para não duplicar
+        const { data: existingIntegration } = await supabase
           .from('chatbot_integration')
-          .insert([{
-            company_id: companyData.id,
-            builder_base_url: 'https://flow-builder.zailom.com',
-            builder_workspace_slug: formData.slug,
-            is_active: false,
-            talkmap_provisioned: false,
-          }]);
+          .select('id')
+          .eq('company_id', companyData.id)
+          .maybeSingle();
+
+        if (!existingIntegration) {
+          await supabase
+            .from('chatbot_integration')
+            .insert([{
+              company_id: companyData.id,
+              builder_base_url: 'https://flow-builder.zailom.com',
+              builder_workspace_slug: formData.slug,
+              is_active: false,
+              talkmap_provisioned: false,
+            }]);
+        }
 
         console.log("Invocando provision-zailom-flow...");
         const { data: provResult, error: provError } = await supabase.functions.invoke('provision-zailom-flow', {
