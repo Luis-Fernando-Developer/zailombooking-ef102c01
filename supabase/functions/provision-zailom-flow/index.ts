@@ -50,16 +50,19 @@ serve(async (req) => {
             // Consultar a tabela super_admins para validar permissão
             const { data: superAdmin, error: dbError } = await supabaseClient
               .from("super_admins")
-              .select("active")
+              .select("*")
               .eq("user_id", user.id)
               .maybeSingle();
 
-            if (!dbError && superAdmin?.active) {
+            // Verificar se o registro existe. O campo de ativação pode ser 'active' ou 'is_active'
+            const isActive = superAdmin?.active ?? superAdmin?.is_active;
+
+            if (!dbError && superAdmin && isActive !== false) {
               isAuthorized = true;
               authMethod = "super_admin_jwt";
               console.log(`[Provisioning] Autorizado via SuperAdmin: ${user.email}`);
             } else {
-              console.error(`[Provisioning] Falha na autorização: active=${superAdmin?.active}, dbError=${dbError?.message}`);
+              console.error(`[Provisioning] Falha na autorização: userFound=${!!superAdmin}, active=${isActive}, dbError=${dbError?.message}`);
             }
           } else if (authError) {
             console.error("[Provisioning] Erro ao validar JWT:", authError.message);
