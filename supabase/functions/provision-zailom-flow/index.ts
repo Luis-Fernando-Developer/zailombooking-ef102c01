@@ -36,10 +36,11 @@ serve(async (req) => {
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
 
-      // Verificar se é a chave de provisionamento interno (Asaas / Backend)
-      if (token === internalProvisionSecret && internalProvisionSecret !== "") {
+      // Verificar se é a chave de provisionamento interno
+      if (internalProvisionSecret !== "" && token === internalProvisionSecret) {
         isAuthorized = true;
         authMethod = "internal_secret";
+        console.log("[Provisioning] Autorizado via INTERNAL_PROVISION_SECRET");
       } else {
         // Verificar se é um JWT de usuário (SuperAdmin)
         try {
@@ -51,14 +52,14 @@ serve(async (req) => {
               .from("super_admins")
               .select("id, is_active")
               .eq("user_id", user.id)
-              .eq("is_active", true)
               .maybeSingle();
 
-            if (!dbError && superAdmin) {
+            if (!dbError && superAdmin?.is_active) {
               isAuthorized = true;
               authMethod = "super_admin_jwt";
-            } else if (dbError) {
-              console.error("[Provisioning] Erro ao buscar super_admin:", dbError);
+              console.log(`[Provisioning] Autorizado via SuperAdmin: ${user.email}`);
+            } else {
+              console.error(`[Provisioning] Falha na autorização: is_active=${superAdmin?.is_active}, dbError=${dbError?.message}`);
             }
           } else if (authError) {
             console.error("[Provisioning] Erro ao validar JWT:", authError.message);
@@ -70,7 +71,7 @@ serve(async (req) => {
     }
 
     if (!isAuthorized) {
-      console.error("Tentativa de acesso não autorizado ao provisionamento.");
+      console.error("[Provisioning] Acesso NEGADO.");
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
