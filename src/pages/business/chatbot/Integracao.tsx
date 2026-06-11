@@ -210,7 +210,7 @@ export default function ChatbotIntegracao() {
                   Sua conta no Zailom Flow ainda não foi marcada como ativa. Caso tenha problemas, entre em contato com o suporte.
                 </p>
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground mt-2">
-                  <li>Acesse <a href="https://booking.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">booking.zailom.com <ExternalLink className="h-3 w-3" /></a></li>
+                  <li>Acesse <a href="https://flow-builder.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">flow-builder.zailom.com <ExternalLink className="h-3 w-3" /></a></li>
                   <li>Tente fazer login com o e-mail: <strong>{user?.email}</strong></li>
                 </ol>
               </div>
@@ -285,7 +285,7 @@ export default function ChatbotIntegracao() {
             <CardTitle>Como obter sua chave</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>1. Acesse <a href="https://booking.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">booking.zailom.com <ExternalLink className="h-3 w-3" /></a></p>
+            <p>1. Acesse <a href="https://flow-builder.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">flow-builder.zailom.com <ExternalLink className="h-3 w-3" /></a></p>
             <p>2. Faça login e abra <strong>Workspace → Configurações → API Keys</strong></p>
             <p>3. Clique em <strong>Gerar Nova Chave</strong> e copie o token (começa com <code>tmk_</code>)</p>
             <p>4. Cole acima e clique em Conectar</p>
