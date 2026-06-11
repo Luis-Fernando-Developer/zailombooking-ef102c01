@@ -74,8 +74,8 @@ export default function ChatbotZailomFlow() {
         
         // Determinar limites específicos baseado no mapeamento para sincronização do profile se necessário
         const limits = {
-          pro: { chatbots: 5, messages: 5000, integrations: 5 },
-          business: { chatbots: 50, messages: 50000, integrations: 50 },
+          pro: { chatbots: 10, messages: 10000, integrations: 10 },
+          business: { chatbots: 100, messages: 100000, integrations: 100 },
           starter: { chatbots: 1, messages: 700, integrations: 1 }
         }[mappedTier as "pro" | "business" | "starter"] || { chatbots: 1, messages: 700, integrations: 1 };
 
