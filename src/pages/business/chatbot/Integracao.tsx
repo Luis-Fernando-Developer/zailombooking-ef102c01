@@ -190,7 +190,7 @@ export default function ChatbotIntegracao() {
             <CardDescription>
               {status?.integration?.talkmap_provisioned
                 ? "Sua conta no ZailomFlow já foi criada. Você pode conectar a chave de API abaixo."
-                : "Você ainda precisa criar manualmente sua conta no ZailomFlow usando o mesmo e-mail e senha cadastrados aqui."}
+                : "Sua conta no Zailom Flow deve ser provisionada pelo administrador."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
