@@ -125,7 +125,7 @@ export default function ChatbotZailomFlow() {
   }, [subpath, iframeSrc, slug, builderBaseUrl]);
 
     return (
-      <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId!} userRole="owner" currentUser={user} hideHeader>
+      <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId ?? undefined} userRole="owner" currentUser={user} hideHeader>
         <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin h-8 w-8" /></div>
       </BusinessLayout>
     );
