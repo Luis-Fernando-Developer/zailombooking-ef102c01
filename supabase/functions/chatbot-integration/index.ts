@@ -140,7 +140,7 @@ serve(async (req) => {
         purpose: "embed",
         company_id,
         user_id,
-        plan: plan || "starter",
+        plan: (plan === "professional" ? "pro" : (plan || "starter")),
         iat: now,
         exp: now + 3600, // Valid for 1 hour
       };
