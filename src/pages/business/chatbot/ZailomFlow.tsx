@@ -161,7 +161,7 @@ export default function ChatbotZailomFlow() {
     >
       <iframe
         ref={iframeRef}
-        src={iframeSrc}
+        src={iframeSrc ?? undefined}
         title="ZailomFlow Builder"
         className="w-full h-full border-0"
         allow="clipboard-read; clipboard-write"
