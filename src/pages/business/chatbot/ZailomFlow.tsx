@@ -87,7 +87,9 @@ export default function ChatbotZailomFlow() {
             company_id: company.id, 
             user_id: user.id, 
             plan: mappedTier,
-            limits: limits
+            limits: limits,
+            // Adicionando um timestamp extra no corpo para garantir unicidade do token se necessário
+            _t: Date.now()
           },
         });
 
