@@ -78,6 +78,7 @@ export default function ChatbotZailomFlow() {
         let mappedTier = "starter";
         
         // Verifica tanto o nome quanto o builder_tier para cobrir todas as possibilidades
+        // Forçar mapeamento se vier como "premium" (que costuma ser Pro no builder)
         if (planName.includes("enterprise") || builderTier.includes("enterprise") || builderTier === "business") {
           mappedTier = "business";
         } else if (planName.includes("professional") || planName.includes("pro") || builderTier === "professional" || builderTier === "pro" || planName.includes("premium")) {
@@ -118,7 +119,7 @@ export default function ChatbotZailomFlow() {
         // Se não veio subpath, manda o usuário pro workspace dele por padrão
         const initialPath = subpath || `${slug}/workspace`;
         // Builder usa HashRouter -> tudo depois do "#/"
-        setIframeSrc(`${base}/#/${initialPath}?token=${encodeURIComponent(json.token)}&embed_token=${encodeURIComponent(json.token)}&jwt=${encodeURIComponent(json.token)}&host=zailom&source=booking`);
+        setIframeSrc(`${base}/#/${initialPath}?token=${encodeURIComponent(json.token)}&embed_token=${encodeURIComponent(json.token)}&jwt=${encodeURIComponent(json.token)}&host=zailom&source=booking&plan_tier=${mappedTier === 'pro' ? 'professional' : (mappedTier === 'business' ? 'enterprise' : 'starter')}`);
       } catch (e) {
         setError((e as Error).message);
       } finally {
