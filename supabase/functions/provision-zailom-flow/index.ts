@@ -113,8 +113,11 @@ serve(async (req) => {
 
     console.log(`[Provisioning][${authMethod}] Invocado para ${email} (${slug}) plano: ${plan_id}`);
     console.log(`[Provisioning] Chamando Flow em: ${flowBaseUrl}/functions/v1/provision-account`);
+    // Debug URL completa
+    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`.replace(/([^:]\/)\/+/g, "$1");
+    console.log(`[Provisioning] URL final limpa: ${targetUrl}`);
 
-    const flowResponse = await fetch(`${flowBaseUrl}/functions/v1/provision-account`, {
+    const flowResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -133,6 +136,8 @@ serve(async (req) => {
     });
 
     console.log(`[Provisioning] Resposta do Flow status: ${flowResponse.status}`);
+    const contentType = flowResponse.headers.get("content-type") || "";
+    console.log(`[Provisioning] Content-Type da resposta: ${contentType}`);
     
     let result;
     const responseText = await flowResponse.text();
