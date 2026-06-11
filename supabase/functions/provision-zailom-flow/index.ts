@@ -180,6 +180,7 @@ serve(async (req) => {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${provisionToken}`,
+        "x-debug-provisioning": "true"
       },
       body: JSON.stringify(flowPayload),
     });
