@@ -127,6 +127,7 @@ serve(async (req) => {
 
     // Definir limites baseados no plano
     let limits = {
+      max_bots: 1,
       max_chatbots: 1,
       max_messages: 700,
       max_integrations: 1,
@@ -134,15 +135,17 @@ serve(async (req) => {
 
     if (plan_id === "professional") {
       limits = {
+        max_bots: 3,
         max_chatbots: 3,
         max_messages: 5000,
         max_integrations: 3,
       };
     } else if (plan_id === "enterprise") {
       limits = {
-        max_chatbots: 999999,
+        max_bots: 9999,
+        max_chatbots: 9999,
         max_messages: 999999,
-        max_integrations: 999999,
+        max_integrations: 9999,
       };
     }
 
@@ -206,6 +209,8 @@ serve(async (req) => {
       // Se o erro for de usuário duplicado no Flow Builder, vamos tratar como sucesso parcial ou avisar
       const isDuplicate = result.error?.toLowerCase().includes("already exists") || 
                          result.message?.toLowerCase().includes("already exists") ||
+                         result.error?.toLowerCase().includes("duplicate key") ||
+                         result.error?.toLowerCase().includes("database error") || // Incluído para capturar o erro genérico do Flow
                          result.code === "user_already_exists";
 
       if (isDuplicate) {
