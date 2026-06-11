@@ -80,7 +80,7 @@ export default function ChatbotZailomFlow() {
         // Verifica tanto o nome quanto o builder_tier para cobrir todas as possibilidades
         if (planName.includes("enterprise") || builderTier.includes("enterprise") || builderTier === "business") {
           mappedTier = "business";
-        } else if (planName.includes("professional") || planName.includes("pro") || builderTier === "professional" || builderTier === "pro") {
+        } else if (planName.includes("professional") || planName.includes("pro") || builderTier === "professional" || builderTier === "pro" || planName.includes("premium")) {
           mappedTier = "pro";
         }
 
