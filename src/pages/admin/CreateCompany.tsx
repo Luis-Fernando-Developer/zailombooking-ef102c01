@@ -82,7 +82,24 @@ export default function CreateCompany() {
         return;
       }
 
-      // 2. Primeiro criar a empresa diretamente (only use fields that exist in schema)
+      // 2. Verificar se o e-mail do proprietário já está em uso
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', formData.owner_email)
+        .maybeSingle();
+
+      if (existingUser) {
+        toast({
+          title: "E-mail em uso",
+          description: "Este e-mail já está cadastrado no sistema para outra empresa.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // 3. Primeiro criar a empresa diretamente (only use fields that exist in schema)
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .insert([{
