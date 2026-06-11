@@ -82,17 +82,23 @@ export default function CreateCompany() {
         return;
       }
 
-      // 2. Verificar se o e-mail do proprietário já está em uso
+      // 2. Verificar se o e-mail do proprietário já está em uso (na tabela users ou employees)
       const { data: existingUser } = await supabase
         .from('users')
         .select('id')
         .eq('email', formData.owner_email)
         .maybeSingle();
 
-      if (existingUser) {
+      const { data: existingEmployee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('email', formData.owner_email)
+        .maybeSingle();
+
+      if (existingUser || existingEmployee) {
         toast({
           title: "E-mail em uso",
-          description: "Este e-mail já está cadastrado no sistema para outra empresa.",
+          description: "Este e-mail já está sendo usado por outra empresa ou usuário.",
           variant: "destructive",
         });
         setIsLoading(false);
