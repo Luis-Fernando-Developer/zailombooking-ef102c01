@@ -54,14 +54,14 @@ export function BusinessLayout({
           </div>
         )}
 
-        <main className={`flex-1 overflow-y-auto bg-gradient-hero scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent ${hideHeader ? 'h-full' : ''}`}>
-          <div className="w-full h-full flex flex-col">
+        <main className={`flex-1 ${hideHeader ? 'overflow-hidden h-screen' : 'overflow-y-auto'} bg-gradient-hero scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent`}>
+          <div className={`w-full ${hideHeader ? 'h-full flex flex-col' : ''}`}>
             {!hideHeader && (
               <div className="px-4 pt-4">
                 <PlanOverageBanner companyId={companyId} />
               </div>
             )}
-            <div className="flex-1 overflow-hidden">
+            <div className={hideHeader ? "flex-1 overflow-hidden" : ""}>
               {children}
             </div>
           </div>
