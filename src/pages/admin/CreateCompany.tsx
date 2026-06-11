@@ -132,7 +132,14 @@ export default function CreateCompany() {
       if (authError || !authData?.user) {
         // Se falhar o Auth, tentamos remover a empresa para evitar dados órfãos e slug bloqueado
         await supabase.from('companies').delete().eq('id', companyData.id);
+        
         console.error("Erro no Auth via Edge Function:", authError);
+        
+        // Se for erro de usuário já existente (vindo da Edge Function ajustada)
+        if (authError?.status === 409 || authData?.code === 'user_already_exists') {
+          throw new Error("Este e-mail já está sendo usado por outra empresa ou usuário.");
+        }
+        
         throw new Error(`Erro ao criar usuário: ${authError?.message || 'Erro desconhecido na Edge Function'}`);
       }
 
