@@ -174,8 +174,7 @@ serve(async (req) => {
         slug,
         display_name,
         company_id,
-        embed_source: "booking",
-        embed_plan_tier: plan_id,
+        plan: plan_id,
         limits,
       }),
     });
