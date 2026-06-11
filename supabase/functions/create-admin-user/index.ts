@@ -90,8 +90,19 @@ serve(async (req) => {
 
     console.log(`[AdminCreateUser] Criando usuário: ${email}`);
 
-    // 3. Criar usuário usando o Admin API (ignora limites de email e ativa automaticamente)
-    const { data, error: createError } = await supabaseClient.auth.admin.createUser({
+    // 3. Verificar se o usuário já existe
+    const { data: { users }, error: listError } = await supabaseClient.auth.admin.listUsers();
+    const existingUser = users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+    if (existingUser) {
+      console.log(`[AdminCreateUser] Usuário já existe, retornando ID existente: ${existingUser.id}`);
+      return new Response(JSON.stringify({ user: existingUser, existing: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 4. Criar usuário usando o Admin API (ignora limites de email e ativa automaticamente)
+    const { data: createData, error: createError } = await supabaseClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -106,7 +117,7 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ user: data.user }), {
+    return new Response(JSON.stringify({ user: createData.user, existing: false }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
