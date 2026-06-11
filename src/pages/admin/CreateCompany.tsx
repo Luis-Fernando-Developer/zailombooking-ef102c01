@@ -99,30 +99,25 @@ export default function CreateCompany() {
 
       if (companyError) throw companyError;
 
-      // 3. Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.owner_email,
-        password: formData.owner_password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
+      // 3. Criar usuário no Supabase Auth via Edge Function (Admin) para evitar limites de email
+      const { data: authData, error: authError } = await supabase.functions.invoke('create-admin-user', {
+        body: {
+          email: formData.owner_email,
+          password: formData.owner_password,
+          metadata: {
             owner_name: formData.owner_name,
             company_id: companyData.id
           }
         }
       });
 
-      if (authError) {
+      if (authError || !authData?.user) {
         // Se falhar o Auth, tentamos remover a empresa para evitar dados órfãos e slug bloqueado
         await supabase.from('companies').delete().eq('id', companyData.id);
-        console.error("Erro no Auth:", authError);
-        throw new Error(`Erro ao criar usuário: ${authError.message}`);
+        console.error("Erro no Auth via Edge Function:", authError);
+        throw new Error(`Erro ao criar usuário: ${authError?.message || 'Erro desconhecido na Edge Function'}`);
       }
-      
-      if (!authData.user) {
-        await supabase.from('companies').delete().eq('id', companyData.id);
-        throw new Error("Usuário não foi criado");
-      }
+
 
       // Aguardar um momento para garantir que o usuário esteja disponível no banco
       // O trigger no DB deve criar o perfil em public.users, mas precisamos do link em employees
