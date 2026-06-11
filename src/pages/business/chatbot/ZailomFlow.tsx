@@ -11,13 +11,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 /**
  * Embeda o builder externo (ZailomFlow) como iframe.
  * - Captura qualquer subpath após /admin/chatbot/talkmap/* e repassa pro builder
- *   como rota interna (HashRouter): https://talkbuilder.lovable.app/#/<subpath>
+ *   como rota interna (HashRouter): https://flow-builder.zailom.com/#/<subpath>
  * - Recebe mensagens postMessage do builder do tipo { type: "zailomflow:navigate", path }
  *   e reflete na URL do Flow-Appoint (sem reload).
  * - Quando o usuário navega no Flow-Appoint (back/forward), envia
  *   { type: "zailomflow:set-path", path } pro iframe.
  */
-export default function ChatbotTalkMap() {
+export default function ChatbotZailomFlow() {
   const { slug, "*": splat } = useParams();
   const navigate = useNavigate();
   const location = useLocation();

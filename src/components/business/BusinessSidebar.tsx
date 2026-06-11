@@ -49,7 +49,7 @@ const menuItems: MenuItem[] = [
     icon: Bot,
     children: [
       { title: "Integração", url: "/admin/chatbot/integracao", icon: Plug },
-      { title: "ZailomFlow", url: "/admin/chatbot/talkmap", icon: MessageSquare },
+      { title: "Zailom Flow", url: "/admin/chatbot/talkmap", icon: MessageSquare },
     ],
   },
   { title: "Configurações", url: "/admin/configuracoes", icon: Settings },

@@ -164,7 +164,7 @@ export default function ChatbotIntegracao() {
       <div className="p-6 max-w-3xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Plug className="h-6 w-6" /> Integração Chatbot</h1>
-          <p className="text-muted-foreground mt-1">Conecte seu workspace do ZailomFlow para usar o construtor de chatbot dentro do Flow-Appoint.</p>
+          <p className="text-muted-foreground mt-1">Sua conta no Zailom Flow é provisionada automaticamente durante o cadastro. Conecte sua chave de API para gerenciar seus chatbots.</p>
         </div>
 
         {/* Card 1 — Status do provisionamento da conta TalkMap */}
@@ -189,20 +189,20 @@ export default function ChatbotIntegracao() {
             </CardTitle>
             <CardDescription>
               {status?.integration?.talkmap_provisioned
-                ? "Sua conta no ZailomFlow já foi criada. Você pode conectar a chave de API abaixo."
-                : "Você ainda precisa criar manualmente sua conta no ZailomFlow usando o mesmo e-mail e senha cadastrados aqui."}
+                ? "Sua conta no Zailom Flow já foi criada. Você pode conectar a chave de API abaixo."
+                : "Sua conta no Zailom Flow deve ser provisionada pelo administrador."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {!status?.integration?.talkmap_provisioned && (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-md p-3 space-y-2 text-foreground/90">
-                <p className="font-medium">📝 Passos para criar sua conta no ZailomFlow:</p>
-                <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                <p className="font-medium">⚠️ Provisionamento Pendente:</p>
+                <p className="text-muted-foreground">
+                  Sua conta no Zailom Flow ainda não foi marcada como ativa. Caso tenha problemas, entre em contato com o suporte.
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-muted-foreground mt-2">
                   <li>Acesse <a href="https://flow-builder.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">flow-builder.zailom.com <ExternalLink className="h-3 w-3" /></a></li>
-                  <li>Clique em <strong>Cadastrar</strong></li>
-                  <li>Use o <strong>mesmo e-mail e senha</strong> da sua conta Flow-Appoint</li>
-                  <li>No campo <strong>URL personalizada</strong>, use: <code className="bg-muted px-1.5 py-0.5 rounded">{status?.integration?.builder_workspace_slug || slug}</code></li>
-                  <li>Após concluir, volte aqui e marque como provisionada</li>
+                  <li>Tente fazer login com o e-mail: <strong>{user?.email}</strong></li>
                 </ol>
               </div>
             )}

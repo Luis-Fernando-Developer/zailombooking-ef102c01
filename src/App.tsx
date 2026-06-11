@@ -25,7 +25,7 @@ import BusinessSettings from "./pages/business/Settings";
 import BillingManagement from "./pages/business/BillingManagement";
 import BusinessProfile from "./pages/business/Profile";
 import ChatbotIntegracao from "./pages/business/chatbot/Integracao";
-import ChatbotTalkMap from "./pages/business/chatbot/TalkMap";
+import ChatbotZailomFlow from "./pages/business/chatbot/ZailomFlow";
 import BusinessSchedule from "./pages/business/Schedule";
 import ClientBooking from "./pages/client/Booking";
 import ClientLogin from "./pages/client/Login";
@@ -66,8 +66,8 @@ const App = () => (
             <Route path="/:slug/admin/perfil" element={<RequireBusinessAuth><BusinessProfile /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/chatbot" element={<RequireBusinessAuth><ChatbotIntegracao /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/chatbot/integracao" element={<RequireBusinessAuth><ChatbotIntegracao /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/chatbot/talkmap" element={<RequireBusinessAuth><ChatbotTalkMap /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/chatbot/talkmap/*" element={<RequireBusinessAuth><ChatbotTalkMap /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/chatbot/talkmap" element={<RequireBusinessAuth><ChatbotZailomFlow /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/chatbot/talkmap/*" element={<RequireBusinessAuth><ChatbotZailomFlow /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/horarios" element={<RequireBusinessAuth><BusinessSchedule /></RequireBusinessAuth>} />
             <Route path="/:slug" element={<CompanyLandingPage />} />
             <Route path="/:slug/agendar" element={<ClientBooking />} />
