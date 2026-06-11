@@ -101,6 +101,7 @@ export default function ChatbotZailomFlow() {
             user_id: user.id,
             email: user.email,
             plan: mappedTier,
+            plan_id: subscription?.plan_id,
             limits: limits,
             // Adicionando um timestamp extra no corpo para garantir unicidade do token se necessário
             _t: Date.now()

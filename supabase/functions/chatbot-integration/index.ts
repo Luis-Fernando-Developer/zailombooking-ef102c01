@@ -118,7 +118,7 @@ serve(async (req) => {
     }
 
     if (action === "sign-embed-token") {
-      const { company_id, user_id, email, plan, limits } = body;
+      const { company_id, user_id, email, plan, plan_id, limits } = body;
       if (!company_id || !user_id) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
           status: 400,
@@ -148,11 +148,10 @@ serve(async (req) => {
         aud: "builder-flow-api",
         purpose: "embed",
         company_id,
-        companyId: company_id,
         user_id,
-        userId: user_id,
         email,
         plan: plan || "starter",
+        plan_id: plan_id || plan || "starter",
         plan_tier: plan || "starter",
         embed_plan_tier: plan || "starter",
         embed_company_id: company_id,
