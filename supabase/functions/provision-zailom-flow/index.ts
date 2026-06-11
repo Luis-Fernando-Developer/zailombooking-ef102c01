@@ -12,21 +12,65 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const internalProvisionSecret = Deno.env.get("INTERNAL_PROVISION_SECRET") ?? "";
+    const embedSharedSecret = Deno.env.get("EMBED_SHARED_SECRET") ?? "";
+    const flowBaseUrl = "https://flow-builder.zailom.com";
+
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    // 1. Validar Autenticação/Origem
+    const authHeader = req.headers.get("Authorization");
+    let isAuthorized = false;
+    let authMethod = "";
+
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+
+      // Verificar se é a chave de provisionamento interno (Asaas / Backend)
+      if (token === internalProvisionSecret && internalProvisionSecret !== "") {
+        isAuthorized = true;
+        authMethod = "internal_secret";
+      } else {
+        // Verificar se é um JWT de usuário (SuperAdmin)
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+        
+        if (!authError && user) {
+          // Consultar a tabela super_admins para validar permissão
+          const { data: superAdmin, error: dbError } = await supabaseClient
+            .from("super_admins")
+            .select("id, is_active")
+            .eq("user_id", user.id)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (!dbError && superAdmin) {
+            isAuthorized = true;
+            authMethod = "super_admin_jwt";
+          }
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      console.error("Tentativa de acesso não autorizado ao provisionamento.");
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { email, password, slug, display_name, company_id, plan_id } = await req.json();
 
     if (!email || !password || !slug || !company_id) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+      return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Define limits based on plan
+    // Definir limites baseados no plano (O Flow apenas obedece)
     let limits = {
       max_chatbots: 1,
       max_messages: 700,
@@ -47,16 +91,13 @@ serve(async (req) => {
       };
     }
 
-    const EMBED_SHARED_SECRET = Deno.env.get("EMBED_SHARED_SECRET") || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-    const FLOW_BASE_URL = "https://flow-builder.zailom.com";
+    console.log(`[Provisioning][${authMethod}] Invocado para ${email} (${slug}) plano: ${plan_id}`);
 
-    console.log(`Provisioning Zailom Flow for ${email} (${slug}) with plan ${plan_id}`);
-
-    const response = await fetch(`${FLOW_BASE_URL}/functions/v1/provision-account`, {
+    const response = await fetch(`${flowBaseUrl}/functions/v1/provision-account`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${EMBED_SHARED_SECRET}`,
+        "Authorization": `Bearer ${embedSharedSecret}`,
       },
       body: JSON.stringify({
         email,
@@ -73,21 +114,21 @@ serve(async (req) => {
     const result = await response.json();
 
     if (!response.ok || !result.success) {
-      console.error("Zailom Flow provisioning failed:", result);
-      return new Response(JSON.stringify({ success: false, error: result.error || "Flow provision error" }), {
+      console.error("Erro no provisionamento do Zailom Flow:", result);
+      return new Response(JSON.stringify({ success: false, error: result.error || "Erro no Flow" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Save provision data in Booking DB
+    // Salvar dados da integração no Booking
     const { error: dbError } = await supabaseClient
       .from("chatbot_integration")
       .upsert({
         company_id,
-        api_key_prefix: result.api_key.substring(0, 8),
+        api_key_prefix: result.api_key?.substring(0, 8),
         builder_workspace_slug: slug,
-        builder_base_url: FLOW_BASE_URL,
+        builder_base_url: flowBaseUrl,
         is_active: true,
         talkmap_provisioned: true,
         talkmap_provisioned_at: new Date().toISOString(),
@@ -97,23 +138,23 @@ serve(async (req) => {
       }, { onConflict: 'company_id' });
 
     if (dbError) {
-      console.error("Error saving integration data:", dbError);
+      console.error("Erro ao salvar dados de integração:", dbError);
     }
 
     return new Response(JSON.stringify({ 
       success: true, 
       workspace_id: result.workspace_id,
-      api_key: result.api_key,
       user_id: result.user_id 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (error) {
-    console.error("Provisioning error:", error);
+    console.error("Erro fatal no provisionamento:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+

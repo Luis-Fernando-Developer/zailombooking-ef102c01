@@ -152,24 +152,27 @@ export default function CreateCompany() {
             talkmap_provisioned: false,
           }]);
 
-        const provisionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/provision-zailom-flow`;
-        const provRes = await fetch(provisionUrl, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-          },
-          body: JSON.stringify({
+        const { data: session } = await supabase.auth.getSession();
+        const { data: provResult, error: provError } = await supabase.functions.invoke('provision-zailom-flow', {
+          body: {
             email: formData.owner_email,
             password: formData.owner_password,
             slug: formData.slug,
             display_name: formData.owner_name,
             plan_id: 'starter',
             company_id: companyData.id,
-          }),
+          },
+          headers: {
+            Authorization: `Bearer ${session?.session?.access_token}`
+          }
         });
-        const provResult = await provRes.json();
+
+        if (provResult?.success) {
+          console.log('✅ Conta ZailomFlow provisionada:', provResult);
+        } else {
+          console.warn('⚠️ Falha ao provisionar ZailomFlow:', provError || provResult?.error);
+        }
+
         if (provResult.success) {
           console.log('✅ Conta ZailomFlow provisionada:', provResult);
         } else {
