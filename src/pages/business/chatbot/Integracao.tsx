@@ -141,10 +141,14 @@ export default function ChatbotIntegracao() {
     if (!confirm("Deseja realmente desconectar a integração?")) return;
     setSaving(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chatbot-integration/disconnect?company_id=${companyId}`;
       const res = await fetch(url, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+        headers: { 
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`, 
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY 
+        },
       });
       if (!res.ok) throw new Error("Erro ao desconectar");
       toast.success("Integração desconectada");
