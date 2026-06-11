@@ -126,7 +126,40 @@ export default function CreateCompany() {
 
       // Aguardar um momento para garantir que o usuário esteja disponível no banco
       // O trigger no DB deve criar o perfil em public.users, mas precisamos do link em employees
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Aumentamos o tempo e adicionamos uma verificação simples
+      let userExists = false;
+      for (let i = 0; i < 5; i++) {
+        const { data: userRecord } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+        
+        if (userRecord) {
+          userExists = true;
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      if (!userExists) {
+        console.error("Usuário não encontrado na tabela public.users após 5 segundos");
+        // Se o trigger falhou, tentamos criar manualmente na public.users para não quebrar o fluxo
+        const { error: insertUserError } = await supabase
+          .from('users')
+          .insert([{
+            id: authData.user.id,
+            email: formData.owner_email,
+            full_name: formData.owner_name
+          }]);
+        
+        if (insertUserError) {
+          console.error("Erro ao criar usuário manualmente em public.users:", insertUserError);
+          // Se falhar tudo, removemos a empresa
+          await supabase.from('companies').delete().eq('id', companyData.id);
+          throw new Error(`Erro de sincronização de usuário: O perfil não foi criado.`);
+        }
+      }
 
       // 4. Criar funcionário (proprietário) vinculado à empresa
       const { error: employeeError } = await supabase
@@ -143,8 +176,8 @@ export default function CreateCompany() {
 
       if (employeeError) {
         console.error("Erro ao criar employee:", employeeError);
-        // Em caso de erro crítico aqui, não apagamos a empresa pois o usuário Auth já foi criado
-        // Mas informamos o erro detalhado.
+        // Se falhar o employee, removemos a empresa para evitar slug bloqueado
+        await supabase.from('companies').delete().eq('id', companyData.id);
         throw new Error(`Erro ao criar funcionário: ${employeeError.message}`);
       }
 
