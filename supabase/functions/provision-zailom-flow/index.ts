@@ -17,6 +17,8 @@ serve(async (req) => {
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const internalProvisionSecret = Deno.env.get("INTERNAL_PROVISION_SECRET") ?? "";
     const embedSharedSecret = Deno.env.get("EMBED_SHARED_SECRET") ?? "";
+
+    console.log("[Provisioning] Iniciando processo...");
     const flowBaseUrl = "https://flow-builder.zailom.com";
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
