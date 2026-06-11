@@ -25,7 +25,7 @@ import BusinessSettings from "./pages/business/Settings";
 import BillingManagement from "./pages/business/BillingManagement";
 import BusinessProfile from "./pages/business/Profile";
 import ChatbotIntegracao from "./pages/business/chatbot/Integracao";
-import ChatbotTalkMap from "./pages/business/chatbot/TalkMap";
+import ChatbotZailomFlow from "./pages/business/chatbot/ZailomFlow";
 import BusinessSchedule from "./pages/business/Schedule";
 import ClientBooking from "./pages/client/Booking";
 import ClientLogin from "./pages/client/Login";
