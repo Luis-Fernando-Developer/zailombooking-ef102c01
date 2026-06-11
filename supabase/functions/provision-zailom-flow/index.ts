@@ -19,7 +19,7 @@ async function signProvisionJwt(secret: string): Promise<string> {
   const header = { alg: "HS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
   const payload = {
-    iss: "flow-appoint", // Ajustado para bater com o padrão que o builder espera
+    iss: "zailom-booking", // Atualizado para bater com o JWT esperado pelo outro projeto
     aud: "builder-flow-api",
     purpose: "provision",
     iat: now,
@@ -116,7 +116,7 @@ serve(async (req) => {
       });
     }
 
-    const { email, password, slug, display_name, company_id, plan_id } = await req.json();
+    const { email, password, slug, display_name, company_id, plan_id, full_name } = await req.json();
 
     // Mapeamento de planos para os tiers esperados pelo Flow
     const planTierMap: Record<string, string> = {
@@ -179,7 +179,7 @@ serve(async (req) => {
     const flowPayload = {
       email,
       password,
-      display_name: display_name || slug,
+      full_name: full_name || display_name || slug,
       slug,
       company_id,
       embed_source: 'booking',
@@ -191,7 +191,7 @@ serve(async (req) => {
       }
     };
 
-    console.log(`[Provisioning] Payload sendo enviado:`, JSON.stringify(flowPayload));
+    console.log(`[Provisioning] Payload sendo enviado para Flow:`, JSON.stringify(flowPayload));
 
     const flowResponse = await fetch(targetUrl, {
       method: "POST",
