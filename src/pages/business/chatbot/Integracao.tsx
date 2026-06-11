@@ -113,10 +113,15 @@ export default function ChatbotIntegracao() {
     if (!companyId || !apiKey.trim()) return;
     setSaving(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chatbot-integration/save`;
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+        headers: { 
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`, 
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY 
+        },
         body: JSON.stringify({ company_id: companyId, api_key: apiKey.trim() }),
       });
       const json = await res.json();
