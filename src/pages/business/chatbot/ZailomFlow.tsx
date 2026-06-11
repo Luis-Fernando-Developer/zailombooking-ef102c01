@@ -70,7 +70,7 @@ export default function ChatbotZailomFlow() {
         });
 
         if (invokeError || !json) {
-          throw new Error(invokeError?.message || json?.error || "Falha ao gerar token de integração");
+          throw new Error(invokeError?.message || json?.error || "Falha ao gerar token de integration");
         }
 
         const base = (json.builder_base_url || "https://flow-builder.zailom.com").replace(/\/+$/, "");
@@ -126,15 +126,28 @@ export default function ChatbotZailomFlow() {
 
   if (loading) {
     return (
-      <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId!} userRole="owner" currentUser={user}>
-        <div className="flex items-center justify-center h-[60vh]"><Loader2 className="animate-spin h-8 w-8" /></div>
+      <BusinessLayout 
+        companySlug={slug!} 
+        companyName={companyName} 
+        companyId={companyId ?? undefined} 
+        userRole="owner" 
+        currentUser={user} 
+        hideHeader
+      >
+        <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin h-8 w-8" /></div>
       </BusinessLayout>
     );
   }
 
   if (error || !iframeSrc) {
     return (
-      <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId!} userRole="owner" currentUser={user}>
+      <BusinessLayout 
+        companySlug={slug!} 
+        companyName={companyName} 
+        companyId={companyId ?? undefined} 
+        userRole="owner" 
+        currentUser={user}
+      >
         <div className="p-6 max-w-2xl mx-auto">
           <Card>
             <CardHeader>
@@ -153,13 +166,19 @@ export default function ChatbotZailomFlow() {
   }
 
   return (
-    <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId!} userRole="owner" currentUser={user}>
+    <BusinessLayout 
+      companySlug={slug!} 
+      companyName={companyName} 
+      companyId={companyId ?? undefined} 
+      userRole="owner" 
+      currentUser={user}
+      hideHeader
+    >
       <iframe
         ref={iframeRef}
-        src={iframeSrc}
+        src={iframeSrc ?? undefined}
         title="ZailomFlow Builder"
-        className="w-full border-0"
-        style={{ height: "calc(100vh - 64px)" }}
+        className="w-full h-full border-0"
         allow="clipboard-read; clipboard-write"
       />
     </BusinessLayout>
