@@ -113,13 +113,20 @@ export default function CreateCompany() {
       });
 
       if (authError) {
+        // Se falhar o Auth, tentamos remover a empresa para evitar dados órfãos e slug bloqueado
+        await supabase.from('companies').delete().eq('id', companyData.id);
         console.error("Erro no Auth:", authError);
         throw new Error(`Erro ao criar usuário: ${authError.message}`);
       }
-      if (!authData.user) throw new Error("Usuário não foi criado");
+      
+      if (!authData.user) {
+        await supabase.from('companies').delete().eq('id', companyData.id);
+        throw new Error("Usuário não foi criado");
+      }
 
       // Aguardar um momento para garantir que o usuário esteja disponível no banco
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // O trigger no DB deve criar o perfil em public.users, mas precisamos do link em employees
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // 4. Criar funcionário (proprietário) vinculado à empresa
       const { error: employeeError } = await supabase
@@ -136,6 +143,8 @@ export default function CreateCompany() {
 
       if (employeeError) {
         console.error("Erro ao criar employee:", employeeError);
+        // Em caso de erro crítico aqui, não apagamos a empresa pois o usuário Auth já foi criado
+        // Mas informamos o erro detalhado.
         throw new Error(`Erro ao criar funcionário: ${employeeError.message}`);
       }
 
