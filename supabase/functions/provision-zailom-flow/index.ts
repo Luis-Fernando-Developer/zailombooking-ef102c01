@@ -158,7 +158,7 @@ serve(async (req) => {
     }
 
     const provisionToken = await signProvisionJwt(embedSharedSecret);
-    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
+    const targetUrl = `${flowBaseUrl}/functions/v1/provision-talkmap`;
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
