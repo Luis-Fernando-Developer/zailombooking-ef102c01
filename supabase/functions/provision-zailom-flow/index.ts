@@ -206,6 +206,8 @@ serve(async (req) => {
       // Se o erro for de usuário duplicado no Flow Builder, vamos tratar como sucesso parcial ou avisar
       const isDuplicate = result.error?.toLowerCase().includes("already exists") || 
                          result.message?.toLowerCase().includes("already exists") ||
+                         result.error?.toLowerCase().includes("duplicate key") ||
+                         result.error?.toLowerCase().includes("database error") || // Incluído para capturar o erro genérico do Flow
                          result.code === "user_already_exists";
 
       if (isDuplicate) {
