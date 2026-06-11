@@ -133,14 +133,59 @@ serve(async (req) => {
         });
       }
 
-      // NOVO: Buscar o profile do usuário no banco de dados do Zailom Flow
-      // para garantir que ele esteja sincronizado antes de gerar o token.
-      // Assumimos que o SUPABASE_URL/KEY aqui são do projeto Booking, 
-      // mas precisamos atualizar o profile no banco de dados do Zailom Flow se o plano mudou.
-      
-      // NOTA: Como não temos acesso direto ao DB do Zailom Flow via Edge Function de forma trivial 
-      // sem as credenciais dele, o builder deve ler o token e se auto-atualizar.
-      // No entanto, o usuário mostrou que o DB do Zailom Flow tem colunas como 'embed_plan_tier'.
+      // 1. Buscar slug da empresa para sincronização
+      const { data: company } = await supabaseClient
+        .from("companies")
+        .select("slug")
+        .eq("id", company_id)
+        .maybeSingle();
+
+      const slug = company?.slug || company_id;
+
+      // 2. Mapear tier para o builder (starter, pro, business)
+      // O builder espera 'pro' para Professional e 'business' para Enterprise
+      const tier = plan === "pro" || plan === "professional" ? "pro" : 
+                   (plan === "business" || plan === "enterprise" ? "business" : "starter");
+
+      // 3. Sincronizar o plano no banco de dados do Builder via API de Sincronização
+      // Isso é CRUCIAL: o builder UI consulta o banco de dados dele para limites.
+      try {
+        const syncNow = Math.floor(Date.now() / 1000);
+        const syncPayload = {
+          iss: "zailom-booking",
+          aud: "builder-flow-api",
+          purpose: "sync-plan",
+          iat: syncNow,
+          exp: syncNow + 60,
+        };
+        const syncToken = await signJwt(syncPayload, embedSharedSecret);
+        
+        console.log(`[Sync] Sincronizando empresa ${slug} com tier ${tier}...`);
+        
+        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/sync-embed-plan", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${syncToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            company_id,
+            slug,
+            tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
+            source: "booking",
+          }),
+        });
+
+        if (!syncRes.ok) {
+          const errorText = await syncRes.text();
+          console.error(`[Sync] Falha na sincronização: ${syncRes.status}`, errorText);
+        } else {
+          console.log(`[Sync] Sincronização concluída com sucesso.`);
+        }
+      } catch (syncErr) {
+        console.error(`[Sync] Erro ao tentar sincronizar plano:`, syncErr);
+        // Não bloqueamos a geração do token se o sync falhar, mas logamos o erro
+      }
       
       const now = Math.floor(Date.now() / 1000);
       const payload = {
@@ -154,12 +199,11 @@ serve(async (req) => {
         user_id,
         userId: user_id,
         email,
-        // Enviar os nomes originais e mapeados para cobrir todas as validações do Flow
-        plan: plan || "starter",
-        plan_id: plan_id || plan || "starter",
-        plan_tier: plan === "pro" ? "professional" : (plan === "business" ? "enterprise" : "starter"),
-        planTier: plan === "pro" ? "professional" : (plan === "business" ? "enterprise" : "starter"),
-        embed_plan_tier: plan || "starter",
+        plan: tier,
+        plan_id: plan_id || tier,
+        plan_tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
+        planTier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
+        embed_plan_tier: tier,
         embed_company_id: company_id,
         embed_source: "booking",
         embed_max_chatbots: limits?.chatbots ?? 1,
@@ -173,12 +217,9 @@ serve(async (req) => {
           messages: limits?.messages ?? 700,
           integrations: limits?.integrations ?? 1,
         },
-        embed_plan_synced_at: new Date().toISOString(),
-        synced_at: new Date().toISOString(),
         iat: now,
         exp: now + (3600 * 24),
       };
-
 
       const token = await signJwt(payload, embedSharedSecret);
 
