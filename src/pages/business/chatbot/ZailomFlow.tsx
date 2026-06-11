@@ -117,7 +117,7 @@ export default function ChatbotZailomFlow() {
         // Se não veio subpath, manda o usuário pro workspace dele por padrão
         const initialPath = subpath || `${slug}/workspace`;
         // Builder usa HashRouter -> tudo depois do "#/"
-        setIframeSrc(`${base}/#/${initialPath}?token=${encodeURIComponent(json.token)}&embed_token=${encodeURIComponent(json.token)}&host=zailom&source=booking`);
+        setIframeSrc(`${base}/#/${initialPath}?token=${encodeURIComponent(json.token)}&embed_token=${encodeURIComponent(json.token)}&jwt=${encodeURIComponent(json.token)}&host=zailom&source=booking`);
       } catch (e) {
         setError((e as Error).message);
       } finally {
