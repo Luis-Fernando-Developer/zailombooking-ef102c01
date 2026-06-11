@@ -220,15 +220,13 @@ export default function SignUp() {
         };
       }
 
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signup-with-payment`;
-      const res = await fetch(url, {
+      const { data: result, error: invokeError } = await supabase.functions.invoke('signup-with-payment', {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: payload,
       });
-      const result = await res.json();
-      if (!res.ok || !result?.ok) {
-        throw new Error(result?.error || "Falha no cadastro.");
+
+      if (invokeError || !result?.ok) {
+        throw new Error(invokeError?.message || result?.error || "Falha no cadastro.");
       }
 
       toast({ title: "Cadastro criado!", description: "Conclua o pagamento para liberar o acesso." });
