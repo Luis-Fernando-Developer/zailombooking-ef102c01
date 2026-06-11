@@ -170,7 +170,7 @@ serve(async (req) => {
       password,
       display_name: display_name || slug,
       company_id,
-      limits: limits, // Enviando os limites que o servidor de destino espera
+      limits: limits, 
     };
 
     console.log(`[Provisioning] Payload sendo enviado:`, JSON.stringify(flowPayload));
