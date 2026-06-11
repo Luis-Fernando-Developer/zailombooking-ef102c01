@@ -210,7 +210,7 @@ export default function ChatbotIntegracao() {
                   Sua conta no Zailom Flow ainda não foi marcada como ativa. Caso tenha problemas, entre em contato com o suporte.
                 </p>
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground mt-2">
-                  <li>Acesse <a href="https://flow-builder.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">flow-builder.zailom.com <ExternalLink className="h-3 w-3" /></a></li>
+                  <li>Acesse <a href="https://booking.zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">booking.zailom.com <ExternalLink className="h-3 w-3" /></a></li>
                   <li>Tente fazer login com o e-mail: <strong>{user?.email}</strong></li>
                 </ol>
               </div>
