@@ -61,3 +61,11 @@ CREATE POLICY "Leitura pública de limites de planos" ON plan_limits FOR SELECT 
 
 -- Políticas para subscription_changes (Empresa vê apenas os seus, Super Admin vê tudo)
 CREATE POLICY "Empresas veem suas próprias mudanças" ON subscription_changes FOR SELECT USING (tenant_id IN (SELECT id FROM companies WHERE id = tenant_id));
+
+-- Adicionar colunas extras na tabela de integração para salvar dados do Zailom Flow
+ALTER TABLE chatbot_integration ADD COLUMN IF NOT EXISTS flow_workspace_id TEXT;
+ALTER TABLE chatbot_integration ADD COLUMN IF NOT EXISTS flow_api_key TEXT;
+ALTER TABLE chatbot_integration ADD COLUMN IF NOT EXISTS flow_user_id TEXT;
+ALTER TABLE chatbot_integration ADD COLUMN IF NOT EXISTS talkmap_provisioned BOOLEAN DEFAULT FALSE;
+ALTER TABLE chatbot_integration ADD COLUMN IF NOT EXISTS talkmap_provisioned_at TIMESTAMP WITH TIME ZONE;
+
