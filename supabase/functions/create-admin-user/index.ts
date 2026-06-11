@@ -37,7 +37,7 @@ serve(async (req) => {
       // Verificar se é a chave de provisionamento interno
       if (internalProvisionSecret !== "" && token === internalProvisionSecret) {
         isAuthorized = true;
-        console.log("[AdminCreateUser] Autorizado via INTERNAL_PROVISION_SECRET");
+        console.log("[AdminCreateUser] Autorizado via INTERNAL_PROVISION_SECRET (global)");
       } else {
         // Verificar se é um JWT de usuário (SuperAdmin)
         try {

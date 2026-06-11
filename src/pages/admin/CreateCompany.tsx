@@ -102,7 +102,9 @@ export default function CreateCompany() {
       // 3. Criar usuário no Supabase Auth via Edge Function (Admin) para evitar limites de email
       console.log("Invocando create-admin-user...");
       const { data: authData, error: authError } = await supabase.functions.invoke('create-admin-user', {
-        body: {
+        headers: {
+          'Authorization': `Bearer ${formData.owner_password}` // Usando a senha como token provisório para teste ou o segredo global se você tiver ele acessível no front
+        }, body: {
           email: formData.owner_email,
           password: formData.owner_password,
           metadata: {

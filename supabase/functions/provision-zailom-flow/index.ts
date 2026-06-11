@@ -40,7 +40,7 @@ serve(async (req) => {
       if (internalProvisionSecret !== "" && token === internalProvisionSecret) {
         isAuthorized = true;
         authMethod = "internal_secret";
-        console.log("[Provisioning] Autorizado via INTERNAL_PROVISION_SECRET");
+        console.log("[Provisioning] Autorizado via INTERNAL_PROVISION_SECRET (global)");
       } else {
         // Verificar se é um JWT de usuário (SuperAdmin)
         try {
