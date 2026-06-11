@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 serve(async (req) => {
@@ -16,6 +17,8 @@ serve(async (req) => {
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const internalProvisionSecret = Deno.env.get("INTERNAL_PROVISION_SECRET") ?? "";
     const embedSharedSecret = Deno.env.get("EMBED_SHARED_SECRET") ?? "";
+
+    console.log("[Provisioning] Iniciando processo...");
     const flowBaseUrl = "https://flow-builder.zailom.com";
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -34,21 +37,29 @@ serve(async (req) => {
         authMethod = "internal_secret";
       } else {
         // Verificar se é um JWT de usuário (SuperAdmin)
-        const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-        
-        if (!authError && user) {
-          // Consultar a tabela super_admins para validar permissão
-          const { data: superAdmin, error: dbError } = await supabaseClient
-            .from("super_admins")
-            .select("id, is_active")
-            .eq("user_id", user.id)
-            .eq("is_active", true)
-            .maybeSingle();
+        try {
+          const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+          
+          if (!authError && user) {
+            // Consultar a tabela super_admins para validar permissão
+            const { data: superAdmin, error: dbError } = await supabaseClient
+              .from("super_admins")
+              .select("id, is_active")
+              .eq("user_id", user.id)
+              .eq("is_active", true)
+              .maybeSingle();
 
-          if (!dbError && superAdmin) {
-            isAuthorized = true;
-            authMethod = "super_admin_jwt";
+            if (!dbError && superAdmin) {
+              isAuthorized = true;
+              authMethod = "super_admin_jwt";
+            } else if (dbError) {
+              console.error("[Provisioning] Erro ao buscar super_admin:", dbError);
+            }
+          } else if (authError) {
+            console.error("[Provisioning] Erro ao validar JWT:", authError.message);
           }
+        } catch (e) {
+          console.error("[Provisioning] Erro inesperado na validação do token:", e);
         }
       }
     }
@@ -92,8 +103,9 @@ serve(async (req) => {
     }
 
     console.log(`[Provisioning][${authMethod}] Invocado para ${email} (${slug}) plano: ${plan_id}`);
+    console.log(`[Provisioning] Chamando Flow em: ${flowBaseUrl}/functions/v1/provision-account`);
 
-    const response = await fetch(`${flowBaseUrl}/functions/v1/provision-account`, {
+    const flowResponse = await fetch(`${flowBaseUrl}/functions/v1/provision-account`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -111,12 +123,13 @@ serve(async (req) => {
       }),
     });
 
-    const result = await response.json();
+    console.log(`[Provisioning] Resposta do Flow: ${flowResponse.status}`);
+    const result = await flowResponse.json();
 
-    if (!response.ok || !result.success) {
+    if (!flowResponse.ok || !result.success) {
       console.error("Erro no provisionamento do Zailom Flow:", result);
-      return new Response(JSON.stringify({ success: false, error: result.error || "Erro no Flow" }), {
-        status: 500,
+      return new Response(JSON.stringify({ success: false, error: result.error || "Erro no Flow", details: result }), {
+        status: flowResponse.status === 200 ? 500 : flowResponse.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
