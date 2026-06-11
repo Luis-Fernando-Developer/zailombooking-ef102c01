@@ -37,7 +37,7 @@ serve(async (req) => {
       // Verificar se é a chave de provisionamento interno
       if (internalProvisionSecret !== "" && token === internalProvisionSecret) {
         isAuthorized = true;
-        console.log("[AdminCreateUser] Autorizado via INTERNAL_PROVISION_SECRET");
+        console.log("[AdminCreateUser] Autorizado via INTERNAL_PROVISION_SECRET (global)");
       } else {
         // Verificar se é um JWT de usuário (SuperAdmin)
         try {
@@ -48,15 +48,15 @@ serve(async (req) => {
             // Consultar a tabela super_admins
             const { data: superAdmin, error: dbError } = await supabaseClient
               .from("super_admins")
-              .select("id, is_active")
+              .select("id, active")
               .eq("user_id", requester.id)
               .maybeSingle();
 
-            if (!dbError && superAdmin?.is_active) {
+            if (!dbError && superAdmin?.active) {
               isAuthorized = true;
               console.log(`[AdminCreateUser] Autorizado via SuperAdmin: ${requester.email}`);
             } else {
-              console.error(`[AdminCreateUser] Falha na autorização: is_active=${superAdmin?.is_active}, dbError=${dbError?.message}`);
+              console.error(`[AdminCreateUser] Falha na autorização: active=${superAdmin?.active}, dbError=${dbError?.message}`);
             }
           } else if (authError) {
             console.error("[AdminCreateUser] Erro ao validar JWT:", authError.message);
