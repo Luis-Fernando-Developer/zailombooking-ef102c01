@@ -59,7 +59,9 @@ serve(async (req) => {
     const embedSharedSecret = Deno.env.get("EMBED_SHARED_SECRET") ?? "";
 
     console.log("[Provisioning] Iniciando processo...");
-    // A URL correta do projeto Flow Builder (conforme outros projetos do usuário)
+    console.log(`[Provisioning] Verificação de segredos: internalSecret=${!!internalProvisionSecret}, embedSecret=${!!embedSharedSecret}`);
+    
+    // A URL correta do projeto Flow Builder (fwoescubnnagdvwasbjl)
     const flowBaseUrl = "https://fwoescubnnagdvwasbjl.supabase.co";
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -97,7 +99,7 @@ serve(async (req) => {
               authMethod = "super_admin_jwt";
               console.log(`[Provisioning] Autorizado via SuperAdmin: ${user.email}`);
             } else {
-              console.error(`[Provisioning] Falha na autorização: userFound=${!!superAdmin}, active=${isActive}`);
+              console.error(`[Provisioning] Falha na autorização: userFound=${!!superAdmin}, active=${isActive}, dbError=${dbError?.message}`);
             }
           }
         } catch (e) {
@@ -148,8 +150,8 @@ serve(async (req) => {
     
     // Gerar JWT para autenticação com o Flow Builder
     if (!embedSharedSecret) {
-      console.error("[Provisioning] EMBED_SHARED_SECRET não configurado nas variáveis de ambiente.");
-      return new Response(JSON.stringify({ success: false, error: "Configuração do servidor incompleta (Secret faltando)" }), {
+      console.error("[Provisioning] EMBED_SHARED_SECRET não configurado.");
+      return new Response(JSON.stringify({ success: false, error: "Configuração incompleta: EMBED_SHARED_SECRET faltando." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -185,7 +187,7 @@ serve(async (req) => {
     try {
       result = JSON.parse(responseText);
     } catch (e) {
-      console.error("[Provisioning] Erve ao parsear JSON do Flow. Resposta bruta:", responseText);
+      console.error("[Provisioning] Erro ao parsear JSON do Flow. Resposta bruta:", responseText);
       return new Response(JSON.stringify({ 
         success: false, 
         error: "Resposta inválida do Flow (não é JSON)", 
@@ -197,7 +199,7 @@ serve(async (req) => {
       });
     }
 
-    if (!flowResponse.ok || !result.success) {
+    if (!flowResponse.ok || (result.ok === false) || (result.success === false)) {
       console.error("Erro no provisionamento do Zailom Flow:", result);
       return new Response(JSON.stringify({ 
         success: false, 
