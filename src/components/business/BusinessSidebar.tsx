@@ -58,7 +58,7 @@ const menuItems: MenuItem[] = [
 interface BusinessSidebarProps {
   companySlug: string;
   companyName: string;
-  companyId: string;
+  companyId?: string;
   userRole: string;
   currentUser?: SupabaseUser | null;
 }
