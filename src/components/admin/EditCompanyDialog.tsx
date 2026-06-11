@@ -140,6 +140,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
       });
       setPlans(updatedPlans);
     } else {
+      console.warn("Nenhum plano encontrado na tabela subscription_plans. Usando dados locais temporários.");
       setPlans(dummyPlans);
     }
   };
