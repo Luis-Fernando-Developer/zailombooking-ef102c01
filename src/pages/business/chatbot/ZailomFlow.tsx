@@ -124,13 +124,11 @@ export default function ChatbotZailomFlow() {
     );
   }, [subpath, iframeSrc, slug, builderBaseUrl]);
 
-  if (loading) {
     return (
-      <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId!} userRole="owner" currentUser={user}>
-        <div className="flex items-center justify-center h-[60vh]"><Loader2 className="animate-spin h-8 w-8" /></div>
+      <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId!} userRole="owner" currentUser={user} hideHeader>
+        <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin h-8 w-8" /></div>
       </BusinessLayout>
     );
-  }
 
   if (error || !iframeSrc) {
     return (
@@ -153,13 +151,19 @@ export default function ChatbotZailomFlow() {
   }
 
   return (
-    <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId!} userRole="owner" currentUser={user}>
+    <BusinessLayout 
+      companySlug={slug!} 
+      companyName={companyName} 
+      companyId={companyId!} 
+      userRole="owner" 
+      currentUser={user}
+      hideHeader
+    >
       <iframe
         ref={iframeRef}
         src={iframeSrc}
         title="ZailomFlow Builder"
-        className="w-full border-0"
-        style={{ height: "calc(100vh - 64px)" }}
+        className="w-full h-full border-0"
         allow="clipboard-read; clipboard-write"
       />
     </BusinessLayout>

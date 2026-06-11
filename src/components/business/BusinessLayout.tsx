@@ -14,9 +14,18 @@ interface BusinessLayoutProps {
   companyId: string;
   userRole: string;
   currentUser?: SupabaseUser | null;
+  hideHeader?: boolean;
 }
 
-export function BusinessLayout({ children, companySlug, companyName, companyId, userRole, currentUser }: BusinessLayoutProps) {
+export function BusinessLayout({ 
+  children, 
+  companySlug, 
+  companyName, 
+  companyId, 
+  userRole, 
+  currentUser,
+  hideHeader = false 
+}: BusinessLayoutProps) {
   return (
     <SidebarProvider className="min-h-screen flex w-full">
       <BusinessSidebar 
@@ -28,23 +37,33 @@ export function BusinessLayout({ children, companySlug, companyName, companyId, 
       />
       
       <div className="flex flex-col flex-1 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
-        <header className="h-[70px] shrink-0 w-full flex items-center border-b border-primary/20 bg-card/80 backdrop-blur-2xl px-4 z-40">
-          <SidebarTrigger className="text-foreground hover:bg-primary/10" />
-          <div className="ml-4 flex flex-col -space-y-2 py-3">
-            <h1 className="text-lg font-semibold text-gradient">{companyName} - Painel Administrativo</h1>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <span className="stroke-primary-glow border-dashed">https://booking.zailom.com/{companySlug}</span>
-              <Button size="sm" variant="link" className="ml-2 p-0"><Copy className="w-4 h-4" /></Button>
+        {!hideHeader ? (
+          <header className="h-[70px] shrink-0 w-full flex items-center border-b border-primary/20 bg-card/80 backdrop-blur-2xl px-4 z-40">
+            <SidebarTrigger className="text-foreground hover:bg-primary/10" />
+            <div className="ml-4 flex flex-col -space-y-2 py-3">
+              <h1 className="text-lg font-semibold text-gradient">{companyName} - Painel Administrativo</h1>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <span className="stroke-primary-glow border-dashed">https://booking.zailom.com/{companySlug}</span>
+                <Button size="sm" variant="link" className="ml-2 p-0"><Copy className="w-4 h-4" /></Button>
+              </div>
             </div>
+          </header>
+        ) : (
+          <div className="absolute top-4 left-4 z-50">
+            <SidebarTrigger className="text-foreground hover:bg-primary/10 bg-card/80 backdrop-blur-md border border-primary/20 rounded-md p-2" />
           </div>
-        </header>
+        )}
 
-        <main className="flex-1 overflow-y-auto bg-gradient-hero scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
-          <div className="w-full">
-            <div className="px-4 pt-4">
-              <PlanOverageBanner companyId={companyId} />
+        <main className={`flex-1 overflow-y-auto bg-gradient-hero scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent ${hideHeader ? 'h-full' : ''}`}>
+          <div className="w-full h-full flex flex-col">
+            {!hideHeader && (
+              <div className="px-4 pt-4">
+                <PlanOverageBanner companyId={companyId} />
+              </div>
+            )}
+            <div className="flex-1 overflow-hidden">
+              {children}
             </div>
-            {children}
           </div>
         </main>
       </div>
