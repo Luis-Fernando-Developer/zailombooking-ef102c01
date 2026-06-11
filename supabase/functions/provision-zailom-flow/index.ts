@@ -118,6 +118,14 @@ serve(async (req) => {
 
     const { email, password, slug, display_name, company_id, plan_id } = await req.json();
 
+    // Mapeamento de planos para os tiers esperados pelo Flow
+    const planTierMap: Record<string, string> = {
+      'starter': 'starter',
+      'professional': 'pro',
+      'enterprise': 'business'
+    };
+    const embed_plan_tier = planTierMap[plan_id] || 'starter';
+
     if (!email || !password || !slug || !company_id) {
       return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes" }), {
         status: 400,
@@ -171,8 +179,16 @@ serve(async (req) => {
     const flowPayload = {
       email,
       password,
-      full_name: display_name || slug,
-      limits: limits, 
+      display_name: display_name || slug,
+      slug,
+      company_id,
+      embed_source: 'booking',
+      embed_plan_tier,
+      limits: {
+        max_chatbots: limits.max_chatbots,
+        max_messages: limits.max_messages,
+        max_integrations: limits.max_integrations
+      }
     };
 
     console.log(`[Provisioning] Payload sendo enviado:`, JSON.stringify(flowPayload));
