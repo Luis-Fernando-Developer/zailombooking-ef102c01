@@ -70,7 +70,7 @@ export default function ChatbotZailomFlow() {
         });
 
         if (invokeError || !json) {
-          throw new Error(invokeError?.message || json?.error || "Falha ao gerar token de integração");
+          throw new Error(invokeError?.message || json?.error || "Falha ao gerar token de integration");
         }
 
         const base = (json.builder_base_url || "https://flow-builder.zailom.com").replace(/\/+$/, "");
@@ -124,15 +124,30 @@ export default function ChatbotZailomFlow() {
     );
   }, [subpath, iframeSrc, slug, builderBaseUrl]);
 
+  if (loading) {
     return (
-      <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId ?? undefined} userRole="owner" currentUser={user} hideHeader>
+      <BusinessLayout 
+        companySlug={slug!} 
+        companyName={companyName} 
+        companyId={companyId ?? undefined} 
+        userRole="owner" 
+        currentUser={user} 
+        hideHeader
+      >
         <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin h-8 w-8" /></div>
       </BusinessLayout>
     );
+  }
 
   if (error || !iframeSrc) {
     return (
-      <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId!} userRole="owner" currentUser={user}>
+      <BusinessLayout 
+        companySlug={slug!} 
+        companyName={companyName} 
+        companyId={companyId ?? undefined} 
+        userRole="owner" 
+        currentUser={user}
+      >
         <div className="p-6 max-w-2xl mx-auto">
           <Card>
             <CardHeader>
@@ -154,7 +169,7 @@ export default function ChatbotZailomFlow() {
     <BusinessLayout 
       companySlug={slug!} 
       companyName={companyName} 
-      companyId={companyId!} 
+      companyId={companyId ?? undefined} 
       userRole="owner" 
       currentUser={user}
       hideHeader
