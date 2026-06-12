@@ -164,8 +164,8 @@ serve(async (req) => {
         
         console.log(`[Provision] Sincronizando empresa ${slug} com tier ${tier}...`);
         
-        // Usando o novo endpoint provision-external-user conforme solicitado
-        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-external-user", {
+        // Usando o endpoint provision-account conforme instruído
+        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-account", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${syncToken}`,
@@ -174,10 +174,13 @@ serve(async (req) => {
           body: JSON.stringify({
             email,
             company_id,
-            plan_tier: tier,
-            max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
-            max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
-            max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
+            embed_source: "booking",
+            embed_plan_tier: tier,
+            limits: {
+              max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
+              max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
+              max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
+            }
           }),
         });
 
@@ -202,17 +205,6 @@ serve(async (req) => {
         user_email: email,
         exp: now + (3600 * 24),
         plan: tier,
-        purpose: "embed",
-        context: "embed",
-        source: "booking",
-        email,
-        user_id,
-        plan_tier: tier === "pro" ? "pro" : (tier === "business" ? "business" : "starter"),
-        limits: {
-          max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
-          max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
-          max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
-        },
         iat: now,
       };
 
