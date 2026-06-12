@@ -132,7 +132,7 @@ serve(async (req) => {
     if (planInput.includes('professional') || planInput.includes('pro') || planInput === '294e3c1b-55ac-49bd-803e-22657a7c8eb7') {
       embed_plan_tier = 'pro';
     } else if (planInput.includes('enterprise') || planInput.includes('business')) {
-      embed_plan_tier = 'business';
+      embed_plan_tier = 'pro'; // Alinhando com a sugestão de (free, starter, pro)
     }
 
     if (!email || !password || !slug || !company_id) {
@@ -144,7 +144,6 @@ serve(async (req) => {
 
     // Definir limites baseados no plano para o provisionamento inicial
     let limits = {
-      max_bots: 1,
       max_chatbots: 1,
       max_messages: 700,
       max_integrations: 1,
@@ -152,17 +151,9 @@ serve(async (req) => {
 
     if (embed_plan_tier === "pro") {
       limits = {
-        max_bots: 10,
         max_chatbots: 10,
         max_messages: 10000,
         max_integrations: 10,
-      };
-    } else if (embed_plan_tier === "business") {
-      limits = {
-        max_bots: 9999,
-        max_chatbots: 9999,
-        max_messages: 999999,
-        max_integrations: 9999,
       };
     }
 
@@ -178,18 +169,18 @@ serve(async (req) => {
     }
 
     const provisionToken = await signProvisionJwt(embedSharedSecret, company_id, email);
-    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
+    // Usando o novo endpoint provision-external-user para garantir sincronização de limites
+    const targetUrl = `${flowBaseUrl}/functions/v1/provision-external-user`;
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
     const flowPayload = {
       email,
-      password,
+      password, // O endpoint pode ignorar se o usuário já existir
       full_name: full_name || display_name || slug,
       slug,
       company_id,
-      embed_source: 'booking',
-      embed_plan_tier: embed_plan_tier,
+      plan_tier: embed_plan_tier,
       limits: {
         max_chatbots: limits.max_chatbots,
         max_messages: limits.max_messages,
