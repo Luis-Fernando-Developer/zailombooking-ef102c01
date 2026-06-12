@@ -143,14 +143,18 @@ serve(async (req) => {
       const slug = company?.slug || company_id;
       const displayName = company?.name || email.split('@')[0];
 
-      // 2. Mapear tier para o builder (free, starter, pro)
-      // O builder espera 'pro' para Professional e 'business' (ou pro) para Enterprise
-      const tier = plan === "pro" || plan === "professional" || plan === "business" || plan === "enterprise" ? "pro" : "starter";
+      // 2. Mapear tier para o builder (starter, pro, business)
+      let tier = "starter";
+      if (plan === "professional" || plan === "pro") {
+        tier = "pro";
+      } else if (plan === "enterprise" || plan === "business") {
+        tier = "business";
+      }
 
       const currentLimits = {
-        max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : 1),
-        max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : 700),
-        max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : 1),
+        max_chatbots: limits?.chatbots ?? (tier === 'business' ? 100 : tier === 'pro' ? 3 : 1),
+        max_messages: limits?.messages ?? (tier === 'business' ? 1000000 : tier === 'pro' ? 5000 : 700),
+        max_integrations: limits?.integrations ?? (tier === 'business' ? 100 : tier === 'pro' ? 3 : 1),
       };
 
       // 3. Sincronizar o plano no banco de dados do Builder via API de Sincronização

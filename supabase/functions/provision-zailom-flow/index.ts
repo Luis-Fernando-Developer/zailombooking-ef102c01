@@ -114,7 +114,7 @@ serve(async (req) => {
     if (planInput.includes('professional') || planInput.includes('pro') || planInput === '294e3c1b-55ac-49bd-803e-22657a7c8eb7') {
       embed_plan_tier = 'pro';
     } else if (planInput.includes('enterprise') || planInput.includes('business')) {
-      embed_plan_tier = 'pro';
+      embed_plan_tier = 'business';
     }
 
     if (!email || !password || !slug || !company_id) {
@@ -132,9 +132,15 @@ serve(async (req) => {
 
     if (embed_plan_tier === "pro") {
       limits = {
-        max_chatbots: 10,
-        max_messages: 10000,
-        max_integrations: 10,
+        max_chatbots: 3,
+        max_messages: 5000,
+        max_integrations: 3,
+      };
+    } else if (embed_plan_tier === "business") {
+      limits = {
+        max_chatbots: 100,
+        max_messages: 1000000,
+        max_integrations: 100,
       };
     }
 
