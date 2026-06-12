@@ -104,7 +104,7 @@ export default function ChatbotZailomFlow() {
             plan: mappedTier,
             plan_id: subscription?.plan_id,
             limits: limits,
-            // Adicionando um timestamp extra no corpo para garantir unicidade do token se necessário
+            force_sync: true, // Forçar a sincronização no builder
             _t: Date.now()
           },
         });
