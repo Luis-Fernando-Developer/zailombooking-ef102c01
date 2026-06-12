@@ -60,29 +60,36 @@ export default function ChatbotZailomFlow() {
         
         // Buscar o plano atual da empresa para passar ao builder
         // Pegamos o builder_tier ou o nome do plano para o builder saber o nível de recursos
-        const { data: subscription } = await supabase
+        const { data: subscription, error: subError } = await supabase
           .from("company_subscriptions")
-          .select("plan_id, subscription_plans(name, builder_tier)")
+          .select("plan_id, status, subscription_plans(name, builder_tier)")
           .eq("company_id", company.id)
           .maybeSingle();
 
-        // Log para depuração dos dados reais do plano
+        if (subError) console.error("Erro ao buscar assinatura:", subError);
         console.log("Dados da assinatura recuperados:", subscription);
 
         let planName = (subscription?.subscription_plans as any)?.name?.toLowerCase() || "";
         let builderTier = (subscription?.subscription_plans as any)?.builder_tier?.toLowerCase() || "";
+        let subscriptionStatus = subscription?.status || "active";
 
-        // Mapeamento rigoroso baseado na tabela fornecida pelo usuário
-        // Zailom Booking: starter, professional, enterprise
-        // Zailom Flow: starter, pro, business
+        // Mapeamento rigoroso
         let mappedTier = "starter";
         
-        // Verifica tanto o nome quanto o builder_tier para cobrir todas as possibilidades
-        // Forçar mapeamento se vier como "premium" (que costuma ser Pro no builder)
-        if (planName.includes("enterprise") || builderTier.includes("enterprise") || builderTier === "business") {
-          mappedTier = "business";
-        } else if (planName.includes("professional") || planName.includes("pro") || builderTier === "professional" || builderTier === "pro" || planName.includes("premium")) {
-          mappedTier = "pro";
+        // Se a assinatura não for ativa/trialing, tratamos como starter ou bloqueamos
+        if (subscriptionStatus === "active" || subscriptionStatus === "trialing" || subscriptionStatus === "past_due") {
+          if (planName.includes("enterprise") || builderTier.includes("enterprise") || builderTier === "business" || builderTier === "enterprise") {
+            mappedTier = "business";
+          } else if (
+            planName.includes("professional") || 
+            planName.includes("pro") || 
+            builderTier === "professional" || 
+            builderTier === "pro" || 
+            planName.includes("premium") ||
+            planName.includes("pago") // Adicionado como salvaguarda
+          ) {
+            mappedTier = "pro";
+          }
         }
 
         

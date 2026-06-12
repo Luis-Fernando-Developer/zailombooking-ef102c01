@@ -172,12 +172,10 @@ serve(async (req) => {
             email,
             company_id,
             embed_source: "booking",
-            embed_plan_tier: tier,
-            limits: {
-              max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
-              max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
-              max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
-            }
+            plan_tier: tier,
+            max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
+            max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
+            max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
           }),
         });
 
