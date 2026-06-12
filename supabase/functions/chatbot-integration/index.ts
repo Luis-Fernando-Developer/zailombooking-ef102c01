@@ -144,8 +144,7 @@ serve(async (req) => {
 
       // 2. Mapear tier para o builder (free, starter, pro)
       // O builder espera 'pro' para Professional e 'business' (ou pro) para Enterprise
-      const tier = plan === "pro" || plan === "professional" ? "pro" : 
-                   (plan === "business" || plan === "enterprise" ? "pro" : "starter");
+      const tier = plan === "pro" || plan === "professional" || plan === "business" || plan === "enterprise" ? "pro" : "starter";
 
       const currentLimits = {
         max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : 1),
@@ -171,18 +170,26 @@ serve(async (req) => {
         
         console.log(`[Provision] Sincronizando usuário ${email} com tier ${tier}...`);
         
-        // Usando o endpoint provision-external-user conforme instruído pelo dev do Flow
+        // Formato EXATO solicitado pelo desenvolvedor do Flow
+        const flowPayload = {
+          email: email,
+          plan_tier: tier,
+          limits: {
+            max_chatbots: currentLimits.max_chatbots,
+            max_messages: currentLimits.max_messages,
+            max_integrations: currentLimits.max_integrations
+          }
+        };
+
+        console.log(`[Provision] Payload:`, JSON.stringify(flowPayload));
+
         const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-external-user", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${syncToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            email: email,
-            plan_tier: tier,
-            limits: currentLimits
-          }),
+          body: JSON.stringify(flowPayload),
         });
 
         if (!syncRes.ok) {
