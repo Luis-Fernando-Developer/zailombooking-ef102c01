@@ -142,10 +142,16 @@ serve(async (req) => {
 
       const slug = company?.slug || company_id;
 
-      // 2. Mapear tier para o builder (starter, pro, business)
-      // O builder espera 'pro' para Professional e 'business' para Enterprise
+      // 2. Mapear tier para o builder (free, starter, pro)
+      // O builder espera 'pro' para Professional e 'business' (ou pro) para Enterprise
       const tier = plan === "pro" || plan === "professional" ? "pro" : 
-                   (plan === "business" || plan === "enterprise" ? "business" : "starter");
+                   (plan === "business" || plan === "enterprise" ? "pro" : "starter");
+
+      const currentLimits = {
+        max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : 1),
+        max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : 700),
+        max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : 1),
+      };
 
       // 3. Sincronizar o plano no banco de dados do Builder via API de Sincronização
       // Isso é CRUCIAL: o builder UI consulta o banco de dados dele para limites.
@@ -154,6 +160,7 @@ serve(async (req) => {
         const syncPayload = {
           iss: "zailom-booking",
           aud: "zailom-flow-api",
+          sub: email,
           company_id: company_id,
           email: email,
           purpose: "provision",
@@ -162,25 +169,19 @@ serve(async (req) => {
         };
         const syncToken = await signJwt(syncPayload, embedSharedSecret);
         
-        console.log(`[Provision] Sincronizando empresa ${slug} com tier ${tier}...`);
+        console.log(`[Provision] Sincronizando usuário ${email} com tier ${tier}...`);
         
-        // Usando o endpoint provision-account conforme instruído
-        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-account", {
+        // Usando o endpoint provision-external-user conforme instruído pelo dev do Flow
+        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-external-user", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${syncToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email,
-            company_id,
-            embed_source: "booking",
-            embed_plan_tier: tier,
-            limits: {
-              max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
-              max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
-              max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
-            }
+            email: email,
+            plan_tier: tier,
+            limits: currentLimits
           }),
         });
 
@@ -193,18 +194,18 @@ serve(async (req) => {
         }
       } catch (syncErr) {
         console.error(`[Sync] Erro ao tentar sincronizar plano:`, syncErr);
-        // Não bloqueamos a geração do token se o sync falhar, mas logamos o erro
       }
       
       const now = Math.floor(Date.now() / 1000);
       const payload = {
         iss: "zailom-booking",
         aud: "zailom-flow-api",
+        sub: email,
         company_id,
         workspace_slug: slug,
-        user_email: email,
         exp: now + (3600 * 24),
-        plan: tier,
+        plan_tier: tier,
+        metadata: currentLimits,
         iat: now,
       };
 
@@ -213,7 +214,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         token, 
         builder_base_url: "https://flow-builder.zailom.com",
-        sync_required: true // Informativo para o frontend
+        sync_required: true 
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
