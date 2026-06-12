@@ -124,7 +124,7 @@ serve(async (req) => {
     
     // Buscar detalhes do plano no banco se necessário, ou usar o tier direto se vier no body
     let embed_plan_tier = 'starter';
-    const planInput = (body.plan || body.plan_id || '').toLowerCase();
+    const planInput = (plan_id || '').toLowerCase();
     
     if (planInput.includes('professional') || planInput.includes('pro') || planInput === '294e3c1b-55ac-49bd-803e-22657a7c8eb7') {
       embed_plan_tier = 'pro';
