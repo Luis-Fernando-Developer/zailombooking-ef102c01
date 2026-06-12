@@ -78,27 +78,23 @@ export default function ChatbotZailomFlow() {
         
         // Se a assinatura não for ativa/trialing, tratamos como starter ou bloqueamos
         if (subscriptionStatus === "active" || subscriptionStatus === "trialing" || subscriptionStatus === "past_due") {
-          if (planName.includes("enterprise") || builderTier.includes("enterprise") || builderTier === "business" || builderTier === "enterprise") {
-            mappedTier = "business";
-          } else if (
-            planName.includes("professional") || 
-            planName.includes("pro") || 
-            builderTier === "professional" || 
-            builderTier === "pro" || 
-            planName.includes("premium") ||
-            planName.includes("pago") // Adicionado como salvaguarda
-          ) {
+          // Normalizamos tudo para minúsculas e comparamos
+          const pName = planName.toLowerCase();
+          const bTier = builderTier.toLowerCase();
+          
+          if (pName.includes("pro") || pName.includes("professional") || 
+              bTier === "pro" || bTier === "professional" || 
+              pName.includes("business") || pName.includes("enterprise") ||
+              bTier === "business" || bTier === "enterprise") {
             mappedTier = "pro";
           }
         }
 
         
-        // Determinar limites específicos baseado no mapeamento para sincronização do profile se necessário
-        const limits = {
-          pro: { chatbots: 10, messages: 10000, integrations: 10 },
-          business: { chatbots: 100, messages: 100000, integrations: 100 },
-          starter: { chatbots: 1, messages: 700, integrations: 1 }
-        }[mappedTier as "pro" | "business" | "starter"] || { chatbots: 1, messages: 700, integrations: 1 };
+        // Determinar limites específicos baseado no mapeamento
+        const limits = mappedTier === "pro" 
+          ? { chatbots: 10, messages: 10000, integrations: 10 } 
+          : { chatbots: 1, messages: 700, integrations: 1 };
 
         console.log("Invocando chatbot-integration/sign-embed-token com plano:", mappedTier);
         const { data: json, error: invokeError } = await supabase.functions.invoke('chatbot-integration', {
