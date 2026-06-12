@@ -178,7 +178,7 @@ serve(async (req) => {
     }
 
     const provisionToken = await signProvisionJwt(embedSharedSecret, company_id, email);
-    const targetUrl = `${flowBaseUrl}/functions/v1/provision-external-user`;
+    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
@@ -189,10 +189,12 @@ serve(async (req) => {
       slug,
       company_id,
       embed_source: 'booking',
-      plan_tier: embed_plan_tier,
-      max_chatbots: limits.max_chatbots,
-      max_messages: limits.max_messages,
-      max_integrations: limits.max_integrations,
+      embed_plan_tier: embed_plan_tier,
+      limits: {
+        max_chatbots: limits.max_chatbots,
+        max_messages: limits.max_messages,
+        max_integrations: limits.max_integrations,
+      }
     };
 
     console.log(`[Provisioning] Payload sendo enviado para Flow:`, JSON.stringify(flowPayload));
