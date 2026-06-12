@@ -20,7 +20,7 @@ async function signProvisionJwt(secret: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     iss: "zailom-booking", // Atualizado para bater com o JWT esperado pelo outro projeto
-    aud: "builder-flow-api",
+    aud: "zailom-flow-api",
     purpose: "provision",
     iat: now,
     exp: now + 300, // 5 minutos de validade

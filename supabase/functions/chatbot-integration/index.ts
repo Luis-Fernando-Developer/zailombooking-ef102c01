@@ -153,35 +153,40 @@ serve(async (req) => {
         const syncNow = Math.floor(Date.now() / 1000);
         const syncPayload = {
           iss: "zailom-booking",
-          aud: "builder-flow-api",
-          purpose: "sync-plan",
+          aud: "zailom-flow-api",
+          purpose: "provision",
           iat: syncNow,
-          exp: syncNow + 60,
+          exp: syncNow + 600,
         };
         const syncToken = await signJwt(syncPayload, embedSharedSecret);
         
-        console.log(`[Sync] Sincronizando empresa ${slug} com tier ${tier}...`);
+        console.log(`[Provision] Sincronizando empresa ${slug} com tier ${tier}...`);
         
-        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/sync-embed-plan", {
+        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-account", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${syncToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+            email,
             company_id,
-            slug,
-            tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
-            source: "booking",
-            force_sync: true,
+            embed_source: "booking",
+            embed_plan_tier: tier,
+            limits: {
+              max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
+              max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
+              max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
+            }
           }),
         });
 
         if (!syncRes.ok) {
           const errorText = await syncRes.text();
-          console.error(`[Sync] Falha na sincronização: ${syncRes.status}`, errorText);
+          console.error(`[Provision] Falha no provisionamento: ${syncRes.status}`, errorText);
         } else {
-          console.log(`[Sync] Sincronização concluída com sucesso.`);
+          const syncData = await syncRes.json();
+          console.log(`[Provision] Sincronização concluída com sucesso.`, syncData);
         }
       } catch (syncErr) {
         console.error(`[Sync] Erro ao tentar sincronizar plano:`, syncErr);
@@ -191,39 +196,25 @@ serve(async (req) => {
       const now = Math.floor(Date.now() / 1000);
       const payload = {
         iss: "zailom-booking",
-        aud: "builder-flow-api",
+        aud: "zailom-flow-api",
+        company_id,
+        workspace_slug: slug,
+        user_email: email,
+        exp: now + (3600 * 24),
+        plan: tier,
+        // Mantendo campos extras para retrocompatibilidade se necessário
         purpose: "embed",
         context: "embed",
         source: "booking",
-        company_id,
-        companyId: company_id,
-        user_id,
-        userId: user_id,
         email,
-        plan: tier,
-        plan_id: plan_id || tier,
+        user_id,
         plan_tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
-        planTier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
-        tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
-        subscription_plan: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
-        embed_plan_tier: tier,
-        embed_company_id: company_id,
-        embed_source: "booking",
-        embed_max_chatbots: limits?.chatbots ?? 1,
-        embed_max_messages: limits?.messages ?? 700,
-        embed_max_integrations: limits?.integrations ?? 1,
         limits: {
-          max_chatbots: limits?.chatbots ?? 10,
-          max_messages: limits?.messages ?? 10000,
-          max_integrations: limits?.integrations ?? 10,
-          chatbots: limits?.chatbots ?? 10,
-          messages: limits?.messages ?? 10000,
-          integrations: limits?.integrations ?? 10,
+          max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
+          max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
+          max_integrations: limits?.integrations ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
         },
-        force_tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
-        subscription_tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
         iat: now,
-        exp: now + (3600 * 24),
       };
 
       const token = await signJwt(payload, embedSharedSecret);
