@@ -207,7 +207,7 @@ serve(async (req) => {
         source: "booking",
         email,
         user_id,
-        plan_tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
+        plan_tier: tier === "pro" ? "pro" : (tier === "business" ? "business" : "starter"),
         limits: {
           max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
           max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
