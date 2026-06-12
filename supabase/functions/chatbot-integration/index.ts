@@ -118,7 +118,7 @@ serve(async (req) => {
     }
 
     if (action === "sign-embed-token") {
-      const { company_id, user_id, email, plan, plan_id, limits } = body;
+      const { company_id, user_id, email, plan, plan_id, limits, force_sync } = body;
       if (!company_id || !user_id) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
           status: 400,
@@ -156,7 +156,7 @@ serve(async (req) => {
           aud: "zailom-flow-api",
           purpose: "provision",
           iat: syncNow,
-          exp: syncNow + 600,
+          exp: syncNow + 300,
         };
         const syncToken = await signJwt(syncPayload, embedSharedSecret);
         
@@ -202,7 +202,6 @@ serve(async (req) => {
         user_email: email,
         exp: now + (3600 * 24),
         plan: tier,
-        // Mantendo campos extras para retrocompatibilidade se necessário
         purpose: "embed",
         context: "embed",
         source: "booking",
@@ -221,7 +220,8 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({ 
         token, 
-        builder_base_url: "https://flow-builder.zailom.com" 
+        builder_base_url: "https://flow-builder.zailom.com",
+        sync_required: true // Informativo para o frontend
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
