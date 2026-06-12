@@ -154,57 +154,42 @@ serve(async (req) => {
 
       // 3. Sincronizar o plano no banco de dados do Builder via API de Sincronização
       // Isso é CRUCIAL: o builder UI consulta o banco de dados dele para limites.
+      // 3. Sincronizar o plano no banco de dados do Builder via função local de provisionamento
+      // Isso centraliza a lógica e garante que os logs apareçam na função correta.
       try {
-        const syncNow = Math.floor(Date.now() / 1000);
-        const syncPayload = {
-          iss: "zailom-booking",
-          aud: "zailom-flow-api",
-          sub: email,
+        console.log(`[Provision] Iniciando sincronização local para ${email}...`);
+        
+        const provisionPayload = {
+          email: email,
+          password: "InitialPassword123!", // Senha temporária caso o usuário não exista
+          slug: slug,
+          display_name: email.split('@')[0],
           company_id: company_id,
-          email: email,
-          purpose: "provision",
-          iat: syncNow,
-          exp: syncNow + 300,
-        };
-        const syncToken = await signJwt(syncPayload, embedSharedSecret);
-        
-        console.log(`[Provision] Sincronizando usuário ${email} com tier ${tier}...`);
-        
-        // Formato EXATO solicitado pelo desenvolvedor do Flow
-        const flowPayload = {
-          email: email,
-          plan_tier: tier,
-          limits: {
-            max_chatbots: currentLimits.max_chatbots,
-            max_messages: currentLimits.max_messages,
-            max_integrations: currentLimits.max_integrations
-          }
+          plan_id: plan_id || tier,
+          full_name: email.split('@')[0]
         };
 
-        console.log(`[Provision] Payload:`, JSON.stringify(flowPayload));
-
-        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-account", {
+        const localProvisionUrl = `${supabaseUrl}/functions/v1/provision-zailom-flow`;
+        
+        const syncRes = await fetch(localProvisionUrl, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${syncToken}`,
+            "Authorization": `Bearer ${embedSharedSecret}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(flowPayload),
+          body: JSON.stringify(provisionPayload),
         });
 
+        const syncData = await syncRes.json();
+        
         if (!syncRes.ok) {
-          const errorText = await syncRes.text();
-          console.error(`[Provision] Falha no provisionamento (${syncRes.status}):`, errorText);
-          
-          // Se o erro for "usuário já registrado", tentamos ignorar e assumir que a API 
-          // do Flow cuidará do update se ela suportar, ou pelo menos não quebrar o fluxo.
-          // Conforme a especificação, o provision-account DEVE lidar com usuários existentes.
+          console.error(`[Provision] Falha na função local de provisionamento (${syncRes.status}):`, syncData);
+          // Se falhar, ainda prosseguimos com a geração do JWT para não bloquear o acesso ao frontend
         } else {
-          const syncData = await syncRes.json();
-          console.log(`[Provision] Sincronização concluída com sucesso.`, syncData);
+          console.log(`[Provision] Sincronização local concluída com sucesso.`, syncData);
         }
       } catch (syncErr) {
-        console.error(`[Sync] Erro ao tentar sincronizar plano:`, syncErr);
+        console.error(`[Provision] Erro ao tentar chamar provisionamento local:`, syncErr);
       }
       
       const now = Math.floor(Date.now() / 1000);

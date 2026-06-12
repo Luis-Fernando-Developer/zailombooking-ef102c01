@@ -77,11 +77,12 @@ serve(async (req) => {
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
 
-      // Verificar se é a chave de provisionamento interno
-      if (internalProvisionSecret !== "" && token === internalProvisionSecret) {
+      // Verificar se é a chave de provisionamento interno ou o segredo compartilhado
+      if ((internalProvisionSecret !== "" && token === internalProvisionSecret) || 
+          (embedSharedSecret !== "" && token === embedSharedSecret)) {
         isAuthorized = true;
-        authMethod = "internal_secret";
-        console.log("[Provisioning] Autorizado via INTERNAL_PROVISION_SECRET (global)");
+        authMethod = token === internalProvisionSecret ? "internal_secret" : "embed_shared_secret";
+        console.log(`[Provisioning] Autorizado via ${authMethod}`);
       } else {
         // Verificar se é um JWT de usuário (SuperAdmin)
         try {
