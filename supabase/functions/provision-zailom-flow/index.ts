@@ -230,25 +230,22 @@ serve(async (req) => {
                        result.code === "user_already_exists";
 
     if (isError && !isDuplicate) {
-      console.error("Erro no provisionamento do Zailom Flow:", result);
+      console.error(`[Provisioning] ERRO REAL na API do Flow (${flowResponse.status}):`, result);
       return new Response(JSON.stringify({ 
         success: false, 
         error: result.error || result.message || "Erro no Flow", 
         details: result 
       }), {
-        status: flowResponse.status === 200 ? 500 : flowResponse.status,
+        status: flowResponse.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (isDuplicate) {
-      console.log("[Provisioning] Usuário já existe no Flow Builder. Tratando como sucesso para permitir o update de limites e fluxo normal.");
-      // Se for duplicado mas a API retornou 500 ou 400, forçamos um objeto de sucesso básico
-      // para que o fluxo de salvamento no banco local aconteça.
-      if (!result.workspace_id && !result.api_key) {
-        // Tentar extrair dados se existirem ou apenas marcar como sucesso
-        console.log("[Provisioning] Usuário duplicado detectado, forçando sucesso.");
-      }
+      console.warn(`[Provisioning] AVISO: Usuário já existe na API do Flow. O endpoint retornou ${flowResponse.status}.`);
+      console.warn("[Provisioning] Detalhes do erro remoto:", responseText);
+      console.warn("[Provisioning] De acordo com a especificação, este endpoint DEVERIA ter retornado 200 e atualizado os limites.");
+      console.warn("[Provisioning] Prossigo com o sucesso local para permitir o acesso, mas a sincronização de limites remota pode ter falhado.");
     }
 
     // Salvar dados da integração no Booking
