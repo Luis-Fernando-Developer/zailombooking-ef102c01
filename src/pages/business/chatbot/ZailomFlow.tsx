@@ -125,8 +125,12 @@ export default function ChatbotZailomFlow() {
 
         // Se não veio subpath, manda o usuário pro workspace dele por padrão
         const initialPath = subpath || `${slug}/workspace`;
-        // Builder usa HashRouter -> tudo depois do "#/"
-        setIframeSrc(`${base}/#/${initialPath}?embed_token=${encodeURIComponent(json.token)}&host=zailom&source=booking&plan_tier=${mappedTier === 'pro' ? 'pro' : (mappedTier === 'business' ? 'business' : 'starter')}&sync=true&force_sync=true`);
+        
+        // Builder utiliza HashRouter. Passamos o token e os parâmetros de sincronização.
+        const token = encodeURIComponent(json.token);
+        const finalUrl = `${base}/#/${initialPath}?embed_token=${token}&sync=true&force_sync=true&plan_tier=${mappedTier}`;
+        
+        setIframeSrc(finalUrl);
       } catch (e) {
         setError((e as Error).message);
       } finally {
