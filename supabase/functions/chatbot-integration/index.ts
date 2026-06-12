@@ -202,7 +202,6 @@ serve(async (req) => {
         user_email: email,
         exp: now + (3600 * 24),
         plan: tier,
-        // Mantendo campos extras para retrocompatibilidade se necessário
         purpose: "embed",
         context: "embed",
         source: "booking",
@@ -221,7 +220,8 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({ 
         token, 
-        builder_base_url: "https://flow-builder.zailom.com" 
+        builder_base_url: "https://flow-builder.zailom.com",
+        sync_required: true // Informativo para o frontend
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
