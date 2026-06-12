@@ -154,6 +154,8 @@ serve(async (req) => {
         const syncPayload = {
           iss: "zailom-booking",
           aud: "zailom-flow-api",
+          company_id: company_id,
+          email: email,
           purpose: "provision",
           iat: syncNow,
           exp: syncNow + 300,
@@ -162,7 +164,8 @@ serve(async (req) => {
         
         console.log(`[Provision] Sincronizando empresa ${slug} com tier ${tier}...`);
         
-        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-account", {
+        // Usando o novo endpoint provision-external-user conforme solicitado
+        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-external-user", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${syncToken}`,
@@ -171,7 +174,6 @@ serve(async (req) => {
           body: JSON.stringify({
             email,
             company_id,
-            embed_source: "booking",
             plan_tier: tier,
             max_chatbots: limits?.chatbots ?? (tier === 'pro' ? 10 : (tier === 'business' ? 100 : 1)),
             max_messages: limits?.messages ?? (tier === 'pro' ? 10000 : (tier === 'business' ? 100000 : 700)),
@@ -181,7 +183,7 @@ serve(async (req) => {
 
         if (!syncRes.ok) {
           const errorText = await syncRes.text();
-          console.error(`[Provision] Falha no provisionamento: ${syncRes.status}`, errorText);
+          console.error(`[Provision] Falha no provisionamento (${syncRes.status}):`, errorText);
         } else {
           const syncData = await syncRes.json();
           console.log(`[Provision] Sincronização concluída com sucesso.`, syncData);
