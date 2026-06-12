@@ -118,7 +118,7 @@ serve(async (req) => {
     }
 
     if (action === "sign-embed-token") {
-      const { company_id, user_id, email, plan, plan_id, limits } = body;
+      const { company_id, user_id, email, plan, plan_id, limits, force_sync } = body;
       if (!company_id || !user_id) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
           status: 400,
