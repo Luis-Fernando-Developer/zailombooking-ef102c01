@@ -208,6 +208,7 @@ serve(async (req) => {
         iss: "zailom-booking",
         aud: "zailom-flow-api",
         sub: email,
+        user_email: email, // Adicionado conforme especificação técnica
         company_id,
         workspace_slug: slug,
         exp: now + (3600 * 24),
