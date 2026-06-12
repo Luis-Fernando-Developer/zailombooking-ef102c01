@@ -136,11 +136,12 @@ serve(async (req) => {
       // 1. Buscar slug da empresa para sincronização
       const { data: company } = await supabaseClient
         .from("companies")
-        .select("slug")
+        .select("slug, name")
         .eq("id", company_id)
         .maybeSingle();
 
       const slug = company?.slug || company_id;
+      const displayName = company?.name || email.split('@')[0];
 
       // 2. Mapear tier para o builder (free, starter, pro)
       // O builder espera 'pro' para Professional e 'business' (ou pro) para Enterprise
@@ -163,10 +164,10 @@ serve(async (req) => {
           email: email,
           password: "InitialPassword123!", // Senha temporária caso o usuário não exista
           slug: slug,
-          display_name: email.split('@')[0],
+          display_name: displayName,
           company_id: company_id,
           plan_id: plan_id || tier,
-          full_name: email.split('@')[0]
+          full_name: displayName
         };
 
         const localProvisionUrl = `${supabaseUrl}/functions/v1/provision-zailom-flow`;
