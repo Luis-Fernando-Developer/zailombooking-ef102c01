@@ -62,7 +62,6 @@ serve(async (req) => {
     const embedSharedSecret = Deno.env.get("EMBED_SHARED_SECRET") ?? "";
 
     console.log("[Provisioning] Iniciando processo...");
-    console.log(`[Provisioning] Verificação de segredos: internalSecret=${!!internalProvisionSecret}, embedSecret=${!!embedSharedSecret}`);
     
     // URL da API do Flow Builder (projeto fwoescubnnagdvwasbjl)
     const flowBaseUrl = "https://fwoescubnnagdvwasbjl.supabase.co";
@@ -72,38 +71,26 @@ serve(async (req) => {
     // 1. Validar Autenticação/Origem
     const authHeader = req.headers.get("Authorization");
     let isAuthorized = false;
-    let authMethod = "";
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
 
-      // Verificar se é a chave de provisionamento interno ou o segredo compartilhado
       if ((internalProvisionSecret !== "" && token === internalProvisionSecret) || 
           (embedSharedSecret !== "" && token === embedSharedSecret)) {
         isAuthorized = true;
-        authMethod = token === internalProvisionSecret ? "internal_secret" : "embed_shared_secret";
-        console.log(`[Provisioning] Autorizado via ${authMethod}`);
       } else {
-        // Verificar se é um JWT de usuário (SuperAdmin)
         try {
           const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-          
           if (!authError && user) {
-            // Consultar a tabela super_admins para validar permissão
-            const { data: superAdmin, error: dbError } = await supabaseClient
+            const { data: superAdmin } = await supabaseClient
               .from("super_admins")
               .select("*")
               .eq("user_id", user.id)
               .maybeSingle();
 
             const isActive = superAdmin?.active ?? superAdmin?.is_active;
-
-            if (!dbError && superAdmin && isActive !== false) {
+            if (superAdmin && isActive !== false) {
               isAuthorized = true;
-              authMethod = "super_admin_jwt";
-              console.log(`[Provisioning] Autorizado via SuperAdmin: ${user.email}`);
-            } else {
-              console.error(`[Provisioning] Falha na autorização: userFound=${!!superAdmin}, active=${isActive}, dbError=${dbError?.message}`);
             }
           }
         } catch (e) {
@@ -113,7 +100,6 @@ serve(async (req) => {
     }
 
     if (!isAuthorized) {
-      console.error("[Provisioning] Acesso NEGADO.");
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -122,18 +108,13 @@ serve(async (req) => {
 
     const { email, password, slug, display_name, company_id, plan_id, full_name } = await req.json();
 
-    // Mapeamento de planos para os tiers esperados pelo Flow
-    // O plan_id aqui costuma vir como UUID, então mapeamos o tier baseado na lógica do sistema
-    // starter = free/starter, professional = pro, enterprise = business
-    
-    // Buscar detalhes do plano no banco se necessário, ou usar o tier direto se vier no body
     let embed_plan_tier = 'starter';
     const planInput = (plan_id || '').toLowerCase();
     
     if (planInput.includes('professional') || planInput.includes('pro') || planInput === '294e3c1b-55ac-49bd-803e-22657a7c8eb7') {
       embed_plan_tier = 'pro';
     } else if (planInput.includes('enterprise') || planInput.includes('business')) {
-      embed_plan_tier = 'pro'; // Alinhando com a sugestão de (free, starter, pro)
+      embed_plan_tier = 'pro';
     }
 
     if (!email || !password || !slug || !company_id) {
@@ -143,7 +124,6 @@ serve(async (req) => {
       });
     }
 
-    // Definir limites baseados no plano para o provisionamento inicial
     let limits = {
       max_chatbots: 1,
       max_messages: 700,
@@ -158,11 +138,9 @@ serve(async (req) => {
       };
     }
 
-    console.log(`[Provisioning][${authMethod}] Invocado para ${email} (${slug})`);
+    console.log(`[Provisioning] Invocado para ${email} (${slug})`);
     
-    // Gerar JWT para autenticação com o Flow Builder
     if (!embedSharedSecret) {
-      console.error("[Provisioning] EMBED_SHARED_SECRET não configurado.");
       return new Response(JSON.stringify({ success: false, error: "Configuração incompleta: EMBED_SHARED_SECRET faltando." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -170,14 +148,11 @@ serve(async (req) => {
     }
 
     const provisionToken = await signProvisionJwt(embedSharedSecret, company_id, email);
-    // Usando o endpoint provision-account conforme especificação técnica do Flow
     const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
-
-    console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
     const flowPayload = {
       email,
-      password, // O endpoint pode ignorar se o usuário já existir
+      password,
       full_name: full_name || display_name || slug,
       slug,
       company_id,
@@ -189,26 +164,22 @@ serve(async (req) => {
       }
     };
 
-    console.log(`[Provisioning] Payload sendo enviado para Flow:`, JSON.stringify(flowPayload));
+    console.log(`[Provisioning] Enviando payload para ${targetUrl}`);
 
     const flowResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${provisionToken}`,
-        "x-debug-provisioning": "true"
       },
       body: JSON.stringify(flowPayload),
     });
 
-    console.log(`[Provisioning] Resposta do Flow status: ${flowResponse.status}`);
     const responseText = await flowResponse.text();
-    
     let result;
     try {
       result = JSON.parse(responseText);
     } catch (e) {
-      console.error("[Provisioning] Erro ao parsear JSON do Flow. Resposta bruta:", responseText);
       return new Response(JSON.stringify({ 
         success: false, 
         error: "Resposta inválida do Flow (não é JSON)", 
@@ -220,17 +191,7 @@ serve(async (req) => {
       });
     }
 
-    const isError = !flowResponse.ok;
-    const isDuplicate = responseText.toLowerCase().includes("already been registered") || 
-                       responseText.toLowerCase().includes("already exists") ||
-                       result.error?.toLowerCase().includes("already registered") ||
-                       result.error?.toLowerCase().includes("already exists") ||
-                       result.message?.toLowerCase().includes("already exists") ||
-                       result.error?.toLowerCase().includes("duplicate key") ||
-                       result.code === "user_already_exists";
-
-    if (isError && !isDuplicate) {
-      console.error(`[Provisioning] ERRO REAL na API do Flow (${flowResponse.status}):`, result);
+    if (!flowResponse.ok) {
       return new Response(JSON.stringify({ 
         success: false, 
         error: result.error || result.message || "Erro no Flow", 
@@ -241,14 +202,9 @@ serve(async (req) => {
       });
     }
 
-    if (isDuplicate) {
-      console.warn(`[Provisioning] AVISO: Usuário já existe na API do Flow. O endpoint retornou ${flowResponse.status}.`);
-      console.warn("[Provisioning] Detalhes do erro remoto:", responseText);
-      console.warn("[Provisioning] De acordo com a especificação, este endpoint DEVERIA ter retornado 200 e atualizado os limites.");
-      console.warn("[Provisioning] Prossigo com o sucesso local para permitir o acesso, mas a sincronização de limites remota pode ter falhado.");
-    }
+    console.log("[Provisioning] Sucesso retornado pelo Flow Builder");
 
-    // Salvar dados da integração no Booking
+    // Salvar/Atualizar dados da integração no Booking
     const { error: dbError } = await supabaseClient
       .from("chatbot_integration")
       .upsert({
@@ -271,7 +227,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       workspace_id: result.workspace_id,
-      user_id: result.user_id 
+      user_id: result.user_id,
+      api_key: result.api_key
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
