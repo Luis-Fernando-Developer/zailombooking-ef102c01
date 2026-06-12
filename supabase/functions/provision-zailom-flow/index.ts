@@ -15,16 +15,19 @@ function toBase64Url(buf: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-async function signProvisionJwt(secret: string): Promise<string> {
+async function signProvisionJwt(secret: string, company_id?: string, email?: string): Promise<string> {
   const header = { alg: "HS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: "zailom-booking", // Atualizado para bater com o JWT esperado pelo outro projeto
+  const payload: any = {
+    iss: "zailom-booking", 
     aud: "zailom-flow-api",
     purpose: "provision",
     iat: now,
-    exp: now + 300, // 5 minutos de validade
+    exp: now + 300, 
   };
+
+  if (company_id) payload.company_id = company_id;
+  if (email) payload.email = email;
 
   const enc = new TextEncoder();
   const headerB64 = toBase64Url(enc.encode(JSON.stringify(header)).buffer);
@@ -174,14 +177,11 @@ serve(async (req) => {
       });
     }
 
-    const provisionToken = await signProvisionJwt(embedSharedSecret);
-    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
+    const provisionToken = await signProvisionJwt(embedSharedSecret, company_id, email);
+    const targetUrl = `${flowBaseUrl}/functions/v1/provision-external-user`;
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
-    // O outro projeto espera o campo 'userId' para o insert em profiles, 
-    // mas na função provision-account ele tenta criar o auth.user primeiro.
-    // O código da função no outro projeto usa: const { email, password, full_name, limits } = await req.json();
     const flowPayload = {
       email,
       password,
