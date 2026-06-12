@@ -173,6 +173,7 @@ serve(async (req) => {
             slug,
             tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
             source: "booking",
+            force_sync: true,
           }),
         });
 
@@ -217,6 +218,8 @@ serve(async (req) => {
           messages: limits?.messages ?? 700,
           integrations: limits?.integrations ?? 1,
         },
+        force_tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
+        subscription_tier: tier === "pro" ? "professional" : (tier === "business" ? "enterprise" : "starter"),
         iat: now,
         exp: now + (3600 * 24),
       };
