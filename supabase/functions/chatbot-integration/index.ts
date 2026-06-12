@@ -156,7 +156,7 @@ serve(async (req) => {
           aud: "zailom-flow-api",
           purpose: "provision",
           iat: syncNow,
-          exp: syncNow + 600,
+          exp: syncNow + 300,
         };
         const syncToken = await signJwt(syncPayload, embedSharedSecret);
         
