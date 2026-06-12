@@ -219,28 +219,14 @@ serve(async (req) => {
       });
     }
 
-    if (!flowResponse.ok || (result.ok === false) || (result.success === false)) {
+    const isError = !flowResponse.ok || (result.ok === false) || (result.success === false);
+    const isDuplicate = result.error?.toLowerCase().includes("already exists") || 
+                       result.message?.toLowerCase().includes("already exists") ||
+                       result.error?.toLowerCase().includes("duplicate key") ||
+                       result.code === "user_already_exists";
+
+    if (isError && !isDuplicate) {
       console.error("Erro no provisionamento do Zailom Flow:", result);
-      
-      // Se o erro for de usuário duplicado no Flow Builder, vamos tratar como sucesso parcial ou avisar
-      const isDuplicate = result.error?.toLowerCase().includes("already exists") || 
-                         result.message?.toLowerCase().includes("already exists") ||
-                         result.error?.toLowerCase().includes("duplicate key") ||
-                         result.error?.toLowerCase().includes("database error") || // Incluído para capturar o erro genérico do Flow
-                         result.code === "user_already_exists";
-
-      if (isDuplicate) {
-        console.log("[Provisioning] Usuário já existe no Flow Builder, ignorando erro de criação.");
-        return new Response(JSON.stringify({ 
-          success: true, 
-          message: "User already exists in Flow",
-          details: result 
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
       return new Response(JSON.stringify({ 
         success: false, 
         error: result.error || result.message || "Erro no Flow", 
@@ -249,6 +235,10 @@ serve(async (req) => {
         status: flowResponse.status === 200 ? 500 : flowResponse.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (isDuplicate) {
+      console.log("[Provisioning] Usuário já existe no Flow Builder. Prosseguindo com sincronização de limites e salvamento de dados.");
     }
 
     // Salvar dados da integração no Booking
