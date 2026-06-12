@@ -183,7 +183,7 @@ serve(async (req) => {
 
         console.log(`[Provision] Payload:`, JSON.stringify(flowPayload));
 
-        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-external-user", {
+        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-account", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${syncToken}`,
@@ -208,6 +208,7 @@ serve(async (req) => {
         iss: "zailom-booking",
         aud: "zailom-flow-api",
         sub: email,
+        user_email: email, // Adicionado conforme especificação técnica
         company_id,
         workspace_slug: slug,
         exp: now + (3600 * 24),
