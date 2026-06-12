@@ -175,13 +175,10 @@ serve(async (req) => {
     }
 
     const provisionToken = await signProvisionJwt(embedSharedSecret);
-    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
+    const targetUrl = `${flowBaseUrl}/functions/v1/provision-external-user`;
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 
-    // O outro projeto espera o campo 'userId' para o insert em profiles, 
-    // mas na função provision-account ele tenta criar o auth.user primeiro.
-    // O código da função no outro projeto usa: const { email, password, full_name, limits } = await req.json();
     const flowPayload = {
       email,
       password,
