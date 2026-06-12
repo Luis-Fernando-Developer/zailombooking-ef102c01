@@ -5,14 +5,19 @@
 import { getEdgeFunctionUrl } from "./supabaseHelpers";
 import { supabase } from "./supabaseClient";
 
-export async function syncBuilderPlan(companyId: string): Promise<void> {
+export async function syncBuilderPlan(companyId: string, planName?: string, limits?: any): Promise<void> {
   if (!companyId) return;
   try {
-    const { data, error } = await supabase.functions.invoke("sync-builder-plan", {
-      body: { company_id: companyId },
+    const { data, error } = await supabase.functions.invoke("chatbot-integration", {
+      body: { 
+        action: "sync-plan",
+        company_id: companyId,
+        plan: planName,
+        limits: limits
+      },
     });
     
-    if (error || !data?.ok) {
+    if (error || !data?.success) {
       console.warn("[syncBuilderPlan] falha:", error || data);
     } else {
       console.log("[syncBuilderPlan] ok:", data);

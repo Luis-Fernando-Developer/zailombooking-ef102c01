@@ -157,6 +157,23 @@ serve(async (req) => {
     const provisionToken = await signProvisionJwt(embedSharedSecret, company_id, email);
     const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
 
+    // Helper for logging integration
+    const logIntegration = async (direction: string, endpoint: string, request: any, response: any, status: number) => {
+      try {
+        await supabaseClient.from("integration_logs").insert({
+          company_id,
+          direction,
+          endpoint,
+          request_payload: request,
+          response_payload: response,
+          status_code: status,
+          system: "zailom-flow"
+        });
+      } catch (logErr) {
+        console.error("Failed to log integration:", logErr);
+      }
+    };
+
     const flowPayload = {
       email,
       password,
@@ -187,6 +204,7 @@ serve(async (req) => {
     try {
       result = JSON.parse(responseText);
     } catch (e) {
+      await logIntegration("OUTBOUND", "/provision-account", flowPayload, { raw: responseText }, flowResponse.status);
       return new Response(JSON.stringify({ 
         success: false, 
         error: "Resposta inválida do Flow (não é JSON)", 
@@ -197,6 +215,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    await logIntegration("OUTBOUND", "/provision-account", flowPayload, result, flowResponse.status);
 
     if (!flowResponse.ok) {
       return new Response(JSON.stringify({ 
@@ -225,6 +245,10 @@ serve(async (req) => {
         flow_workspace_id: result.workspace_id,
         flow_api_key: result.api_key,
         flow_user_id: result.user_id,
+        external_account_id: result.user_id, // Mapping as per requirement
+        external_plan_reference: embed_plan_tier,
+        sync_status: 'synced',
+        last_synced_at: new Date().toISOString(),
       }, { onConflict: 'company_id' });
 
     if (dbError) {

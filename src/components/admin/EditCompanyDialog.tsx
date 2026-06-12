@@ -358,7 +358,8 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
       });
 
       // Sincronizar tier do plano com o builder (status/plano podem ter mudado)
-      syncBuilderPlan(company.id);
+      const selectedPlan = getSelectedPlan();
+      syncBuilderPlan(company.id, selectedPlan?.name);
 
       onSuccess();
       onOpenChange(false);

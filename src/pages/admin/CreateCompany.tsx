@@ -256,7 +256,7 @@ export default function CreateCompany() {
       }
 
       // Sincronizar tier do plano com o builder
-      syncBuilderPlan(companyData.id);
+      syncBuilderPlan(companyData.id, 'starter', { chatbots: 1, messages: 700, integrations: 1 });
 
       toast({
         title: "Empresa criada com sucesso!",

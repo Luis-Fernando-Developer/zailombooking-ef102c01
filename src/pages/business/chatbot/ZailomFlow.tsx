@@ -83,18 +83,21 @@ export default function ChatbotZailomFlow() {
           const bTier = builderTier.toLowerCase();
           
           if (pName.includes("pro") || pName.includes("professional") || 
-              bTier === "pro" || bTier === "professional" || 
-              pName.includes("business") || pName.includes("enterprise") ||
-              bTier === "business" || bTier === "enterprise") {
+              bTier === "pro" || bTier === "professional") {
             mappedTier = "pro";
+          } else if (pName.includes("business") || pName.includes("enterprise") ||
+                     bTier === "business" || bTier === "enterprise") {
+            mappedTier = "business";
           }
         }
 
         
         // Determinar limites específicos baseado no mapeamento
-        const limits = mappedTier === "pro" 
-          ? { chatbots: 10, messages: 10000, integrations: 10 } 
-          : { chatbots: 1, messages: 700, integrations: 1 };
+        const limits = mappedTier === "business"
+          ? { chatbots: 100, messages: 1000000, integrations: 100 }
+          : mappedTier === "pro" 
+            ? { chatbots: 3, messages: 5000, integrations: 3 } 
+            : { chatbots: 1, messages: 700, integrations: 1 };
 
         console.log("Invocando chatbot-integration/sign-embed-token com plano:", mappedTier);
         const { data: json, error: invokeError } = await supabase.functions.invoke('chatbot-integration', {

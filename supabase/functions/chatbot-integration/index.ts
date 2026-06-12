@@ -222,6 +222,108 @@ serve(async (req) => {
       });
     }
 
+    if (action === "sync-plan") {
+      const { company_id, plan, limits } = body;
+      if (!company_id) {
+        return new Response(JSON.stringify({ error: "Missing company_id" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!embedSharedSecret) {
+        return new Response(JSON.stringify({ error: "EMBED_SHARED_SECRET not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // 1. Mapear tier para o builder (starter, pro, business)
+      let tier = "starter";
+      const p = (plan || "").toLowerCase();
+      if (p.includes("professional") || p.includes("pro")) {
+        tier = "pro";
+      } else if (p.includes("enterprise") || p.includes("business")) {
+        tier = "business";
+      }
+
+      const syncLimits = {
+        max_chatbots: limits?.chatbots ?? (tier === 'business' ? 100 : tier === 'pro' ? 3 : 1),
+        max_messages: limits?.messages ?? (tier === 'business' ? 1000000 : tier === 'pro' ? 5000 : 700),
+        max_integrations: limits?.integrations ?? (tier === 'business' ? 100 : tier === 'pro' ? 3 : 1),
+      };
+
+      const syncPayload = {
+        company_id,
+        source: "booking",
+        tier,
+        limits: syncLimits,
+      };
+
+      const now = Math.floor(Date.now() / 1000);
+      const jwtPayload = {
+        iss: "zailom-booking",
+        iat: now,
+        exp: now + 3600,
+      };
+
+      const token = await signJwt(jwtPayload, embedSharedSecret);
+      const flowBaseUrl = "https://fwoescubnnagdvwasbjl.supabase.co";
+      const targetUrl = `${flowBaseUrl}/functions/v1/sync-embed-plan`;
+
+      try {
+        const flowResponse = await fetch(targetUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify(syncPayload),
+        });
+
+        const result = await flowResponse.json();
+
+        // Log integration
+        await supabaseClient.from("integration_logs").insert({
+          company_id,
+          direction: "OUTBOUND",
+          endpoint: "/sync-embed-plan",
+          request_payload: syncPayload,
+          response_payload: result,
+          status_code: flowResponse.status,
+          system: "zailom-flow"
+        });
+
+        if (!flowResponse.ok) {
+          await supabaseClient.from("chatbot_integration").update({
+            sync_status: "failed",
+            last_sync_error: JSON.stringify(result)
+          }).eq("company_id", company_id);
+          
+          return new Response(JSON.stringify({ success: false, error: result.error || "Sync failed" }), {
+            status: flowResponse.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        await supabaseClient.from("chatbot_integration").update({
+          sync_status: "synced",
+          last_synced_at: new Date().toISOString(),
+          external_plan_reference: tier,
+          last_sync_error: null
+        }).eq("company_id", company_id);
+
+        return new Response(JSON.stringify({ success: true, result }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
