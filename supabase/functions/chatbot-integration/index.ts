@@ -195,6 +195,10 @@ serve(async (req) => {
         if (!syncRes.ok) {
           const errorText = await syncRes.text();
           console.error(`[Provision] Falha no provisionamento (${syncRes.status}):`, errorText);
+          
+          // Se o erro for "usuário já registrado", tentamos ignorar e assumir que a API 
+          // do Flow cuidará do update se ela suportar, ou pelo menos não quebrar o fluxo.
+          // Conforme a especificação, o provision-account DEVE lidar com usuários existentes.
         } else {
           const syncData = await syncRes.json();
           console.log(`[Provision] Sincronização concluída com sucesso.`, syncData);
