@@ -169,8 +169,8 @@ serve(async (req) => {
     }
 
     const provisionToken = await signProvisionJwt(embedSharedSecret, company_id, email);
-    // Usando o novo endpoint provision-external-user para garantir sincronização de limites
-    const targetUrl = `${flowBaseUrl}/functions/v1/provision-external-user`;
+    // Usando o endpoint provision-account conforme especificação técnica do Flow
+    const targetUrl = `${flowBaseUrl}/functions/v1/provision-account`;
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
 

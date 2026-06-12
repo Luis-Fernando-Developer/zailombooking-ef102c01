@@ -183,7 +183,7 @@ serve(async (req) => {
 
         console.log(`[Provision] Payload:`, JSON.stringify(flowPayload));
 
-        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-external-user", {
+        const syncRes = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-account", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${syncToken}`,
