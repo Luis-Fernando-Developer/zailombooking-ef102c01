@@ -177,7 +177,7 @@ serve(async (req) => {
       });
     }
 
-    const provisionToken = await signProvisionJwt(embedSharedSecret);
+    const provisionToken = await signProvisionJwt(embedSharedSecret, company_id, email);
     const targetUrl = `${flowBaseUrl}/functions/v1/provision-external-user`;
 
     console.log(`[Provisioning] Chamando Flow em: ${targetUrl}`);
