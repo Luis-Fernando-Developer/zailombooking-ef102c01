@@ -76,7 +76,8 @@ serve(async (req) => {
       const token = authHeader.substring(7);
 
       if ((internalProvisionSecret !== "" && token === internalProvisionSecret) || 
-          (embedSharedSecret !== "" && token === embedSharedSecret)) {
+          (embedSharedSecret !== "" && token === embedSharedSecret) ||
+          (supabaseServiceRoleKey !== "" && token === supabaseServiceRoleKey)) {
         isAuthorized = true;
       } else {
         try {

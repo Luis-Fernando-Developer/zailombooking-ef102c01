@@ -179,7 +179,7 @@ serve(async (req) => {
         const syncRes = await fetch(localProvisionUrl, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${embedSharedSecret}`,
+            "Authorization": `Bearer ${supabaseServiceRoleKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(provisionPayload),
