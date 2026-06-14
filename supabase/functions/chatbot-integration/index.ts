@@ -118,7 +118,7 @@ serve(async (req) => {
     }
 
     if (action === "sign-embed-token") {
-      const { company_id, user_id, email, plan, plan_id, limits, force_sync } = body;
+      const { company_id, user_id, email, plan, limits } = body;
       if (!company_id || !user_id) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
           status: 400,
@@ -157,46 +157,6 @@ serve(async (req) => {
         max_integrations: limits?.integrations ?? (tier === 'business' ? 100 : tier === 'pro' ? 3 : 1),
       };
 
-      // 3. Sincronizar o plano no banco de dados do Builder via API de Sincronização
-      // Isso é CRUCIAL: o builder UI consulta o banco de dados dele para limites.
-      // 3. Sincronizar o plano no banco de dados do Builder via função local de provisionamento
-      // Isso centraliza a lógica e garante que os logs apareçam na função correta.
-      try {
-        console.log(`[Provision] Iniciando sincronização local para ${email}...`);
-        
-        const provisionPayload = {
-          email: email,
-          password: "InitialPassword123!", // Senha temporária caso o usuário não exista
-          slug: slug,
-          display_name: displayName,
-          company_id: company_id,
-          plan_id: plan_id || tier,
-          full_name: displayName
-        };
-
-        const localProvisionUrl = `${supabaseUrl}/functions/v1/provision-zailom-flow`;
-        
-        const syncRes = await fetch(localProvisionUrl, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${supabaseServiceRoleKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(provisionPayload),
-        });
-
-        const syncData = await syncRes.json();
-        
-        if (!syncRes.ok) {
-          console.error(`[Provision] Falha na função local de provisionamento (${syncRes.status}):`, syncData);
-          // Se falhar, ainda prosseguimos com a geração do JWT para não bloquear o acesso ao frontend
-        } else {
-          console.log(`[Provision] Sincronização local concluída com sucesso.`, syncData);
-        }
-      } catch (syncErr) {
-        console.error(`[Provision] Erro ao tentar chamar provisionamento local:`, syncErr);
-      }
-      
       const now = Math.floor(Date.now() / 1000);
       const payload = {
         iss: "zailom-booking",
@@ -216,7 +176,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         token, 
         builder_base_url: "https://flow-builder.zailom.com",
-        sync_required: true 
+        sync_required: false 
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
