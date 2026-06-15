@@ -8,6 +8,7 @@ import { BookingLogo } from "@/components/BookingLogo";
 import { Lock, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { ForgotPasswordDialog } from "@/components/business/ForgotPasswordDialog";
 
 export default function BusinessLogin() {
   const [email, setEmail] = useState("");
@@ -134,6 +135,17 @@ export default function BusinessLogin() {
                   required
                 />
               </div>
+            </div>
+
+            <div className="flex justify-end -mt-2">
+              <ForgotPasswordDialog
+                defaultEmail={email}
+                trigger={
+                  <button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">
+                    Esqueci minha senha
+                  </button>
+                }
+              />
             </div>
 
             <Button 
