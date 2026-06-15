@@ -16,6 +16,7 @@ import CreateCompany from "./pages/admin/CreateCompany";
 import SignUp from "./pages/SignUp";
 import SignupPending from "./pages/SignupPending";
 import BusinessLogin from "./pages/business/Login";
+import ResetPassword from "./pages/ResetPassword";
 import CompanyLandingPage from "./pages/company/[slug]";
 import BusinessDashboard from "./pages/business/Dashboard";
 import BusinessBookings from "./pages/business/Bookings";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/signup" element={<SignUp />} />
             <Route path="/signup/aguardando/:companyId" element={<SignupPending />} />
             <Route path="/login" element={<BusinessLogin />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/:slug/admin/login" element={<BusinessLogin />} />
             <Route path="/super-admin/login" element={<AdminLogin />} />
             <Route path="/super-admin/painel" element={<RequireSuperAdmin><SuperAdminDashboard /></RequireSuperAdmin>} />
