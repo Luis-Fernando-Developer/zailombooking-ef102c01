@@ -14,6 +14,8 @@ import { ptBR } from "date-fns/locale";
 
 interface AutonomousAvailabilityConfigProps {
   companyId: string;
+  /** Quando definido, restringe a aba ao próprio colaborador (caso de role=employee + autonomo) */
+  restrictToEmployeeId?: string;
 }
 
 interface Employee {
@@ -30,7 +32,7 @@ interface Availability {
   break_end: string | null;
 }
 
-export function AutonomousAvailabilityConfig({ companyId }: AutonomousAvailabilityConfigProps) {
+export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId }: AutonomousAvailabilityConfigProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
@@ -47,7 +49,7 @@ export function AutonomousAvailabilityConfig({ companyId }: AutonomousAvailabili
 
   useEffect(() => {
     fetchEmployees();
-  }, [companyId]);
+  }, [companyId, restrictToEmployeeId]);
 
   useEffect(() => {
     if (selectedEmployee) {
@@ -57,8 +59,7 @@ export function AutonomousAvailabilityConfig({ companyId }: AutonomousAvailabili
 
   const fetchEmployees = async () => {
     try {
-      // Fetch only autonomous active employees
-      const { data, error } = await supabase
+      let query = supabase
         .from('employees')
         .select('id, name')
         .eq('company_id', companyId)
@@ -66,9 +67,15 @@ export function AutonomousAvailabilityConfig({ companyId }: AutonomousAvailabili
         .eq('employee_type', 'autonomo')
         .order('name');
 
+      if (restrictToEmployeeId) {
+        query = query.eq('id', restrictToEmployeeId);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
       setEmployees(data || []);
-      
+
       if (data && data.length > 0) {
         setSelectedEmployee(data[0].id);
       }

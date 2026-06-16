@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Navigate } from "react-router-dom";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabaseClient";
@@ -79,12 +79,44 @@ export default function BusinessSchedule() {
     );
   }
 
+  // Determinar role/tipo (owner é detectado por email se não tiver registro em employees)
+  const role: string = currentEmployee?.role || 'owner';
+  const employeeType: string = currentEmployee?.employee_type || 'fixo';
+  const isOwner = !currentEmployee; // sem registro em employees, é o owner
+  const isManager = isOwner || role === 'owner' || role === 'manager';
+  const isSupervisor = role === 'supervisor';
+  const isReceptionist = role === 'receptionist';
+  const isEmployee = role === 'employee';
+
+  // employee só pode acessar Horários se for autônomo
+  if (isEmployee && employeeType !== 'autonomo') {
+    return <Navigate to={`/${company.slug}/admin/dashboard`} replace />;
+  }
+
+  // Visibilidade de cada aba
+  const canSeeBusinessHours = isManager;
+  const canSeeFixed = isManager || isSupervisor || isReceptionist;
+  const canSeeAutonomous = isManager || isSupervisor || isReceptionist || (isEmployee && employeeType === 'autonomo');
+  const canSeeAbsences = isManager || isSupervisor || isReceptionist;
+  const canSeeBlocked = isManager || isSupervisor;
+  const canSeeRules = isManager;
+
+  const defaultTab = canSeeBusinessHours
+    ? 'business-hours'
+    : canSeeAutonomous && isEmployee
+    ? 'autonomous'
+    : canSeeFixed
+    ? 'fixed-schedules'
+    : 'autonomous';
+
+  const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeRules].filter(Boolean).length;
+
   return (
     <BusinessLayout 
       companySlug={company.slug} 
       companyName={company.name}
       companyId={company.id}
-      userRole={currentEmployee?.role || 'employee'}
+      userRole={role}
     >
       <div className="space-y-6 px-10 w-full py-8"> 
         <div className="">
@@ -94,57 +126,84 @@ export default function BusinessSchedule() {
           </p>
         </div>
 
-        <Tabs defaultValue="business-hours" className="w-full ">
-          <TabsList className="grid grid-cols-6  lg:w-full items-center justify-center h-full ">
-            <TabsTrigger value="business-hours" className=" flex items-end justify-center h-full px-2 py-0 gap-2">
-              <Clock className="w-4 h-full" />
-              <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Estabelecimento</span>
-            </TabsTrigger>
-            <TabsTrigger value="fixed-schedules" className="flex items-center gap-2">
-              <Users className="w-4 h-full" />
-              <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Fixos</span>
-            </TabsTrigger>
-            <TabsTrigger value="autonomous" className="flex items-center gap-2">
-              <Calendar className="w-4 h-full" />
-              <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Autônomos</span>
-            </TabsTrigger>
-            <TabsTrigger value="absences" className="flex items-center gap-2">
-              <UserX className="w-4 h-full" />
-              <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Ausências</span>
-            </TabsTrigger>
-            <TabsTrigger value="blocked" className="flex items-center gap-2">
-              <Ban className="w-4 h-full" />
-              <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Bloqueios</span>
-            </TabsTrigger>
-            <TabsTrigger value="rules" className="flex items-center gap-2">
-              <Settings className="w-4 h-full" />
-              <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Regras</span>
-            </TabsTrigger>
+        <Tabs defaultValue={defaultTab} className="w-full ">
+          <TabsList className={`grid lg:w-full items-center justify-center h-full`} style={{ gridTemplateColumns: `repeat(${visibleTabsCount}, minmax(0, 1fr))` }}>
+            {canSeeBusinessHours && (
+              <TabsTrigger value="business-hours" className=" flex items-end justify-center h-full px-2 py-0 gap-2">
+                <Clock className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Estabelecimento</span>
+              </TabsTrigger>
+            )}
+            {canSeeFixed && (
+              <TabsTrigger value="fixed-schedules" className="flex items-center gap-2">
+                <Users className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Fixos</span>
+              </TabsTrigger>
+            )}
+            {canSeeAutonomous && (
+              <TabsTrigger value="autonomous" className="flex items-center gap-2">
+                <Calendar className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Autônomos</span>
+              </TabsTrigger>
+            )}
+            {canSeeAbsences && (
+              <TabsTrigger value="absences" className="flex items-center gap-2">
+                <UserX className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Ausências</span>
+              </TabsTrigger>
+            )}
+            {canSeeBlocked && (
+              <TabsTrigger value="blocked" className="flex items-center gap-2">
+                <Ban className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Bloqueios</span>
+              </TabsTrigger>
+            )}
+            {canSeeRules && (
+              <TabsTrigger value="rules" className="flex items-center gap-2">
+                <Settings className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Regras</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
-          <TabsContent value="business-hours" className="mt-6">
-            <BusinessHoursConfig companyId={company.id} />
-          </TabsContent>
+          {canSeeBusinessHours && (
+            <TabsContent value="business-hours" className="mt-6">
+              <BusinessHoursConfig companyId={company.id} />
+            </TabsContent>
+          )}
 
-          <TabsContent value="fixed-schedules" className="mt-6">
-            <EmployeeScheduleConfig companyId={company.id} />
-          </TabsContent>
+          {canSeeFixed && (
+            <TabsContent value="fixed-schedules" className="mt-6">
+              <EmployeeScheduleConfig companyId={company.id} />
+            </TabsContent>
+          )}
 
-          <TabsContent value="autonomous" className="mt-6">
-            <AutonomousAvailabilityConfig companyId={company.id} />
-          </TabsContent>
+          {canSeeAutonomous && (
+            <TabsContent value="autonomous" className="mt-6">
+              <AutonomousAvailabilityConfig
+                companyId={company.id}
+                restrictToEmployeeId={isEmployee ? currentEmployee?.id : undefined}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="absences" className="mt-6">
-            <AbsencesManager companyId={company.id} />
-          </TabsContent>
+          {canSeeAbsences && (
+            <TabsContent value="absences" className="mt-6">
+              <AbsencesManager companyId={company.id} />
+            </TabsContent>
+          )}
 
-          <TabsContent value="blocked" className="mt-6">
-            <BlockedSlotsManager companyId={company.id} />
-          </TabsContent>
+          {canSeeBlocked && (
+            <TabsContent value="blocked" className="mt-6">
+              <BlockedSlotsManager companyId={company.id} />
+            </TabsContent>
+          )}
 
-          <TabsContent value="rules" className="mt-6">
-            <ScheduleRulesConfig companyId={company.id} />
-          </TabsContent>
+          {canSeeRules && (
+            <TabsContent value="rules" className="mt-6">
+              <ScheduleRulesConfig companyId={company.id} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </BusinessLayout>
