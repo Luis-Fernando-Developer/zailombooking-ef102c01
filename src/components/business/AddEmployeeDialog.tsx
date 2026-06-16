@@ -218,6 +218,23 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="employee_type">Tipo de Colaborador *</Label>
+            <Select value={formData.employee_type} onValueChange={(value: "fixo" | "autonomo") => setFormData(prev => ({ ...prev, employee_type: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fixo">Funcionário Fixo</SelectItem>
+                <SelectItem value="autonomo">Prestador de Serviço (Autônomo)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Fixos têm jornada definida pela empresa. Autônomos definem sua própria disponibilidade.
+            </p>
+          </div>
+
+
+          <div className="space-y-2">
             <Label htmlFor="role">Função *</Label>
             <Select value={formData.role} onValueChange={(value: any) => setFormData(prev => ({ ...prev, role: value }))}>
               <SelectTrigger>
