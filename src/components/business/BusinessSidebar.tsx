@@ -123,39 +123,31 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
     return () => { isMounted = false; };
   }, [companyId, currentUser?.email]);
 
-  // Filtrar itens do menu baseado nas permissões
+  // Filtrar itens do menu baseado nas permissões/role
   const filteredMenuItems = menuItems.filter(item => {
     const role = userRole === 'owner' ? 'owner' : (resolvedRole ?? userRole);
     const ownerOverride = role === 'owner' || isOwnerByCompany === true;
 
-    // Owner (por propriedade da empresa) sempre vê todos os itens
-    if (ownerOverride) {
-      return true;
-    }
+    if (ownerOverride) return true;
 
-    // Enquanto carregando OU sem role/permissões resolvidas, mostrar tudo (evita sumir no primeiro render)
-    if (loading || !resolvedRole || !permissions) {
-      return true;
-    }
+    // Enquanto carregando, mostrar tudo (evita flicker)
+    if (loading || !resolvedRole) return true;
 
-    // Priorizar permissões quando disponíveis e não estiver carregando
-    if (permissions) {
-      switch (item.title) {
-        case "Colaboradores":
-          return permissions.canViewEmployees;
-        case "Configurações":
-          return permissions.canManageSettings;
-        default:
-          return true;
-      }
-    }
-
-    // Fallback por role
     switch (item.title) {
+      case "Dashboard":
+      case "Agendamentos":
+        return true;
+      case "Horários":
+        // employee só vê se for autonomo (regra aplicada dentro da página)
+        return ['manager', 'supervisor', 'receptionist', 'employee'].includes(role);
+      case "Serviços":
+        return ['manager'].includes(role);
       case "Colaboradores":
-        return ['owner', 'manager', 'supervisor'].includes(role);
+        return ['manager', 'supervisor'].includes(role);
+      case "Chatbot":
+        return ['manager'].includes(role);
       case "Configurações":
-        return ['owner', 'manager'].includes(role);
+        return ['manager'].includes(role);
       default:
         return true;
     }
