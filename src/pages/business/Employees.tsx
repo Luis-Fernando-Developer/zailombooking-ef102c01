@@ -252,10 +252,10 @@ export default function BusinessEmployees() {
                       </CardTitle>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         {getRoleBadge(employee.role || 'employee')}
-                        {employee.invite_accepted === true && (
+                        {employee.role !== 'owner' && employee.invite_accepted === true && (
                           <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">Convite aceito</Badge>
                         )}
-                        {employee.invite_accepted === false && (
+                        {employee.role !== 'owner' && employee.invite_accepted === false && (
                           <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Convite pendente</Badge>
                         )}
                         {!employee.is_active && (
