@@ -89,7 +89,20 @@ export default function BusinessEmployees() {
         .eq('company_id', companyData.id)
         .order('created_at');
 
-      setEmployees(employeesData || []);
+      // Buscar status do convite (aceito/pendente) via RPC
+      const { data: inviteStatus } = await supabase
+        .rpc('get_employees_invite_status', { _company_id: companyData.id });
+
+      const statusMap = new Map<string, boolean>(
+        (inviteStatus || []).map((s: any) => [s.employee_id, !!s.invite_accepted])
+      );
+
+      const merged = (employeesData || []).map((emp) => ({
+        ...emp,
+        invite_accepted: statusMap.has(emp.id) ? statusMap.get(emp.id) : null,
+      }));
+
+      setEmployees(merged);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
