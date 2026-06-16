@@ -20,6 +20,7 @@ interface Employee {
   role: string | null;
   is_active: boolean | null;
   created_at: string;
+  invite_accepted?: boolean | null;
   // Optional fields for EditEmployeeDialog compatibility
   employee_type?: string;
   avatar_url?: string;
