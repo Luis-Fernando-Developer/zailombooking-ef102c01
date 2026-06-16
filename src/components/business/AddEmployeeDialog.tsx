@@ -34,6 +34,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
     phone: "",
     password: "",
     role: "employee" as const,
+    employee_type: "fixo" as "fixo" | "autonomo",
     is_active: true,
     services: [] as string[]
   });
