@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RequireBusinessAuth } from "@/components/business/RequireBusinessAuth";
+import { RequireRole } from "@/components/business/RequireRole";
 import { RequireSuperAdmin } from "@/components/admin/RequireSuperAdmin";
 import LandingPage from "./pages/LandingPage";
 import AdminLogin from "./pages/admin/Login";
@@ -61,15 +62,15 @@ const App = () => (
             <Route path="/super-admin/add-company" element={<RequireSuperAdmin><CreateCompany /></RequireSuperAdmin>} />
             <Route path="/:slug/admin/dashboard" element={<RequireBusinessAuth><BusinessDashboard /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/agendamentos" element={<RequireBusinessAuth><BusinessBookings /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><BusinessServices /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/colaboradores" element={<RequireBusinessAuth><BusinessEmployees /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/configuracoes" element={<RequireBusinessAuth><BusinessSettings /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessServices /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/colaboradores" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessEmployees /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/configuracoes" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessSettings /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/billing" element={<RequireBusinessAuth><BillingManagement /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/perfil" element={<RequireBusinessAuth><BusinessProfile /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/chatbot" element={<RequireBusinessAuth><ChatbotIntegracao /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/chatbot/integracao" element={<RequireBusinessAuth><ChatbotIntegracao /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/chatbot/talkmap" element={<RequireBusinessAuth><ChatbotZailomFlow /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/chatbot/talkmap/*" element={<RequireBusinessAuth><ChatbotZailomFlow /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/chatbot" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><ChatbotIntegracao /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/chatbot/integracao" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><ChatbotIntegracao /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/chatbot/talkmap" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><ChatbotZailomFlow /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/chatbot/talkmap/*" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><ChatbotZailomFlow /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/horarios" element={<RequireBusinessAuth><BusinessSchedule /></RequireBusinessAuth>} />
             <Route path="/:slug" element={<CompanyLandingPage />} />
             <Route path="/:slug/agendar" element={<ClientBooking />} />
