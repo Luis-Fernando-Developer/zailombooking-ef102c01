@@ -91,6 +91,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             email: formData.email,
             phone: formData.phone,
             role: formData.role,
+            employee_type: formData.employee_type,
             is_active: formData.is_active
           }])
           .select();
