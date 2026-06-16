@@ -125,6 +125,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
         phone: "",
         password: "",
         role: "employee",
+        employee_type: "fixo",
         is_active: true,
         services: []
       });
