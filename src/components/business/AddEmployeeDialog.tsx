@@ -34,6 +34,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
     phone: "",
     password: "",
     role: "employee" as const,
+    employee_type: "fixo" as "fixo" | "autonomo",
     is_active: true,
     services: [] as string[]
   });
@@ -90,6 +91,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             email: formData.email,
             phone: formData.phone,
             role: formData.role,
+            employee_type: formData.employee_type,
             is_active: formData.is_active
           }])
           .select();
@@ -123,6 +125,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
         phone: "",
         password: "",
         role: "employee",
+        employee_type: "fixo",
         is_active: true,
         services: []
       });
@@ -213,6 +216,23 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
               minLength={6}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="employee_type">Tipo de Colaborador *</Label>
+            <Select value={formData.employee_type} onValueChange={(value: "fixo" | "autonomo") => setFormData(prev => ({ ...prev, employee_type: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fixo">Funcionário Fixo</SelectItem>
+                <SelectItem value="autonomo">Prestador de Serviço (Autônomo)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Fixos têm jornada definida pela empresa. Autônomos definem sua própria disponibilidade.
+            </p>
+          </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="role">Função *</Label>
