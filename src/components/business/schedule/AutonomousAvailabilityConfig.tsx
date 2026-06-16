@@ -32,7 +32,7 @@ interface Availability {
   break_end: string | null;
 }
 
-export function AutonomousAvailabilityConfig({ companyId }: AutonomousAvailabilityConfigProps) {
+export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId }: AutonomousAvailabilityConfigProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
@@ -49,7 +49,7 @@ export function AutonomousAvailabilityConfig({ companyId }: AutonomousAvailabili
 
   useEffect(() => {
     fetchEmployees();
-  }, [companyId]);
+  }, [companyId, restrictToEmployeeId]);
 
   useEffect(() => {
     if (selectedEmployee) {
