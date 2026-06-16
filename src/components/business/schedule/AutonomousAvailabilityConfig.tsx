@@ -57,12 +57,13 @@ export function AutonomousAvailabilityConfig({ companyId }: AutonomousAvailabili
 
   const fetchEmployees = async () => {
     try {
-      // Fetch all active employees (no employee_type filter since column doesn't exist)
+      // Fetch only autonomous active employees
       const { data, error } = await supabase
         .from('employees')
         .select('id, name')
         .eq('company_id', companyId)
         .eq('is_active', true)
+        .eq('employee_type', 'autonomo')
         .order('name');
 
       if (error) throw error;
