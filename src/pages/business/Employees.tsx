@@ -20,6 +20,7 @@ interface Employee {
   role: string | null;
   is_active: boolean | null;
   created_at: string;
+  invite_accepted?: boolean | null;
   // Optional fields for EditEmployeeDialog compatibility
   employee_type?: string;
   avatar_url?: string;
@@ -88,7 +89,20 @@ export default function BusinessEmployees() {
         .eq('company_id', companyData.id)
         .order('created_at');
 
-      setEmployees(employeesData || []);
+      // Buscar status do convite (aceito/pendente) via RPC
+      const { data: inviteStatus } = await supabase
+        .rpc('get_employees_invite_status', { _company_id: companyData.id });
+
+      const statusMap = new Map<string, boolean>(
+        (inviteStatus || []).map((s: any) => [s.employee_id, !!s.invite_accepted])
+      );
+
+      const merged = (employeesData || []).map((emp) => ({
+        ...emp,
+        invite_accepted: statusMap.has(emp.id) ? statusMap.get(emp.id) : null,
+      }));
+
+      setEmployees(merged);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -236,8 +250,14 @@ export default function BusinessEmployees() {
                           <UserX className="w-4 h-4 text-red-500" />
                         )}
                       </CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         {getRoleBadge(employee.role || 'employee')}
+                        {employee.invite_accepted === true && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">Convite aceito</Badge>
+                        )}
+                        {employee.invite_accepted === false && (
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Convite pendente</Badge>
+                        )}
                         {!employee.is_active && (
                           <Badge variant="destructive">Inativo</Badge>
                         )}
