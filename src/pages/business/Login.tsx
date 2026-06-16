@@ -19,6 +19,7 @@ export default function BusinessLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) return;
     setIsLoading(true);
 
     try {
