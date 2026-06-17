@@ -178,6 +178,7 @@ export default function BusinessSchedule() {
                 companyId={company.id}
                 excludeEmployeeId={isSupervisor ? currentEmployee?.id : undefined}
                 excludeRoles={isSupervisor ? ['owner', 'manager'] : undefined}
+                useRequestFlow={isSupervisor}
               />
             </TabsContent>
           )}

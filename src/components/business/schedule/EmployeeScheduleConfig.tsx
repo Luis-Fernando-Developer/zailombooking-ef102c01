@@ -7,8 +7,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { Save, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, ChevronDown, ChevronUp, Send } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { createRequest } from "@/lib/api/requests";
 
 interface EmployeeScheduleConfigProps {
   companyId: string;
@@ -16,6 +17,8 @@ interface EmployeeScheduleConfigProps {
   excludeEmployeeId?: string;
   /** Roles a remover da lista de selecionáveis (ex.: ['owner','manager']) */
   excludeRoles?: string[];
+  /** Se true, "Salvar" abre solicitação (schedule_change) ao invés de gravar direto */
+  useRequestFlow?: boolean;
 }
 
 interface Employee {
@@ -45,7 +48,7 @@ const DAYS_OF_WEEK = [
   { value: 6, label: "Sábado", short: "Sáb" },
 ];
 
-export function EmployeeScheduleConfig({ companyId, excludeEmployeeId, excludeRoles }: EmployeeScheduleConfigProps) {
+export function EmployeeScheduleConfig({ companyId, excludeEmployeeId, excludeRoles, useRequestFlow }: EmployeeScheduleConfigProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
@@ -152,39 +155,64 @@ export function EmployeeScheduleConfig({ companyId, excludeEmployeeId, excludeRo
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Delete-then-insert (tabela sem unique constraint confiável)
-      const { error: delError } = await supabase
-        .from('employee_schedules')
-        .delete()
-        .eq('employee_id', selectedEmployee);
-      if (delError) throw delError;
+      if (useRequestFlow) {
+        const empName = employees.find(e => e.id === selectedEmployee)?.name ?? 'colaborador';
+        await createRequest({
+          tenant_id: companyId,
+          request_type: 'schedule_change',
+          title: `Alteração de escala — ${empName}`,
+          description: `Solicitação de alteração da jornada semanal de ${empName}.`,
+          priority: 'normal',
+          request_payload: {
+            employees: [selectedEmployee],
+            new_schedule: schedules.map(s => ({
+              day_of_week: s.day_of_week,
+              is_working: s.is_working,
+              start_time: s.start_time,
+              end_time: s.end_time,
+              break_start: s.break_start || null,
+              break_end: s.break_end || null,
+            })),
+          },
+        });
+        toast({
+          title: "Solicitação enviada",
+          description: "A alteração será aplicada após aprovação.",
+        });
+      } else {
+        const { error: delError } = await supabase
+          .from('employee_schedules')
+          .delete()
+          .eq('employee_id', selectedEmployee);
+        if (delError) throw delError;
 
-      const { error } = await supabase
-        .from('employee_schedules')
-        .insert(
-          schedules.map(s => ({
-            company_id: companyId,
-            employee_id: selectedEmployee,
-            day_of_week: s.day_of_week,
-            is_working: s.is_working,
-            start_time: s.start_time,
-            end_time: s.end_time,
-            break_start: s.break_start || null,
-            break_end: s.break_end || null,
-          }))
-        );
+        const { error } = await supabase
+          .from('employee_schedules')
+          .insert(
+            schedules.map(s => ({
+              company_id: companyId,
+              employee_id: selectedEmployee,
+              day_of_week: s.day_of_week,
+              is_working: s.is_working,
+              start_time: s.start_time,
+              end_time: s.end_time,
+              break_start: s.break_start || null,
+              break_end: s.break_end || null,
+            }))
+          );
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Jornada salva com sucesso!"
-      });
-    } catch (error) {
+        toast({
+          title: "Sucesso",
+          description: "Jornada salva com sucesso!"
+        });
+      }
+    } catch (error: any) {
       console.error('Error saving schedules:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar a jornada.",
+        description: error?.message || "Não foi possível salvar a jornada.",
         variant: "destructive"
       });
     } finally {
@@ -333,8 +361,10 @@ export function EmployeeScheduleConfig({ companyId, excludeEmployeeId, excludeRo
         </div>
 
         <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
-          <Save className="w-4 h-4 mr-2" />
-          {saving ? "Salvando..." : "Salvar Jornada"}
+          {useRequestFlow ? <Send className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+          {saving
+            ? (useRequestFlow ? "Enviando..." : "Salvando...")
+            : (useRequestFlow ? "Solicitar alteração" : "Salvar Jornada")}
         </Button>
       </CardContent>
     </Card>
