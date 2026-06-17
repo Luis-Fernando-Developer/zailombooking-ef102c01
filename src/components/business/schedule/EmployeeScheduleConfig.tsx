@@ -48,7 +48,7 @@ const DAYS_OF_WEEK = [
   { value: 6, label: "Sábado", short: "Sáb" },
 ];
 
-export function EmployeeScheduleConfig({ companyId, excludeEmployeeId, excludeRoles }: EmployeeScheduleConfigProps) {
+export function EmployeeScheduleConfig({ companyId, excludeEmployeeId, excludeRoles, useRequestFlow }: EmployeeScheduleConfigProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
