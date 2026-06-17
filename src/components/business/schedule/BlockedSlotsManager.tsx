@@ -15,6 +15,8 @@ import { ptBR } from "date-fns/locale";
 
 interface BlockedSlotsManagerProps {
   companyId: string;
+  /** Somente leitura — esconde botões de adicionar/excluir */
+  readOnly?: boolean;
 }
 
 interface Employee {
@@ -32,7 +34,7 @@ interface BlockedSlot {
   reason: string | null;
 }
 
-export function BlockedSlotsManager({ companyId }: BlockedSlotsManagerProps) {
+export function BlockedSlotsManager({ companyId, readOnly = false }: BlockedSlotsManagerProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
