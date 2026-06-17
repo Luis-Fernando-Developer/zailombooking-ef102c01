@@ -16,6 +16,8 @@ interface AutonomousAvailabilityConfigProps {
   companyId: string;
   /** Quando definido, restringe a aba ao próprio colaborador (caso de role=employee + autonomo) */
   restrictToEmployeeId?: string;
+  /** Modo somente leitura — esconde botões de adicionar/excluir */
+  readOnly?: boolean;
 }
 
 interface Employee {
@@ -32,7 +34,7 @@ interface Availability {
   break_end: string | null;
 }
 
-export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId }: AutonomousAvailabilityConfigProps) {
+export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, readOnly = false }: AutonomousAvailabilityConfigProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
