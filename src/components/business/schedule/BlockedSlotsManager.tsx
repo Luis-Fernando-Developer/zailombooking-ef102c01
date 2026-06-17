@@ -216,6 +216,7 @@ export function BlockedSlotsManager({ companyId, readOnly = false }: BlockedSlot
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {!readOnly && (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
