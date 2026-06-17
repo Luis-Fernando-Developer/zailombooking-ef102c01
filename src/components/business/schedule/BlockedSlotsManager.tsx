@@ -359,6 +359,7 @@ export function BlockedSlotsManager({ companyId, readOnly = false }: BlockedSlot
                       <p className="text-sm text-muted-foreground">{slot.reason}</p>
                     )}
                   </div>
+                  {!readOnly && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -367,6 +368,7 @@ export function BlockedSlotsManager({ companyId, readOnly = false }: BlockedSlot
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
+                  )}
                 </div>
               );
             })
