@@ -320,6 +320,7 @@ export function BlockedSlotsManager({ companyId, readOnly = false }: BlockedSlot
             </div>
           </DialogContent>
         </Dialog>
+        )}
 
         {/* List of blocked slots */}
         <div className="space-y-2">
