@@ -218,6 +218,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, 
             </Select>
           </div>
 
+          {!readOnly && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -288,6 +289,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, 
               </div>
             </DialogContent>
           </Dialog>
+          )}
         </div>
 
         {/* List of availabilities */}
