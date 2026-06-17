@@ -155,39 +155,64 @@ export function EmployeeScheduleConfig({ companyId, excludeEmployeeId, excludeRo
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Delete-then-insert (tabela sem unique constraint confiável)
-      const { error: delError } = await supabase
-        .from('employee_schedules')
-        .delete()
-        .eq('employee_id', selectedEmployee);
-      if (delError) throw delError;
+      if (useRequestFlow) {
+        const empName = employees.find(e => e.id === selectedEmployee)?.name ?? 'colaborador';
+        await createRequest({
+          tenant_id: companyId,
+          request_type: 'schedule_change',
+          title: `Alteração de escala — ${empName}`,
+          description: `Solicitação de alteração da jornada semanal de ${empName}.`,
+          priority: 'normal',
+          request_payload: {
+            employees: [selectedEmployee],
+            new_schedule: schedules.map(s => ({
+              day_of_week: s.day_of_week,
+              is_working: s.is_working,
+              start_time: s.start_time,
+              end_time: s.end_time,
+              break_start: s.break_start || null,
+              break_end: s.break_end || null,
+            })),
+          },
+        });
+        toast({
+          title: "Solicitação enviada",
+          description: "A alteração será aplicada após aprovação.",
+        });
+      } else {
+        const { error: delError } = await supabase
+          .from('employee_schedules')
+          .delete()
+          .eq('employee_id', selectedEmployee);
+        if (delError) throw delError;
 
-      const { error } = await supabase
-        .from('employee_schedules')
-        .insert(
-          schedules.map(s => ({
-            company_id: companyId,
-            employee_id: selectedEmployee,
-            day_of_week: s.day_of_week,
-            is_working: s.is_working,
-            start_time: s.start_time,
-            end_time: s.end_time,
-            break_start: s.break_start || null,
-            break_end: s.break_end || null,
-          }))
-        );
+        const { error } = await supabase
+          .from('employee_schedules')
+          .insert(
+            schedules.map(s => ({
+              company_id: companyId,
+              employee_id: selectedEmployee,
+              day_of_week: s.day_of_week,
+              is_working: s.is_working,
+              start_time: s.start_time,
+              end_time: s.end_time,
+              break_start: s.break_start || null,
+              break_end: s.break_end || null,
+            }))
+          );
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Sucesso",
-        description: "Jornada salva com sucesso!"
-      });
-    } catch (error) {
+        toast({
+          title: "Sucesso",
+          description: "Jornada salva com sucesso!"
+        });
+      }
+    } catch (error: any) {
       console.error('Error saving schedules:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar a jornada.",
+        description: error?.message || "Não foi possível salvar a jornada.",
         variant: "destructive"
       });
     } finally {
