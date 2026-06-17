@@ -31,7 +31,7 @@ export default function Solicitacoes() {
     return employee?.role || "employee";
   }, [company, user, employee]);
 
-  const canDecide = ["owner", "manager", "supervisor"].includes(role);
+  const canDecide = ["owner", "manager"].includes(role);
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [slug]);
 
