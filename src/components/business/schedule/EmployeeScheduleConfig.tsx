@@ -7,8 +7,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { Save, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, ChevronDown, ChevronUp, Send } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { createRequest } from "@/lib/api/requests";
 
 interface EmployeeScheduleConfigProps {
   companyId: string;
@@ -16,6 +17,8 @@ interface EmployeeScheduleConfigProps {
   excludeEmployeeId?: string;
   /** Roles a remover da lista de selecionáveis (ex.: ['owner','manager']) */
   excludeRoles?: string[];
+  /** Se true, "Salvar" abre solicitação (schedule_change) ao invés de gravar direto */
+  useRequestFlow?: boolean;
 }
 
 interface Employee {
