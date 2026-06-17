@@ -130,8 +130,11 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
 
     if (ownerOverride) return true;
 
-    // Enquanto carregando, mostrar tudo (evita flicker)
-    if (loading || !resolvedRole) return true;
+    // Enquanto carregando, mostrar apenas itens base (evita vazamento de menus restritos)
+    if (loading || !resolvedRole) {
+      return ["Dashboard", "Agendamentos"].includes(item.title);
+    }
+
 
     switch (item.title) {
       case "Dashboard":
