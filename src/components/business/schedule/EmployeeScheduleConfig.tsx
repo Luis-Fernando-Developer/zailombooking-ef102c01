@@ -361,8 +361,10 @@ export function EmployeeScheduleConfig({ companyId, excludeEmployeeId, excludeRo
         </div>
 
         <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
-          <Save className="w-4 h-4 mr-2" />
-          {saving ? "Salvando..." : "Salvar Jornada"}
+          {useRequestFlow ? <Send className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+          {saving
+            ? (useRequestFlow ? "Enviando..." : "Salvando...")
+            : (useRequestFlow ? "Solicitar alteração" : "Salvar Jornada")}
         </Button>
       </CardContent>
     </Card>
