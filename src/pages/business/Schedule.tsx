@@ -121,18 +121,11 @@ export default function BusinessSchedule() {
         userRole={role}
       >
         <div className="space-y-6 px-10 w-full py-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gradient">Jornada dos Colaboradores</h1>
-            <p className="text-muted-foreground mt-2">
-              Configure a jornada de trabalho semanal para cada colaborador, incluindo horário de intervalo.
-            </p>
-          </div>
           <EmployeeScheduleConfig
             companyId={company.id}
             excludeEmployeeId={currentEmployee?.id}
             excludeRoles={['owner', 'manager']}
             useRequestFlow={true}
-            hideHeader
           />
         </div>
       </BusinessLayout>
