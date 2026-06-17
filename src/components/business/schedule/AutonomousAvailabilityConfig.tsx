@@ -315,6 +315,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, 
                     )}
                   </p>
                 </div>
+                {!readOnly && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -323,6 +324,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, 
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
+                )}
               </div>
             ))
           )}
