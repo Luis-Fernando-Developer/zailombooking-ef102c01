@@ -111,6 +111,34 @@ export default function BusinessSchedule() {
 
   const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeRules].filter(Boolean).length;
 
+  // Layout simplificado para Supervisor (Encarregado): apenas jornada dos colaboradores
+  if (isSupervisor) {
+    return (
+      <BusinessLayout
+        companySlug={company.slug}
+        companyName={company.name}
+        companyId={company.id}
+        userRole={role}
+      >
+        <div className="space-y-6 px-10 w-full py-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gradient">Jornada dos Colaboradores</h1>
+            <p className="text-muted-foreground mt-2">
+              Configure a jornada de trabalho semanal para cada colaborador, incluindo horário de intervalo.
+            </p>
+          </div>
+          <EmployeeScheduleConfig
+            companyId={company.id}
+            excludeEmployeeId={currentEmployee?.id}
+            excludeRoles={['owner', 'manager']}
+            useRequestFlow={true}
+            hideHeader
+          />
+        </div>
+      </BusinessLayout>
+    );
+  }
+
   return (
     <BusinessLayout 
       companySlug={company.slug} 
@@ -176,9 +204,6 @@ export default function BusinessSchedule() {
             <TabsContent value="fixed-schedules" className="mt-6">
               <EmployeeScheduleConfig
                 companyId={company.id}
-                excludeEmployeeId={isSupervisor ? currentEmployee?.id : undefined}
-                excludeRoles={isSupervisor ? ['owner', 'manager'] : undefined}
-                useRequestFlow={isSupervisor}
               />
             </TabsContent>
           )}
@@ -188,7 +213,7 @@ export default function BusinessSchedule() {
               <AutonomousAvailabilityConfig
                 companyId={company.id}
                 restrictToEmployeeId={isEmployee ? currentEmployee?.id : undefined}
-                readOnly={isSupervisor || isReceptionist}
+                readOnly={isReceptionist}
               />
             </TabsContent>
           )}
@@ -203,7 +228,6 @@ export default function BusinessSchedule() {
             <TabsContent value="blocked" className="mt-6">
               <BlockedSlotsManager
                 companyId={company.id}
-                readOnly={isSupervisor}
               />
             </TabsContent>
           )}
