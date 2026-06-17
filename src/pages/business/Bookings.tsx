@@ -309,8 +309,8 @@ export default function BusinessBookings() {
     );
   }
 
-  // Verificar se pode gerenciar agendamentos
-  const canManageBookings = ['owner', 'admin', 'manager', 'receptionist'].includes(employee?.role || '');
+  // Verificar se pode gerenciar agendamentos — recepcionista só visualiza (botão "Novo Agendamento" oculto)
+  const canManageBookings = ['owner', 'admin', 'manager', 'supervisor'].includes(employee?.role || '');
 
   return (
     <BusinessLayout 

@@ -15,6 +15,8 @@ import { ptBR } from "date-fns/locale";
 
 interface BlockedSlotsManagerProps {
   companyId: string;
+  /** Somente leitura — esconde botões de adicionar/excluir */
+  readOnly?: boolean;
 }
 
 interface Employee {
@@ -32,7 +34,7 @@ interface BlockedSlot {
   reason: string | null;
 }
 
-export function BlockedSlotsManager({ companyId }: BlockedSlotsManagerProps) {
+export function BlockedSlotsManager({ companyId, readOnly = false }: BlockedSlotsManagerProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
@@ -214,6 +216,7 @@ export function BlockedSlotsManager({ companyId }: BlockedSlotsManagerProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {!readOnly && (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -317,6 +320,7 @@ export function BlockedSlotsManager({ companyId }: BlockedSlotsManagerProps) {
             </div>
           </DialogContent>
         </Dialog>
+        )}
 
         {/* List of blocked slots */}
         <div className="space-y-2">
@@ -355,6 +359,7 @@ export function BlockedSlotsManager({ companyId }: BlockedSlotsManagerProps) {
                       <p className="text-sm text-muted-foreground">{slot.reason}</p>
                     )}
                   </div>
+                  {!readOnly && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -363,6 +368,7 @@ export function BlockedSlotsManager({ companyId }: BlockedSlotsManagerProps) {
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
+                  )}
                 </div>
               );
             })

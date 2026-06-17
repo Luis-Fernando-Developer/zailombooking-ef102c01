@@ -16,6 +16,8 @@ interface AutonomousAvailabilityConfigProps {
   companyId: string;
   /** Quando definido, restringe a aba ao próprio colaborador (caso de role=employee + autonomo) */
   restrictToEmployeeId?: string;
+  /** Modo somente leitura — esconde botões de adicionar/excluir */
+  readOnly?: boolean;
 }
 
 interface Employee {
@@ -32,7 +34,7 @@ interface Availability {
   break_end: string | null;
 }
 
-export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId }: AutonomousAvailabilityConfigProps) {
+export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, readOnly = false }: AutonomousAvailabilityConfigProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
@@ -216,6 +218,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId }
             </Select>
           </div>
 
+          {!readOnly && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -286,6 +289,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId }
               </div>
             </DialogContent>
           </Dialog>
+          )}
         </div>
 
         {/* List of availabilities */}
@@ -311,6 +315,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId }
                     )}
                   </p>
                 </div>
+                {!readOnly && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -319,6 +324,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId }
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
+                )}
               </div>
             ))
           )}
