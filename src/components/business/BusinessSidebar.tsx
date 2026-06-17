@@ -23,7 +23,8 @@ import {
   Clock,
   ChevronDown,
   Plug,
-  MessageSquare
+  MessageSquare,
+  Inbox
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -42,6 +43,7 @@ const menuItems: MenuItem[] = [
   { title: "Horários", url: "/admin/horarios", icon: Clock },
   { title: "Serviços", url: "/admin/servicos", icon: Briefcase },
   { title: "Colaboradores", url: "/admin/colaboradores", icon: Users },
+  { title: "Solicitações", url: "/admin/solicitacoes", icon: Inbox },
   {
     title: "Chatbot",
     url: "/admin/chatbot/integracao",
@@ -57,11 +59,11 @@ const menuItems: MenuItem[] = [
 // Matriz única de permissões por role (fonte da verdade global)
 // Usada também por outras superfícies (botões de ação) via getMenuAccess()
 const ROLE_MENU_ACCESS: Record<string, string[]> = {
-  owner:         ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Chatbot", "Configurações"],
-  manager:       ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Chatbot", "Configurações"],
-  supervisor:    ["Dashboard", "Agendamentos", "Horários", "Colaboradores"],
-  receptionist:  ["Dashboard", "Agendamentos", "Horários"],
-  employee:      ["Dashboard", "Agendamentos", "Horários"], // 'Horários' só renderiza conteúdo se for autônomo (regra da página)
+  owner:         ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Chatbot", "Configurações"],
+  manager:       ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Chatbot", "Configurações"],
+  supervisor:    ["Dashboard", "Agendamentos", "Horários", "Colaboradores", "Solicitações"],
+  receptionist:  ["Dashboard", "Agendamentos", "Horários", "Solicitações"],
+  employee:      ["Dashboard", "Agendamentos", "Horários", "Solicitações"],
 };
 
 export function getAllowedMenusForRole(role: string): string[] {
