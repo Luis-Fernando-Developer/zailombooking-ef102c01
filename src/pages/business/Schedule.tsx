@@ -174,7 +174,11 @@ export default function BusinessSchedule() {
 
           {canSeeFixed && (
             <TabsContent value="fixed-schedules" className="mt-6">
-              <EmployeeScheduleConfig companyId={company.id} />
+              <EmployeeScheduleConfig
+                companyId={company.id}
+                excludeEmployeeId={isSupervisor ? currentEmployee?.id : undefined}
+                excludeRoles={isSupervisor ? ['owner', 'manager'] : undefined}
+              />
             </TabsContent>
           )}
 
@@ -183,6 +187,7 @@ export default function BusinessSchedule() {
               <AutonomousAvailabilityConfig
                 companyId={company.id}
                 restrictToEmployeeId={isEmployee ? currentEmployee?.id : undefined}
+                readOnly={isSupervisor || isReceptionist}
               />
             </TabsContent>
           )}
@@ -195,7 +200,10 @@ export default function BusinessSchedule() {
 
           {canSeeBlocked && (
             <TabsContent value="blocked" className="mt-6">
-              <BlockedSlotsManager companyId={company.id} />
+              <BlockedSlotsManager
+                companyId={company.id}
+                readOnly={isSupervisor}
+              />
             </TabsContent>
           )}
 
