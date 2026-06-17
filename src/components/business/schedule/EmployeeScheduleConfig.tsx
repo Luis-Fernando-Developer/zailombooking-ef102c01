@@ -12,6 +12,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 interface EmployeeScheduleConfigProps {
   companyId: string;
+  /** Esconde o próprio supervisor da lista (não pode editar a própria escala) */
+  excludeEmployeeId?: string;
+  /** Roles a remover da lista de selecionáveis (ex.: ['owner','manager']) */
+  excludeRoles?: string[];
 }
 
 interface Employee {
@@ -41,7 +45,7 @@ const DAYS_OF_WEEK = [
   { value: 6, label: "Sábado", short: "Sáb" },
 ];
 
-export function EmployeeScheduleConfig({ companyId }: EmployeeScheduleConfigProps) {
+export function EmployeeScheduleConfig({ companyId, excludeEmployeeId, excludeRoles }: EmployeeScheduleConfigProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
@@ -52,7 +56,7 @@ export function EmployeeScheduleConfig({ companyId }: EmployeeScheduleConfigProp
 
   useEffect(() => {
     fetchEmployees();
-  }, [companyId]);
+  }, [companyId, excludeEmployeeId, JSON.stringify(excludeRoles)]);
 
   useEffect(() => {
     if (selectedEmployee) {
@@ -62,20 +66,30 @@ export function EmployeeScheduleConfig({ companyId }: EmployeeScheduleConfigProp
 
   const fetchEmployees = async () => {
     try {
-      // Fetch only fixed-type active employees
-      const { data, error } = await supabase
+      let query = supabase
         .from('employees')
-        .select('id, name')
+        .select('id, name, role')
         .eq('company_id', companyId)
         .eq('is_active', true)
         .eq('employee_type', 'fixo')
         .order('name');
 
+      if (excludeRoles && excludeRoles.length > 0) {
+        // PostgREST: not.in.(a,b)
+        query = query.not('role', 'in', `(${excludeRoles.join(',')})`);
+      }
+      if (excludeEmployeeId) {
+        query = query.neq('id', excludeEmployeeId);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
-      setEmployees(data || []);
-      
-      if (data && data.length > 0) {
-        setSelectedEmployee(data[0].id);
+      const list = (data || []).map(({ id, name }) => ({ id, name }));
+      setEmployees(list);
+
+      if (list.length > 0) {
+        setSelectedEmployee(list[0].id);
       }
     } catch (error) {
       console.error('Error fetching employees:', error);
