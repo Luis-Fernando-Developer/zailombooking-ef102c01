@@ -31,7 +31,6 @@ import { BookingLogo } from "@/components/BookingLogo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { usePermissions } from "@/hooks/use-permissions";
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
 type SubItem = { title: string; url: string; icon: typeof LayoutDashboard };
@@ -55,6 +54,20 @@ const menuItems: MenuItem[] = [
   { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
 ];
 
+// Matriz única de permissões por role (fonte da verdade global)
+// Usada também por outras superfícies (botões de ação) via getMenuAccess()
+const ROLE_MENU_ACCESS: Record<string, string[]> = {
+  owner:         ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Chatbot", "Configurações"],
+  manager:       ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Chatbot", "Configurações"],
+  supervisor:    ["Dashboard", "Agendamentos", "Horários", "Colaboradores"],
+  receptionist:  ["Dashboard", "Agendamentos", "Horários"],
+  employee:      ["Dashboard", "Agendamentos", "Horários"], // 'Horários' só renderiza conteúdo se for autônomo (regra da página)
+};
+
+export function getAllowedMenusForRole(role: string): string[] {
+  return ROLE_MENU_ACCESS[role] ?? ROLE_MENU_ACCESS.employee;
+}
+
 interface BusinessSidebarProps {
   companySlug: string;
   companyName: string;
@@ -68,93 +81,50 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { permissions, loading, userRole: resolvedRole } = usePermissions(companyId, currentUser);
 
   const currentPath = location.pathname;
   const basePath = `/${companySlug}`;
-  
+
   const isActive = (path: string) => currentPath === `${basePath}${path}`;
   const getNavCls = (isActive: boolean) =>
-    isActive 
-      ? "bg-primary/20 text-primary border-r-2 border-primary" 
+    isActive
+      ? "bg-primary/20 text-primary border-r-2 border-primary"
       : "hover:bg-primary/10 hover:text-primary";
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      toast({
-        title: "Logout realizado",
-        description: "Até logo!",
-      });
+      toast({ title: "Logout realizado", description: "Até logo!" });
       navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
-  // Detecta se o usuário logado é o proprietário da empresa (sem depender de is_active)
-  const [isOwnerByCompany, setIsOwnerByCompany] = useState<boolean | null>(null);
-
+  // Owner detection via owner_email (caso o owner não tenha registro em employees)
+  const [isOwnerByCompany, setIsOwnerByCompany] = useState<boolean>(false);
   useEffect(() => {
     let isMounted = true;
     async function checkOwner() {
-      try {
-        if (!companyId || !currentUser?.email) {
-          if (isMounted) setIsOwnerByCompany(false);
-          return;
-        }
-        const { data, error } = await supabase
-          .from('companies')
-          .select('owner_email')
-          .eq('id', companyId)
-          .single();
-        if (error) {
-          if (isMounted) setIsOwnerByCompany(false);
-          return;
-        }
-        const ownerEmail = (data?.owner_email || '').toLowerCase();
-        const currentEmail = currentUser.email?.toLowerCase() || '';
-        if (isMounted) setIsOwnerByCompany(!!ownerEmail && ownerEmail === currentEmail);
-      } catch {
-        if (isMounted) setIsOwnerByCompany(false);
-      }
+      if (!companyId || !currentUser?.email) return;
+      const { data } = await supabase
+        .from('companies')
+        .select('owner_email')
+        .eq('id', companyId)
+        .single();
+      const ownerEmail = (data?.owner_email || '').toLowerCase();
+      const currentEmail = currentUser.email?.toLowerCase() || '';
+      if (isMounted) setIsOwnerByCompany(!!ownerEmail && ownerEmail === currentEmail);
     }
     checkOwner();
     return () => { isMounted = false; };
   }, [companyId, currentUser?.email]);
 
-  // Filtrar itens do menu baseado nas permissões/role
-  const filteredMenuItems = menuItems.filter(item => {
-    const role = userRole === 'owner' ? 'owner' : (resolvedRole ?? userRole);
-    const ownerOverride = role === 'owner' || isOwnerByCompany === true;
-
-    if (ownerOverride) return true;
-
-    // Enquanto carregando, mostrar apenas itens base (evita vazamento de menus restritos)
-    if (loading || !resolvedRole) {
-      return ["Dashboard", "Agendamentos"].includes(item.title);
-    }
-
-
-    switch (item.title) {
-      case "Dashboard":
-      case "Agendamentos":
-        return true;
-      case "Horários":
-        // employee só vê se for autonomo (regra aplicada dentro da página)
-        return ['manager', 'supervisor', 'receptionist', 'employee'].includes(role);
-      case "Serviços":
-        return ['manager'].includes(role);
-      case "Colaboradores":
-        return ['manager', 'supervisor'].includes(role);
-      case "Chatbot":
-        return ['manager'].includes(role);
-      case "Configurações":
-        return ['manager'].includes(role);
-      default:
-        return true;
-    }
-  });
+  // Fonte da verdade: userRole vindo da página (já resolvido antes do mount).
+  // Sem janela de "loading" que esconda/vaze itens — render é determinístico.
+  const effectiveRole = isOwnerByCompany ? 'owner' : (userRole || 'employee');
+  const allowed = new Set(getAllowedMenusForRole(effectiveRole));
+  const filteredMenuItems = menuItems.filter(item => allowed.has(item.title));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-primary/20 h-screen sticky top-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
