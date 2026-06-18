@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { BusinessHoursConfig } from "@/components/business/schedule/BusinessHoursConfig";
