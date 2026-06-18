@@ -111,7 +111,7 @@ export default function BusinessSchedule() {
 
   const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeRules].filter(Boolean).length;
 
-  // Layout simplificado para Supervisor (Encarregado): apenas jornada dos colaboradores
+  // Layout dedicado para Supervisor (Encarregado)
   if (isSupervisor) {
     return (
       <BusinessLayout
@@ -121,12 +121,58 @@ export default function BusinessSchedule() {
         userRole={role}
       >
         <div className="space-y-6 px-10 w-full py-8">
-          <EmployeeScheduleConfig
-            companyId={company.id}
-            excludeEmployeeId={currentEmployee?.id}
-            excludeRoles={['owner', 'manager']}
-            useRequestFlow={true}
-          />
+          <div>
+            <h1 className="text-3xl font-bold text-gradient">Jornada dos Colaboradores</h1>
+            <p className="text-muted-foreground mt-2">
+              Configure a jornada de trabalho semanal para cada colaborador, incluindo horário de intervalo.
+            </p>
+          </div>
+
+          <Tabs defaultValue="fixed-schedules" className="w-full">
+            <TabsList className="grid lg:w-full items-center justify-center h-full" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
+              <TabsTrigger value="fixed-schedules" className="flex items-center gap-2">
+                <Users className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Fixos</span>
+              </TabsTrigger>
+              <TabsTrigger value="autonomous" className="flex items-center gap-2">
+                <Calendar className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Autônomos</span>
+              </TabsTrigger>
+              <TabsTrigger value="absences" className="flex items-center gap-2">
+                <UserX className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Ausências</span>
+              </TabsTrigger>
+              <TabsTrigger value="blocked" className="flex items-center gap-2">
+                <Ban className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Bloqueios</span>
+              </TabsTrigger>
+              <TabsTrigger value="scales" className="flex items-center gap-2">
+                <Settings className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Escalas</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="fixed-schedules" className="mt-6">
+              <EmployeeScheduleConfig companyId={company.id} useRequestFlow={true} />
+            </TabsContent>
+            <TabsContent value="autonomous" className="mt-6">
+              <AutonomousAvailabilityConfig companyId={company.id} readOnly={false} />
+            </TabsContent>
+            <TabsContent value="absences" className="mt-6">
+              <AbsencesManager companyId={company.id} />
+            </TabsContent>
+            <TabsContent value="blocked" className="mt-6">
+              <BlockedSlotsManager companyId={company.id} />
+            </TabsContent>
+            <TabsContent value="scales" className="mt-6">
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <p className="text-base font-medium mb-1">Escalas Mensais</p>
+                  <p className="text-sm">Em breve — módulo de escalas matriciais com geração automática e aprovação em lote.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </BusinessLayout>
     );
