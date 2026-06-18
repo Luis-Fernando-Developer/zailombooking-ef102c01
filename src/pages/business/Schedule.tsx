@@ -11,7 +11,10 @@ import { AutonomousAvailabilityConfig } from "@/components/business/schedule/Aut
 import { ScheduleRulesConfig } from "@/components/business/schedule/ScheduleRulesConfig";
 import { AbsencesManager } from "@/components/business/schedule/AbsencesManager";
 import { BlockedSlotsManager } from "@/components/business/schedule/BlockedSlotsManager";
-import { Clock, Users, Calendar, Settings, UserX, Ban } from "lucide-react";
+import { SchedulesList } from "@/components/business/schedule/SchedulesList";
+import { ScheduleTemplatesManager } from "@/components/business/schedule/ScheduleTemplatesManager";
+import { ScheduleCycleConfig } from "@/components/business/schedule/ScheduleCycleConfig";
+import { Clock, Users, Calendar, Settings, UserX, Ban, CalendarRange } from "lucide-react";
 
 interface Company {
   id: string;
@@ -101,6 +104,7 @@ export default function BusinessSchedule() {
   const canSeeAbsences = isManager || isSupervisor || isReceptionist;
   const canSeeBlocked = isManager || isSupervisor;
   const canSeeRules = isManager;
+  const canSeeScales = isManager;
 
   const defaultTab = canSeeBusinessHours
     ? 'business-hours'
@@ -110,7 +114,7 @@ export default function BusinessSchedule() {
     ? 'fixed-schedules'
     : 'autonomous';
 
-  const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeRules].filter(Boolean).length;
+  const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeScales, canSeeRules].filter(Boolean).length;
 
   // Layout dedicado para Supervisor (Encarregado)
   if (isSupervisor) {
@@ -166,12 +170,7 @@ export default function BusinessSchedule() {
               <BlockedSlotsManager companyId={company.id} />
             </TabsContent>
             <TabsContent value="scales" className="mt-6">
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <p className="text-base font-medium mb-1">Escalas Mensais</p>
-                  <p className="text-sm">Em breve — módulo de escalas matriciais com geração automática e aprovação em lote.</p>
-                </CardContent>
-              </Card>
+              <SchedulesList tenantId={company.id} canManage={true} />
             </TabsContent>
           </Tabs>
         </div>
@@ -226,6 +225,12 @@ export default function BusinessSchedule() {
                 <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Bloqueios</span>
               </TabsTrigger>
             )}
+            {canSeeScales && (
+              <TabsTrigger value="scales" className="flex items-center gap-2">
+                <CalendarRange className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Escalas</span>
+              </TabsTrigger>
+            )}
             {canSeeRules && (
               <TabsTrigger value="rules" className="flex items-center gap-2">
                 <Settings className="w-4 h-full" />
@@ -269,6 +274,14 @@ export default function BusinessSchedule() {
               <BlockedSlotsManager
                 companyId={company.id}
               />
+            </TabsContent>
+          )}
+
+          {canSeeScales && (
+            <TabsContent value="scales" className="mt-6 space-y-6">
+              <ScheduleCycleConfig tenantId={company.id} />
+              <ScheduleTemplatesManager tenantId={company.id} />
+              <SchedulesList tenantId={company.id} canManage={true} />
             </TabsContent>
           )}
 

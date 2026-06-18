@@ -13,6 +13,7 @@ import {
   REQUEST_TYPE_LABELS, PRIORITY_LABELS, isFinal,
 } from "@/lib/api/requests";
 import { RequestStatusBadge } from "./RequestStatusBadge";
+import { ScheduleApprovalTable } from "./ScheduleApprovalTable";
 
 interface Props {
   request: SolicitacaoRow | null;
@@ -111,12 +112,24 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
             </div>
           )}
 
-          <div>
-            <p className="text-sm font-medium mb-1">Dados</p>
-            <pre className="text-xs bg-muted/40 p-3 rounded-md overflow-auto max-h-48 border border-border">
+          {request.request_type === "schedule_change" && request.request_payload?.schedule_id ? (
+            <div>
+              <p className="text-sm font-medium mb-2">Linhas da escala</p>
+              <ScheduleApprovalTable
+                scheduleId={request.request_payload.schedule_id}
+                tenantId={request.tenant_id}
+                canDecide={canDecide && !final}
+                onChanged={onChanged}
+              />
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm font-medium mb-1">Dados</p>
+              <pre className="text-xs bg-muted/40 p-3 rounded-md overflow-auto max-h-48 border border-border">
 {JSON.stringify(request.request_payload ?? {}, null, 2)}
-            </pre>
-          </div>
+              </pre>
+            </div>
+          )}
 
           <Separator />
 
