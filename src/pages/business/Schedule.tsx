@@ -104,6 +104,7 @@ export default function BusinessSchedule() {
   const canSeeAbsences = isManager || isSupervisor || isReceptionist;
   const canSeeBlocked = isManager || isSupervisor;
   const canSeeRules = isManager;
+  const canSeeScales = isManager;
 
   const defaultTab = canSeeBusinessHours
     ? 'business-hours'
@@ -113,7 +114,7 @@ export default function BusinessSchedule() {
     ? 'fixed-schedules'
     : 'autonomous';
 
-  const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeRules].filter(Boolean).length;
+  const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeScales, canSeeRules].filter(Boolean).length;
 
   // Layout dedicado para Supervisor (Encarregado)
   if (isSupervisor) {
