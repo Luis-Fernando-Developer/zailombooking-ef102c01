@@ -150,10 +150,10 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
           <div className="flex flex-wrap gap-2 items-end">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Modelo (opcional)</label>
-              <Select value={selectedTpl} onValueChange={setSelectedTpl}>
+              <Select value={selectedTpl || "__none__"} onValueChange={(v) => setSelectedTpl(v === "__none__" ? "" : v)}>
                 <SelectTrigger className="w-48"><SelectValue placeholder="Sem modelo (usa horários)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem modelo</SelectItem>
+                  <SelectItem value="__none__">Sem modelo</SelectItem>
                   {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                 </SelectContent>
               </Select>
