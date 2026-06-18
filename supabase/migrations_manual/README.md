@@ -20,5 +20,16 @@ supabase functions deploy schedule-submit   --no-verify-jwt   # NOVO
 - **schedule-generate** (NOVO): gera `schedule_entries` automaticamente para uma escala em `draft`, considerando template, business_hours, ausências aprovadas e desligamentos.
 - **schedule-submit** (NOVO): promove escala `draft → pending_approval` e cria a request vinculada (`schedule_change`).
 
-## 3. Próximo passo
-Quando o SQL e as functions estiverem deployados, me avisa que aplico o **Frontend Fase 2** (lista de escalas, modal de criação, editor matricial, e refator do drawer de aprovação para tabela linha-a-linha).
+## 3. Re-deploy obrigatório após Fase 2
+
+`request-apply` foi atualizada para entender o novo payload com `schedule_id` e aplicar decisões linha-a-linha em `schedule_entries`, marcando o `schedules.status` como `approved` / `partially_approved` / `rejected`. Re-deploy:
+
+```bash
+supabase functions deploy request-apply --no-verify-jwt
+```
+
+Fluxo final:
+1. Manager cria escala em `/admin/horarios → aba Escalas` → editor matricial → "Gerar" (chama schedule-generate) → ajusta células → "Enviar para aprovação" (chama schedule-submit, cria `requests` do tipo `schedule_change` com `schedule_id`).
+2. Aprovador abre `Solicitações`, clica na request → `RequestDetailDrawer` mostra `ScheduleApprovalTable` (linha-a-linha) com bulk approve/reject/revise.
+3. Ao "Aprovar" a request, `request-apply` lê os entries e marca a escala como `approved` ou `partially_approved`.
+
