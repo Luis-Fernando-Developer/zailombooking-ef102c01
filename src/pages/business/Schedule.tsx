@@ -225,6 +225,12 @@ export default function BusinessSchedule() {
                 <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Bloqueios</span>
               </TabsTrigger>
             )}
+            {canSeeScales && (
+              <TabsTrigger value="scales" className="flex items-center gap-2">
+                <CalendarRange className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Escalas</span>
+              </TabsTrigger>
+            )}
             {canSeeRules && (
               <TabsTrigger value="rules" className="flex items-center gap-2">
                 <Settings className="w-4 h-full" />
@@ -268,6 +274,14 @@ export default function BusinessSchedule() {
               <BlockedSlotsManager
                 companyId={company.id}
               />
+            </TabsContent>
+          )}
+
+          {canSeeScales && (
+            <TabsContent value="scales" className="mt-6 space-y-6">
+              <ScheduleCycleConfig tenantId={company.id} />
+              <ScheduleTemplatesManager tenantId={company.id} />
+              <SchedulesList tenantId={company.id} canManage={true} />
             </TabsContent>
           )}
 
