@@ -11,7 +11,10 @@ import { AutonomousAvailabilityConfig } from "@/components/business/schedule/Aut
 import { ScheduleRulesConfig } from "@/components/business/schedule/ScheduleRulesConfig";
 import { AbsencesManager } from "@/components/business/schedule/AbsencesManager";
 import { BlockedSlotsManager } from "@/components/business/schedule/BlockedSlotsManager";
-import { Clock, Users, Calendar, Settings, UserX, Ban } from "lucide-react";
+import { SchedulesList } from "@/components/business/schedule/SchedulesList";
+import { ScheduleTemplatesManager } from "@/components/business/schedule/ScheduleTemplatesManager";
+import { ScheduleCycleConfig } from "@/components/business/schedule/ScheduleCycleConfig";
+import { Clock, Users, Calendar, Settings, UserX, Ban, CalendarRange } from "lucide-react";
 
 interface Company {
   id: string;
@@ -166,12 +169,7 @@ export default function BusinessSchedule() {
               <BlockedSlotsManager companyId={company.id} />
             </TabsContent>
             <TabsContent value="scales" className="mt-6">
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <p className="text-base font-medium mb-1">Escalas Mensais</p>
-                  <p className="text-sm">Em breve — módulo de escalas matriciais com geração automática e aprovação em lote.</p>
-                </CardContent>
-              </Card>
+              <SchedulesList tenantId={company.id} canManage={true} />
             </TabsContent>
           </Tabs>
         </div>
