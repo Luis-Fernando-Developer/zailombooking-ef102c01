@@ -29,6 +29,7 @@ export function BusinessLayout({
 }: BusinessLayoutProps) {
   return (
     <SidebarProvider className="min-h-screen flex w-full">
+      <PlatformNotificationModal companyId={companyId} />
       <BusinessSidebar 
         companySlug={companySlug} 
         companyName={companyName}
