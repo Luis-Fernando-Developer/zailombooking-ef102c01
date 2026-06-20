@@ -274,6 +274,55 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="system_profile">Perfil do Sistema</Label>
+            <Select
+              value={formData.system_profile_id}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, system_profile_id: v }))}
+            >
+              <SelectTrigger id="system_profile">
+                <SelectValue placeholder="Selecione o perfil" />
+              </SelectTrigger>
+              <SelectContent>
+                {systemProfiles.map((sp) => (
+                  <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="base_occupation">Ocupação Base</Label>
+            <Select
+              value={formData.base_occupation_id}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, base_occupation_id: v }))}
+            >
+              <SelectTrigger id="base_occupation">
+                <SelectValue placeholder="Selecione a ocupação" />
+              </SelectTrigger>
+              <SelectContent>
+                {occupations.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}{o.company_id === null ? "" : " (personalizada)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="internal_job_title">Cargo Interno</Label>
+            <Input
+              id="internal_job_title"
+              value={formData.internal_job_title}
+              onChange={(e) => setFormData(prev => ({ ...prev, internal_job_title: e.target.value }))}
+              placeholder="Ex: Barbeiro Master, Gerente Unidade Centro"
+            />
+            <p className="text-xs text-muted-foreground">Campo livre — apenas organizacional/visual.</p>
+          </div>
+
+
+
           <div className="space-y-3">
             <Label>Serviços Vinculados</Label>
             <div className="space-y-2 max-h-32 overflow-y-auto">
