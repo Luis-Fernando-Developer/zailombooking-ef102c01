@@ -261,6 +261,19 @@ export default function SignUp() {
         throw new Error(invokeError?.message || result?.error || "Falha no cadastro.");
       }
 
+      // Garante persistência do segmento/nicho mesmo que a edge function
+      // ainda não trate esses campos (fallback idempotente).
+      if (result.company_id) {
+        await supabase
+          .from("companies")
+          .update({
+            company_segment: formData.companySegment,
+            company_niche: formData.companyNiche,
+          })
+          .eq("id", result.company_id);
+      }
+
+
       toast({ title: "Cadastro criado!", description: "Conclua o pagamento para liberar o acesso." });
       // Redirect to pending payment page
       window.location.href = `/signup/aguardando/${result.company_id}`;
