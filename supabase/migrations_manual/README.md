@@ -55,3 +55,16 @@ supabase functions deploy generate-release-notes --no-verify-jwt
 - `/super-admin/features` — Central de features + botão "Gerar Release Notes com IA"
 - `/super-admin/release-notes` — Revisar, editar, definir público-alvo e publicar
 - Modal automático no `BusinessLayout` exibe a próxima release não-visualizada para a empresa logada.
+
+## Sino de Notificações (header)
+
+### SQL
+Rodar `2026_company_notifications.sql`. Cria `company_notifications` (notificações in-app por empresa) com RLS via `user_belongs_to_company`.
+
+### Como gerar notificações automaticamente
+Inserir registros em `public.company_notifications` (via trigger, edge function ou app):
+```sql
+INSERT INTO public.company_notifications (company_id, type, title, message, link)
+VALUES ('<uuid>', 'booking_created', 'Cliente X agendou', 'Corte de cabelo às 14h', '/business/<slug>/bookings');
+```
+O componente `NotificationsBell` no header escuta realtime e atualiza o badge.
