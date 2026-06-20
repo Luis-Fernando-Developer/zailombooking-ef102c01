@@ -122,7 +122,10 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             phone: formData.phone,
             role: formData.role,
             employee_type: formData.employee_type,
-            is_active: formData.is_active
+            is_active: formData.is_active,
+            system_profile_id: formData.system_profile_id || null,
+            base_occupation_id: formData.base_occupation_id || null,
+            internal_job_title: formData.internal_job_title || null,
           }])
           .select();
 
@@ -157,8 +160,12 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
         role: "employee",
         employee_type: "fixo",
         is_active: true,
-        services: []
+        services: [],
+        system_profile_id: "",
+        base_occupation_id: "",
+        internal_job_title: "",
       });
+
 
       setOpen(false);
       onEmployeeAdded();
