@@ -23,7 +23,13 @@ interface Employee {
   employee_type: string;
   is_active: boolean;
   avatar_url?: string;
+  system_profile_id?: string | null;
+  base_occupation_id?: string | null;
+  internal_job_title?: string | null;
 }
+
+interface SystemProfile { id: string; code: string; name: string; }
+interface BaseOccupation { id: string; name: string; company_id: string | null; }
 
 interface EditEmployeeDialogProps {
   employee: Employee | null;
@@ -37,6 +43,8 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [employeeServices, setEmployeeServices] = useState<string[]>([]);
+  const [systemProfiles, setSystemProfiles] = useState<SystemProfile[]>([]);
+  const [occupations, setOccupations] = useState<BaseOccupation[]>([]);
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -46,7 +54,10 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
     role: "employee" as const,
     employee_type: "fixo" as const,
     is_active: true,
-    services: [] as string[]
+    services: [] as string[],
+    system_profile_id: "",
+    base_occupation_id: "",
+    internal_job_title: "",
   });
 
   useEffect(() => {
@@ -58,12 +69,37 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
         role: employee.role as any,
         employee_type: employee.employee_type as any,
         is_active: employee.is_active,
-        services: []
+        services: [],
+        system_profile_id: employee.system_profile_id || "",
+        base_occupation_id: employee.base_occupation_id || "",
+        internal_job_title: employee.internal_job_title || "",
       });
       fetchServices();
       fetchEmployeeServices();
+      fetchSystemProfiles();
+      fetchOccupations();
     }
   }, [open, employee, companyId]);
+
+  const fetchSystemProfiles = async () => {
+    const { data } = await supabase
+      .from('system_profiles')
+      .select('id, code, name')
+      .eq('is_active', true)
+      .order('sort_order');
+    setSystemProfiles(data || []);
+  };
+
+  const fetchOccupations = async () => {
+    const { data } = await supabase
+      .from('base_occupations')
+      .select('id, name, company_id')
+      .eq('is_active', true)
+      .or(`company_id.is.null,company_id.eq.${companyId}`)
+      .order('name');
+    setOccupations(data || []);
+  };
+
 
   const fetchServices = async () => {
     try {
@@ -112,7 +148,11 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
           phone: formData.phone,
           role: formData.role,
           employee_type: formData.employee_type,
-          is_active: formData.is_active
+          is_active: formData.is_active,
+          system_profile_id: formData.system_profile_id || null,
+          base_occupation_id: formData.base_occupation_id || null,
+          internal_job_title: formData.internal_job_title || null,
+
         })
         .eq('id', employee.id);
 
@@ -233,6 +273,55 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="system_profile">Perfil do Sistema</Label>
+            <Select
+              value={formData.system_profile_id}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, system_profile_id: v }))}
+            >
+              <SelectTrigger id="system_profile">
+                <SelectValue placeholder="Selecione o perfil" />
+              </SelectTrigger>
+              <SelectContent>
+                {systemProfiles.map((sp) => (
+                  <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="base_occupation">Ocupação Base</Label>
+            <Select
+              value={formData.base_occupation_id}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, base_occupation_id: v }))}
+            >
+              <SelectTrigger id="base_occupation">
+                <SelectValue placeholder="Selecione a ocupação" />
+              </SelectTrigger>
+              <SelectContent>
+                {occupations.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}{o.company_id === null ? "" : " (personalizada)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="internal_job_title">Cargo Interno</Label>
+            <Input
+              id="internal_job_title"
+              value={formData.internal_job_title}
+              onChange={(e) => setFormData(prev => ({ ...prev, internal_job_title: e.target.value }))}
+              placeholder="Ex: Barbeiro Master, Gerente Unidade Centro"
+            />
+            <p className="text-xs text-muted-foreground">Campo livre — apenas organizacional/visual.</p>
+          </div>
+
+
 
           <div className="space-y-3">
             <Label>Serviços Vinculados</Label>

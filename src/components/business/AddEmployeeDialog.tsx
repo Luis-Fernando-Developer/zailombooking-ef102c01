@@ -16,6 +16,9 @@ interface Service {
   name: string;
 }
 
+interface SystemProfile { id: string; code: string; name: string; }
+interface BaseOccupation { id: string; name: string; company_id: string | null; }
+
 interface AddEmployeeDialogProps {
   companyId: string;
   onEmployeeAdded: () => void;
@@ -25,6 +28,8 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
+  const [systemProfiles, setSystemProfiles] = useState<SystemProfile[]>([]);
+  const [occupations, setOccupations] = useState<BaseOccupation[]>([]);
   const { toast } = useToast();
   const { guard } = usePlanLimits(companyId);
   
@@ -36,14 +41,39 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
     role: "employee" as const,
     employee_type: "fixo" as "fixo" | "autonomo",
     is_active: true,
-    services: [] as string[]
+    services: [] as string[],
+    system_profile_id: "",
+    base_occupation_id: "",
+    internal_job_title: "",
   });
 
   useEffect(() => {
     if (open) {
       fetchServices();
+      fetchSystemProfiles();
+      fetchOccupations();
     }
   }, [open, companyId]);
+
+  const fetchSystemProfiles = async () => {
+    const { data } = await supabase
+      .from('system_profiles')
+      .select('id, code, name')
+      .eq('is_active', true)
+      .order('sort_order');
+    setSystemProfiles(data || []);
+  };
+
+  const fetchOccupations = async () => {
+    const { data } = await supabase
+      .from('base_occupations')
+      .select('id, name, company_id')
+      .eq('is_active', true)
+      .or(`company_id.is.null,company_id.eq.${companyId}`)
+      .order('name');
+    setOccupations(data || []);
+  };
+
 
   const fetchServices = async () => {
     try {
@@ -92,7 +122,10 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             phone: formData.phone,
             role: formData.role,
             employee_type: formData.employee_type,
-            is_active: formData.is_active
+            is_active: formData.is_active,
+            system_profile_id: formData.system_profile_id || null,
+            base_occupation_id: formData.base_occupation_id || null,
+            internal_job_title: formData.internal_job_title || null,
           }])
           .select();
 
@@ -127,8 +160,12 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
         role: "employee",
         employee_type: "fixo",
         is_active: true,
-        services: []
+        services: [],
+        system_profile_id: "",
+        base_occupation_id: "",
+        internal_job_title: "",
       });
+
 
       setOpen(false);
       onEmployeeAdded();
@@ -248,6 +285,57 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="system_profile">Perfil do Sistema</Label>
+            <Select
+              value={formData.system_profile_id}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, system_profile_id: v }))}
+            >
+              <SelectTrigger id="system_profile">
+                <SelectValue placeholder="Selecione o perfil" />
+              </SelectTrigger>
+              <SelectContent>
+                {systemProfiles.map((sp) => (
+                  <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Define o conjunto de permissões (uso futuro).</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="base_occupation">Ocupação Base</Label>
+            <Select
+              value={formData.base_occupation_id}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, base_occupation_id: v }))}
+            >
+              <SelectTrigger id="base_occupation">
+                <SelectValue placeholder="Selecione a ocupação" />
+              </SelectTrigger>
+              <SelectContent>
+                {occupations.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}{o.company_id === null ? "" : " (personalizada)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Profissão ou ocupação principal.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="internal_job_title">Cargo Interno</Label>
+            <Input
+              id="internal_job_title"
+              value={formData.internal_job_title}
+              onChange={(e) => setFormData(prev => ({ ...prev, internal_job_title: e.target.value }))}
+              placeholder="Ex: Barbeiro Master, Gerente Unidade Centro"
+            />
+            <p className="text-xs text-muted-foreground">Campo livre — apenas organizacional/visual.</p>
+          </div>
+
+
 
 
           <div className="space-y-3">

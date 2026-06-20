@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookingLogo } from "@/components/BookingLogo";
 import { Building2, User, Mail, FileText, Check, X, CreditCard, Zap, Crown, Rocket, Gem } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +46,8 @@ export default function SignUp() {
     periodParam as any
   );
   const [billingType, setBillingType] = useState<"PIX" | "BOLETO" | "CREDIT_CARD">("PIX");
+  const [segments, setSegments] = useState<{ id: string; slug: string; name: string }[]>([]);
+  const [niches, setNiches] = useState<{ id: string; slug: string; name: string; segment_id: string }[]>([]);
   const [formData, setFormData] = useState({
     companyName: "",
     customUrl: "",
@@ -55,6 +58,8 @@ export default function SignUp() {
     ownerPass: "",
     ownerPassRepeat: "",
     companyCnpj: "",
+    companySegment: "",
+    companyNiche: "",
     cardHolder: "",
     cardNumber: "",
     cardExpMonth: "",
@@ -70,7 +75,22 @@ export default function SignUp() {
 
   useEffect(() => {
     fetchPlans();
+    fetchSegmentsAndNiches();
   }, []);
+
+  const fetchSegmentsAndNiches = async () => {
+    try {
+      const [segRes, nicheRes] = await Promise.all([
+        supabase.from("company_segments").select("id,slug,name").eq("is_active", true).order("sort_order"),
+        supabase.from("company_niches").select("id,slug,name,segment_id").eq("is_active", true).order("sort_order"),
+      ]);
+      setSegments(segRes.data || []);
+      setNiches(nicheRes.data || []);
+    } catch (err) {
+      console.error("Erro ao buscar segmentos/nichos:", err);
+    }
+  };
+
 
   const fetchPlans = async () => {
     try {
@@ -178,6 +198,16 @@ export default function SignUp() {
         setIsLoading(false);
         return;
       }
+      if (!formData.companySegment) {
+        toast({ title: "Segmento obrigatório", description: "Selecione o segmento da empresa.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.companyNiche) {
+        toast({ title: "Nicho obrigatório", description: "Selecione o nicho da empresa.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
 
       const cpfCnpj = (formData.companyCnpj || formData.ownerCpf).replace(/\D/g, "");
 
@@ -190,12 +220,15 @@ export default function SignUp() {
           owner_phone: formData.ownerPhone || null,
           cpf_cnpj: cpfCnpj,
           cnpj: formData.companyCnpj || null,
+          company_segment: formData.companySegment,
+          company_niche: formData.companyNiche,
         },
         password: formData.ownerPass,
         plan_id: selectedPlan.id,
         billing_period: billingPeriod,
         billing_type: billingType,
       };
+
 
       if (billingType === "CREDIT_CARD") {
         if (!formData.cardNumber || !formData.cardCcv || !formData.cardExpMonth || !formData.cardExpYear) {
@@ -228,6 +261,19 @@ export default function SignUp() {
       if (invokeError || !result?.ok) {
         throw new Error(invokeError?.message || result?.error || "Falha no cadastro.");
       }
+
+      // Garante persistência do segmento/nicho mesmo que a edge function
+      // ainda não trate esses campos (fallback idempotente).
+      if (result.company_id) {
+        await supabase
+          .from("companies")
+          .update({
+            company_segment: formData.companySegment,
+            company_niche: formData.companyNiche,
+          })
+          .eq("id", result.company_id);
+      }
+
 
       toast({ title: "Cadastro criado!", description: "Conclua o pagamento para liberar o acesso." });
       // Redirect to pending payment page
@@ -409,6 +455,56 @@ export default function SignUp() {
                   <Input id="companyCnpj" placeholder="00.000.000/0000-00" value={formData.companyCnpj} onChange={(e) => handleInputChange("companyCnpj", formatCnpj(e.target.value))} className="pl-10 bg-background/50 border-primary/30 focus:border-primary" maxLength={18} />
                 </div>
               </div>
+
+              {/* Segmento da Empresa */}
+              <div className="space-y-2">
+                <Label htmlFor="companySegment">Segmento da Empresa *</Label>
+                <Select
+                  value={formData.companySegment}
+                  onValueChange={(v) => {
+                    setFormData((prev) => ({ ...prev, companySegment: v, companyNiche: "" }));
+                  }}
+                >
+                  <SelectTrigger id="companySegment" className="bg-background/50 border-primary/30">
+                    <SelectValue placeholder="Selecione o segmento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {segments.map((s) => (
+                      <SelectItem key={s.id} value={s.slug}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Nicho da Empresa */}
+              {formData.companySegment && (
+                <div className="space-y-2">
+                  <Label htmlFor="companyNiche">Nicho da Empresa *</Label>
+                  <Select
+                    value={formData.companyNiche}
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, companyNiche: v }))}
+                  >
+                    <SelectTrigger id="companyNiche" className="bg-background/50 border-primary/30">
+                      <SelectValue placeholder="Selecione o nicho" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {niches
+                        .filter((n) => {
+                          const seg = segments.find((s) => s.slug === formData.companySegment);
+                          return seg && n.segment_id === seg.id;
+                        })
+                        .map((n) => (
+                          <SelectItem key={n.id} value={n.slug}>{n.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Usaremos isso para sugerir ocupações e modelos de negócio adequados ao seu nicho.
+                  </p>
+                </div>
+              )}
+
+
 
               {/* Phone */}
               <div className="space-y-2">
