@@ -188,32 +188,23 @@ CREATE POLICY "occupations_read" ON public.base_occupations
       WHERE e.user_id = auth.uid()
         AND e.company_id = base_occupations.company_id
     )
-    OR EXISTS (
-      SELECT 1 FROM public.companies c
-      WHERE c.id = base_occupations.company_id
-        AND c.owner_id = auth.uid()
-    )
+    OR public.user_belongs_to_company(auth.uid(), base_occupations.company_id)
   );
 
--- escrita: somente owner/gerente da empresa pode criar/editar/remover
--- (mantemos simples agora; ajuste fino virá com sistema de perfis)
+-- escrita: usuários da empresa podem criar/editar/remover ocupações próprias
+-- (refinamento por perfil virá depois)
 DROP POLICY IF EXISTS "occupations_write" ON public.base_occupations;
 CREATE POLICY "occupations_write" ON public.base_occupations
   FOR ALL TO authenticated
   USING (
-    company_id IS NOT NULL AND EXISTS (
-      SELECT 1 FROM public.companies c
-      WHERE c.id = base_occupations.company_id
-        AND c.owner_id = auth.uid()
-    )
+    company_id IS NOT NULL
+    AND public.user_belongs_to_company(auth.uid(), company_id)
   )
   WITH CHECK (
-    company_id IS NOT NULL AND EXISTS (
-      SELECT 1 FROM public.companies c
-      WHERE c.id = base_occupations.company_id
-        AND c.owner_id = auth.uid()
-    )
+    company_id IS NOT NULL
+    AND public.user_belongs_to_company(auth.uid(), company_id)
   );
+
 
 -- Seed global de ocupações sugeridas
 INSERT INTO public.base_occupations (company_id, name) VALUES
