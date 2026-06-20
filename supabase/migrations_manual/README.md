@@ -33,3 +33,25 @@ Fluxo final:
 2. Aprovador abre `Solicitações`, clica na request → `RequestDetailDrawer` mostra `ScheduleApprovalTable` (linha-a-linha) com bulk approve/reject/revise.
 3. Ao "Aprovar" a request, `request-apply` lê os entries e marca a escala como `approved` ou `partially_approved`.
 
+
+---
+
+## Módulo Feature Registry + Release Notes
+
+### SQL
+Rodar `2026_feature_registry.sql` no SQL Editor. Cria: `feature_registry`, `release_notes`, `platform_notifications`, `notification_views` + helper `is_super_admin` + RLS.
+
+> Depende da existência da tabela `public.user_roles` com role `super_admin`.
+
+### Edge Functions
+
+```bash
+supabase functions deploy generate-release-notes --no-verify-jwt
+```
+
+> A função valida JWT em código (somente `super_admin`). Usa `LOVABLE_API_KEY` (auto-provisionada — nenhuma chave de OpenAI necessária).
+
+### Rotas frontend
+- `/super-admin/features` — Central de features + botão "Gerar Release Notes com IA"
+- `/super-admin/release-notes` — Revisar, editar, definir público-alvo e publicar
+- Modal automático no `BusinessLayout` exibe a próxima release não-visualizada para a empresa logada.

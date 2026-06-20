@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { Copy } from "lucide-react";
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { PlanOverageBanner } from "@/components/business/PlanOverageBanner";
+import { PlatformNotificationModal } from "@/components/business/PlatformNotificationModal";
 
 
 interface BusinessLayoutProps {
@@ -28,6 +29,7 @@ export function BusinessLayout({
 }: BusinessLayoutProps) {
   return (
     <SidebarProvider className="min-h-screen flex w-full">
+      <PlatformNotificationModal companyId={companyId} />
       <BusinessSidebar 
         companySlug={companySlug} 
         companyName={companyName}
