@@ -147,7 +147,7 @@ export function NotificationsBell({ companyId, companySlug }: Props) {
         .from("notification_views")
         .upsert(
           { notification_id: n.id, company_id: companyId },
-          { onConflict: "notification_id,company_id" }
+          { onConflict: "notification_id,company_id", ignoreDuplicates: true }
         );
       load();
     }
