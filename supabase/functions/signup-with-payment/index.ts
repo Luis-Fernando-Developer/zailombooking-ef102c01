@@ -141,8 +141,8 @@ serve(async (req) => {
 
     const companyId = companyRow.id;
 
-    // 4) Cria employee owner
-    const { error: empErr } = await admin.from("employees").insert({
+    // 4) Cria employee owner — com fallback removendo colunas opcionais
+    const empPayload: Record<string, unknown> = {
       company_id: companyId,
       user_id: userId,
       name: c.owner_name,
@@ -151,11 +151,39 @@ serve(async (req) => {
       role: "owner",
       employee_type: "owner",
       is_active: true,
-    });
+    };
+    const empOptional = ["employee_type", "phone"];
 
-    if (empErr) {
-      console.error("[signup-with-payment] employee insert error:", empErr.message);
-      // não bloqueia o cadastro — owner pode ser ajustado depois
+    let empOk = false;
+    let empLastErr: string | null = null;
+    for (let i = 0; i <= empOptional.length; i++) {
+      const { error: empErr } = await admin.from("employees").insert(empPayload);
+      if (!empErr) {
+        empOk = true;
+        break;
+      }
+      empLastErr = empErr.message;
+      console.error(`[signup-with-payment] employee tentativa ${i} falhou:`, empLastErr);
+      const msg = empLastErr.toLowerCase();
+      const isSchema =
+        msg.includes("column") ||
+        msg.includes("does not exist") ||
+        msg.includes("violates check") ||
+        msg.includes("invalid input value");
+      if (!isSchema) break;
+      const drop = empOptional[i];
+      if (!drop) break;
+      delete empPayload[drop];
+    }
+
+    if (!empOk) {
+      // Rollback completo — sem employee o usuário não consegue logar.
+      await admin.from("companies").delete().eq("id", companyId).catch(() => {});
+      await admin.auth.admin.deleteUser(userId).catch(() => {});
+      return json(
+        { ok: false, error: `Falha ao vincular usuário à empresa: ${empLastErr}` },
+        400,
+      );
     }
 
     return json({
