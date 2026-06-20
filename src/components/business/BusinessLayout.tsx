@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { Copy } from "lucide-react";
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { PlanOverageBanner } from "@/components/business/PlanOverageBanner";
+import { PlatformNotificationModal } from "@/components/business/PlatformNotificationModal";
 
 
 interface BusinessLayoutProps {
