@@ -124,7 +124,7 @@ export function NotificationsBell({ companyId, companySlug }: Props) {
         .in("id", ids);
     } else {
       const rows = ids.map((notification_id) => ({ notification_id, company_id: companyId }));
-      await supabase.from("notification_views").upsert(rows, { onConflict: "notification_id,company_id" });
+      await supabase.from("notification_views").upsert(rows, { onConflict: "notification_id,company_id", ignoreDuplicates: true });
     }
     setSelected(new Set());
     load();
