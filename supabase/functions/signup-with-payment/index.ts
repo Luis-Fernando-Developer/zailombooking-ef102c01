@@ -80,8 +80,9 @@ serve(async (req) => {
 
     const userId = created.user.id;
 
-    // 3) Cria empresa
-    const companyPayload: Record<string, unknown> = {
+    // 3) Cria empresa — tenta com todos os campos e faz fallback removendo
+    //    opcionais caso a coluna não exista ou viole CHECK constraint.
+    const fullPayload: Record<string, unknown> = {
       name: c.name,
       slug: c.slug,
       owner_name: c.owner_name,
@@ -95,17 +96,47 @@ serve(async (req) => {
       billing_period: body.billing_period ?? null,
       status: "pending_payment",
     };
+    const optionalKeys = [
+      "status",
+      "billing_period",
+      "plan_id",
+      "company_niche",
+      "company_segment",
+      "cnpj",
+    ];
 
-    const { data: companyRow, error: companyErr } = await admin
-      .from("companies")
-      .insert(companyPayload)
-      .select("id")
-      .single();
+    let companyRow: { id: string } | null = null;
+    let lastErr: string | null = null;
+    const payload: Record<string, unknown> = { ...fullPayload };
 
-    if (companyErr || !companyRow) {
-      // rollback do usuário criado
+    for (let attempt = 0; attempt <= optionalKeys.length; attempt++) {
+      const { data, error } = await admin
+        .from("companies")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (!error && data) {
+        companyRow = data;
+        break;
+      }
+      lastErr = error?.message ?? "unknown";
+      console.error(`[signup-with-payment] tentativa ${attempt} falhou:`, lastErr);
+
+      const msg = lastErr.toLowerCase();
+      const isSchema =
+        msg.includes("column") ||
+        msg.includes("does not exist") ||
+        msg.includes("violates check") ||
+        msg.includes("invalid input value");
+      if (!isSchema) break;
+      const drop = optionalKeys[attempt];
+      if (!drop) break;
+      delete payload[drop];
+    }
+
+    if (!companyRow) {
       await admin.auth.admin.deleteUser(userId).catch(() => {});
-      return json({ ok: false, error: companyErr?.message || "Falha ao criar empresa." }, 400);
+      return json({ ok: false, error: `Falha ao criar empresa: ${lastErr}` }, 400);
     }
 
     const companyId = companyRow.id;

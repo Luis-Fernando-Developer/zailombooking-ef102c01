@@ -258,8 +258,17 @@ export default function SignUp() {
         body: payload,
       });
 
+      // supabase.functions.invoke não expõe o body em non-2xx — extrai manualmente.
+      let serverError: string | null = null;
+      if (invokeError && (invokeError as any).context?.response) {
+        try {
+          const r = await (invokeError as any).context.response.clone().json();
+          serverError = r?.error || r?.message || null;
+        } catch { /* ignore */ }
+      }
+
       if (invokeError || !result?.ok) {
-        throw new Error(invokeError?.message || result?.error || "Falha no cadastro.");
+        throw new Error(serverError || invokeError?.message || result?.error || "Falha no cadastro.");
       }
 
       // Garante persistência do segmento/nicho mesmo que a edge function
