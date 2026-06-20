@@ -197,6 +197,16 @@ export default function SignUp() {
         setIsLoading(false);
         return;
       }
+      if (!formData.companySegment) {
+        toast({ title: "Segmento obrigatório", description: "Selecione o segmento da empresa.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.companyNiche) {
+        toast({ title: "Nicho obrigatório", description: "Selecione o nicho da empresa.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
 
       const cpfCnpj = (formData.companyCnpj || formData.ownerCpf).replace(/\D/g, "");
 
@@ -209,12 +219,15 @@ export default function SignUp() {
           owner_phone: formData.ownerPhone || null,
           cpf_cnpj: cpfCnpj,
           cnpj: formData.companyCnpj || null,
+          company_segment: formData.companySegment,
+          company_niche: formData.companyNiche,
         },
         password: formData.ownerPass,
         plan_id: selectedPlan.id,
         billing_period: billingPeriod,
         billing_type: billingType,
       };
+
 
       if (billingType === "CREDIT_CARD") {
         if (!formData.cardNumber || !formData.cardCcv || !formData.cardExpMonth || !formData.cardExpYear) {
