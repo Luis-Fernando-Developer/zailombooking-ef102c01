@@ -148,7 +148,11 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
           phone: formData.phone,
           role: formData.role,
           employee_type: formData.employee_type,
-          is_active: formData.is_active
+          is_active: formData.is_active,
+          system_profile_id: formData.system_profile_id || null,
+          base_occupation_id: formData.base_occupation_id || null,
+          internal_job_title: formData.internal_job_title || null,
+
         })
         .eq('id', employee.id);
 
