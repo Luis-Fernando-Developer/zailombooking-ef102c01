@@ -62,6 +62,8 @@ const App = () => (
             <Route path="/super-admin/instancias" element={<RequireSuperAdmin><SuperAdminInstances /></RequireSuperAdmin>} />
             <Route path="/super-admin/planos" element={<RequireSuperAdmin><SuperAdminPlans /></RequireSuperAdmin>} />
             <Route path="/super-admin/configuracoes" element={<RequireSuperAdmin><SuperAdminSettings /></RequireSuperAdmin>} />
+            <Route path="/super-admin/features" element={<RequireSuperAdmin><SuperAdminFeatureRegistry /></RequireSuperAdmin>} />
+            <Route path="/super-admin/release-notes" element={<RequireSuperAdmin><SuperAdminReleaseNotes /></RequireSuperAdmin>} />
             <Route path="/super-admin/add-company" element={<RequireSuperAdmin><CreateCompany /></RequireSuperAdmin>} />
             <Route path="/:slug/admin/dashboard" element={<RequireBusinessAuth><BusinessDashboard /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/agendamentos" element={<RequireBusinessAuth><BusinessBookings /></RequireBusinessAuth>} />
