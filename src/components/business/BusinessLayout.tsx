@@ -6,6 +6,7 @@ import { Copy } from "lucide-react";
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { PlanOverageBanner } from "@/components/business/PlanOverageBanner";
 import { PlatformNotificationModal } from "@/components/business/PlatformNotificationModal";
+import { NotificationsBell } from "@/components/business/NotificationsBell";
 
 
 interface BusinessLayoutProps {
@@ -48,6 +49,9 @@ export function BusinessLayout({
                 <span className="stroke-primary-glow border-dashed">https://booking.zailom.com/{companySlug}</span>
                 <Button size="sm" variant="link" className="ml-2 p-0"><Copy className="w-4 h-4" /></Button>
               </div>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <NotificationsBell companyId={companyId} companySlug={companySlug} />
             </div>
           </header>
         ) : (
