@@ -16,6 +16,9 @@ interface Service {
   name: string;
 }
 
+interface SystemProfile { id: string; code: string; name: string; }
+interface BaseOccupation { id: string; name: string; company_id: string | null; }
+
 interface AddEmployeeDialogProps {
   companyId: string;
   onEmployeeAdded: () => void;
@@ -25,6 +28,8 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
+  const [systemProfiles, setSystemProfiles] = useState<SystemProfile[]>([]);
+  const [occupations, setOccupations] = useState<BaseOccupation[]>([]);
   const { toast } = useToast();
   const { guard } = usePlanLimits(companyId);
   
@@ -36,14 +41,39 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
     role: "employee" as const,
     employee_type: "fixo" as "fixo" | "autonomo",
     is_active: true,
-    services: [] as string[]
+    services: [] as string[],
+    system_profile_id: "",
+    base_occupation_id: "",
+    internal_job_title: "",
   });
 
   useEffect(() => {
     if (open) {
       fetchServices();
+      fetchSystemProfiles();
+      fetchOccupations();
     }
   }, [open, companyId]);
+
+  const fetchSystemProfiles = async () => {
+    const { data } = await supabase
+      .from('system_profiles')
+      .select('id, code, name')
+      .eq('is_active', true)
+      .order('sort_order');
+    setSystemProfiles(data || []);
+  };
+
+  const fetchOccupations = async () => {
+    const { data } = await supabase
+      .from('base_occupations')
+      .select('id, name, company_id')
+      .eq('is_active', true)
+      .or(`company_id.is.null,company_id.eq.${companyId}`)
+      .order('name');
+    setOccupations(data || []);
+  };
+
 
   const fetchServices = async () => {
     try {
