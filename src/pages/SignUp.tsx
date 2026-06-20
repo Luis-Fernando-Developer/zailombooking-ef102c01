@@ -456,6 +456,56 @@ export default function SignUp() {
                 </div>
               </div>
 
+              {/* Segmento da Empresa */}
+              <div className="space-y-2">
+                <Label htmlFor="companySegment">Segmento da Empresa *</Label>
+                <Select
+                  value={formData.companySegment}
+                  onValueChange={(v) => {
+                    setFormData((prev) => ({ ...prev, companySegment: v, companyNiche: "" }));
+                  }}
+                >
+                  <SelectTrigger id="companySegment" className="bg-background/50 border-primary/30">
+                    <SelectValue placeholder="Selecione o segmento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {segments.map((s) => (
+                      <SelectItem key={s.id} value={s.slug}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Nicho da Empresa */}
+              {formData.companySegment && (
+                <div className="space-y-2">
+                  <Label htmlFor="companyNiche">Nicho da Empresa *</Label>
+                  <Select
+                    value={formData.companyNiche}
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, companyNiche: v }))}
+                  >
+                    <SelectTrigger id="companyNiche" className="bg-background/50 border-primary/30">
+                      <SelectValue placeholder="Selecione o nicho" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {niches
+                        .filter((n) => {
+                          const seg = segments.find((s) => s.slug === formData.companySegment);
+                          return seg && n.segment_id === seg.id;
+                        })
+                        .map((n) => (
+                          <SelectItem key={n.id} value={n.slug}>{n.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Usaremos isso para sugerir ocupações e modelos de negócio adequados ao seu nicho.
+                  </p>
+                </div>
+              )}
+
+
+
               {/* Phone */}
               <div className="space-y-2">
                 <Label htmlFor="ownerPhone">Telefone (WhatsApp) *</Label>
