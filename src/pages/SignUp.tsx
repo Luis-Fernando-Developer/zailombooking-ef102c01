@@ -45,6 +45,8 @@ export default function SignUp() {
     periodParam as any
   );
   const [billingType, setBillingType] = useState<"PIX" | "BOLETO" | "CREDIT_CARD">("PIX");
+  const [segments, setSegments] = useState<{ id: string; slug: string; name: string }[]>([]);
+  const [niches, setNiches] = useState<{ id: string; slug: string; name: string; segment_id: string }[]>([]);
   const [formData, setFormData] = useState({
     companyName: "",
     customUrl: "",
@@ -55,6 +57,8 @@ export default function SignUp() {
     ownerPass: "",
     ownerPassRepeat: "",
     companyCnpj: "",
+    companySegment: "",
+    companyNiche: "",
     cardHolder: "",
     cardNumber: "",
     cardExpMonth: "",
@@ -70,7 +74,22 @@ export default function SignUp() {
 
   useEffect(() => {
     fetchPlans();
+    fetchSegmentsAndNiches();
   }, []);
+
+  const fetchSegmentsAndNiches = async () => {
+    try {
+      const [segRes, nicheRes] = await Promise.all([
+        supabase.from("company_segments").select("id,slug,name").eq("is_active", true).order("sort_order"),
+        supabase.from("company_niches").select("id,slug,name,segment_id").eq("is_active", true).order("sort_order"),
+      ]);
+      setSegments(segRes.data || []);
+      setNiches(nicheRes.data || []);
+    } catch (err) {
+      console.error("Erro ao buscar segmentos/nichos:", err);
+    }
+  };
+
 
   const fetchPlans = async () => {
     try {
