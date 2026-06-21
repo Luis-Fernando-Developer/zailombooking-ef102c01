@@ -246,11 +246,8 @@ export default function BusinessSchedule() {
             </TabsContent>
           )}
 
-          {canSeeFixed && (
             <TabsContent value="fixed-schedules" className="mt-6">
-              <EmployeeScheduleConfig
-                companyId={company.id}
-              />
+              <FixedEmployeesList companyId={company.id} />
             </TabsContent>
           )}
 
