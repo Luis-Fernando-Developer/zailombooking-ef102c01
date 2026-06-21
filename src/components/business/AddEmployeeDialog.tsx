@@ -19,6 +19,28 @@ interface Service {
 interface SystemProfile { id: string; code: string; name: string; }
 interface BaseOccupation { id: string; name: string; company_id: string | null; }
 
+// Sugestão de ocupações relacionadas a cada perfil do sistema.
+// Perfis ausentes ou listados como "*" exibem todas as ocupações.
+const PROFILE_OCCUPATION_MAP: Record<string, string[] | "*"> = {
+  OWNER: "*",
+  GERENTE: "*",
+  ENCARREGADO: "*",
+  RH: ["Analista de RH", "Auxiliar Administrativo", "Gerente Administrativo"],
+  FINANCEIRO: ["Contador", "Auxiliar Administrativo"],
+  MARKETING: ["Consultor", "Auxiliar Administrativo"],
+  RECEPCIONISTA: ["Recepcionista", "Secretária"],
+  FAXINEIRO: ["Auxiliar de Limpeza"],
+  PROFISSIONAL: [
+    "Barbeiro","Cabeleireiro","Manicure","Pedicure","Designer de Sobrancelhas",
+    "Esteticista","Massoterapeuta","Médico","Dentista","Psicólogo",
+    "Nutricionista","Fisioterapeuta","Advogado","Contador","Consultor",
+    "Mentor","Veterinário","Banhista/Tosador","Técnico de Manutenção","Professor",
+  ],
+  SEGURANCA: [],
+  FISCAL: [],
+  DESIGNER_GRAFICO: [],
+};
+
 interface AddEmployeeDialogProps {
   companyId: string;
   onEmployeeAdded: () => void;
