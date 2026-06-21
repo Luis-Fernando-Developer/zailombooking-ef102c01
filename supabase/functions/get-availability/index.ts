@@ -77,14 +77,57 @@ serve(async (req) => {
     let breakStart: string | null = null;
     let breakEnd: string | null = null;
 
-    if (specificAvail) {
-      // Use specific availability if found
-      startTime = specificAvail.start_time;
-      endTime = specificAvail.end_time;
-      breakStart = specificAvail.break_start;
-      breakEnd = specificAvail.break_end;
+    // 2.1 PREFERÊNCIA: escala aprovada (schedule_entries) para esta data específica
+    const { data: scheduleEntry } = await supabaseClient
+      .from('schedule_entries')
+      .select('entry_type, start_time, end_time, break_start, break_end, decision_status, schedule:schedules!inner(status, tenant_id)')
+      .eq('employee_id', employeeId)
+      .eq('entry_date', date)
+      .eq('decision_status', 'approved')
+      .in('schedule.status', ['approved', 'partially_approved'])
+      .eq('schedule.tenant_id', companyId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    // 2.2 Verificar se existe QUALQUER escala aprovada do colaborador cobrindo esta data
+    // (Mesmo sem entry específica: dia fora da escala = não disponível)
+    const { data: coveringSchedule } = await supabaseClient
+      .from('schedules')
+      .select('id')
+      .eq('tenant_id', companyId)
+      .in('status', ['approved', 'partially_approved'])
+      .lte('period_start', date)
+      .gte('period_end', date)
+      .limit(1)
+      .maybeSingle()
+
+    if (scheduleEntry) {
+      // Se a escala marca como não-trabalho (F/A/FE/D), sem slots
+      if (scheduleEntry.entry_type !== 'T' || !scheduleEntry.start_time || !scheduleEntry.end_time) {
+        return new Response(JSON.stringify({ slots: [] }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
+      }
+      startTime = scheduleEntry.start_time
+      endTime = scheduleEntry.end_time
+      breakStart = scheduleEntry.break_start
+      breakEnd = scheduleEntry.break_end
+    } else if (specificAvail) {
+      // Disponibilidade pontual (autônomos)
+      startTime = specificAvail.start_time
+      endTime = specificAvail.end_time
+      breakStart = specificAvail.break_start
+      breakEnd = specificAvail.break_end
+    } else if (coveringSchedule) {
+      // Existe escala aprovada cobrindo o período, mas SEM entry para este colaborador nesta data → não disponível
+      return new Response(JSON.stringify({ slots: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
     } else {
-      // 3. Get business hours for the day (fallback)
+      // Fallback (compat.): empresas sem escala criada usam business_hours + employee_schedules
       const dayOfWeek = new Date(date).getUTCDay()
       const { data: bizHours, error: bizError } = await supabaseClient
         .from('business_hours')
@@ -100,7 +143,6 @@ serve(async (req) => {
         })
       }
 
-      // 4. Get employee schedule (fallback)
       const { data: empSchedule, error: empSchError } = await supabaseClient
         .from('employee_schedules')
         .select('*')
@@ -115,7 +157,6 @@ serve(async (req) => {
         })
       }
 
-      // Determine working interval (intersection of business hours and employee schedule)
       startTime = empSchedule.start_time > bizHours.open_time ? empSchedule.start_time : bizHours.open_time
       endTime = empSchedule.end_time < bizHours.close_time ? empSchedule.end_time : bizHours.close_time
     }
