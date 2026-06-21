@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { BusinessHoursConfig } from "@/components/business/schedule/BusinessHoursConfig";
 import { EmployeeScheduleConfig } from "@/components/business/schedule/EmployeeScheduleConfig";
+import { FixedEmployeesList } from "@/components/business/schedule/FixedEmployeesList";
 import { AutonomousAvailabilityConfig } from "@/components/business/schedule/AutonomousAvailabilityConfig";
 import { ScheduleRulesConfig } from "@/components/business/schedule/ScheduleRulesConfig";
 import { AbsencesManager } from "@/components/business/schedule/AbsencesManager";
