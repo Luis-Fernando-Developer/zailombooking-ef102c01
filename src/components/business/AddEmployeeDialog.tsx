@@ -132,7 +132,22 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
       if (authError) throw authError;
 
-      if (authData.user) {
+      // Supabase retorna user "fake" (sem session e sem identities) quando
+      // o email já está cadastrado, para não vazar a existência da conta.
+      // Detectamos esse caso e abortamos antes de tentar criar o employee
+      // (evita FK violation em employees.user_id → users).
+      const identities = (authData.user as any)?.identities;
+      if (!authData.user || (Array.isArray(identities) && identities.length === 0)) {
+        toast({
+          title: "Email já cadastrado",
+          description: "Este email já possui uma conta no sistema. Use outro email.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      {
         // Criar registro do funcionário com user_id
         const { data: employeeData, error: employeeError } = await supabase
           .from('employees')
