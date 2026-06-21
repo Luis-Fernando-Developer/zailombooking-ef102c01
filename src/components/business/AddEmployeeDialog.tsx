@@ -19,6 +19,28 @@ interface Service {
 interface SystemProfile { id: string; code: string; name: string; }
 interface BaseOccupation { id: string; name: string; company_id: string | null; }
 
+// Sugestão de ocupações relacionadas a cada perfil do sistema.
+// Perfis ausentes ou listados como "*" exibem todas as ocupações.
+const PROFILE_OCCUPATION_MAP: Record<string, string[] | "*"> = {
+  OWNER: "*",
+  GERENTE: "*",
+  ENCARREGADO: "*",
+  RH: ["Analista de RH", "Auxiliar Administrativo", "Gerente Administrativo"],
+  FINANCEIRO: ["Contador", "Auxiliar Administrativo"],
+  MARKETING: ["Consultor", "Auxiliar Administrativo"],
+  RECEPCIONISTA: ["Recepcionista", "Secretária"],
+  FAXINEIRO: ["Auxiliar de Limpeza"],
+  PROFISSIONAL: [
+    "Barbeiro","Cabeleireiro","Manicure","Pedicure","Designer de Sobrancelhas",
+    "Esteticista","Massoterapeuta","Médico","Dentista","Psicólogo",
+    "Nutricionista","Fisioterapeuta","Advogado","Contador","Consultor",
+    "Mentor","Veterinário","Banhista/Tosador","Técnico de Manutenção","Professor",
+  ],
+  SEGURANCA: [],
+  FISCAL: [],
+  DESIGNER_GRAFICO: [],
+};
+
 interface AddEmployeeDialogProps {
   companyId: string;
   onEmployeeAdded: () => void;
@@ -110,7 +132,22 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
       if (authError) throw authError;
 
-      if (authData.user) {
+      // Supabase retorna user "fake" (sem session e sem identities) quando
+      // o email já está cadastrado, para não vazar a existência da conta.
+      // Detectamos esse caso e abortamos antes de tentar criar o employee
+      // (evita FK violation em employees.user_id → users).
+      const identities = (authData.user as any)?.identities;
+      if (!authData.user || (Array.isArray(identities) && identities.length === 0)) {
+        toast({
+          title: "Email já cadastrado",
+          description: "Este email já possui uma conta no sistema. Use outro email.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      {
         // Criar registro do funcionário com user_id
         const { data: employeeData, error: employeeError } = await supabase
           .from('employees')
@@ -290,7 +327,16 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             <Label htmlFor="system_profile">Perfil do Sistema</Label>
             <Select
               value={formData.system_profile_id}
-              onValueChange={(v) => setFormData(prev => ({ ...prev, system_profile_id: v }))}
+              onValueChange={(v) => {
+                const profile = systemProfiles.find(p => p.id === v);
+                const allowed = profile ? PROFILE_OCCUPATION_MAP[profile.code] : undefined;
+                const currentOcc = occupations.find(o => o.id === formData.base_occupation_id);
+                let keepOcc = formData.base_occupation_id;
+                if (currentOcc && allowed && allowed !== "*") {
+                  if (!allowed.includes(currentOcc.name)) keepOcc = "";
+                }
+                setFormData(prev => ({ ...prev, system_profile_id: v, base_occupation_id: keepOcc }));
+              }}
             >
               <SelectTrigger id="system_profile">
                 <SelectValue placeholder="Selecione o perfil" />
@@ -314,11 +360,21 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
                 <SelectValue placeholder="Selecione a ocupação" />
               </SelectTrigger>
               <SelectContent>
-                {occupations.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.name}{o.company_id === null ? "" : " (personalizada)"}
-                  </SelectItem>
-                ))}
+                {(() => {
+                  const profile = systemProfiles.find(p => p.id === formData.system_profile_id);
+                  const allowed = profile ? PROFILE_OCCUPATION_MAP[profile.code] : undefined;
+                  const filtered = !allowed || allowed === "*"
+                    ? occupations
+                    : occupations.filter(o => allowed.includes(o.name) || o.company_id !== null);
+                  if (filtered.length === 0) {
+                    return <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhuma ocupação para este perfil</div>;
+                  }
+                  return filtered.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.name}{o.company_id === null ? "" : " (personalizada)"}
+                    </SelectItem>
+                  ));
+                })()}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">Profissão ou ocupação principal.</p>
