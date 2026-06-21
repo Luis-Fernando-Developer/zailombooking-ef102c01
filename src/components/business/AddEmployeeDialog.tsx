@@ -371,10 +371,10 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
                   }
                   return filtered.map((o) => (
                     <SelectItem key={o.id} value={o.id}>
-
-                    {o.name}{o.company_id === null ? "" : " (personalizada)"}
-                  </SelectItem>
-                ))}
+                      {o.name}{o.company_id === null ? "" : " (personalizada)"}
+                    </SelectItem>
+                  ));
+                })()}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">Profissão ou ocupação principal.</p>
