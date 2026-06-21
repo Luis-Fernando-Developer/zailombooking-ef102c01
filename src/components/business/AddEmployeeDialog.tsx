@@ -327,7 +327,16 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             <Label htmlFor="system_profile">Perfil do Sistema</Label>
             <Select
               value={formData.system_profile_id}
-              onValueChange={(v) => setFormData(prev => ({ ...prev, system_profile_id: v }))}
+              onValueChange={(v) => {
+                const profile = systemProfiles.find(p => p.id === v);
+                const allowed = profile ? PROFILE_OCCUPATION_MAP[profile.code] : undefined;
+                const currentOcc = occupations.find(o => o.id === formData.base_occupation_id);
+                let keepOcc = formData.base_occupation_id;
+                if (currentOcc && allowed && allowed !== "*") {
+                  if (!allowed.includes(currentOcc.name)) keepOcc = "";
+                }
+                setFormData(prev => ({ ...prev, system_profile_id: v, base_occupation_id: keepOcc }));
+              }}
             >
               <SelectTrigger id="system_profile">
                 <SelectValue placeholder="Selecione o perfil" />
@@ -351,8 +360,18 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
                 <SelectValue placeholder="Selecione a ocupação" />
               </SelectTrigger>
               <SelectContent>
-                {occupations.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
+                {(() => {
+                  const profile = systemProfiles.find(p => p.id === formData.system_profile_id);
+                  const allowed = profile ? PROFILE_OCCUPATION_MAP[profile.code] : undefined;
+                  const filtered = !allowed || allowed === "*"
+                    ? occupations
+                    : occupations.filter(o => allowed.includes(o.name) || o.company_id !== null);
+                  if (filtered.length === 0) {
+                    return <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhuma ocupação para este perfil</div>;
+                  }
+                  return filtered.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+
                     {o.name}{o.company_id === null ? "" : " (personalizada)"}
                   </SelectItem>
                 ))}
