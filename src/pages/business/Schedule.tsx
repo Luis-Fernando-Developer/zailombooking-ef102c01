@@ -159,7 +159,7 @@ export default function BusinessSchedule() {
             </TabsList>
 
             <TabsContent value="fixed-schedules" className="mt-6">
-              <EmployeeScheduleConfig companyId={company.id} useRequestFlow={true} />
+              <FixedEmployeesList companyId={company.id} />
             </TabsContent>
             <TabsContent value="autonomous" className="mt-6">
               <AutonomousAvailabilityConfig companyId={company.id} readOnly={false} />
