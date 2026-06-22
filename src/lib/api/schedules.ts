@@ -239,6 +239,14 @@ export async function listApproversAbove(companyId: string) {
   }>;
 }
 
+export async function listSchedulableEmployees(companyId: string) {
+  const { data, error } = await supabase.rpc("list_schedulable_employees", { _company_id: companyId });
+  if (error) throw error;
+  return (data ?? []) as Array<{
+    id: string; name: string; profile_code: string | null; profile_name: string | null; level: number;
+  }>;
+}
+
 export const SCHEDULE_STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho",
   pending_approval: "Aguardando aprovação",
