@@ -43,12 +43,12 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
   );
 
   const load = async () => {
-    const [empsRes, ents, tpls] = await Promise.all([
-      supabase.from("employees").select("id, name").eq("company_id", tenantId).eq("is_active", true).order("name"),
+    const [emps, ents, tpls] = await Promise.all([
+      listSchedulableEmployees(tenantId).catch(() => [] as Array<{ id: string; name: string }>),
       fetchScheduleEntries(schedule.id),
       fetchTemplates(tenantId),
     ]);
-    setEmployees((empsRes.data ?? []) as Emp[]);
+    setEmployees(emps.map((e) => ({ id: e.id, name: e.name })));
     setEntries(ents);
     setTemplates(tpls);
   };
