@@ -217,7 +217,10 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
       // Resetar formulário
       setFormData({
-        name: "",
+        first_name: "",
+        second_name: "",
+        last_name: "",
+        nickname: "",
         email: "",
         phone: "",
         password: "",
