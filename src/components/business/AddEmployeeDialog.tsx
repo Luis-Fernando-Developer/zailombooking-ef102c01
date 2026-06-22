@@ -57,7 +57,10 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
   const { guard } = usePlanLimits(companyId);
   
   const [formData, setFormData] = useState({
-    name: "",
+    first_name: "",
+    second_name: "",
+    last_name: "",
+    nickname: "",
     email: "",
     phone: "",
     password: "",
