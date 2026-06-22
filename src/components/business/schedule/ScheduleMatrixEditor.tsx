@@ -24,7 +24,7 @@ interface Props {
 
 interface Emp { id: string; name: string; }
 
-const ENTRY_TYPES: EntryType[] = ["T", "F", "A", "FE", "D"];
+const ENTRY_TYPES: EntryType[] = ["T", "F", "A", "FA", "D"];
 
 export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, onClose }: Props) {
   const { toast } = useToast();
