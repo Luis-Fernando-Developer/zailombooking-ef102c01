@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   ScheduleRow, ScheduleEntry, EntryType, ENTRY_TYPE_LABEL, ENTRY_TYPE_COLOR,
   fetchScheduleEntries, upsertScheduleEntry, bulkUpdateEntries,
-  generateSchedule, fetchTemplates, ScheduleTemplate,
+  generateSchedule, fetchTemplates, ScheduleTemplate, listSchedulableEmployees,
 } from "@/lib/api/schedules";
 import { SubmitScheduleDialog } from "./SubmitScheduleDialog";
 
