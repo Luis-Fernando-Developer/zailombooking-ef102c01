@@ -100,6 +100,26 @@ export function SchedulesList({ tenantId, canManage }: Props) {
                 </p>
               </div>
               <div className="flex gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Download className="w-4 h-4 mr-1" /> Baixar
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {(["xlsx", "csv", "ods", "pdf"] as ExportFormat[]).map((f) => (
+                      <DropdownMenuItem
+                        key={f}
+                        onClick={async () => {
+                          try { await exportSchedule(s, tenantId, f); }
+                          catch (e: any) { toast({ title: "Erro ao exportar", description: e.message, variant: "destructive" }); }
+                        }}
+                      >
+                        {f.toUpperCase()}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
                   <Edit3 className="w-4 h-4 mr-1" /> {s.status === "draft" ? "Editar" : "Ver"}
                 </Button>
