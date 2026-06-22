@@ -43,12 +43,23 @@ Deno.serve(async (req) => {
     const { data: belongs } = await admin.rpc('user_belongs_to_company', {
       _user_id: user.id, _company_id: tenant_id,
     });
-    if (!belongs) return json({ error: 'forbidden' }, 403);
+    if (!belongs) return json({ error: 'forbidden', detail: 'user_not_in_company', user_id: user.id, tenant_id }, 403);
 
     const { data: canCreate } = await admin.rpc('user_can_create_schedule', {
       _user_id: user.id, _company_id: tenant_id,
     });
-    if (!canCreate) return json({ error: 'forbidden_no_create_permission' }, 403);
+    if (!canCreate) {
+      // Diagnóstico: o usuário não tem system_profile_id na employees,
+      // ou o perfil dele não tem can_create_schedule = true.
+      const { data: emp } = await admin.from('employees')
+        .select('id, system_profile_id, role')
+        .eq('user_id', user.id).eq('company_id', tenant_id).maybeSingle();
+      return json({
+        error: 'forbidden_no_create_permission',
+        detail: 'Seu perfil de sistema não tem permissão para criar/enviar escalas. Peça ao admin para definir seu Perfil do Sistema (ENCARREGADO, GERENTE, etc.).',
+        employee: emp,
+      }, 403);
+    }
 
     const { data: schedule, error: sErr } = await admin
       .from('schedules').select('*').eq('id', schedule_id).eq('tenant_id', tenant_id).single();
