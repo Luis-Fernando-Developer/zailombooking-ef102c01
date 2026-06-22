@@ -12,8 +12,7 @@ import {
   ScheduleRow, SCHEDULE_STATUS_LABEL,
 } from "@/lib/api/schedules";
 import { ScheduleMatrixEditor } from "./ScheduleMatrixEditor";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { exportSchedule, ExportFormat } from "@/lib/scheduleExport";
+import { ExportScheduleDialog } from "./ExportScheduleDialog";
 
 interface Props { tenantId: string; canManage: boolean; }
 
@@ -26,6 +25,7 @@ export function SchedulesList({ tenantId, canManage }: Props) {
   const [end, setEnd] = useState("");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<ScheduleRow | null>(null);
+  const [exporting, setExporting] = useState<ScheduleRow | null>(null);
 
   const load = () => fetchSchedules(tenantId).then(setItems).catch(() => {});
   useEffect(() => { load(); }, [tenantId]);
@@ -100,26 +100,9 @@ export function SchedulesList({ tenantId, canManage }: Props) {
                 </p>
               </div>
               <div className="flex gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-1" /> Baixar
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {(["xlsx", "csv", "ods", "pdf"] as ExportFormat[]).map((f) => (
-                      <DropdownMenuItem
-                        key={f}
-                        onClick={async () => {
-                          try { await exportSchedule(s, tenantId, f); }
-                          catch (e: any) { toast({ title: "Erro ao exportar", description: e.message, variant: "destructive" }); }
-                        }}
-                      >
-                        {f.toUpperCase()}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="outline" size="sm" onClick={() => setExporting(s)}>
+                  <Download className="w-4 h-4 mr-1" /> Baixar
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
                   <Edit3 className="w-4 h-4 mr-1" /> {s.status === "draft" ? "Editar" : "Ver"}
                 </Button>
@@ -147,6 +130,13 @@ export function SchedulesList({ tenantId, canManage }: Props) {
             )}
           </DialogContent>
         </Dialog>
+
+        <ExportScheduleDialog
+          open={!!exporting}
+          onOpenChange={(o) => !o && setExporting(null)}
+          schedule={exporting}
+          tenantId={tenantId}
+        />
       </CardContent>
     </Card>
   );
