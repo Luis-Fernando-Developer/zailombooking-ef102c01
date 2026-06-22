@@ -198,16 +198,51 @@ export async function generateSchedule(input: {
   return data;
 }
 
-export async function submitSchedule(input: { tenant_id: string; schedule_id: string; title?: string; description?: string }) {
+export async function submitSchedule(input: {
+  tenant_id: string;
+  schedule_id: string;
+  target_mode: "levels_above" | "specific_users";
+  target_user_ids?: string[];
+  title?: string;
+  description?: string;
+}) {
   const { data, error } = await supabase.functions.invoke("schedule-submit", { body: input });
   if (error) throw error;
   return data;
 }
 
-export const SCHEDULE_STATUS_LABEL: Record<ScheduleStatus, string> = {
+export async function approveSchedule(input: { tenant_id: string; schedule_id: string; reason?: string }) {
+  const { data, error } = await supabase.functions.invoke("schedule-approve", { body: input });
+  if (error) throw error;
+  return data;
+}
+
+export async function rejectSchedule(input: { tenant_id: string; schedule_id: string; reason: string }) {
+  const { data, error } = await supabase.functions.invoke("schedule-reject", { body: input });
+  if (error) throw error;
+  return data;
+}
+
+export async function requestScheduleRevision(input: { tenant_id: string; schedule_id: string; reason: string }) {
+  const { data, error } = await supabase.functions.invoke("schedule-request-revision", { body: input });
+  if (error) throw error;
+  return data;
+}
+
+export async function listApproversAbove(companyId: string) {
+  const { data, error } = await supabase.rpc("list_approvers_above", { _company_id: companyId });
+  if (error) throw error;
+  return (data ?? []) as Array<{
+    user_id: string; employee_id: string; name: string;
+    profile_code: string; profile_name: string; level: number;
+  }>;
+}
+
+export const SCHEDULE_STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho",
   pending_approval: "Aguardando aprovação",
   approved: "Aprovada",
   partially_approved: "Parcialmente aprovada",
   rejected: "Rejeitada",
+  revision_requested: "Revisão solicitada",
 };
