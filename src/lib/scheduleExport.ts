@@ -6,15 +6,39 @@ import { supabase } from "@/lib/supabaseClient";
 import { fetchScheduleEntries, ScheduleRow, ScheduleEntry } from "@/lib/api/schedules";
 
 export type ExportFormat = "xlsx" | "csv" | "ods" | "pdf";
+export type NameFormat = "first" | "second" | "last" | "full" | "nickname";
 
-interface Emp { id: string; name: string }
+export interface ExportOptions {
+  nameFormat: NameFormat;
+  includeHours: boolean;
+}
 
-async function buildMatrix(schedule: ScheduleRow, tenantId: string) {
+interface Emp { id: string; name: string; nickname?: string | null }
+
+function formatEmployeeName(emp: Emp, mode: NameFormat): string {
+  const parts = (emp.name ?? "").trim().split(/\s+/).filter(Boolean);
+  const first = parts[0] ?? "";
+  const second = parts[1] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1] : "";
+  switch (mode) {
+    case "first": return first;
+    case "second": return second || first;
+    case "last": return last || first;
+    case "full": return emp.name ?? "";
+    case "nickname": return (emp.nickname && emp.nickname.trim()) || [first, second].filter(Boolean).join(" ");
+  }
+}
+
+async function buildMatrix(schedule: ScheduleRow, tenantId: string, opts: ExportOptions) {
+  // Select * tolerantly so we get `nickname` if/when the column exists.
   const [empsRes, entries] = await Promise.all([
-    supabase.from("employees").select("id, name").eq("company_id", tenantId).eq("is_active", true).order("name"),
+    supabase.from("employees").select("*").eq("company_id", tenantId).eq("is_active", true).order("name"),
     fetchScheduleEntries(schedule.id),
   ]);
-  const employees = (empsRes.data ?? []) as Emp[];
+  const employees = ((empsRes.data ?? []) as any[]).map((e) => ({
+    id: e.id, name: e.name, nickname: e.nickname ?? null,
+  })) as Emp[];
+
   const days = eachDayOfInterval({ start: parseISO(schedule.period_start), end: parseISO(schedule.period_end) });
   const entryMap = new Map<string, ScheduleEntry>();
   entries.forEach((e) => entryMap.set(`${e.employee_id}|${e.entry_date}`, e));
@@ -23,14 +47,15 @@ async function buildMatrix(schedule: ScheduleRow, tenantId: string) {
 
   const header = ["Colaborador", ...days.map((d) => format(d, "dd/MM"))];
   const rows = visible.map((emp) => [
-    emp.name,
+    formatEmployeeName(emp, opts.nameFormat),
     ...days.map((d) => {
       const e = entryMap.get(`${emp.id}|${format(d, "yyyy-MM-dd")}`);
       if (!e) return "";
       if (e.entry_type === "T") {
+        if (!opts.includeHours) return "T";
         const s = e.start_time?.slice(0, 5) ?? "";
         const t = e.end_time?.slice(0, 5) ?? "";
-        return s && t ? `T ${s}-${t}` : "T";
+        return s && t ? `${s}-${t}` : "T";
       }
       return e.entry_type;
     }),
@@ -42,8 +67,24 @@ function safeName(s: string) {
   return s.replace(/[^\w.-]+/g, "_");
 }
 
-export async function exportSchedule(schedule: ScheduleRow, tenantId: string, fmt: ExportFormat) {
-  const { header, rows } = await buildMatrix(schedule, tenantId);
+function computeColWidths(header: string[], rows: string[][]): number[] {
+  return header.map((h, i) => {
+    let max = String(h).length;
+    for (const r of rows) {
+      const v = r[i] != null ? String(r[i]) : "";
+      if (v.length > max) max = v.length;
+    }
+    return Math.min(Math.max(max + 2, 6), 40);
+  });
+}
+
+export async function exportSchedule(
+  schedule: ScheduleRow,
+  tenantId: string,
+  fmt: ExportFormat,
+  opts: ExportOptions,
+) {
+  const { header, rows } = await buildMatrix(schedule, tenantId, opts);
   const fileBase = `escala_${safeName(schedule.name)}`;
 
   if (fmt === "pdf") {
@@ -63,9 +104,10 @@ export async function exportSchedule(schedule: ScheduleRow, tenantId: string, fm
   }
 
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+  const widths = computeColWidths(header, rows);
+  (ws as any)["!cols"] = widths.map((w) => ({ wch: w }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Escala");
   const bookType = fmt === "xlsx" ? "xlsx" : fmt === "csv" ? "csv" : "ods";
-  const ext = fmt;
-  XLSX.writeFile(wb, `${fileBase}.${ext}`, { bookType: bookType as XLSX.BookType });
+  XLSX.writeFile(wb, `${fileBase}.${fmt}`, { bookType: bookType as XLSX.BookType });
 }
