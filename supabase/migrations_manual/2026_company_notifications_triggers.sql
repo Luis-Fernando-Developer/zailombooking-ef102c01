@@ -77,7 +77,7 @@ BEGIN
   IF NEW.status IS DISTINCT FROM OLD.status THEN
     INSERT INTO public.company_notifications (company_id, type, title, message, link, metadata)
     VALUES (
-      NEW.company_id,
+      NEW.tenant_id,
       'request_status_changed',
       'Solicitação atualizada',
       'Status alterado para: ' || NEW.status,
