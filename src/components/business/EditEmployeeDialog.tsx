@@ -147,7 +147,28 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employee) return;
-    
+
+    for (const [field, label] of [
+      ["first_name", "Primeiro nome"],
+      ["second_name", "Segundo nome"],
+      ["last_name", "Sobrenome"],
+    ] as const) {
+      if (!validateNoSpaces((formData as any)[field])) {
+        toast({
+          title: `${label} inválido`,
+          description: `${label} não pode conter espaços. Use apenas uma palavra.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const fullName = composeFullName(formData);
+    if (!fullName) {
+      toast({ title: "Nome obrigatório", description: "Informe ao menos o primeiro nome.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -155,7 +176,11 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
       const { error: employeeError } = await supabase
         .from('employees')
         .update({
-          name: formData.name,
+          name: fullName,
+          first_name: formData.first_name || null,
+          second_name: formData.second_name || null,
+          last_name: formData.last_name || null,
+          nickname: formData.nickname || null,
           email: formData.email,
           phone: formData.phone,
           role: formData.role,
