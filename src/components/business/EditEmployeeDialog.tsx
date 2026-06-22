@@ -250,14 +250,45 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">Primeiro nome *</Label>
+              <Input
+                id="first_name"
+                value={formData.first_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, first_name: sanitizeNoSpaces(e.target.value) }))}
+                placeholder="João"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="second_name">Segundo nome</Label>
+              <Input
+                id="second_name"
+                value={formData.second_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, second_name: sanitizeNoSpaces(e.target.value) }))}
+                placeholder="Pedro"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Sobrenome</Label>
+              <Input
+                id="last_name"
+                value={formData.last_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, last_name: sanitizeNoSpaces(e.target.value) }))}
+                placeholder="Silva"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">Cada campo aceita apenas uma palavra (sem espaços).</p>
+
           <div className="space-y-2">
-            <Label htmlFor="name">Nome Completo *</Label>
+            <Label htmlFor="nickname">Apelido</Label>
             <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Ex: João Silva"
-              required
+              id="nickname"
+              value={formData.nickname}
+              onChange={(e) => setFormData(prev => ({ ...prev, nickname: e.target.value }))}
+              placeholder="Ex: Jão"
             />
           </div>
 
