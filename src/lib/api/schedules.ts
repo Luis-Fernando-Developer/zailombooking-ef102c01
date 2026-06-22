@@ -7,14 +7,14 @@ export type ScheduleStatus =
   | "partially_approved"
   | "rejected";
 
-export type EntryType = "T" | "F" | "A" | "FE" | "D";
+export type EntryType = "T" | "F" | "A" | "FA" | "D";
 export type EntryDecision = "pending" | "approved" | "rejected" | "revise";
 
 export const ENTRY_TYPE_LABEL: Record<EntryType, string> = {
   T: "Trabalho",
   F: "Folga",
   A: "Ausência",
-  FE: "Feriado",
+  FA: "Férias",
   D: "Desligado",
 };
 
@@ -22,7 +22,7 @@ export const ENTRY_TYPE_COLOR: Record<EntryType, string> = {
   T: "bg-primary/15 text-primary border-primary/30",
   F: "bg-muted text-muted-foreground border-border",
   A: "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400",
-  FE: "bg-blue-500/15 text-blue-600 border-blue-500/30 dark:text-blue-400",
+  FA: "bg-blue-500/15 text-blue-600 border-blue-500/30 dark:text-blue-400",
   D: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
