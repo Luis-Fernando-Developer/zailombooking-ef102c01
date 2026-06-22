@@ -111,25 +111,12 @@ export function SubmitScheduleDialog({ open, onOpenChange, tenantId, scheduleId,
         </RadioGroup>
 
         {mode === "specific_users" && (
-          <div className="max-h-64 overflow-y-auto border rounded-md p-3 space-y-3">
-            {loading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Carregando...</div>}
-            {!loading && approvers.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhum aprovador acima do seu nível foi encontrado.</p>
-            )}
-            {!loading && Object.entries(grouped).map(([profileName, users]) => (
-              <div key={profileName}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{profileName}</p>
-                <div className="space-y-1 ml-1">
-                  {users.map((u) => (
-                    <label key={u.user_id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5">
-                      <Checkbox checked={selectedUserIds.has(u.user_id)} onCheckedChange={() => toggleUser(u.user_id)} />
-                      <span>{u.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <SectorPicker
+            loading={loading}
+            grouped={grouped}
+            selectedUserIds={selectedUserIds}
+            toggleUser={toggleUser}
+          />
         )}
 
         <DialogFooter>
