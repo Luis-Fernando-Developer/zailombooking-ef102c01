@@ -117,6 +117,29 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validação: sem espaços em first_name / second_name / last_name
+    for (const [field, label] of [
+      ["first_name", "Primeiro nome"],
+      ["second_name", "Segundo nome"],
+      ["last_name", "Sobrenome"],
+    ] as const) {
+      if (!validateNoSpaces((formData as any)[field])) {
+        toast({
+          title: `${label} inválido`,
+          description: `${label} não pode conter espaços. Use apenas uma palavra.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const fullName = composeFullName(formData);
+    if (!fullName) {
+      toast({ title: "Nome obrigatório", description: "Informe ao menos o primeiro nome.", variant: "destructive" });
+      return;
+    }
+
     if (formData.is_active && !(await guard("employees"))) return;
     setLoading(true);
 
@@ -128,7 +151,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            name: formData.name,
+            name: fullName,
             phone: formData.phone
           }
         }
@@ -136,10 +159,6 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
       if (authError) throw authError;
 
-      // Supabase retorna user "fake" (sem session e sem identities) quando
-      // o email já está cadastrado, para não vazar a existência da conta.
-      // Detectamos esse caso e abortamos antes de tentar criar o employee
-      // (evita FK violation em employees.user_id → users).
       const identities = (authData.user as any)?.identities;
       if (!authData.user || (Array.isArray(identities) && identities.length === 0)) {
         toast({
@@ -158,7 +177,11 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
           .insert([{
             company_id: companyId,
             user_id: authData.user.id,
-            name: formData.name,
+            name: fullName,
+            first_name: formData.first_name || null,
+            second_name: formData.second_name || null,
+            last_name: formData.last_name || null,
+            nickname: formData.nickname || null,
             email: formData.email,
             phone: formData.phone,
             role: formData.role,
