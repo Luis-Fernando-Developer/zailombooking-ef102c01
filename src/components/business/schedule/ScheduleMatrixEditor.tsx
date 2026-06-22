@@ -253,6 +253,15 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
           </>
         )}
       </div>
+
+      <SubmitScheduleDialog
+        open={submitOpen}
+        onOpenChange={setSubmitOpen}
+        tenantId={tenantId}
+        scheduleId={schedule.id}
+        scheduleName={schedule.name}
+        onSubmitted={() => { onChanged?.(); onClose?.(); }}
+      />
     </div>
   );
 }
