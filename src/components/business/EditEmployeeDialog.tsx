@@ -53,7 +53,10 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
-    name: "",
+    first_name: "",
+    second_name: "",
+    last_name: "",
+    nickname: "",
     email: "",
     phone: "",
     role: "employee" as const,
@@ -67,8 +70,12 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
 
   useEffect(() => {
     if (open && employee) {
+      const fallback = splitFullName(employee.name || "");
       setFormData({
-        name: employee.name,
+        first_name: employee.first_name ?? fallback.first_name,
+        second_name: employee.second_name ?? fallback.second_name,
+        last_name: employee.last_name ?? fallback.last_name,
+        nickname: employee.nickname ?? "",
         email: employee.email,
         phone: employee.phone || "",
         role: employee.role as any,
