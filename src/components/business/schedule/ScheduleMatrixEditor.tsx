@@ -11,8 +11,9 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   ScheduleRow, ScheduleEntry, EntryType, ENTRY_TYPE_LABEL, ENTRY_TYPE_COLOR,
   fetchScheduleEntries, upsertScheduleEntry, bulkUpdateEntries,
-  generateSchedule, submitSchedule, fetchTemplates, ScheduleTemplate,
+  generateSchedule, fetchTemplates, ScheduleTemplate,
 } from "@/lib/api/schedules";
+import { SubmitScheduleDialog } from "./SubmitScheduleDialog";
 
 interface Props {
   schedule: ScheduleRow;
@@ -119,20 +120,12 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
     }
   };
 
-  const handleSubmit = async () => {
-    if (!confirm("Enviar esta escala para aprovação?")) return;
-    setBusy(true);
-    try {
-      await submitSchedule({ tenant_id: tenantId, schedule_id: schedule.id });
-      toast({ title: "Enviada para aprovação" });
-      onChanged?.();
-      onClose?.();
-    } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
-    } finally { setBusy(false); }
-  };
+  const [submitOpen, setSubmitOpen] = useState(false);
 
-  const canEdit = !readOnly && schedule.status === "draft";
+  const handleSubmit = () => setSubmitOpen(true);
+
+  const canEdit = !readOnly && (schedule.status === "draft" || schedule.status === "revision_requested");
+
 
   return (
     <div className="space-y-4">
