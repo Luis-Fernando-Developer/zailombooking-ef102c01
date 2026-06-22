@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { composeFullName, sanitizeNoSpaces, splitFullName, validateNoSpaces } from "@/lib/employeeName";
 
 interface Service {
   id: string;
@@ -17,6 +18,10 @@ interface Service {
 interface Employee {
   id: string;
   name: string;
+  first_name?: string | null;
+  second_name?: string | null;
+  last_name?: string | null;
+  nickname?: string | null;
   email: string;
   phone?: string;
   role: string;
