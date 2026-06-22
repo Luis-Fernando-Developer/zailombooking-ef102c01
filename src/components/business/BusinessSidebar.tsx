@@ -24,7 +24,8 @@ import {
   ChevronDown,
   Plug,
   MessageSquare,
-  Inbox
+  Inbox,
+  Bell,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -44,6 +45,8 @@ const menuItems: MenuItem[] = [
   { title: "Serviços", url: "/admin/servicos", icon: Briefcase },
   { title: "Colaboradores", url: "/admin/colaboradores", icon: Users },
   { title: "Solicitações", url: "/admin/solicitacoes", icon: Inbox },
+  { title: "Notificações", url: "/admin/notificacoes", icon: Bell },
+  { title: "Bate-papo", url: "/admin/bate-papo", icon: MessageSquare },
   {
     title: "Chatbot",
     url: "/admin/chatbot/integracao",
@@ -59,11 +62,11 @@ const menuItems: MenuItem[] = [
 // Matriz única de permissões por role (fonte da verdade global)
 // Usada também por outras superfícies (botões de ação) via getMenuAccess()
 const ROLE_MENU_ACCESS: Record<string, string[]> = {
-  owner:         ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Chatbot", "Configurações"],
-  manager:       ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Chatbot", "Configurações"],
-  supervisor:    ["Dashboard", "Agendamentos", "Horários", "Colaboradores", "Solicitações"],
-  receptionist:  ["Dashboard", "Agendamentos", "Horários", "Solicitações"],
-  employee:      ["Dashboard", "Agendamentos", "Horários", "Solicitações"],
+  owner:         ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Chatbot", "Configurações"],
+  manager:       ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Chatbot", "Configurações"],
+  supervisor:    ["Dashboard", "Agendamentos", "Horários", "Colaboradores", "Solicitações", "Notificações", "Bate-papo"],
+  receptionist:  ["Dashboard", "Agendamentos", "Horários", "Solicitações", "Notificações", "Bate-papo"],
+  employee:      ["Dashboard", "Agendamentos", "Horários", "Solicitações", "Notificações", "Bate-papo"],
 };
 
 export function getAllowedMenusForRole(role: string): string[] {

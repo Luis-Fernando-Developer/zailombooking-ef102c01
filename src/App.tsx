@@ -32,6 +32,8 @@ import ChatbotIntegracao from "./pages/business/chatbot/Integracao";
 import ChatbotZailomFlow from "./pages/business/chatbot/ZailomFlow";
 import BusinessSchedule from "./pages/business/Schedule";
 import BusinessSolicitacoes from "./pages/business/Solicitacoes";
+import BusinessNotifications from "./pages/business/Notifications";
+import BusinessChat from "./pages/business/Chat";
 import ClientBooking from "./pages/client/Booking";
 import ClientLogin from "./pages/client/Login";
 import ClientSignup from "./pages/client/Signup";
@@ -78,6 +80,8 @@ const App = () => (
             <Route path="/:slug/admin/chatbot/talkmap/*" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><ChatbotZailomFlow /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/horarios" element={<RequireBusinessAuth><BusinessSchedule /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/solicitacoes" element={<RequireBusinessAuth><BusinessSolicitacoes /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/notificacoes" element={<RequireBusinessAuth><BusinessNotifications /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/bate-papo" element={<RequireBusinessAuth><BusinessChat /></RequireBusinessAuth>} />
             <Route path="/:slug" element={<CompanyLandingPage />} />
             <Route path="/:slug/agendar" element={<ClientBooking />} />
             <Route path="/:slug/entrar" element={<ClientLogin />} />
