@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit3 } from "lucide-react";
+import { Plus, Trash2, Edit3, Download } from "lucide-react";
 import {
   fetchSchedules, createSchedule, deleteSchedule,
   ScheduleRow, SCHEDULE_STATUS_LABEL,
 } from "@/lib/api/schedules";
 import { ScheduleMatrixEditor } from "./ScheduleMatrixEditor";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { exportSchedule, ExportFormat } from "@/lib/scheduleExport";
 
 interface Props { tenantId: string; canManage: boolean; }
 
@@ -98,6 +100,26 @@ export function SchedulesList({ tenantId, canManage }: Props) {
                 </p>
               </div>
               <div className="flex gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Download className="w-4 h-4 mr-1" /> Baixar
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {(["xlsx", "csv", "ods", "pdf"] as ExportFormat[]).map((f) => (
+                      <DropdownMenuItem
+                        key={f}
+                        onClick={async () => {
+                          try { await exportSchedule(s, tenantId, f); }
+                          catch (e: any) { toast({ title: "Erro ao exportar", description: e.message, variant: "destructive" }); }
+                        }}
+                      >
+                        {f.toUpperCase()}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
                   <Edit3 className="w-4 h-4 mr-1" /> {s.status === "draft" ? "Editar" : "Ver"}
                 </Button>
