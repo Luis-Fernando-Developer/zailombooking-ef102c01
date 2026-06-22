@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { composeFullName, sanitizeNoSpaces, validateNoSpaces } from "@/lib/employeeName";
 
 interface Service {
   id: string;
