@@ -111,25 +111,12 @@ export function SubmitScheduleDialog({ open, onOpenChange, tenantId, scheduleId,
         </RadioGroup>
 
         {mode === "specific_users" && (
-          <div className="max-h-64 overflow-y-auto border rounded-md p-3 space-y-3">
-            {loading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Carregando...</div>}
-            {!loading && approvers.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhum aprovador acima do seu nível foi encontrado.</p>
-            )}
-            {!loading && Object.entries(grouped).map(([profileName, users]) => (
-              <div key={profileName}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{profileName}</p>
-                <div className="space-y-1 ml-1">
-                  {users.map((u) => (
-                    <label key={u.user_id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5">
-                      <Checkbox checked={selectedUserIds.has(u.user_id)} onCheckedChange={() => toggleUser(u.user_id)} />
-                      <span>{u.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <SectorPicker
+            loading={loading}
+            grouped={grouped}
+            selectedUserIds={selectedUserIds}
+            toggleUser={toggleUser}
+          />
         )}
 
         <DialogFooter>
@@ -141,5 +128,69 @@ export function SubmitScheduleDialog({ open, onOpenChange, tenantId, scheduleId,
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SectorPicker({
+  loading, grouped, selectedUserIds, toggleUser,
+}: {
+  loading: boolean;
+  grouped: Record<string, Array<{ user_id: string; name: string }>>;
+  selectedUserIds: Set<string>;
+  toggleUser: (id: string) => void;
+}) {
+  const sectors = Object.keys(grouped);
+  const [sector, setSector] = useState<string | null>(null);
+
+  if (loading) {
+    return (
+      <div className="border rounded-md p-3 flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" /> Carregando setores...
+      </div>
+    );
+  }
+  if (sectors.length === 0) {
+    return <p className="text-sm text-muted-foreground border rounded-md p-3">Nenhum aprovador acima do seu nível foi encontrado.</p>;
+  }
+
+  if (!sector) {
+    return (
+      <div className="border rounded-md p-3 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Selecione o setor</p>
+        <div className="grid grid-cols-2 gap-2">
+          {sectors.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSector(s)}
+              className="text-left text-sm px-3 py-2 rounded-md border hover:bg-muted/50 transition-colors"
+            >
+              <div className="font-medium">{s}</div>
+              <div className="text-xs text-muted-foreground">{grouped[s].length} pessoa(s)</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const users = grouped[sector] ?? [];
+  return (
+    <div className="border rounded-md p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{sector}</p>
+        <button type="button" className="text-xs underline text-muted-foreground" onClick={() => setSector(null)}>
+          ← trocar setor
+        </button>
+      </div>
+      <div className="space-y-1 max-h-48 overflow-y-auto">
+        {users.map((u) => (
+          <label key={u.user_id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-2 py-1">
+            <Checkbox checked={selectedUserIds.has(u.user_id)} onCheckedChange={() => toggleUser(u.user_id)} />
+            <span>{u.name}</span>
+          </label>
+        ))}
+      </div>
+    </div>
   );
 }
