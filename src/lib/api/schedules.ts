@@ -5,7 +5,8 @@ export type ScheduleStatus =
   | "pending_approval"
   | "approved"
   | "partially_approved"
-  | "rejected";
+  | "rejected"
+  | "revision_requested";
 
 export type EntryType = "T" | "F" | "A" | "FA" | "D";
 export type EntryDecision = "pending" | "approved" | "rejected" | "revise";
