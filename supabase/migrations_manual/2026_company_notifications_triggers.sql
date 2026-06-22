@@ -46,16 +46,16 @@ AS $$
 DECLARE
   v_emp_name TEXT;
 BEGIN
-  SELECT name INTO v_emp_name FROM public.employees WHERE id = NEW.employee_id;
+  SELECT name INTO v_emp_name FROM public.employees WHERE user_id = NEW.created_by LIMIT 1;
 
   INSERT INTO public.company_notifications (company_id, type, title, message, link, metadata)
   VALUES (
-    NEW.company_id,
+    NEW.tenant_id,
     'request_created',
     'Nova solicitação',
-    COALESCE(v_emp_name, 'Colaborador') || ' criou uma solicitação (' || NEW.type || ')',
+    COALESCE(v_emp_name, 'Colaborador') || ' criou uma solicitação (' || COALESCE(NEW.request_type, 'geral') || ')',
     '/business/requests',
-    jsonb_build_object('request_id', NEW.id, 'request_type', NEW.type)
+    jsonb_build_object('request_id', NEW.id, 'request_type', NEW.request_type)
   );
   RETURN NEW;
 END;
