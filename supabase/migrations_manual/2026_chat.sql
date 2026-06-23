@@ -12,24 +12,16 @@
 
 -- ---------------------------------------------------------------------
 -- 0) Garantir valores necessários no enum employee_role
+--    IMPORTANTE: ALTER TYPE ADD VALUE precisa ser commitado ANTES
+--    de ser usado. Execute este bloco SEPARADAMENTE primeiro, depois
+--    rode o restante do arquivo.
 -- ---------------------------------------------------------------------
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'employee_role') THEN
-    BEGIN
-      ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'rh';
-    EXCEPTION WHEN duplicate_object THEN NULL;
-    END;
-    BEGIN
-      ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'marketing';
-    EXCEPTION WHEN duplicate_object THEN NULL;
-    END;
-    BEGIN
-      ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'supervisor';
-    EXCEPTION WHEN duplicate_object THEN NULL;
-    END;
-  END IF;
-END $$;
+ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'rh';
+ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'marketing';
+ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'supervisor';
+
+COMMIT;
+BEGIN;
 
 -- ---------------------------------------------------------------------
 -- 1) Helper: usuário pode usar o chat na empresa?
