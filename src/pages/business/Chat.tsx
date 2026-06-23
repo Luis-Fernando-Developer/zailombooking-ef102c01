@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { MessageSquare, Send, Users, MessageCircle, Loader2, Search } from "lucide-react";
+import { MessageSquare, Send, Users, MessageCircle, Loader2, Search, Plus, PenSquare } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
