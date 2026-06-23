@@ -11,6 +11,19 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
+-- 0) Garantir valores necessários no enum employee_role
+--    IMPORTANTE: ALTER TYPE ADD VALUE precisa ser commitado ANTES
+--    de ser usado. Execute este bloco SEPARADAMENTE primeiro, depois
+--    rode o restante do arquivo.
+-- ---------------------------------------------------------------------
+ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'rh';
+ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'marketing';
+ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'supervisor';
+
+COMMIT;
+BEGIN;
+
+-- ---------------------------------------------------------------------
 -- 1) Helper: usuário pode usar o chat na empresa?
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.user_can_chat(_user_id UUID, _company_id UUID)
