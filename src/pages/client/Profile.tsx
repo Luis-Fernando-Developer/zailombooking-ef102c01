@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/ClientSidebar";
+import { ClientNotificationsBell } from "@/components/client/ClientNotificationsBell";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatCPF, cleanCPF, validateCPF } from "@/lib/cpfValidation";
@@ -240,6 +241,9 @@ export default function ClientProfile() {
           <div className="flex flex-col">
             <h1 className="text-xl font-bold text-gradient">Meu Perfil</h1>
             <p className="text-xs text-muted-foreground">Gerencie seus dados e privacidade</p>
+          </div>
+          <div className="ml-auto">
+            <ClientNotificationsBell companyId={company?.id} />
           </div>
         </header>
 
