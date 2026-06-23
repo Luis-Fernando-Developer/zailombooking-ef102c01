@@ -89,6 +89,18 @@ Deno.serve(async (req) => {
       .from('requests').update(patch).eq('id', request_id).select('*').single();
     if (updErr) throw updErr;
 
+    const scheduleId = reqRow.request_type === 'schedule_change'
+      ? reqRow.request_payload?.schedule_id
+      : null;
+    if (decision === 'request_revision' && scheduleId) {
+      await supabase.from('schedules').update({
+        status: 'revision_requested',
+        revision_requested_by: user.id,
+        revision_requested_at: new Date().toISOString(),
+        revision_reason: comment ?? null,
+      }).eq('id', scheduleId).eq('tenant_id', reqRow.tenant_id);
+    }
+
     await supabase.from('request_audit_log').insert({
       request_id, tenant_id: reqRow.tenant_id, actor_id: user.id, actor_role,
       action: decision, old_values: reqRow, new_values: updated,
