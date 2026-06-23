@@ -82,7 +82,7 @@ const App = () => (
             <Route path="/:slug/admin/horarios" element={<RequireBusinessAuth><BusinessSchedule /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/solicitacoes" element={<RequireBusinessAuth><BusinessSolicitacoes /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/notificacoes" element={<RequireBusinessAuth><BusinessNotifications /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/bate-papo" element={<RequireBusinessAuth><BusinessChat /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/bate-papo" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor','rh','marketing']}><BusinessChat /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/marketing" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','rh','marketing','designer']}><BusinessMarketing /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug" element={<CompanyLandingPage />} />
             <Route path="/:slug/agendar" element={<ClientBooking />} />
