@@ -503,3 +503,53 @@ function ContactRow({
     </button>
   );
 }
+
+function ChatComposer({
+  value,
+  onChange,
+  onKeyDown,
+  onSend,
+  disabled,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onSend: () => void;
+  disabled: boolean;
+  placeholder: string;
+}) {
+  return (
+    <div className="border-t p-3">
+      <div className="flex items-end gap-2 rounded-full border bg-background px-2 py-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-full shrink-0 text-muted-foreground"
+          aria-label="Anexar"
+        >
+          <Plus className="w-4 h-4" />
+        </Button>
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={placeholder}
+          rows={1}
+          className="flex-1 min-h-[32px] max-h-[140px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1 py-1 text-sm"
+        />
+        <Button
+          type="button"
+          onClick={onSend}
+          disabled={disabled}
+          size="icon"
+          className="h-8 w-8 rounded-full shrink-0"
+          aria-label="Enviar"
+        >
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
