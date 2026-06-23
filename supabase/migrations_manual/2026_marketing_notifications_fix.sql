@@ -129,7 +129,7 @@ BEGIN
         OR (
           _campaign.audience_type = 'segmented'
           AND (
-            NOT COALESCE(_campaign.audience_filters, '{}'::jsonb) ? 'role'
+            NOT (COALESCE(_campaign.audience_filters, '{}'::jsonb) ? 'role')
             OR e.role::text = COALESCE(_campaign.audience_filters, '{}'::jsonb)->>'role'
           )
         )
