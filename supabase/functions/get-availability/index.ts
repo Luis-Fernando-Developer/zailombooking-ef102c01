@@ -302,7 +302,19 @@ serve(async (req) => {
         return (sStart < bEnd && sEnd > bStart)
       })
 
-      if (!isBooked && !isBlocked) {
+      // Bloqueio por employee_breaks (fixa) ou janela (flexível)
+      const isInEmployeeBreak = activeBreaks.some((b: any) => {
+        const s = b.break_type === 'fixed' ? b.start_time : b.window_start
+        const e = b.break_type === 'fixed' ? b.end_time : b.window_end
+        if (!s || !e) return false
+        const sNorm = normalizeTime(s) ?? s.substring(0, 5)
+        const eNorm = normalizeTime(e) ?? e.substring(0, 5)
+        const slotEndFormatted = new Date(current.getTime() + duration * 60000)
+          .toTimeString().substring(0, 5)
+        return currentFormatted < eNorm && slotEndFormatted > sNorm
+      })
+
+      if (!isBooked && !isBlocked && !isInEmployeeBreak) {
         slots.push(currentFormatted)
       }
 
