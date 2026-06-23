@@ -262,7 +262,7 @@ serve(async (req) => {
 
       // Check if slot is in the past
       if (date === today && current.getTime() <= now.getTime()) {
-        current = new Date(current.getTime() + 30 * 60000)
+        current = new Date(current.getTime() + stepMin * 60000)
         continue
       }
 
