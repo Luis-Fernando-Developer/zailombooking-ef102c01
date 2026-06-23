@@ -11,6 +11,27 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
+-- 0) Garantir valores necessários no enum employee_role
+-- ---------------------------------------------------------------------
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'employee_role') THEN
+    BEGIN
+      ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'rh';
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+    BEGIN
+      ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'marketing';
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+    BEGIN
+      ALTER TYPE public.employee_role ADD VALUE IF NOT EXISTS 'supervisor';
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------
 -- 1) Helper: usuário pode usar o chat na empresa?
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.user_can_chat(_user_id UUID, _company_id UUID)
