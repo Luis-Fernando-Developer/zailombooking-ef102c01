@@ -224,6 +224,19 @@ serve(async (req) => {
       .gte('start_time', `${date}T00:00:00`)
       .lte('start_time', `${date}T23:59:59`)
 
+    // 6.1 Employee breaks (fixed) — bloqueiam slots por dia da semana
+    const dayOfWeek = new Date(`${date}T00:00:00`).getUTCDay()
+    const { data: empBreaks } = await supabaseClient
+      .from('employee_breaks')
+      .select('break_type, start_time, end_time, window_start, window_end, weekdays')
+      .eq('company_id', companyId)
+      .eq('employee_id', employeeId)
+
+    const activeBreaks = (empBreaks ?? []).filter((b: any) =>
+      Array.isArray(b.weekdays) && b.weekdays.includes(dayOfWeek)
+    )
+
+
     // 7. Generate slots
     const slots = []
     let current = new Date(`${date}T${startTime}`)
@@ -289,7 +302,19 @@ serve(async (req) => {
         return (sStart < bEnd && sEnd > bStart)
       })
 
-      if (!isBooked && !isBlocked) {
+      // Bloqueio por employee_breaks (fixa) ou janela (flexível)
+      const isInEmployeeBreak = activeBreaks.some((b: any) => {
+        const s = b.break_type === 'fixed' ? b.start_time : b.window_start
+        const e = b.break_type === 'fixed' ? b.end_time : b.window_end
+        if (!s || !e) return false
+        const sNorm = normalizeTime(s) ?? s.substring(0, 5)
+        const eNorm = normalizeTime(e) ?? e.substring(0, 5)
+        const slotEndFormatted = new Date(current.getTime() + duration * 60000)
+          .toTimeString().substring(0, 5)
+        return currentFormatted < eNorm && slotEndFormatted > sNorm
+      })
+
+      if (!isBooked && !isBlocked && !isInEmployeeBreak) {
         slots.push(currentFormatted)
       }
 

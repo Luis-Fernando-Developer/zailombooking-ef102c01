@@ -15,7 +15,8 @@ import { BlockedSlotsManager } from "@/components/business/schedule/BlockedSlots
 import { SchedulesList } from "@/components/business/schedule/SchedulesList";
 import { ScheduleTemplatesManager } from "@/components/business/schedule/ScheduleTemplatesManager";
 import { ScheduleCycleConfig } from "@/components/business/schedule/ScheduleCycleConfig";
-import { Clock, Users, Calendar, Settings, UserX, Ban, CalendarRange } from "lucide-react";
+import { BreaksManager } from "@/components/business/schedule/BreaksManager";
+import { Clock, Users, Calendar, Settings, UserX, Ban, CalendarRange, Coffee } from "lucide-react";
 
 interface Company {
   id: string;
@@ -106,6 +107,8 @@ export default function BusinessSchedule() {
   const canSeeBlocked = isManager || isSupervisor;
   const canSeeRules = isManager;
   const canSeeScales = isManager;
+  const canSeeBreaks = isManager || isSupervisor;
+  const canManageBreaks = isManager || isSupervisor;
 
   const defaultTab = canSeeBusinessHours
     ? 'business-hours'
@@ -115,7 +118,7 @@ export default function BusinessSchedule() {
     ? 'fixed-schedules'
     : 'autonomous';
 
-  const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeScales, canSeeRules].filter(Boolean).length;
+  const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeScales, canSeeBreaks, canSeeRules].filter(Boolean).length;
 
   // Layout dedicado para Supervisor (Encarregado)
   if (isSupervisor) {
@@ -135,7 +138,7 @@ export default function BusinessSchedule() {
           </div>
 
           <Tabs defaultValue="fixed-schedules" className="w-full">
-            <TabsList className="grid lg:w-full items-center justify-center h-full" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
+            <TabsList className="grid lg:w-full items-center justify-center h-full" style={{ gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }}>
               <TabsTrigger value="fixed-schedules" className="flex items-center gap-2">
                 <Users className="w-4 h-full" />
                 <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Fixos</span>
@@ -156,6 +159,10 @@ export default function BusinessSchedule() {
                 <Settings className="w-4 h-full" />
                 <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Escalas</span>
               </TabsTrigger>
+              <TabsTrigger value="breaks" className="flex items-center gap-2">
+                <Coffee className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Intervalos</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="fixed-schedules" className="mt-6">
@@ -172,6 +179,9 @@ export default function BusinessSchedule() {
             </TabsContent>
             <TabsContent value="scales" className="mt-6">
               <SchedulesList tenantId={company.id} canManage={true} />
+            </TabsContent>
+            <TabsContent value="breaks" className="mt-6">
+              <BreaksManager companyId={company.id} canManage={true} />
             </TabsContent>
           </Tabs>
         </div>
@@ -232,6 +242,12 @@ export default function BusinessSchedule() {
                 <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Escalas</span>
               </TabsTrigger>
             )}
+            {canSeeBreaks && (
+              <TabsTrigger value="breaks" className="flex items-center gap-2">
+                <Coffee className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Intervalos</span>
+              </TabsTrigger>
+            )}
             {canSeeRules && (
               <TabsTrigger value="rules" className="flex items-center gap-2">
                 <Settings className="w-4 h-full" />
@@ -281,6 +297,12 @@ export default function BusinessSchedule() {
               <ScheduleCycleConfig tenantId={company.id} />
               <ScheduleTemplatesManager tenantId={company.id} />
               <SchedulesList tenantId={company.id} canManage={true} />
+            </TabsContent>
+          )}
+
+          {canSeeBreaks && (
+            <TabsContent value="breaks" className="mt-6">
+              <BreaksManager companyId={company.id} canManage={canManageBreaks} />
             </TabsContent>
           )}
 
