@@ -34,6 +34,7 @@ import BusinessSchedule from "./pages/business/Schedule";
 import BusinessSolicitacoes from "./pages/business/Solicitacoes";
 import BusinessNotifications from "./pages/business/Notifications";
 import BusinessChat from "./pages/business/Chat";
+import BusinessMarketing from "./pages/business/Marketing";
 import ClientBooking from "./pages/client/Booking";
 import ClientLogin from "./pages/client/Login";
 import ClientSignup from "./pages/client/Signup";
