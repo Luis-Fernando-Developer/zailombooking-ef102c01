@@ -209,6 +209,23 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
               </div>
             </div>
 
+            {form.placements.length > 0 && (
+              <div className="space-y-3 border rounded p-3 bg-muted/30">
+                <Label className="text-sm font-semibold">Personalização por publicação</Label>
+                {form.placements.map((p) => (
+                  <PlacementConfigEditor
+                    key={p}
+                    placement={p}
+                    label={PLACEMENTS.find((x) => x.v === p)?.l ?? p}
+                    value={form.placement_config[p] ?? {}}
+                    onChange={(patch) => updatePlacementCfg(p, patch)}
+                  />
+                ))}
+              </div>
+            )}
+
+
+
             <div>
               <Label>Público</Label>
               <Select value={form.audience_type} onValueChange={(v) => setForm({ ...form, audience_type: v })}>
