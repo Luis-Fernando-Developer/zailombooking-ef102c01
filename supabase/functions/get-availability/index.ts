@@ -204,6 +204,14 @@ serve(async (req) => {
       .eq('employee_id', employeeId)
       .eq('booking_date', date)
 
+    if (bookingsError) {
+      console.error('Error loading bookings for availability:', bookingsError)
+      return new Response(JSON.stringify({ slots: [], error: 'Could not validate existing bookings' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
+
     console.log(`Found ${bookings?.length || 0} active bookings for ${date}:`, JSON.stringify(bookings))
 
 
