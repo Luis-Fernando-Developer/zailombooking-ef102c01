@@ -224,6 +224,19 @@ serve(async (req) => {
       .gte('start_time', `${date}T00:00:00`)
       .lte('start_time', `${date}T23:59:59`)
 
+    // 6.1 Employee breaks (fixed) — bloqueiam slots por dia da semana
+    const dayOfWeek = new Date(`${date}T00:00:00`).getUTCDay()
+    const { data: empBreaks } = await supabaseClient
+      .from('employee_breaks')
+      .select('break_type, start_time, end_time, window_start, window_end, weekdays')
+      .eq('company_id', companyId)
+      .eq('employee_id', employeeId)
+
+    const activeBreaks = (empBreaks ?? []).filter((b: any) =>
+      Array.isArray(b.weekdays) && b.weekdays.includes(dayOfWeek)
+    )
+
+
     // 7. Generate slots
     const slots = []
     let current = new Date(`${date}T${startTime}`)
