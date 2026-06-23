@@ -14,7 +14,7 @@ import { Plus, Send, Ban } from "lucide-react";
 import {
   listCampaigns, listMaterials, createCampaign, updateCampaign,
   setCampaignMaterials, submitCampaignForApproval, revokeCampaign,
-  type MarketingCampaign,
+  type MarketingCampaign, type PlacementConfig, type PlacementCTA,
 } from "@/lib/api/marketing";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -32,6 +32,8 @@ const PLACEMENTS = [
   { v: 'client_area', l: 'Área do Cliente' },
   { v: 'employee_area', l: 'Área do Colaborador' },
   { v: 'notifications', l: 'Notificações internas' },
+  { v: 'whatsapp', l: 'WhatsApp (em breve)' },
+  { v: 'sms', l: 'SMS (em breve)' },
 ];
 
 const AUDIENCES = [
@@ -54,6 +56,7 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
     placements: [] as string[],
     audience_type: 'all',
     audience_filters: '{}',
+    placement_config: {} as PlacementConfig,
   });
 
   const campsQ = useQuery({ queryKey: ['mkt-campaigns', companyId], queryFn: () => listCampaigns(companyId) });
@@ -61,8 +64,15 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
   const approvedMaterials = (matsQ.data ?? []).filter((m) => m.status === 'approved');
 
   const reset = () => {
-    setForm({ name: "", description: "", objective: "", start_at: "", end_at: "", placements: [], audience_type: 'all', audience_filters: '{}' });
+    setForm({ name: "", description: "", objective: "", start_at: "", end_at: "", placements: [], audience_type: 'all', audience_filters: '{}', placement_config: {} });
     setSelectedMaterials([]); setEditing(null);
+  };
+
+  const updatePlacementCfg = (p: string, patch: Partial<PlacementCTA>) => {
+    setForm((f) => ({
+      ...f,
+      placement_config: { ...f.placement_config, [p]: { ...(f.placement_config[p] ?? {}), ...patch } },
+    }));
   };
 
   const saveMut = useMutation({
