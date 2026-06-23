@@ -60,23 +60,28 @@ Deno.serve(async (req) => {
 
     targetUserIds = Array.from(new Set(targetUserIds));
 
-    // Tenta inserir em company_notifications (estrutura genérica)
+    // Insere em company_notifications usando o schema real
+    // (target_user_id + type obrigatório).
     let inserted = 0;
     try {
       const rows = targetUserIds.map((uid) => ({
         company_id: camp.company_id,
-        user_id: uid,
+        target_user_id: uid,
+        type: 'marketing',
         title: parsed.data.title,
         message: parsed.data.message,
-        category: 'marketing',
-        scheduled_at: parsed.data.scheduleAt ?? null,
-        metadata: { campaign_id: camp.id, campaign_name: camp.name },
+        metadata: {
+          campaign_id: camp.id,
+          campaign_name: camp.name,
+          scheduled_at: parsed.data.scheduleAt ?? null,
+        },
       }));
       if (rows.length > 0) {
         const { error } = await supabase.from('company_notifications').insert(rows);
-        if (!error) inserted = rows.length;
+        if (error) console.error('marketing-notify insert error', error);
+        else inserted = rows.length;
       }
-    } catch (_) { /* tabela pode não existir */ }
+    } catch (e) { console.error('marketing-notify insert exception', e); }
 
     await supabase.from('marketing_history').insert({
       company_id: camp.company_id, entity_type: 'notification', entity_id: camp.id,
