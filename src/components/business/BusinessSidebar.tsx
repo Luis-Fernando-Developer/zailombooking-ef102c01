@@ -26,6 +26,7 @@ import {
   MessageSquare,
   Inbox,
   Bell,
+  Megaphone,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -47,6 +48,7 @@ const menuItems: MenuItem[] = [
   { title: "Solicitações", url: "/admin/solicitacoes", icon: Inbox },
   { title: "Notificações", url: "/admin/notificacoes", icon: Bell },
   { title: "Bate-papo", url: "/admin/bate-papo", icon: MessageSquare },
+  { title: "Marketing", url: "/admin/marketing", icon: Megaphone },
   {
     title: "Chatbot",
     url: "/admin/chatbot/integracao",
@@ -62,11 +64,14 @@ const menuItems: MenuItem[] = [
 // Matriz única de permissões por role (fonte da verdade global)
 // Usada também por outras superfícies (botões de ação) via getMenuAccess()
 const ROLE_MENU_ACCESS: Record<string, string[]> = {
-  owner:         ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Chatbot", "Configurações"],
-  manager:       ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Chatbot", "Configurações"],
+  owner:         ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Configurações"],
+  manager:       ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Configurações"],
   supervisor:    ["Dashboard", "Agendamentos", "Horários", "Colaboradores", "Solicitações", "Notificações", "Bate-papo"],
   receptionist:  ["Dashboard", "Agendamentos", "Horários", "Solicitações", "Notificações", "Bate-papo"],
   employee:      ["Dashboard", "Agendamentos", "Horários", "Solicitações", "Notificações", "Bate-papo"],
+  rh:            ["Dashboard", "Notificações", "Bate-papo", "Marketing"],
+  marketing:     ["Dashboard", "Notificações", "Bate-papo", "Marketing"],
+  designer:      ["Dashboard", "Notificações", "Bate-papo", "Marketing"],
 };
 
 export function getAllowedMenusForRole(role: string): string[] {

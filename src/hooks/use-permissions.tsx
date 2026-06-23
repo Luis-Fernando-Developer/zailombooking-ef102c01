@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
 
-export type UserRole = 'owner' | 'manager' | 'supervisor' | 'receptionist' | 'employee';
+export type UserRole = 'owner' | 'manager' | 'supervisor' | 'receptionist' | 'employee' | 'rh' | 'marketing' | 'designer';
 
 export interface PermissionLevel {
   // Gestão de funcionários
