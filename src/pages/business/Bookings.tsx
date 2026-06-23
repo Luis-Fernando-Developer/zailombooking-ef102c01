@@ -58,6 +58,8 @@ interface Company {
 
 export default function BusinessBookings() {
   const { slug } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusBookingId = searchParams.get("bookingId");
   const [company, setCompany] = useState<any>(null);
   const [employee, setEmployee] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -80,7 +82,7 @@ export default function BusinessBookings() {
 
   useEffect(() => {
     applyFilters();
-  }, [bookings, filters]);
+  }, [bookings, filters, focusBookingId]);
 
   async function fetchData() {
     console.log('fetchData chamado');
@@ -217,7 +219,16 @@ export default function BusinessBookings() {
         booking.employee?.name?.toLowerCase().includes(searchLower)
       );
     }
+    if (focusBookingId) {
+      filtered = filtered.filter((booking) => booking.id === focusBookingId);
+    }
     setFilteredBookings(filtered);
+  };
+
+  const clearBookingFocus = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("bookingId");
+    setSearchParams(next, { replace: true });
   };
 
   const updateBookingStatus = async (bookingId: string, status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show') => {
