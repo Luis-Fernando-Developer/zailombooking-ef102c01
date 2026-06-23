@@ -620,6 +620,10 @@ export default function CustomLandingPage() {
 
       {/* Main Content */}
       <div style={customization?.header_position === 'fixed' ? {paddingTop: headerHeight} : {}}>
+        {/* Banners de campanhas de marketing (hero / carrossel) */}
+        <CampaignHeroBanner companyId={company?.id} />
+        <CampaignHeroCarousel companyId={company?.id} />
+
         {/* Hero Section with Custom Styling */}
         <section className={`relative ${customization?.hero_content_position === 'absolute' ? 'h-[500px]' : ''} flex ${customization?.hero_content_position === 'below' ? 'flex-col' : customization?.hero_content_position === 'above' ? 'flex-col-reverse' : 'items-center justify-center'} overflow-hidden ${customization?.hero_background_type ? 'hero-custom-bg' : 'bg-gradient-hero'}`}>
           {/* Background Elements */}
