@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { BusinessLayout } from "@/components/business/BusinessLayout";
 
 const CHAT_ROLES = ["owner", "manager", "supervisor", "rh", "marketing"] as const;
 const BUCKET = "chat-attachments";
@@ -82,6 +83,8 @@ export default function Chat() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string>("");
+  const [myRole, setMyRole] = useState<string>("");
   const [members, setMembers] = useState<Member[]>([]);
   const [generalMessages, setGeneralMessages] = useState<ChatMessage[]>([]);
   const [dmMessages, setDmMessages] = useState<ChatMessage[]>([]);
@@ -104,15 +107,19 @@ export default function Chat() {
     async function load() {
       if (!user || !slug) return;
       const { data: company } = await supabase
-        .from("companies").select("id, owner_email").eq("slug", slug).maybeSingle();
+        .from("companies").select("id, name, slug, owner_email").eq("slug", slug).maybeSingle();
       if (!mounted || !company) { setLoading(false); return; }
       setCompanyId(company.id);
+      setCompanyName((company as any).name || "");
 
       const { data: emps } = await supabase
         .from("employees")
         .select("user_id, name, role, avatar_url, internal_job_title")
         .eq("company_id", company.id)
         .in("role", CHAT_ROLES as unknown as string[]);
+
+      const me = (emps || []).find((e: any) => e.user_id === user.id);
+      if (me) setMyRole((me as any).role);
 
       const list: Member[] = (emps || [])
         .filter((e: any) => e.user_id)
@@ -336,13 +343,16 @@ export default function Chat() {
 
   if (loading) {
     return (
-      <div className="container max-w-6xl mx-auto p-6 flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <BusinessLayout companySlug={slug || ""} companyName={companyName} companyId={companyId || undefined} userRole={myRole} currentUser={user}>
+        <div className="container max-w-6xl mx-auto p-6 flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </BusinessLayout>
     );
   }
 
   return (
+    <BusinessLayout companySlug={slug || ""} companyName={companyName} companyId={companyId || undefined} userRole={myRole} currentUser={user}>
     <div className="container max-w-6xl mx-auto p-4 sm:p-6">
       <header className="mb-4 flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -585,6 +595,7 @@ export default function Chat() {
         </TabsContent>
       </Tabs>
     </div>
+    </BusinessLayout>
   );
 }
 
