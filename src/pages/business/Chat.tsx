@@ -83,6 +83,8 @@ export default function Chat() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string>("");
+  const [myRole, setMyRole] = useState<string>("");
   const [members, setMembers] = useState<Member[]>([]);
   const [generalMessages, setGeneralMessages] = useState<ChatMessage[]>([]);
   const [dmMessages, setDmMessages] = useState<ChatMessage[]>([]);
