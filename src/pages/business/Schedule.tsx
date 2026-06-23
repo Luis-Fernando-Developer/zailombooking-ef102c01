@@ -15,7 +15,8 @@ import { BlockedSlotsManager } from "@/components/business/schedule/BlockedSlots
 import { SchedulesList } from "@/components/business/schedule/SchedulesList";
 import { ScheduleTemplatesManager } from "@/components/business/schedule/ScheduleTemplatesManager";
 import { ScheduleCycleConfig } from "@/components/business/schedule/ScheduleCycleConfig";
-import { Clock, Users, Calendar, Settings, UserX, Ban, CalendarRange } from "lucide-react";
+import { BreaksManager } from "@/components/business/schedule/BreaksManager";
+import { Clock, Users, Calendar, Settings, UserX, Ban, CalendarRange, Coffee } from "lucide-react";
 
 interface Company {
   id: string;
