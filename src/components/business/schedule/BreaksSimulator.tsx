@@ -36,6 +36,22 @@ export function BreaksSimulator({ companyId, employees, breaks, canManage }: Pro
   const [minCoverage, setMinCoverage] = useState(1);
   const [assignments, setAssignments] = useState<FlexAssignment[] | null>(null);
 
+  // Lê a "Duração do Slot" configurada em Regras → vincula a granularidade da simulação.
+  const settingsQuery = useQuery({
+    queryKey: ["company-schedule-settings", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_schedule_settings")
+        .select("slot_duration_minutes")
+        .eq("company_id", companyId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+  const slotMin = settingsQuery.data?.slot_duration_minutes ?? 30;
+
   const employeeIds = useMemo(() => employees.map((e) => e.id), [employees]);
   const empName = useMemo(
     () => new Map(employees.map((e) => [e.id, e.name])),
@@ -51,10 +67,10 @@ export function BreaksSimulator({ companyId, employees, breaks, canManage }: Pro
         dayStart,
         dayEnd,
         weekday,
-        stepMin: 30,
+        stepMin: slotMin,
         minCoverage,
       }),
-    [employeeIds, breaks, assignments, dayStart, dayEnd, weekday, minCoverage],
+    [employeeIds, breaks, assignments, dayStart, dayEnd, weekday, slotMin, minCoverage],
   );
 
   const peak = useMemo(
