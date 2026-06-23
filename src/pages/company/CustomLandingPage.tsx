@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Divide as Hamburger } from 'hamburger-react';
 import { custom } from "zod";
 // ChatWidget removido — o chatbot agora é gerenciado pelo builder externo (TalkMap).
+import { CampaignTopBar, CampaignPopup, CampaignHeroBanner, CampaignHeroCarousel } from "@/components/marketing/CampaignSlots";
 
 interface CustomizationData {
   company_id: string;
