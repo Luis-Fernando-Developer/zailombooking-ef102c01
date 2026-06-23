@@ -28,6 +28,26 @@ export interface MarketingMaterial {
   updated_at: string;
 }
 
+export interface PlacementCTA {
+  url?: string;
+  label?: string;
+  // top_bar / popup
+  bg?: string;
+  fg?: string;
+  font?: string;
+  fontSize?: number;
+  btnBg?: string;
+  btnFg?: string;
+  countdownEnd?: string; // ISO date
+  countdownPrefix?: string; // "Termina em"
+  // hero / hero_carousel
+  buttonPosition?: 'footer' | 'full';
+  // whatsapp / sms
+  phone?: string;
+  message?: string;
+}
+export type PlacementConfig = Partial<Record<string, PlacementCTA>>;
+
 export interface MarketingCampaign {
   id: string;
   company_id: string;
@@ -38,6 +58,7 @@ export interface MarketingCampaign {
   start_at: string | null;
   end_at: string | null;
   placements: string[];
+  placement_config: PlacementConfig;
   audience_type: string;
   audience_filters: Record<string, unknown>;
   approver_targets: string[];
@@ -50,6 +71,33 @@ export interface MarketingCampaign {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export async function trackCampaignClick(params: {
+  campaignId: string;
+  companyId: string;
+  placement: string;
+  url?: string | null;
+}) {
+  try {
+    const { data: userRes } = await supabase.auth.getUser();
+    let anonSession = localStorage.getItem('mkt-anon-session');
+    if (!anonSession) {
+      anonSession = crypto.randomUUID();
+      localStorage.setItem('mkt-anon-session', anonSession);
+    }
+    await supabase.from('marketing_campaign_clicks').insert({
+      campaign_id: params.campaignId,
+      company_id: params.companyId,
+      placement: params.placement,
+      url: params.url ?? null,
+      user_id: userRes.user?.id ?? null,
+      anon_session: anonSession,
+      user_agent: navigator.userAgent.slice(0, 255),
+    });
+  } catch (e) {
+    console.warn('[trackCampaignClick]', e);
+  }
 }
 
 export interface MarketingApproval {

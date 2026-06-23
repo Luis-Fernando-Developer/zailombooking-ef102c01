@@ -14,9 +14,10 @@ import { Plus, Send, Ban } from "lucide-react";
 import {
   listCampaigns, listMaterials, createCampaign, updateCampaign,
   setCampaignMaterials, submitCampaignForApproval, revokeCampaign,
-  type MarketingCampaign,
+  type MarketingCampaign, type PlacementConfig, type PlacementCTA,
 } from "@/lib/api/marketing";
 import { supabase } from "@/lib/supabaseClient";
+import { PlacementConfigEditor } from "./PlacementConfigEditor";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho", pending_approval: "Em aprovação", approved: "Aprovada",
@@ -32,6 +33,8 @@ const PLACEMENTS = [
   { v: 'client_area', l: 'Área do Cliente' },
   { v: 'employee_area', l: 'Área do Colaborador' },
   { v: 'notifications', l: 'Notificações internas' },
+  { v: 'whatsapp', l: 'WhatsApp (em breve)' },
+  { v: 'sms', l: 'SMS (em breve)' },
 ];
 
 const AUDIENCES = [
@@ -54,6 +57,7 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
     placements: [] as string[],
     audience_type: 'all',
     audience_filters: '{}',
+    placement_config: {} as PlacementConfig,
   });
 
   const campsQ = useQuery({ queryKey: ['mkt-campaigns', companyId], queryFn: () => listCampaigns(companyId) });
@@ -61,8 +65,15 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
   const approvedMaterials = (matsQ.data ?? []).filter((m) => m.status === 'approved');
 
   const reset = () => {
-    setForm({ name: "", description: "", objective: "", start_at: "", end_at: "", placements: [], audience_type: 'all', audience_filters: '{}' });
+    setForm({ name: "", description: "", objective: "", start_at: "", end_at: "", placements: [], audience_type: 'all', audience_filters: '{}', placement_config: {} });
     setSelectedMaterials([]); setEditing(null);
+  };
+
+  const updatePlacementCfg = (p: string, patch: Partial<PlacementCTA>) => {
+    setForm((f) => ({
+      ...f,
+      placement_config: { ...f.placement_config, [p]: { ...(f.placement_config[p] ?? {}), ...patch } },
+    }));
   };
 
   const saveMut = useMutation({
@@ -78,6 +89,7 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
         start_at: form.start_at ? new Date(form.start_at).toISOString() : null,
         end_at: form.end_at ? new Date(form.end_at).toISOString() : null,
         placements: form.placements,
+        placement_config: form.placement_config,
         audience_type: form.audience_type,
         audience_filters: af,
       };
@@ -197,6 +209,23 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
                 ))}
               </div>
             </div>
+
+            {form.placements.length > 0 && (
+              <div className="space-y-3 border rounded p-3 bg-muted/30">
+                <Label className="text-sm font-semibold">Personalização por publicação</Label>
+                {form.placements.map((p) => (
+                  <PlacementConfigEditor
+                    key={p}
+                    placement={p}
+                    label={PLACEMENTS.find((x) => x.v === p)?.l ?? p}
+                    value={form.placement_config[p] ?? {}}
+                    onChange={(patch) => updatePlacementCfg(p, patch)}
+                  />
+                ))}
+              </div>
+            )}
+
+
 
             <div>
               <Label>Público</Label>
