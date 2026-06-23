@@ -343,13 +343,16 @@ export default function Chat() {
 
   if (loading) {
     return (
-      <div className="container max-w-6xl mx-auto p-6 flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <BusinessLayout companySlug={slug || ""} companyName={companyName} companyId={companyId || undefined} userRole={myRole} currentUser={user}>
+        <div className="container max-w-6xl mx-auto p-6 flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </BusinessLayout>
     );
   }
 
   return (
+    <BusinessLayout companySlug={slug || ""} companyName={companyName} companyId={companyId || undefined} userRole={myRole} currentUser={user}>
     <div className="container max-w-6xl mx-auto p-4 sm:p-6">
       <header className="mb-4 flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold flex items-center gap-2">
