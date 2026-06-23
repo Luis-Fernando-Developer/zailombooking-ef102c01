@@ -12,7 +12,7 @@ import {
   fetchComments, fetchAudit, decideRequest, applyRequest, addComment,
   REQUEST_TYPE_LABELS, PRIORITY_LABELS, isFinal,
 } from "@/lib/api/requests";
-import { fetchScheduleById, ScheduleRow } from "@/lib/api/schedules";
+import { ensureScheduleRevisionRequested, fetchScheduleById, ScheduleRow } from "@/lib/api/schedules";
 import { RequestStatusBadge } from "./RequestStatusBadge";
 import { ScheduleApprovalTable } from "./ScheduleApprovalTable";
 import { ScheduleMatrixEditor } from "../schedule/ScheduleMatrixEditor";
@@ -97,7 +97,9 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
     if (!scheduleId) return;
     setBusy(true);
     try {
-      const schedule = await fetchScheduleById(scheduleId, request.tenant_id);
+      const schedule =
+        await ensureScheduleRevisionRequested(scheduleId, request.tenant_id) ??
+        await fetchScheduleById(scheduleId, request.tenant_id);
       if (!schedule) throw new Error("Escala não encontrada.");
       setEditingSchedule({
         ...schedule,
