@@ -24,6 +24,7 @@ import {
   ChevronDown,
   Plug,
   MessageSquare,
+  Inbox,
   Bell,
   Megaphone,
 } from "lucide-react";
