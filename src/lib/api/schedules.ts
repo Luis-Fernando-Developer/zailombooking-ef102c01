@@ -142,6 +142,33 @@ export async function fetchSchedules(tenantId: string) {
   return (data ?? []) as ScheduleRow[];
 }
 
+export async function fetchScheduleById(scheduleId: string, tenantId?: string) {
+  let q = supabase
+    .from("schedules")
+    .select("*")
+    .eq("id", scheduleId);
+
+  if (tenantId) q = q.eq("tenant_id", tenantId);
+
+  const { data, error } = await q.maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as ScheduleRow | null;
+}
+
+export async function ensureScheduleRevisionRequested(scheduleId: string, tenantId: string) {
+  const { data, error } = await supabase
+    .from("schedules")
+    .update({ status: "revision_requested" })
+    .eq("id", scheduleId)
+    .eq("tenant_id", tenantId)
+    .eq("status", "pending_approval")
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data ?? null) as ScheduleRow | null;
+}
+
 export async function createSchedule(input: {
   tenant_id: string;
   name: string;
