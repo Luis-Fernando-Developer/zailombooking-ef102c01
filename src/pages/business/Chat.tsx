@@ -267,38 +267,41 @@ export default function Chat() {
                   Seja o primeiro a iniciar a conversa do time.
                 </div>
               ) : (
-                <ul className="space-y-4">
+                <ul className="space-y-5">
                   {generalMessages.map((m) => {
                     const sender = memberMap.get(m.sender_user_id);
                     const isSelf = sender?.is_self;
-                    return (
-                      <li key={m.id} className={cn("flex gap-3", isSelf && "flex-row-reverse")}>
-                        <Avatar className="w-9 h-9 shrink-0">
-                          {sender?.avatar_url && <AvatarImage src={sender.avatar_url} alt={sender.name} />}
-                          <AvatarFallback>{initials(sender?.name || "?")}</AvatarFallback>
-                        </Avatar>
-                        <div className={cn("max-w-[78%] min-w-0", isSelf && "items-end text-right")}>
-                          <div className={cn("flex items-baseline gap-2 mb-0.5", isSelf && "justify-end")}>
-                            <span className="text-sm font-semibold truncate">{sender?.name || "Usuário"}</span>
-                            <span className="text-[10px] text-muted-foreground">{formatTime(m.created_at)}</span>
+                    if (isSelf) {
+                      return (
+                        <li key={m.id} className="flex justify-end">
+                          <div className="max-w-[78%] inline-block rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words">
+                            <div>{m.content}</div>
+                            <div className="text-[10px] mt-1 opacity-70 text-right">{formatTime(m.created_at)}</div>
                           </div>
-                          {sender && (
-                            <div className={cn("text-xs text-muted-foreground mb-1", isSelf && "justify-end flex")}>
-                              <Badge variant="secondary" className="font-normal">
-                                {ROLE_LABEL[sender.role] || sender.role}
-                                {sender.job_title ? ` · ${sender.job_title}` : ""}
-                              </Badge>
+                        </li>
+                      );
+                    }
+                    return (
+                      <li key={m.id} className="flex justify-start">
+                        <div className="max-w-[78%] min-w-0 space-y-1.5">
+                          {/* Cartão identificação */}
+                          <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-2.5 py-1.5 w-fit">
+                            <Avatar className="w-8 h-8 shrink-0">
+                              {sender?.avatar_url && <AvatarImage src={sender.avatar_url} alt={sender.name} />}
+                              <AvatarFallback className="text-xs">{initials(sender?.name || "?")}</AvatarFallback>
+                            </Avatar>
+                            <div className="leading-tight min-w-0">
+                              <div className="text-sm font-semibold truncate">{sender?.name || "Usuário"}</div>
+                              <div className="text-[11px] text-muted-foreground truncate">
+                                {sender ? (ROLE_LABEL[sender.role] || sender.role) : ""}
+                                {sender?.job_title ? ` · ${sender.job_title}` : ""}
+                              </div>
                             </div>
-                          )}
-                          <div
-                            className={cn(
-                              "inline-block rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words",
-                              isSelf
-                                ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                : "bg-muted text-foreground rounded-tl-sm"
-                            )}
-                          >
-                            {m.content}
+                          </div>
+                          {/* Balão */}
+                          <div className="inline-block rounded-2xl rounded-tl-sm bg-muted text-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words">
+                            <div>{m.content}</div>
+                            <div className="text-[10px] mt-1 opacity-70 text-right">{formatTime(m.created_at)}</div>
                           </div>
                         </div>
                       </li>
@@ -308,19 +311,14 @@ export default function Chat() {
                 </ul>
               )}
             </ScrollArea>
-            <div className="border-t p-3 flex items-end gap-2">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder="Escreva uma mensagem para a equipe..."
-                rows={1}
-                className="min-h-[40px] max-h-[140px] resize-none"
-              />
-              <Button onClick={handleSend} disabled={sending || !input.trim()} size="icon">
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
+            <ChatComposer
+              value={input}
+              onChange={setInput}
+              onKeyDown={onKeyDown}
+              onSend={handleSend}
+              disabled={sending || !input.trim()}
+              placeholder="Escreva uma mensagem para a equipe..."
+            />
           </div>
         </TabsContent>
 
