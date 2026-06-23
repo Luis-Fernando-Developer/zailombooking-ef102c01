@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, Activity, Wand2, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Activity, Wand2, CheckCircle2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabaseClient";
 import type { EmployeeBreak } from "@/lib/api/breaks";
@@ -36,6 +36,22 @@ export function BreaksSimulator({ companyId, employees, breaks, canManage }: Pro
   const [minCoverage, setMinCoverage] = useState(1);
   const [assignments, setAssignments] = useState<FlexAssignment[] | null>(null);
 
+  // Lê a "Duração do Slot" configurada em Regras → vincula a granularidade da simulação.
+  const settingsQuery = useQuery({
+    queryKey: ["company-schedule-settings", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_schedule_settings")
+        .select("slot_duration_minutes")
+        .eq("company_id", companyId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+  const slotMin = settingsQuery.data?.slot_duration_minutes ?? 30;
+
   const employeeIds = useMemo(() => employees.map((e) => e.id), [employees]);
   const empName = useMemo(
     () => new Map(employees.map((e) => [e.id, e.name])),
@@ -51,10 +67,10 @@ export function BreaksSimulator({ companyId, employees, breaks, canManage }: Pro
         dayStart,
         dayEnd,
         weekday,
-        stepMin: 30,
+        stepMin: slotMin,
         minCoverage,
       }),
-    [employeeIds, breaks, assignments, dayStart, dayEnd, weekday, minCoverage],
+    [employeeIds, breaks, assignments, dayStart, dayEnd, weekday, slotMin, minCoverage],
   );
 
   const peak = useMemo(
@@ -129,8 +145,9 @@ export function BreaksSimulator({ companyId, employees, breaks, canManage }: Pro
           Simulador de cobertura & distribuição
         </CardTitle>
         <CardDescription>
-          Visualize quantos colaboradores ficam ativos a cada 30 minutos e distribua pausas
-          flexíveis automaticamente para reduzir gargalos.
+          Visualize quantos colaboradores ficam ativos a cada{" "}
+          <strong>{slotMin} min</strong> (igual à "Duração do Slot" em Regras) e distribua
+          pausas flexíveis automaticamente para reduzir gargalos.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -212,7 +229,7 @@ export function BreaksSimulator({ companyId, employees, breaks, canManage }: Pro
         ) : (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Slot (30 min)</span>
+              <span>Slot ({slotMin} min)</span>
               <span>Ativos / Escalados • Pico em pausa: {peak}</span>
             </div>
             <div className="max-h-72 overflow-y-auto rounded-md border border-border divide-y divide-border">
