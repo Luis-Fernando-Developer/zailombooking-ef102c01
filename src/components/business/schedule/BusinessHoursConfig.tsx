@@ -152,7 +152,7 @@ export function BusinessHoursConfig({ companyId }: BusinessHoursConfigProps) {
         <CardTitle>Horário de Funcionamento</CardTitle>
         <CardDescription>
           Configure os horários de abertura e fechamento do estabelecimento por dia da semana.
-          Para intervalos (ex: fecha para almoço), preencha o horário de intervalo.
+          Os intervalos dos colaboradores são gerenciados na aba <strong>Intervalos</strong>.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -196,25 +196,6 @@ export function BusinessHoursConfig({ companyId }: BusinessHoursConfigProps) {
                       />
                     </div>
 
-                    {/* Break period (optional) */}
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm text-muted-foreground">Intervalo:</Label>
-                      <Input
-                        type="time"
-                        value={hour.break_start || ""}
-                        onChange={(e) => handleHourChange(index, 'break_start', e.target.value || null)}
-                        className="w-28"
-                        placeholder="--:--"
-                      />
-                      <span className="text-muted-foreground">às</span>
-                      <Input
-                        type="time"
-                        value={hour.break_end || ""}
-                        onChange={(e) => handleHourChange(index, 'break_end', e.target.value || null)}
-                        className="w-28"
-                        placeholder="--:--"
-                      />
-                    </div>
                   </>
                 )}
 
