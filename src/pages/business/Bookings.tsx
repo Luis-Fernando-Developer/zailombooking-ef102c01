@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +58,8 @@ interface Company {
 
 export default function BusinessBookings() {
   const { slug } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusBookingId = searchParams.get("bookingId");
   const [company, setCompany] = useState<any>(null);
   const [employee, setEmployee] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -80,7 +82,7 @@ export default function BusinessBookings() {
 
   useEffect(() => {
     applyFilters();
-  }, [bookings, filters]);
+  }, [bookings, filters, focusBookingId]);
 
   async function fetchData() {
     console.log('fetchData chamado');
@@ -217,7 +219,16 @@ export default function BusinessBookings() {
         booking.employee?.name?.toLowerCase().includes(searchLower)
       );
     }
+    if (focusBookingId) {
+      filtered = filtered.filter((booking) => booking.id === focusBookingId);
+    }
     setFilteredBookings(filtered);
+  };
+
+  const clearBookingFocus = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("bookingId");
+    setSearchParams(next, { replace: true });
   };
 
   const updateBookingStatus = async (bookingId: string, status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show') => {
@@ -337,6 +348,17 @@ export default function BusinessBookings() {
             />
           )}
         </div>
+
+        {focusBookingId && (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 px-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Mostrando apenas o agendamento selecionado na notificação.
+            </p>
+            <Button size="sm" variant="outline" onClick={clearBookingFocus}>
+              Ver todos
+            </Button>
+          </div>
+        )}
 
         {/* Filters */}
         <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20 w-full">

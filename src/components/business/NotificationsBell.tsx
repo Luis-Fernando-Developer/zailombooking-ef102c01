@@ -163,7 +163,17 @@ export function NotificationsBell({ companyId, companySlug }: Props) {
     }
     if (n.link) {
       setOpen(false);
-      window.location.href = n.link;
+      // Links internos vêm como "/admin/..." ou "/business/...".
+      // Prefixamos com o slug da empresa para casar com as rotas reais
+      // ("/:slug/admin/..."). Links externos (http) passam sem alteração.
+      let href = n.link;
+      if (href.startsWith("/") && companySlug) {
+        // Evita prefixar duas vezes se já vier com slug
+        if (!href.startsWith(`/${companySlug}/`)) {
+          href = `/${companySlug}${href}`;
+        }
+      }
+      window.location.href = href;
     }
   };
 
