@@ -349,6 +349,17 @@ export default function BusinessBookings() {
           )}
         </div>
 
+        {focusBookingId && (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 px-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Mostrando apenas o agendamento selecionado na notificação.
+            </p>
+            <Button size="sm" variant="outline" onClick={clearBookingFocus}>
+              Ver todos
+            </Button>
+          </div>
+        )}
+
         {/* Filters */}
         <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20 w-full">
           <CardHeader>
