@@ -229,7 +229,7 @@ export function BreaksSimulator({ companyId, employees, breaks, canManage }: Pro
         ) : (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Slot (30 min)</span>
+              <span>Slot ({slotMin} min)</span>
               <span>Ativos / Escalados • Pico em pausa: {peak}</span>
             </div>
             <div className="max-h-72 overflow-y-auto rounded-md border border-border divide-y divide-border">
