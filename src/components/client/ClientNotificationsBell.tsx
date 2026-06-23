@@ -47,7 +47,7 @@ export function ClientNotificationsBell({ companyId }: ClientNotificationsBellPr
     try {
       const { data, error } = await supabase
         .from("company_notifications")
-        .select("id,title,message,is_read,created_at")
+        .select("id,title,message,link,is_read,created_at,metadata")
         .eq("company_id", companyId)
         .eq("target_user_id", userId)
         .order("created_at", { ascending: false })
