@@ -22,6 +22,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
+    // Cliente com o JWT do usuário — necessário para RPCs que usam auth.uid()
+    const asUser = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: `Bearer ${jwt}` } } },
+    );
+
     const { data: { user }, error: userErr } = await admin.auth.getUser(jwt);
     if (userErr || !user) return json({ error: 'invalid_token' }, 401);
 
@@ -68,17 +75,22 @@ Deno.serve(async (req) => {
       return json({ error: 'schedule_not_submittable', status: schedule.status }, 400);
     }
 
-    // Resolver destinatários
+    // Resolver destinatários (RPC depende de auth.uid() → usa cliente do usuário)
     let recipients: string[] = [];
     if (target_mode === 'levels_above') {
-      const { data: above } = await admin.rpc('list_approvers_above', { _company_id: tenant_id });
+      const { data: above } = await asUser.rpc('list_approvers_above', { _company_id: tenant_id });
       recipients = Array.from(new Set((above ?? []).map((r: any) => r.user_id))).filter(Boolean);
     } else {
-      // valida que todos são aprovadores válidos acima do criador
-      const { data: above } = await admin.rpc('list_approvers_above', { _company_id: tenant_id });
+      const { data: above } = await asUser.rpc('list_approvers_above', { _company_id: tenant_id });
       const allowed = new Set((above ?? []).map((r: any) => r.user_id));
       recipients = target_user_ids.filter((id: string) => allowed.has(id));
-      if (recipients.length === 0) return json({ error: 'no_valid_recipients' }, 400);
+      if (recipients.length === 0) {
+        return json({
+          error: 'no_valid_recipients',
+          detail: 'Os destinatários selecionados não foram reconhecidos como aprovadores acima do seu nível.',
+          debug: { allowed_count: allowed.size, requested: target_user_ids },
+        }, 400);
+      }
     }
 
     // Criar request vinculada
