@@ -170,8 +170,9 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
             <div className="space-y-1 text-xs text-muted-foreground max-h-32 overflow-auto pr-1">
               {audit.map((a) => (
                 <div key={a.id}>
-                  · {format(new Date(a.created_at), "dd/MM HH:mm", { locale: ptBR })} — <b>{a.action}</b>
-                  {a.actor_role ? ` (${a.actor_role})` : ""}
+                  · {format(new Date(a.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} — <b>{a.action}</b>
+                  {a.actor_name ? ` — ${a.actor_name}` : ""}
+                  {a.actor_profile ? ` (${a.actor_profile})` : a.actor_role ? ` (${a.actor_role})` : ""}
                 </div>
               ))}
             </div>
