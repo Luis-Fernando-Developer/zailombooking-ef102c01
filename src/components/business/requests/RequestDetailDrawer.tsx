@@ -99,7 +99,10 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
     try {
       const schedule = await fetchScheduleById(scheduleId, request.tenant_id);
       if (!schedule) throw new Error("Escala não encontrada.");
-      setEditingSchedule(schedule);
+      setEditingSchedule({
+        ...schedule,
+        status: request.status === "in_review" ? "revision_requested" : schedule.status,
+      });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
