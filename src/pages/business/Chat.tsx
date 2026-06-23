@@ -446,19 +446,15 @@ export default function Chat() {
                     )}
                   </ScrollArea>
 
-                  <div className="border-t p-3 flex items-end gap-2">
-                    <Textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={onKeyDown}
-                      placeholder={`Mensagem para ${activeContact.name.split(" ")[0]}...`}
-                      rows={1}
-                      className="min-h-[40px] max-h-[140px] resize-none"
-                    />
-                    <Button onClick={handleSend} disabled={sending || !input.trim()} size="icon">
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <ChatComposer
+                    value={input}
+                    onChange={setInput}
+                    onKeyDown={onKeyDown}
+                    onSend={handleSend}
+                    disabled={sending || !input.trim()}
+                    placeholder={`Mensagem para ${activeContact.name.split(" ")[0]}...`}
+                  />
+
                 </>
               )}
             </section>
