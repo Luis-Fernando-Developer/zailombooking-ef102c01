@@ -83,7 +83,9 @@ export default function Notifications() {
     );
   }
 
-  const role = (company.owner_email || "").toLowerCase() === (user?.email || "").toLowerCase() ? "owner" : "employee";
+  const role = (company.owner_email || "").toLowerCase() === (user?.email || "").toLowerCase()
+    ? "owner"
+    : (employeeRole ?? "employee");
 
   return (
     <BusinessLayout
