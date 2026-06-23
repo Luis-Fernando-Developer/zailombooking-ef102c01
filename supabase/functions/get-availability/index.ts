@@ -29,6 +29,20 @@ const toLocalDateTime = (date: string, time: string): number => {
   return new Date(`${date}T${time}:00`).getTime()
 }
 
+const normalizeStatus = (value: string | null | undefined): string => {
+  return String(value ?? '').toLowerCase().trim()
+}
+
+const bookingOccupiesSlot = (bookingStatus: string | null | undefined, paymentStatus: string | null | undefined): boolean => {
+  const booking = normalizeStatus(bookingStatus)
+  const payment = normalizeStatus(paymentStatus)
+  const releasedBookingStatuses = new Set(['cancelled', 'canceled', 'rejected', 'no_show'])
+  const paidPaymentStatuses = new Set(['paid', 'confirmed', 'received', 'pago', 'confirmado', 'success', 'settled', 'authorized', 'deposited', 'done'])
+
+  if (releasedBookingStatuses.has(booking)) return false
+  return booking !== '' || paidPaymentStatuses.has(payment)
+}
+
 serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
@@ -182,13 +196,13 @@ serve(async (req) => {
       endTime = empSchedule.end_time < bizHours.close_time ? empSchedule.end_time : bizHours.close_time
     }
 
-    // 5. Get existing bookings for this date (booking_date is DATE, start_time is TIME)
+    // 5. Get existing bookings for this employee/date. Status filtering is done in code
+    // to avoid PostgREST NULL semantics hiding paid/confirmed rows with empty statuses.
     const { data: bookings, error: bookingsError } = await supabaseClient
       .from('bookings')
       .select('start_time, duration_minutes, booking_status, payment_status')
       .eq('employee_id', employeeId)
       .eq('booking_date', date)
-      .not('booking_status', 'in', '(cancelled,rejected,no_show)')
 
     console.log(`Found ${bookings?.length || 0} active bookings for ${date}:`, JSON.stringify(bookings))
 
@@ -237,6 +251,8 @@ serve(async (req) => {
       }
 
       const isBooked = bookings?.some(b => {
+        if (!bookingOccupiesSlot(b.booking_status, b.payment_status)) return false
+
         // start_time may be stored either as TIME ("08:00:00") or as a timestamp
         // ("2026-07-01T08:00:00"). Normalize before checking overlap.
         const bStartStr = normalizeTime(b.start_time)
