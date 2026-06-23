@@ -242,6 +242,12 @@ export default function BusinessSchedule() {
                 <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Escalas</span>
               </TabsTrigger>
             )}
+            {canSeeBreaks && (
+              <TabsTrigger value="breaks" className="flex items-center gap-2">
+                <Coffee className="w-4 h-full" />
+                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Intervalos</span>
+              </TabsTrigger>
+            )}
             {canSeeRules && (
               <TabsTrigger value="rules" className="flex items-center gap-2">
                 <Settings className="w-4 h-full" />
@@ -291,6 +297,12 @@ export default function BusinessSchedule() {
               <ScheduleCycleConfig tenantId={company.id} />
               <ScheduleTemplatesManager tenantId={company.id} />
               <SchedulesList tenantId={company.id} canManage={true} />
+            </TabsContent>
+          )}
+
+          {canSeeBreaks && (
+            <TabsContent value="breaks" className="mt-6">
+              <BreaksManager companyId={company.id} canManage={canManageBreaks} />
             </TabsContent>
           )}
 
