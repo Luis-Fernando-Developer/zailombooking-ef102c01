@@ -134,6 +134,14 @@ BEGIN
           )
         )
       )
+
+    UNION
+
+    SELECT u.id AS user_id
+    FROM public.companies co
+    JOIN auth.users u ON lower(u.email) = lower(co.owner_email)
+    WHERE co.id = _campaign.company_id
+      AND _campaign.audience_type IN ('all', 'all_employees', 'employees')
   )
   INSERT INTO public.company_notifications (
     company_id,
