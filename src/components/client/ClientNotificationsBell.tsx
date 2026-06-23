@@ -86,14 +86,35 @@ export function ClientNotificationsBell({ companyId }: ClientNotificationsBellPr
 
   const unreadCount = useMemo(() => items.filter((item) => !item.is_read).length, [items]);
 
-  const markRead = async (id: string) => {
-    await supabase
-      .from("company_notifications")
-      .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq("id", id);
-
-    setItems((current) => current.map((item) => (item.id === id ? { ...item, is_read: true } : item)));
+  const handleOpen = async (item: ClientNotification) => {
+    if (!item.is_read) {
+      await supabase
+        .from("company_notifications")
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq("id", item.id);
+      setItems((current) => current.map((i) => (i.id === item.id ? { ...i, is_read: true } : i)));
+    }
+    const href = item.link || (item.metadata?.cta_url as string | undefined);
+    const campaignId = item.metadata?.campaign_id as string | undefined;
+    if (href && companyId && campaignId) {
+      try {
+        await supabase.from("marketing_campaign_clicks").insert({
+          campaign_id: campaignId,
+          company_id: companyId,
+          placement: "notifications",
+          url: href,
+          user_id: userId,
+          user_agent: navigator.userAgent.slice(0, 255),
+        });
+      } catch (e) { console.warn(e); }
+    }
+    if (href) {
+      if (href.startsWith("/")) window.location.href = href;
+      else window.open(href, "_blank", "noopener,noreferrer");
+    }
   };
+
+  const markRead = (id: string) => handleOpen(items.find((i) => i.id === id)!);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
