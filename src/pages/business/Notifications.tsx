@@ -24,6 +24,7 @@ export default function Notifications() {
   const { toast } = useToast();
   const [company, setCompany] = useState<{ id: string; name: string; slug: string; owner_email: string } | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [employeeRole, setEmployeeRole] = useState<string | null>(null);
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +36,11 @@ export default function Notifications() {
       const { data } = await supabase
         .from("companies").select("id,name,slug,owner_email").eq("slug", slug).single();
       setCompany((data ?? null) as any);
+      if (u && data?.id) {
+        const { data: emp } = await supabase
+          .from("employees").select("role").eq("company_id", data.id).eq("user_id", u.id).maybeSingle();
+        setEmployeeRole((emp as any)?.role ?? null);
+      }
     })();
   }, [slug]);
 
