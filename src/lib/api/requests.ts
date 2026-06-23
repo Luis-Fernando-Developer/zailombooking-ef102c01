@@ -42,6 +42,8 @@ export interface RequestComment {
   request_id: string;
   author_id: string;
   author_role: string | null;
+  author_name?: string | null;
+  author_profile?: string | null;
   message: string;
   created_at: string;
 }
@@ -51,6 +53,8 @@ export interface RequestAudit {
   request_id: string;
   actor_id: string;
   actor_role: string | null;
+  actor_name?: string | null;
+  actor_profile?: string | null;
   action: string;
   old_values: any;
   new_values: any;
