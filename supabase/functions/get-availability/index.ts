@@ -216,21 +216,23 @@ serve(async (req) => {
       }
 
       const isBooked = bookings?.some(b => {
-        const bStart = new Date(b.start_time).getTime()
-        // Handle cases where end_time might be null in the DB
-        const bEnd = b.end_time 
-          ? new Date(b.end_time).getTime() 
-          : bStart + duration * 60000 // Fallback to service duration if end_time is missing
-          
-        const sStart = new Date(slotStart).getTime()
-        const sEnd = new Date(slotEnd).getTime()
-        
+        // b.start_time is a TIME string like "08:00:00"
+        const bStartStr = (b.start_time || '').substring(0, 5)
+        if (!bStartStr) return false
+        const bDur = b.duration_minutes || duration
+        const bStart = new Date(`${date}T${bStartStr}`).getTime()
+        const bEnd = bStart + bDur * 60000
+
+        const sStart = new Date(`${date}T${currentFormatted}`).getTime()
+        const sEnd = sStart + duration * 60000
+
         const overlaps = (sStart < bEnd && sEnd > bStart)
         if (overlaps) {
-          console.log(`Slot ${currentFormatted} overlaps with booking: start=${b.start_time}, calculated_end=${new Date(bEnd).toISOString()}, status=${b.booking_status}`)
+          console.log(`Slot ${currentFormatted} overlaps booking ${bStartStr} (${bDur}min) status=${b.booking_status}/${b.payment_status}`)
         }
         return overlaps
       })
+
 
       const isBlocked = blocked?.some(b => {
         const bStart = new Date(b.start_time).getTime()
