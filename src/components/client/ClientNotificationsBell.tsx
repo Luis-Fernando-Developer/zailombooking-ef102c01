@@ -16,8 +16,10 @@ interface ClientNotification {
   id: string;
   title: string;
   message: string | null;
+  link: string | null;
   is_read: boolean;
   created_at: string;
+  metadata: Record<string, any> | null;
 }
 
 export function ClientNotificationsBell({ companyId }: ClientNotificationsBellProps) {
