@@ -595,6 +595,7 @@ export default function Chat() {
         </TabsContent>
       </Tabs>
     </div>
+    </BusinessLayout>
   );
 }
 
