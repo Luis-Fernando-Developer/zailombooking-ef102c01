@@ -99,6 +99,15 @@ serve(async (req) => {
 
     const duration = service.duration_minutes || 30 // default 30 mins
 
+    // 1.1 Get slot step from company_schedule_settings (fallback 30)
+    const { data: scheduleSettings } = await supabaseClient
+      .from('company_schedule_settings')
+      .select('slot_duration_minutes')
+      .eq('company_id', companyId)
+      .maybeSingle()
+    const stepMin = scheduleSettings?.slot_duration_minutes || 30
+    console.log(`Slot step: ${stepMin}min, Service duration: ${duration}min`)
+
     // 2. Check for specific employee availability on this date
     const { data: specificAvail, error: availError } = await supabaseClient
       .from('employee_availability')
