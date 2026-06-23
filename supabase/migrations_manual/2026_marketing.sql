@@ -163,7 +163,7 @@ AS $$
         AND lower(c.owner_email) = lower((SELECT email FROM auth.users WHERE id = _user_id))
     ) THEN 'owner'
     ELSE COALESCE(
-      (SELECT role FROM public.employees
+      (SELECT role::text FROM public.employees
         WHERE company_id = _company_id AND user_id = _user_id
         LIMIT 1),
       'guest'
