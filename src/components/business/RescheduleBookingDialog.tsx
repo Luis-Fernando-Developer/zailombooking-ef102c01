@@ -96,7 +96,7 @@ export function RescheduleBookingDialog({
         .from('bookings')
         .update({
           booking_date: newDate,
-          start_time: `${newDate}T${timeFormatted}:00`
+          start_time: timeFormatted
         })
         .eq('id', booking.id);
 
