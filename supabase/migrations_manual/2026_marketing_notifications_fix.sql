@@ -25,7 +25,7 @@ AS $$
     FROM public.clients c
     WHERE c.user_id = _user_id
       AND c.company_id = _company_id
-      AND COALESCE(c.is_active, TRUE) = TRUE
+      AND TRUE
   );
 $$;
 
@@ -115,7 +115,7 @@ BEGIN
     FROM public.clients c
     WHERE c.company_id = _campaign.company_id
       AND c.user_id IS NOT NULL
-      AND COALESCE(c.is_active, TRUE) = TRUE
+      AND TRUE
       AND _campaign.audience_type IN ('all', 'clients')
 
     UNION
