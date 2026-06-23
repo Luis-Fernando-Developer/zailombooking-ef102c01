@@ -422,6 +422,8 @@ export default function CustomLandingPage() {
       className="min-h-screen"
       style={customStyles}
     >
+      <CampaignTopBar companyId={company?.id} />
+      <CampaignPopup companyId={company?.id} />
       {/* Apply custom CSS for dynamic styling */}
       <style>
         {`
