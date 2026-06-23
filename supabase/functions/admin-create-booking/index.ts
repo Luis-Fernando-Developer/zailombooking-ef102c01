@@ -6,6 +6,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const normalizeTime = (value: string | null | undefined): string | null => {
+  if (!value) return null
+  const rawValue = String(value).trim()
+  const isoTimeMatch = rawValue.match(/T(\d{2}:\d{2})(?::\d{2})?/)
+  if (isoTimeMatch?.[1]) return isoTimeMatch[1]
+  const plainTimeMatch = rawValue.match(/^(\d{2}:\d{2})(?::\d{2})?/)
+  return plainTimeMatch?.[1] ?? null
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -73,6 +82,9 @@ serve(async (req) => {
       clientId = clientData.id
     }
 
+    const normalizedBookingTime = normalizeTime(booking_time)
+    if (!normalizedBookingTime) throw new Error('Horário do agendamento inválido')
+
     const { data: bookingData, error: bookingError } = await supabaseClient
       .from('bookings')
       .insert({
@@ -81,7 +93,7 @@ serve(async (req) => {
         service_id,
         employee_id,
         booking_date,
-        start_time: booking_time,
+        start_time: normalizedBookingTime,
         duration_minutes,
         total_price: price,
         booking_status: 'confirmed',
