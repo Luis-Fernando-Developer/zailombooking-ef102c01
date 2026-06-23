@@ -12,8 +12,10 @@ import {
   fetchComments, fetchAudit, decideRequest, applyRequest, addComment,
   REQUEST_TYPE_LABELS, PRIORITY_LABELS, isFinal,
 } from "@/lib/api/requests";
+import { fetchScheduleById, ScheduleRow } from "@/lib/api/schedules";
 import { RequestStatusBadge } from "./RequestStatusBadge";
 import { ScheduleApprovalTable } from "./ScheduleApprovalTable";
+import { ScheduleMatrixEditor } from "../schedule/ScheduleMatrixEditor";
 
 interface Props {
   request: SolicitacaoRow | null;
@@ -28,6 +30,7 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
   const { toast } = useToast();
   const [comments, setComments] = useState<RequestComment[]>([]);
   const [audit, setAudit] = useState<RequestAudit[]>([]);
+  const [editingSchedule, setEditingSchedule] = useState<ScheduleRow | null>(null);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -40,6 +43,11 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
   if (!request) return null;
   const final = isFinal(request.status);
   const isCreator = currentUserId && request.created_by === currentUserId;
+  const canEditRevision =
+    request.request_type === "schedule_change" &&
+    request.status === "in_review" &&
+    isCreator &&
+    Boolean(request.request_payload?.schedule_id);
 
   const refresh = async () => {
     const [c, a] = await Promise.all([fetchComments(request.id), fetchAudit(request.id)]);
@@ -84,7 +92,23 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
     }
   };
 
+  const handleEditRevision = async () => {
+    const scheduleId = request.request_payload?.schedule_id;
+    if (!scheduleId) return;
+    setBusy(true);
+    try {
+      const schedule = await fetchScheduleById(scheduleId, request.tenant_id);
+      if (!schedule) throw new Error("Escala não encontrada.");
+      setEditingSchedule(schedule);
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
@@ -132,6 +156,12 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
           )}
 
           <Separator />
+
+          {canEditRevision && (
+            <Button variant="outline" onClick={handleEditRevision} disabled={busy}>
+              <RotateCcw className="w-4 h-4 mr-1" /> Editar revisão
+            </Button>
+          )}
 
           <div>
             <p className="text-sm font-medium mb-2">Comentários</p>
@@ -214,5 +244,25 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
         </div>
       </SheetContent>
     </Sheet>
+    <Sheet open={!!editingSchedule} onOpenChange={(o) => !o && setEditingSchedule(null)}>
+      <SheetContent className="w-full sm:max-w-[95vw] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Editar revisão</SheetTitle>
+          <SheetDescription>Atualize a escala e envie novamente para aprovação.</SheetDescription>
+        </SheetHeader>
+        <div className="mt-4">
+          {editingSchedule && (
+            <ScheduleMatrixEditor
+              schedule={editingSchedule}
+              tenantId={request.tenant_id}
+              readOnly={editingSchedule.status !== "revision_requested"}
+              onChanged={refresh}
+              onClose={() => setEditingSchedule(null)}
+            />
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+    </>
   );
 }
