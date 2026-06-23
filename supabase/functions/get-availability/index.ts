@@ -161,18 +161,16 @@ serve(async (req) => {
       endTime = empSchedule.end_time < bizHours.close_time ? empSchedule.end_time : bizHours.close_time
     }
 
-    // 5. Get existing bookings
-    // We want to fetch all bookings that are NOT 'cancelled' and NOT 'rejected'
-    // Specifically looking for 'confirmed' and 'pending'
+    // 5. Get existing bookings for this date (booking_date is DATE, start_time is TIME)
     const { data: bookings, error: bookingsError } = await supabaseClient
       .from('bookings')
-      .select('start_time, end_time, booking_status')
+      .select('start_time, duration_minutes, booking_status, payment_status')
       .eq('employee_id', employeeId)
-      .gte('start_time', `${date}T00:00:00`)
-      .lte('start_time', `${date}T23:59:59`)
-      .in('booking_status', ['confirmed', 'pending'])
+      .eq('booking_date', date)
+      .not('booking_status', 'in', '(cancelled,rejected,no_show)')
 
     console.log(`Found ${bookings?.length || 0} active bookings for ${date}:`, JSON.stringify(bookings))
+
 
     // 6. Get blocked slots
     const { data: blocked, error: blockedError } = await supabaseClient
