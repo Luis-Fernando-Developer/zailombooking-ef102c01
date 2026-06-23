@@ -92,9 +92,9 @@ CREATE INDEX IF NOT EXISTS idx_mkt_camp_window ON public.marketing_campaigns(sta
 CREATE TABLE IF NOT EXISTS public.marketing_campaign_materials (
   campaign_id UUID NOT NULL REFERENCES public.marketing_campaigns(id) ON DELETE CASCADE,
   material_id UUID NOT NULL REFERENCES public.marketing_materials(id) ON DELETE RESTRICT,
-  role TEXT, -- ex: 'banner_principal','banner_mobile','popup','video'
+  role TEXT NOT NULL DEFAULT '', -- ex: 'banner_principal','banner_mobile','popup','video'
   ordering INT DEFAULT 0,
-  PRIMARY KEY (campaign_id, material_id, COALESCE(role,''))
+  PRIMARY KEY (campaign_id, material_id, role)
 );
 CREATE INDEX IF NOT EXISTS idx_mkt_cm_material ON public.marketing_campaign_materials(material_id);
 
