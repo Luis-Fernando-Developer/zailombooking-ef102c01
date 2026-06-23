@@ -103,7 +103,13 @@ export async function fetchComments(requestId: string): Promise<RequestComment[]
     .eq("request_id", requestId)
     .order("created_at", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as RequestComment[];
+  const rows = (data ?? []) as RequestComment[];
+  const meta = await fetchAuthorMeta(rows.map((r) => r.author_id));
+  return rows.map((r) => ({
+    ...r,
+    author_name: meta[r.author_id]?.name ?? null,
+    author_profile: meta[r.author_id]?.profile ?? r.author_role ?? null,
+  }));
 }
 
 export async function fetchAudit(requestId: string): Promise<RequestAudit[]> {
@@ -113,7 +119,33 @@ export async function fetchAudit(requestId: string): Promise<RequestAudit[]> {
     .eq("request_id", requestId)
     .order("created_at", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as RequestAudit[];
+  const rows = (data ?? []) as RequestAudit[];
+  const meta = await fetchAuthorMeta(rows.map((r) => r.actor_id));
+  return rows.map((r) => ({
+    ...r,
+    actor_name: meta[r.actor_id]?.name ?? null,
+    actor_profile: meta[r.actor_id]?.profile ?? r.actor_role ?? null,
+  }));
+}
+
+async function fetchAuthorMeta(
+  userIds: string[]
+): Promise<Record<string, { name: string | null; profile: string | null }>> {
+  const ids = Array.from(new Set(userIds.filter(Boolean)));
+  if (ids.length === 0) return {};
+  const { data, error } = await supabase
+    .from("employees")
+    .select("user_id, name, system_profiles:system_profile_id(name)")
+    .in("user_id", ids);
+  if (error) return {};
+  const out: Record<string, { name: string | null; profile: string | null }> = {};
+  for (const row of (data ?? []) as any[]) {
+    out[row.user_id] = {
+      name: row.name ?? null,
+      profile: row.system_profiles?.name ?? null,
+    };
+  }
+  return out;
 }
 
 export async function fetchApprovalRules(tenantId: string): Promise<ApprovalRule[]> {
