@@ -19,6 +19,7 @@ import {
   type BreakType,
   type EmployeeBreak,
 } from "@/lib/api/breaks";
+import { BreaksSimulator } from "./BreaksSimulator";
 
 interface BreaksManagerProps {
   companyId: string;
@@ -318,6 +319,15 @@ export function BreaksManager({ companyId, canManage = true }: BreaksManagerProp
           )}
         </CardContent>
       </Card>
+
+      {employees.length > 0 && (
+        <BreaksSimulator
+          companyId={companyId}
+          employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+          breaks={breaksQuery.data ?? []}
+          canManage={canManage}
+        />
+      )}
     </div>
   );
 }
