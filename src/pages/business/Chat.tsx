@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { MessageSquare, Send, Users, MessageCircle, Loader2, Search } from "lucide-react";
+import { MessageSquare, Send, Users, MessageCircle, Loader2, Search, Plus, PenSquare } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -267,38 +267,41 @@ export default function Chat() {
                   Seja o primeiro a iniciar a conversa do time.
                 </div>
               ) : (
-                <ul className="space-y-4">
+                <ul className="space-y-5">
                   {generalMessages.map((m) => {
                     const sender = memberMap.get(m.sender_user_id);
                     const isSelf = sender?.is_self;
-                    return (
-                      <li key={m.id} className={cn("flex gap-3", isSelf && "flex-row-reverse")}>
-                        <Avatar className="w-9 h-9 shrink-0">
-                          {sender?.avatar_url && <AvatarImage src={sender.avatar_url} alt={sender.name} />}
-                          <AvatarFallback>{initials(sender?.name || "?")}</AvatarFallback>
-                        </Avatar>
-                        <div className={cn("max-w-[78%] min-w-0", isSelf && "items-end text-right")}>
-                          <div className={cn("flex items-baseline gap-2 mb-0.5", isSelf && "justify-end")}>
-                            <span className="text-sm font-semibold truncate">{sender?.name || "Usuário"}</span>
-                            <span className="text-[10px] text-muted-foreground">{formatTime(m.created_at)}</span>
+                    if (isSelf) {
+                      return (
+                        <li key={m.id} className="flex justify-end">
+                          <div className="max-w-[78%] inline-block rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words">
+                            <div>{m.content}</div>
+                            <div className="text-[10px] mt-1 opacity-70 text-right">{formatTime(m.created_at)}</div>
                           </div>
-                          {sender && (
-                            <div className={cn("text-xs text-muted-foreground mb-1", isSelf && "justify-end flex")}>
-                              <Badge variant="secondary" className="font-normal">
-                                {ROLE_LABEL[sender.role] || sender.role}
-                                {sender.job_title ? ` · ${sender.job_title}` : ""}
-                              </Badge>
+                        </li>
+                      );
+                    }
+                    return (
+                      <li key={m.id} className="flex justify-start">
+                        <div className="max-w-[78%] min-w-0 space-y-1.5">
+                          {/* Cartão identificação */}
+                          <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-2.5 py-1.5 w-fit">
+                            <Avatar className="w-8 h-8 shrink-0">
+                              {sender?.avatar_url && <AvatarImage src={sender.avatar_url} alt={sender.name} />}
+                              <AvatarFallback className="text-xs">{initials(sender?.name || "?")}</AvatarFallback>
+                            </Avatar>
+                            <div className="leading-tight min-w-0">
+                              <div className="text-sm font-semibold truncate">{sender?.name || "Usuário"}</div>
+                              <div className="text-[11px] text-muted-foreground truncate">
+                                {sender ? (ROLE_LABEL[sender.role] || sender.role) : ""}
+                                {sender?.job_title ? ` · ${sender.job_title}` : ""}
+                              </div>
                             </div>
-                          )}
-                          <div
-                            className={cn(
-                              "inline-block rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words",
-                              isSelf
-                                ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                : "bg-muted text-foreground rounded-tl-sm"
-                            )}
-                          >
-                            {m.content}
+                          </div>
+                          {/* Balão */}
+                          <div className="inline-block rounded-2xl rounded-tl-sm bg-muted text-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words">
+                            <div>{m.content}</div>
+                            <div className="text-[10px] mt-1 opacity-70 text-right">{formatTime(m.created_at)}</div>
                           </div>
                         </div>
                       </li>
@@ -308,19 +311,14 @@ export default function Chat() {
                 </ul>
               )}
             </ScrollArea>
-            <div className="border-t p-3 flex items-end gap-2">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder="Escreva uma mensagem para a equipe..."
-                rows={1}
-                className="min-h-[40px] max-h-[140px] resize-none"
-              />
-              <Button onClick={handleSend} disabled={sending || !input.trim()} size="icon">
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
+            <ChatComposer
+              value={input}
+              onChange={setInput}
+              onKeyDown={onKeyDown}
+              onSend={handleSend}
+              disabled={sending || !input.trim()}
+              placeholder="Escreva uma mensagem para a equipe..."
+            />
           </div>
         </TabsContent>
 
@@ -329,22 +327,21 @@ export default function Chat() {
           <div className="rounded-lg border bg-card grid grid-cols-1 md:grid-cols-[280px_1fr] h-[70vh] overflow-hidden">
             {/* Sidebar de contatos */}
             <aside className="border-r flex flex-col min-h-0">
-              <div className="p-3 border-b space-y-2">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contatos</div>
+              <div className="p-3 border-b">
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar..."
-                    className="pl-8 h-8 text-sm"
+                    placeholder="Pesquisar..."
+                    className="pl-8 h-9 text-sm"
                   />
                 </div>
               </div>
               <ScrollArea className="flex-1">
                 {dmThreads.length > 0 && (
                   <div className="p-2">
-                    <div className="text-[10px] uppercase text-muted-foreground px-2 mb-1">Conversas recentes</div>
+                    <div className="text-[10px] font-semibold uppercase text-muted-foreground px-2 mb-1 tracking-wide">Recentes</div>
                     {dmThreads.map(([peerId, last]) => {
                       const c = memberMap.get(peerId);
                       if (!c) return null;
@@ -362,7 +359,7 @@ export default function Chat() {
                   </div>
                 )}
                 <div className="p-2">
-                  <div className="text-[10px] uppercase text-muted-foreground px-2 mb-1">Todos os colaboradores</div>
+                  <div className="text-[10px] font-semibold uppercase text-muted-foreground px-2 mb-1 tracking-wide">Contatos</div>
                   {contacts.length === 0 ? (
                     <p className="text-xs text-muted-foreground px-2 py-3">Nenhum contato.</p>
                   ) : (
@@ -377,6 +374,19 @@ export default function Chat() {
                   )}
                 </div>
               </ScrollArea>
+              <div className="border-t p-2">
+                <Button
+                  variant="secondary"
+                  className="w-full gap-2"
+                  size="sm"
+                  onClick={() => {
+                    setActiveDmUserId(null);
+                    setSearch("");
+                  }}
+                >
+                  <PenSquare className="w-4 h-4" /> Nova mensagem
+                </Button>
+              </div>
             </aside>
 
             {/* Conversa */}
@@ -436,19 +446,15 @@ export default function Chat() {
                     )}
                   </ScrollArea>
 
-                  <div className="border-t p-3 flex items-end gap-2">
-                    <Textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={onKeyDown}
-                      placeholder={`Mensagem para ${activeContact.name.split(" ")[0]}...`}
-                      rows={1}
-                      className="min-h-[40px] max-h-[140px] resize-none"
-                    />
-                    <Button onClick={handleSend} disabled={sending || !input.trim()} size="icon">
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <ChatComposer
+                    value={input}
+                    onChange={setInput}
+                    onKeyDown={onKeyDown}
+                    onSend={handleSend}
+                    disabled={sending || !input.trim()}
+                    placeholder={`Mensagem para ${activeContact.name.split(" ")[0]}...`}
+                  />
+
                 </>
               )}
             </section>
@@ -495,5 +501,55 @@ function ContactRow({
         </div>
       </div>
     </button>
+  );
+}
+
+function ChatComposer({
+  value,
+  onChange,
+  onKeyDown,
+  onSend,
+  disabled,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onSend: () => void;
+  disabled: boolean;
+  placeholder: string;
+}) {
+  return (
+    <div className="border-t p-3">
+      <div className="flex items-end gap-2 rounded-full border bg-background px-2 py-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-full shrink-0 text-muted-foreground"
+          aria-label="Anexar"
+        >
+          <Plus className="w-4 h-4" />
+        </Button>
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={placeholder}
+          rows={1}
+          className="flex-1 min-h-[32px] max-h-[140px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1 py-1 text-sm"
+        />
+        <Button
+          type="button"
+          onClick={onSend}
+          disabled={disabled}
+          size="icon"
+          className="h-8 w-8 rounded-full shrink-0"
+          aria-label="Enviar"
+        >
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
   );
 }
