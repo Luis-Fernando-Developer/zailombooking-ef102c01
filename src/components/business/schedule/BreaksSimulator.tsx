@@ -145,8 +145,9 @@ export function BreaksSimulator({ companyId, employees, breaks, canManage }: Pro
           Simulador de cobertura & distribuição
         </CardTitle>
         <CardDescription>
-          Visualize quantos colaboradores ficam ativos a cada 30 minutos e distribua pausas
-          flexíveis automaticamente para reduzir gargalos.
+          Visualize quantos colaboradores ficam ativos a cada{" "}
+          <strong>{slotMin} min</strong> (igual à "Duração do Slot" em Regras) e distribua
+          pausas flexíveis automaticamente para reduzir gargalos.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
