@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { BusinessLayout } from "@/components/business/BusinessLayout";
 
 const CHAT_ROLES = ["owner", "manager", "supervisor", "rh", "marketing"] as const;
 const BUCKET = "chat-attachments";
