@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/ClientSidebar";
+import { ClientNotificationsBell } from "@/components/client/ClientNotificationsBell";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, MoreVertical } from "lucide-react";
@@ -166,6 +167,9 @@ export default function ClientDashboard() {
               Painel do Cliente
             </h1>
             <p className="text-xs text-muted-foreground">Gerencie seus agendamentos na {company?.name}</p>
+          </div>
+          <div className="ml-auto">
+            <ClientNotificationsBell companyId={company?.id} />
           </div>
         </header>
 

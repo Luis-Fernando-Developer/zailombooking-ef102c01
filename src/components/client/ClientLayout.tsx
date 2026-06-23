@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ClientRescheduleDialog } from "./ClientRescheduleDialog";
 import { ClientCancelDialog } from "./ClientCancelDialog";
+import { ClientNotificationsBell } from "./ClientNotificationsBell";
 
 interface Booking {
   id: string;
@@ -230,6 +231,9 @@ export default function ClientLayout() {
           <div className="flex flex-col">
             <h1 className="text-xl font-bold text-gradient">Meus Agendamentos</h1>
             <p className="text-xs text-muted-foreground">Histórico e gerenciamento</p>
+          </div>
+          <div className="ml-auto">
+            <ClientNotificationsBell companyId={company?.id} />
           </div>
         </header>
 

@@ -38,6 +38,13 @@ Deno.serve(async (req) => {
       .single();
     if (ce || !camp) throw ce ?? new Error('campanha não encontrada');
 
+    const now = new Date();
+    if (parsed.data.scheduleAt && new Date(parsed.data.scheduleAt) > now) {
+      return new Response(JSON.stringify({ ok: true, recipients: 0, inserted: 0, scheduled: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Resolve destinatários
     let targetUserIds: string[] = [];
     if (camp.audience_type === 'clients' || camp.audience_type === 'all') {
@@ -63,25 +70,28 @@ Deno.serve(async (req) => {
     // Insere em company_notifications usando o schema real
     // (target_user_id + type obrigatório).
     let inserted = 0;
-    try {
-      const rows = targetUserIds.map((uid) => ({
-        company_id: camp.company_id,
-        target_user_id: uid,
-        type: 'marketing',
-        title: parsed.data.title,
-        message: parsed.data.message,
-        metadata: {
-          campaign_id: camp.id,
-          campaign_name: camp.name,
-          scheduled_at: parsed.data.scheduleAt ?? null,
-        },
-      }));
-      if (rows.length > 0) {
-        const { error } = await supabase.from('company_notifications').insert(rows);
-        if (error) console.error('marketing-notify insert error', error);
-        else inserted = rows.length;
+    const rows = targetUserIds.map((uid) => ({
+      company_id: camp.company_id,
+      target_user_id: uid,
+      type: 'marketing',
+      title: parsed.data.title,
+      message: parsed.data.message,
+      metadata: {
+        campaign_id: camp.id,
+        campaign_name: camp.name,
+        scheduled_at: parsed.data.scheduleAt ?? null,
+        source: 'marketing-notify-edge-function',
+      },
+    }));
+
+    if (rows.length > 0) {
+      const { error } = await supabase.from('company_notifications').insert(rows);
+      if (error) {
+        console.error('marketing-notify insert error', error);
+        throw error;
       }
-    } catch (e) { console.error('marketing-notify insert exception', e); }
+      inserted = rows.length;
+    }
 
     await supabase.from('marketing_history').insert({
       company_id: camp.company_id, entity_type: 'notification', entity_id: camp.id,
