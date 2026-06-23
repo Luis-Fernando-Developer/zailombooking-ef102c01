@@ -162,12 +162,6 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
 
           <Separator />
 
-          {canEditRevision && (
-            <Button variant="outline" onClick={handleEditRevision} disabled={busy}>
-              <RotateCcw className="w-4 h-4 mr-1" /> Editar revisão
-            </Button>
-          )}
-
           <div>
             <p className="text-sm font-medium mb-2">Comentários</p>
             <div className="space-y-2 max-h-40 overflow-auto pr-1">
@@ -215,6 +209,11 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
 
           {!final && (
             <div className="flex flex-wrap gap-2 pt-2 sticky bottom-0 bg-background/95 backdrop-blur py-3 -mx-6 px-6 border-t">
+              {canEditRevision && (
+                <Button variant="outline" onClick={handleEditRevision} disabled={busy}>
+                  <RotateCcw className="w-4 h-4 mr-1" /> Editar revisão
+                </Button>
+              )}
               {canDecide && (
                 <>
                   <Button onClick={() => handleDecide("approve")} disabled={busy}>
