@@ -88,6 +88,7 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
         start_at: form.start_at ? new Date(form.start_at).toISOString() : null,
         end_at: form.end_at ? new Date(form.end_at).toISOString() : null,
         placements: form.placements,
+        placement_config: form.placement_config,
         audience_type: form.audience_type,
         audience_filters: af,
       };
