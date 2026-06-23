@@ -201,6 +201,7 @@ serve(async (req) => {
     const { data: bookings, error: bookingsError } = await supabaseClient
       .from('bookings')
       .select('start_time, duration_minutes, booking_status, payment_status')
+      .eq('company_id', companyId)
       .eq('employee_id', employeeId)
       .eq('booking_date', date)
 
