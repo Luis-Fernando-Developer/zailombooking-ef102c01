@@ -17,6 +17,7 @@ import {
   type MarketingCampaign, type PlacementConfig, type PlacementCTA,
 } from "@/lib/api/marketing";
 import { supabase } from "@/lib/supabaseClient";
+import { PlacementConfigEditor } from "./PlacementConfigEditor";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho", pending_approval: "Em aprovação", approved: "Aprovada",
