@@ -142,7 +142,10 @@ export function RequestDetailDrawer({ request, open, onOpenChange, canDecide, cu
               {comments.map((c) => (
                 <div key={c.id} className="text-sm border-l-2 border-primary/30 pl-2">
                   <p className="text-xs text-muted-foreground">
-                    {c.author_role ?? "usuário"} · {format(new Date(c.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                    <span className="font-medium text-foreground">{c.author_name ?? "Usuário"}</span>
+                    {c.author_profile ? ` · ${c.author_profile}` : c.author_role ? ` · ${c.author_role}` : ""}
+                    {" · "}
+                    {format(new Date(c.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   </p>
                   <p className="whitespace-pre-wrap">{c.message}</p>
                 </div>
