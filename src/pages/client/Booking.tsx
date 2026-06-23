@@ -632,7 +632,7 @@ export default function ClientBooking() {
         employee_id: selectedEmployee.id,
         service_id: isCombo ? null : selectedService.id,
         combo_id: isCombo ? selectedService.id.replace('combo:', '') : null,
-        start_time: `${bookingDate}T${selectedTime}:00`,
+        start_time: selectedTime,
         booking_date: bookingDate,
         duration_minutes: selectedService.duration_minutes,
         price: selectedService.price,
