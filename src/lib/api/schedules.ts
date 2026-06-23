@@ -208,7 +208,21 @@ export async function submitSchedule(input: {
   description?: string;
 }) {
   const { data, error } = await supabase.functions.invoke("schedule-submit", { body: input });
-  if (error) throw error;
+  if (error) {
+    // supabase-js engole o body — tenta extrair a mensagem real
+    let detail = "";
+    try {
+      const ctx = (error as any).context;
+      if (ctx instanceof Response) {
+        const body = await ctx.clone().json().catch(() => null);
+        if (body) {
+          detail = body.detail || body.error || JSON.stringify(body);
+          if (body.status) detail += ` (status atual: ${body.status})`;
+        }
+      }
+    } catch { /* noop */ }
+    throw new Error(detail || (error as Error).message || "Erro desconhecido");
+  }
   return data;
 }
 
