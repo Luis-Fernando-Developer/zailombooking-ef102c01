@@ -161,18 +161,16 @@ serve(async (req) => {
       endTime = empSchedule.end_time < bizHours.close_time ? empSchedule.end_time : bizHours.close_time
     }
 
-    // 5. Get existing bookings
-    // We want to fetch all bookings that are NOT 'cancelled' and NOT 'rejected'
-    // Specifically looking for 'confirmed' and 'pending'
+    // 5. Get existing bookings for this date (booking_date is DATE, start_time is TIME)
     const { data: bookings, error: bookingsError } = await supabaseClient
       .from('bookings')
-      .select('start_time, end_time, booking_status')
+      .select('start_time, duration_minutes, booking_status, payment_status')
       .eq('employee_id', employeeId)
-      .gte('start_time', `${date}T00:00:00`)
-      .lte('start_time', `${date}T23:59:59`)
-      .in('booking_status', ['confirmed', 'pending'])
+      .eq('booking_date', date)
+      .not('booking_status', 'in', '(cancelled,rejected,no_show)')
 
     console.log(`Found ${bookings?.length || 0} active bookings for ${date}:`, JSON.stringify(bookings))
+
 
     // 6. Get blocked slots
     const { data: blocked, error: blockedError } = await supabaseClient
@@ -218,21 +216,23 @@ serve(async (req) => {
       }
 
       const isBooked = bookings?.some(b => {
-        const bStart = new Date(b.start_time).getTime()
-        // Handle cases where end_time might be null in the DB
-        const bEnd = b.end_time 
-          ? new Date(b.end_time).getTime() 
-          : bStart + duration * 60000 // Fallback to service duration if end_time is missing
-          
-        const sStart = new Date(slotStart).getTime()
-        const sEnd = new Date(slotEnd).getTime()
-        
+        // b.start_time is a TIME string like "08:00:00"
+        const bStartStr = (b.start_time || '').substring(0, 5)
+        if (!bStartStr) return false
+        const bDur = b.duration_minutes || duration
+        const bStart = new Date(`${date}T${bStartStr}`).getTime()
+        const bEnd = bStart + bDur * 60000
+
+        const sStart = new Date(`${date}T${currentFormatted}`).getTime()
+        const sEnd = sStart + duration * 60000
+
         const overlaps = (sStart < bEnd && sEnd > bStart)
         if (overlaps) {
-          console.log(`Slot ${currentFormatted} overlaps with booking: start=${b.start_time}, calculated_end=${new Date(bEnd).toISOString()}, status=${b.booking_status}`)
+          console.log(`Slot ${currentFormatted} overlaps booking ${bStartStr} (${bDur}min) status=${b.booking_status}/${b.payment_status}`)
         }
         return overlaps
       })
+
 
       const isBlocked = blocked?.some(b => {
         const bStart = new Date(b.start_time).getTime()
