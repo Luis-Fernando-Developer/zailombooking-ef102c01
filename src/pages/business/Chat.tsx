@@ -107,15 +107,19 @@ export default function Chat() {
     async function load() {
       if (!user || !slug) return;
       const { data: company } = await supabase
-        .from("companies").select("id, owner_email").eq("slug", slug).maybeSingle();
+        .from("companies").select("id, name, slug, owner_email").eq("slug", slug).maybeSingle();
       if (!mounted || !company) { setLoading(false); return; }
       setCompanyId(company.id);
+      setCompanyName((company as any).name || "");
 
       const { data: emps } = await supabase
         .from("employees")
         .select("user_id, name, role, avatar_url, internal_job_title")
         .eq("company_id", company.id)
         .in("role", CHAT_ROLES as unknown as string[]);
+
+      const me = (emps || []).find((e: any) => e.user_id === user.id);
+      if (me) setMyRole((me as any).role);
 
       const list: Member[] = (emps || [])
         .filter((e: any) => e.user_id)
