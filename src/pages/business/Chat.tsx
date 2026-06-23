@@ -327,22 +327,21 @@ export default function Chat() {
           <div className="rounded-lg border bg-card grid grid-cols-1 md:grid-cols-[280px_1fr] h-[70vh] overflow-hidden">
             {/* Sidebar de contatos */}
             <aside className="border-r flex flex-col min-h-0">
-              <div className="p-3 border-b space-y-2">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contatos</div>
+              <div className="p-3 border-b">
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar..."
-                    className="pl-8 h-8 text-sm"
+                    placeholder="Pesquisar..."
+                    className="pl-8 h-9 text-sm"
                   />
                 </div>
               </div>
               <ScrollArea className="flex-1">
                 {dmThreads.length > 0 && (
                   <div className="p-2">
-                    <div className="text-[10px] uppercase text-muted-foreground px-2 mb-1">Conversas recentes</div>
+                    <div className="text-[10px] font-semibold uppercase text-muted-foreground px-2 mb-1 tracking-wide">Recentes</div>
                     {dmThreads.map(([peerId, last]) => {
                       const c = memberMap.get(peerId);
                       if (!c) return null;
@@ -360,7 +359,7 @@ export default function Chat() {
                   </div>
                 )}
                 <div className="p-2">
-                  <div className="text-[10px] uppercase text-muted-foreground px-2 mb-1">Todos os colaboradores</div>
+                  <div className="text-[10px] font-semibold uppercase text-muted-foreground px-2 mb-1 tracking-wide">Contatos</div>
                   {contacts.length === 0 ? (
                     <p className="text-xs text-muted-foreground px-2 py-3">Nenhum contato.</p>
                   ) : (
@@ -375,6 +374,19 @@ export default function Chat() {
                   )}
                 </div>
               </ScrollArea>
+              <div className="border-t p-2">
+                <Button
+                  variant="secondary"
+                  className="w-full gap-2"
+                  size="sm"
+                  onClick={() => {
+                    setActiveDmUserId(null);
+                    setSearch("");
+                  }}
+                >
+                  <PenSquare className="w-4 h-4" /> Nova mensagem
+                </Button>
+              </div>
             </aside>
 
             {/* Conversa */}
