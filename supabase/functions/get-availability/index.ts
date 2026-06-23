@@ -269,14 +269,14 @@ serve(async (req) => {
       // Check if slot is during a break
       if (breakStart && breakEnd) {
         if (currentFormatted >= breakStart && currentFormatted < breakEnd) {
-          current = new Date(current.getTime() + 30 * 60000)
+          current = new Date(current.getTime() + stepMin * 60000)
           continue
         }
 
         // Also check if the service would overlap with the break
         const slotEndFormatted = new Date(current.getTime() + (duration - 1) * 60000).toTimeString().substring(0, 5)
         if (slotEndFormatted >= breakStart && slotEndFormatted < breakEnd) {
-          current = new Date(current.getTime() + 30 * 60000)
+          current = new Date(current.getTime() + stepMin * 60000)
           continue
         }
       }
@@ -327,7 +327,7 @@ serve(async (req) => {
         slots.push(currentFormatted)
       }
 
-      current = new Date(current.getTime() + 30 * 60000) // Increment by 30 mins
+      current = new Date(current.getTime() + stepMin * 60000) // Increment by 30 mins
     }
 
     return new Response(JSON.stringify({ slots }), {
