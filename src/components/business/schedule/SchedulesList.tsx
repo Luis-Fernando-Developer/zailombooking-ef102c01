@@ -104,9 +104,9 @@ export function SchedulesList({ tenantId, canManage }: Props) {
                   <Download className="w-4 h-4 mr-1" /> Baixar
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
-                  <Edit3 className="w-4 h-4 mr-1" /> {s.status === "draft" ? "Editar" : "Ver"}
+                  <Edit3 className="w-4 h-4 mr-1" /> {(s.status === "draft" || s.status === "revision_requested") ? "Editar" : "Ver"}
                 </Button>
-                {canManage && s.status === "draft" && (
+                {canManage && (s.status === "draft" || s.status === "revision_requested") && (
                   <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -123,7 +123,7 @@ export function SchedulesList({ tenantId, canManage }: Props) {
               <ScheduleMatrixEditor
                 schedule={editing}
                 tenantId={tenantId}
-                readOnly={!canManage || editing.status !== "draft"}
+                readOnly={!canManage || (editing.status !== "draft" && editing.status !== "revision_requested")}
                 onChanged={load}
                 onClose={() => setEditing(null)}
               />
