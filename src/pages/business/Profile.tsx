@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Save, User, Camera, Briefcase, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { AutonomousPayoutSettings } from "@/components/business/AutonomousPayoutSettings";
 
 interface Company {
   id: string;
