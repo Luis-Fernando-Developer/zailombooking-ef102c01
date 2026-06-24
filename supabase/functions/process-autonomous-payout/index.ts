@@ -176,34 +176,45 @@ serve(async (req) => {
       .select().single()
     if (insErr) return ok({ error: insErr.message }, 500)
 
-    // 4) Se sem gateway do autônomo OU agendado, sai como pending
-    if (!employee?.is_active || !employee.api_key_encrypted) {
-      return ok({ payout: payoutRow, message: 'Autônomo sem gateway — repasse pendente manual' })
+    // 4) Sem credenciais do remetente -> pending manual
+    if (!senderHasKey) {
+      const msg = payoutFlow === 'via_company'
+        ? 'Empresa sem gateway configurado — repasse pendente'
+        : 'Autônomo sem gateway configurado — repasse pendente'
+      return ok({ payout: payoutRow, message: msg })
     }
     if (scheduledFor) {
       return ok({ payout: payoutRow, message: `Agendado para ${scheduledFor} (job processa)` })
     }
 
-    // 5) Cenário A: split nativo já configurado na cobrança (apenas confirmamos).
+    // 5) Cenário A: mesmo gateway -> split nativo já configurado na cobrança
     if (sameGateway) {
       await supa.from('autonomous_payouts').update({
         status: 'paid', paid_at: new Date().toISOString(),
       }).eq('id', payoutRow.id)
-      return ok({ payout: payoutRow, mode: 'native_split' })
+      return ok({ payout: payoutRow, mode: 'native_split', flow: payoutFlow })
     }
 
-    // 6) Cenário B: cross-gateway -> dispara transferência via gateway do autônomo
+    // 6) Cenário B: cross-gateway -> dispara transferência
+    //    via_company         => empresa transfere amountEmp para o autônomo
+    //    direct_to_autonomous=> autônomo transfere amountCo para a empresa
+    const senderProvider = payoutFlow === 'via_company'
+      ? company.own_gateway_provider
+      : employee!.provider
+    const senderKey = payoutFlow === 'via_company'
+      ? (company.own_gateway_api_key_encrypted || '').trim()
+      : (employee!.api_key_encrypted || '').trim()
+    const transferAmount = payoutFlow === 'via_company' ? amountEmp : amountCo
+    const destinationPix = payoutFlow === 'via_company'
+      ? (employee?.pix_key || undefined)
+      : undefined // empresa deve ter PIX em settings — fora do MVP
+
     try {
-      const externalId = await runTransfer(
-        employee.provider,
-        (employee.api_key_encrypted || '').trim(),
-        amountEmp,
-        employee.pix_key || undefined,
-      )
+      const externalId = await runTransfer(senderProvider, senderKey, transferAmount, destinationPix)
       await supa.from('autonomous_payouts').update({
         status: 'paid', external_payout_id: externalId, paid_at: new Date().toISOString(),
       }).eq('id', payoutRow.id)
-      return ok({ payout: { ...payoutRow, external_payout_id: externalId }, mode: 'cross_gateway' })
+      return ok({ payout: { ...payoutRow, external_payout_id: externalId }, mode: 'cross_gateway', flow: payoutFlow })
     } catch (e: any) {
       await supa.from('autonomous_payouts').update({
         status: 'failed', error_message: e.message,
