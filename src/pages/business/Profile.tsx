@@ -478,8 +478,8 @@ export default function BusinessProfile() {
             </Card>
           )}
 
-          {/* Conta de recebimento — visível para qualquer profissional ativo (autônomo ou owner-autônomo) */}
-          {profileData.is_active && (
+          {/* Conta de recebimento — visível para autônomos (qualquer role != owner) ou owner com profissional ativo */}
+          {(employee.role !== 'owner' || profileData.is_active) && (
             <AutonomousPayoutSettings employeeId={employee.id} companyId={employee.company.id} />
           )}
 
