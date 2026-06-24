@@ -230,7 +230,7 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
       });
 
       setOpen(false);
-      setFormData({ name: "", description: "", price: 0 });
+      setFormData({ name: "", description: "", price: 0, image_url: "" });
       setSelectedServices([]);
       onComboAdded?.();
     } catch (error) {
