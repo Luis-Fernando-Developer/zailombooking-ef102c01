@@ -391,5 +391,6 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, 
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 }
