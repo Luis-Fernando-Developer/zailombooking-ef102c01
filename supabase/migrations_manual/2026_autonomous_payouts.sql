@@ -108,5 +108,5 @@ CREATE POLICY "payouts read own employee"
     OR EXISTS (SELECT 1 FROM public.employees e
                WHERE e.company_id = autonomous_payouts.company_id
                  AND e.user_id = auth.uid()
-                 AND e.role IN ('owner','admin','manager'))
+                 AND e.role IN ('owner','manager','supervisor'))
   );
