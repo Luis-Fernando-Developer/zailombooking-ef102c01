@@ -114,6 +114,7 @@ export function EditComboDialog({ combo, services, companyId, onComboUpdated }: 
           original_total_price: totalPrice,
           total_duration_minutes: totalDuration,
           is_active: formData.is_active,
+          image_url: formData.image_url || null,
         })
         .eq("id", combo.id);
 
