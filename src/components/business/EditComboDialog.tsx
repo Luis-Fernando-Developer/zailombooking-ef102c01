@@ -201,6 +201,14 @@ export function EditComboDialog({ combo, services, companyId, onComboUpdated }: 
               />
             </div>
 
+            <ServiceImageField
+              companyId={companyId}
+              value={formData.image_url}
+              onChange={(url) => setFormData({ ...formData, image_url: url })}
+            />
+
+
+
             <div className="grid gap-2">
               <Label>Serviços do Combo *</Label>
               <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
