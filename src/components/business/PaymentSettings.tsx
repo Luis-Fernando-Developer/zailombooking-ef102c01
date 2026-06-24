@@ -96,6 +96,7 @@ export function PaymentSettings({ companyId }: Props) {
     payment_mode: "none",
     accepted_methods: { pix: true, credit_card: true, debit_card: true, boleto: false },
     own_gateway_provider: "asaas" as Provider,
+    payout_flow: "via_company" as "via_company" | "direct_to_autonomous",
   });
 
   useEffect(() => { load(); }, [companyId]);
@@ -112,6 +113,7 @@ export function PaymentSettings({ companyId }: Props) {
         payment_mode: s.payment_mode || "none",
         accepted_methods: s.accepted_methods || { pix: true, credit_card: true, debit_card: true, boleto: false },
         own_gateway_provider: (s.own_gateway_provider as Provider) || "asaas",
+        payout_flow: (s.payout_flow as any) || "via_company",
       });
       setHasStoredKey(!!s.own_gateway_api_key_encrypted);
     }
@@ -126,6 +128,7 @@ export function PaymentSettings({ companyId }: Props) {
         payment_mode: settings.payment_mode,
         accepted_methods: settings.accepted_methods,
         own_gateway_provider: settings.own_gateway_provider,
+        payout_flow: settings.payout_flow,
       };
 
       if (apiKeyInput.trim()) {
