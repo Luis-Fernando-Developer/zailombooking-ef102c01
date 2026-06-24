@@ -18,6 +18,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { Package, Plus, Clock, DollarSign } from "lucide-react";
+import { ServiceImageField } from "@/components/business/ServiceImageField";
 
 interface Service {
   id: string;
