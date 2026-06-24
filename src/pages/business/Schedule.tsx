@@ -276,15 +276,19 @@ export default function BusinessSchedule() {
             <TabsContent value="autonomous" className="mt-6">
               <AutonomousAvailabilityConfig
                 companyId={company.id}
-                restrictToEmployeeId={isEmployee ? currentEmployee?.id : undefined}
-                readOnly={isReceptionist}
+                restrictToEmployeeId={isEmployee && employeeType === 'autonomo' ? currentEmployee?.id : undefined}
+                readOnly={!(isEmployee && employeeType === 'autonomo')}
               />
             </TabsContent>
           )}
 
           {canSeeAbsences && (
             <TabsContent value="absences" className="mt-6">
-              <AbsencesManager companyId={company.id} />
+              <AbsencesManager
+                companyId={company.id}
+                viewerRole={role}
+                viewerEmployeeId={currentEmployee?.id}
+              />
             </TabsContent>
           )}
 
