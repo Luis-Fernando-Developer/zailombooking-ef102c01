@@ -906,16 +906,28 @@ export default function CustomLandingPage() {
                         customization?.cards_font_family ? 'cards-custom-font' : ''
                       }`}
                     >
-                      {customization?.cards_show_images && employee.avatar_url && (
-                        <img 
-                          src={employee.avatar_url} 
-                          alt={employee.name}
-                          className={`object-cover rounded-full ${
-                            customization?.cards_layout === 'horizontal' 
-                              ? 'w-20 h-20 flex-shrink-0' 
-                              : 'w-24 h-24 mx-auto mb-4'
-                          }`}
-                        />
+                      {customization?.cards_show_images && (
+                        employee.avatar_url ? (
+                          <img 
+                            src={employee.avatar_url} 
+                            alt={employee.name}
+                            className={`object-cover rounded-full ${
+                              customization?.cards_layout === 'horizontal' 
+                                ? 'w-20 h-20 flex-shrink-0' 
+                                : 'w-24 h-24 mx-auto mb-4'
+                            }`}
+                          />
+                        ) : (
+                          <div
+                            className={`rounded-full bg-muted flex items-center justify-center text-muted-foreground ${
+                              customization?.cards_layout === 'horizontal'
+                                ? 'w-20 h-20 flex-shrink-0'
+                                : 'w-24 h-24 mx-auto mb-4'
+                            }`}
+                          >
+                            <User className={customization?.cards_layout === 'horizontal' ? 'w-10 h-10' : 'w-12 h-12'} />
+                          </div>
+                        )
                       )}
                       <div className={`flex-1 ${customization?.cards_layout === 'horizontal' ? '' : 'text-center'}`}>
                         <h3 className={`text-xl font-semibold mb-2 ${
