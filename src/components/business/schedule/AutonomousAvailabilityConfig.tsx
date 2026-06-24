@@ -69,7 +69,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, 
     try {
       let query = supabase
         .from('employees')
-        .select('id, name')
+        .select('id, name, email, phone, avatar_url, base_occupation:base_occupations(name)')
         .eq('company_id', companyId)
         .eq('is_active', true)
         .eq('employee_type', 'autonomo')
