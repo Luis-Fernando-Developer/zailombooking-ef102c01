@@ -99,14 +99,17 @@ export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: Abs
 
       if (error) throw error;
 
-      // Join with employee names
-      const absencesWithNames = (absencesData || []).map(abs => {
-        const employee = employeesData?.find(e => e.id === abs.employee_id);
-        return {
-          ...abs,
-          employee_name: employee?.name || 'Desconhecido'
-        };
-      });
+      // Join with employee names — restringe à lista permitida
+      const allowedIds = new Set(allowedEmployees.map((e) => e.id));
+      const absencesWithNames = (absencesData || [])
+        .filter((abs) => !abs.employee_id || allowedIds.has(abs.employee_id))
+        .map((abs) => {
+          const employee = allEmployees.find((e) => e.id === abs.employee_id);
+          return {
+            ...abs,
+            employee_name: employee?.name || 'Desconhecido',
+          };
+        });
 
       setAbsences(absencesWithNames);
     } catch (error) {
