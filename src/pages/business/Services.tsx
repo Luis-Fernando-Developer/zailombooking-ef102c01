@@ -45,6 +45,7 @@ interface Combo {
   original_total_price?: number;
   total_duration_minutes?: number;
   is_active?: boolean;
+  image_url?: string;
   items?: { service_id: string; service?: { id?: string; name?: string } }[];
 }
 
