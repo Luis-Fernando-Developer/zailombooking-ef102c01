@@ -42,7 +42,8 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price: 0
+    price: 0,
+    image_url: "",
   });
 
   useEffect(() => {
