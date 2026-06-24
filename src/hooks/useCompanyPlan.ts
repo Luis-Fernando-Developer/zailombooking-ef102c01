@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 /**
- * Returns the current plan id for a company (defaults to "starter")
- * and a convenience `isPremiumPlan` flag (anything not "starter").
+ * Returns the current plan NAME (lowercased) for a company, defaulting to "starter",
+ * plus an `isPremiumPlan` convenience flag (anything not "starter").
+ *
+ * NOTE: company_subscriptions.plan_id is a UUID FK to subscription_plans.id,
+ * so we must join to get the human-readable plan name.
  */
 export function useCompanyPlan(companyId?: string) {
   const [planId, setPlanId] = useState<string>("starter");
@@ -18,11 +21,14 @@ export function useCompanyPlan(companyId?: string) {
     (async () => {
       const { data } = await supabase
         .from("company_subscriptions")
-        .select("plan_id")
+        .select("subscription_plans(name)")
         .eq("company_id", companyId)
         .maybeSingle();
       if (cancelled) return;
-      setPlanId(data?.plan_id || "starter");
+      const name =
+        (data as { subscription_plans?: { name?: string } } | null)
+          ?.subscription_plans?.name?.toLowerCase() || "starter";
+      setPlanId(name);
       setLoading(false);
     })();
     return () => {
