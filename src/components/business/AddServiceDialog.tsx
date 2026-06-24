@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { ServiceImageField } from "./ServiceImageField";
 
 interface AddServiceDialogProps {
   companyId: string;
@@ -27,7 +28,8 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
     price: "",
     duration_minutes: "60",
     is_active: true,
-    payment_required: "optional" as "always" | "optional" | "never"
+    payment_required: "optional" as "always" | "optional" | "never",
+    image_url: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,7 +47,8 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
           price: parseFloat(formData.price),
           duration_minutes: parseInt(formData.duration_minutes),
           is_active: formData.is_active,
-          payment_required: formData.payment_required
+          payment_required: formData.payment_required,
+          image_url: formData.image_url || null,
         }]);
 
       if (error) throw error;
@@ -61,7 +64,8 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
         price: "",
         duration_minutes: "60",
         is_active: true,
-        payment_required: "optional"
+        payment_required: "optional",
+        image_url: "",
       });
 
       setOpen(false);
@@ -156,6 +160,12 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
               <option value="always">Obrigatório antes de confirmar</option>
             </select>
           </div>
+
+          <ServiceImageField
+            companyId={companyId}
+            value={formData.image_url}
+            onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+          />
 
           <div className="flex items-center space-x-2">
             <Switch
