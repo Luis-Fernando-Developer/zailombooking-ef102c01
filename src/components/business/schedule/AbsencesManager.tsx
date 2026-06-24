@@ -13,14 +13,20 @@ import { Plus, Trash2, Calendar, AlertTriangle } from "lucide-react";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AffectedBookingsDialog } from "@/components/business/AffectedBookingsDialog";
+import { getRoleLevel } from "@/lib/roleHierarchy";
 
 interface AbsencesManagerProps {
   companyId: string;
+  /** Cargo do usuário logado — filtra colaboradores que podem ser selecionados. */
+  viewerRole?: string;
+  /** Employee.id do usuário logado (sempre incluído na lista, mesmo se cargo igual). */
+  viewerEmployeeId?: string;
 }
 
 interface Employee {
   id: string;
   name: string;
+  role?: string | null;
 }
 
 interface Absence {
