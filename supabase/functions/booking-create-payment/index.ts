@@ -50,12 +50,49 @@ serve(async (req) => {
 
     if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
 
-    // 5. Limpeza da chave
-    let decryptedKey = (settings.own_gateway_api_key_encrypted || "").trim()
-    
-    if (!decryptedKey) {
-      throw new Error('Chave de API do Asaas não configurada na empresa')
+    // 4b. Decide quem RECEBE o pagamento (fluxo de repasse)
+    let receiverProvider: string = settings.own_gateway_provider || 'asaas'
+    let receiverKey: string = (settings.own_gateway_api_key_encrypted || '').trim()
+    let receiverLabel: 'company' | 'autonomous' = 'company'
+
+    try {
+      const { data: empRow } = await supabaseClient
+        .from('employees')
+        .select('payout_flow_override, employee_type')
+        .eq('id', booking.employee_id)
+        .maybeSingle()
+
+      const flow = empRow?.payout_flow_override || settings.payout_flow || 'via_company'
+
+      if (flow === 'direct_to_autonomous' && empRow?.employee_type === 'autonomo') {
+        const { data: eps } = await supabaseClient
+          .from('employee_payment_settings')
+          .select('provider, api_key_encrypted, is_active')
+          .eq('employee_id', booking.employee_id)
+          .maybeSingle()
+        if (eps?.is_active && eps?.api_key_encrypted) {
+          receiverProvider = eps.provider
+          receiverKey = (eps.api_key_encrypted || '').trim()
+          receiverLabel = 'autonomous'
+        } else {
+          console.warn('[BOOKING_PAYMENT] direct_to_autonomous mas autônomo sem gateway — fallback p/ empresa')
+        }
+      }
+    } catch (e) {
+      console.warn('[BOOKING_PAYMENT] flow resolve fail, usando empresa:', (e as any).message)
     }
+
+    // 5. Limpeza da chave (recebedor resolvido)
+    let decryptedKey = receiverKey
+
+    if (!decryptedKey) {
+      throw new Error('Chave de API do gateway não configurada')
+    }
+    if (receiverProvider !== 'asaas') {
+      // Esta função hoje só implementa cobrança via Asaas.
+      throw new Error(`Cobrança via ${receiverProvider} ainda não suportada nesta função (apenas asaas).`)
+    }
+    console.log(`[BOOKING_PAYMENT] Receiver: ${receiverLabel} (${receiverProvider})`)
 
     // 6. Decisão de Ambiente (Sandbox vs Produção)
     // Se a chave começa com $aact_hmlg_ ou é curta, é sandbox (homologação)
