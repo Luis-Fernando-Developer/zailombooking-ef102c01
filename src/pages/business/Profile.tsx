@@ -199,6 +199,56 @@ export default function BusinessProfile() {
     }
   };
 
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !employee) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "Selecione uma imagem.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Imagem muito grande", description: "Tamanho máximo: 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const ext = file.name.split(".").pop() || "png";
+      const path = `${user.id}/${employee.id}-${Date.now()}.${ext}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatarUrl = pub.publicUrl;
+
+      const { error: updErr } = await supabase
+        .from("employees")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", employee.id);
+      if (updErr) throw updErr;
+
+      setEmployee(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
+      toast({ title: "Foto atualizada", description: "Sua foto de perfil foi atualizada." });
+    } catch (err: any) {
+      console.error("avatar upload error", err);
+      toast({
+        title: "Erro ao enviar foto",
+        description: err?.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const getRoleBadge = (role: string) => {
     const roleNames = {
       owner: { label: "Proprietário", variant: "default" as const },
