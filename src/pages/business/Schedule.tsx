@@ -104,7 +104,7 @@ export default function BusinessSchedule() {
   const canSeeFixed = isManager || isSupervisor || isReceptionist;
   const canSeeAutonomous = isManager || isSupervisor || isReceptionist || (isEmployee && employeeType === 'autonomo');
   const canSeeAbsences = isManager || isSupervisor || isReceptionist;
-  const canSeeBlocked = isManager || isSupervisor;
+  const canSeeBlocked = isManager; // somente owner/gerente
   const canSeeRules = isManager;
   const canSeeScales = isManager;
   const canSeeBreaks = isManager || isSupervisor;
