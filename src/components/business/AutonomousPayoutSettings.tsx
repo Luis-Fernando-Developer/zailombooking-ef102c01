@@ -170,6 +170,17 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+            <div className="font-medium mb-1">Fluxo de repasse acordado com a empresa</div>
+            <p className="text-xs text-muted-foreground">
+              {resolvedFlow === "direct_to_autonomous"
+                ? "Pagamentos dos clientes caem direto na SUA conta. Você repassa o % combinado para a empresa."
+                : "Pagamentos dos clientes caem na conta da EMPRESA. Ela repassa o seu % para a conta abaixo."}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Apenas a empresa pode alterar esse fluxo.
+            </p>
+          </div>
           <div>
             <Label>Provedor</Label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
