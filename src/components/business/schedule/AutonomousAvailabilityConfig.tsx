@@ -198,7 +198,61 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, 
     );
   }
 
+  const getInitials = (name: string) =>
+    name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+
   return (
+    <div className="space-y-6">
+      {readOnly && !restrictToEmployeeId && (
+        <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Colaboradores Autônomos
+            </CardTitle>
+            <CardDescription className="flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" />
+              Apenas o próprio autônomo pode editar sua disponibilidade. Esta visualização é somente leitura.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {employees.map((emp) => (
+                <div
+                  key={emp.id}
+                  onClick={() => setSelectedEmployee(emp.id)}
+                  className={`rounded-lg border p-4 cursor-pointer transition-colors ${
+                    selectedEmployee === emp.id
+                      ? "border-primary bg-primary/10"
+                      : "border-primary/20 bg-background/40 hover:border-primary/40"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border border-primary/30">
+                      <AvatarImage src={emp.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {getInitials(emp.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{emp.name}</p>
+                      <Badge variant="outline" className="mt-0.5 text-xs">
+                        Autônomo
+                      </Badge>
+                    </div>
+                  </div>
+                  {emp.base_occupation?.name && (
+                    <p className="text-xs text-muted-foreground mt-2 truncate">
+                      {emp.base_occupation.name}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
     <Card className="card-glow">
       <CardHeader>
         <CardTitle>Disponibilidade por Data</CardTitle>
