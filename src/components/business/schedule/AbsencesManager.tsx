@@ -9,9 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar } from "lucide-react";
+import { Plus, Trash2, Calendar, AlertTriangle } from "lucide-react";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { AffectedBookingsDialog } from "@/components/business/AffectedBookingsDialog";
 
 interface AbsencesManagerProps {
   companyId: string;
@@ -47,6 +48,7 @@ export function AbsencesManager({ companyId }: AbsencesManagerProps) {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterEmployee, setFilterEmployee] = useState<string>("all");
+  const [affectedTarget, setAffectedTarget] = useState<Absence | null>(null);
   const [newAbsence, setNewAbsence] = useState({
     employee_id: "",
     absence_type: "vacation",
@@ -348,19 +350,44 @@ export function AbsencesManager({ companyId }: AbsencesManagerProps) {
                     <p className="text-sm text-muted-foreground">{absence.reason}</p>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDeleteAbsence(absence.id)}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {absence.employee_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAffectedTarget(absence)}
+                      className="border-yellow-500/40 text-yellow-600 hover:bg-yellow-500/10"
+                    >
+                      <AlertTriangle className="w-3 h-3 mr-1" />
+                      Agendamentos afetados
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteAbsence(absence.id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             ))
           )}
         </div>
       </CardContent>
+
+      {affectedTarget && (
+        <AffectedBookingsDialog
+          open={!!affectedTarget}
+          onOpenChange={(o) => !o && setAffectedTarget(null)}
+          companyId={companyId}
+          employeeId={affectedTarget.employee_id!}
+          employeeName={affectedTarget.employee_name || ""}
+          startDate={affectedTarget.start_date}
+          endDate={affectedTarget.end_date}
+        />
+      )}
     </Card>
   );
 }
