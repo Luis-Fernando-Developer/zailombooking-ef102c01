@@ -111,22 +111,33 @@ serve(async (req) => {
 
     const { data: company } = await supa
       .from('company_payment_settings')
-      .select('own_gateway_provider, own_gateway_api_key_encrypted, autonomous_share_pct, payout_rule, payout_interval_days')
+      .select('own_gateway_provider, own_gateway_api_key_encrypted, autonomous_share_pct, payout_rule, payout_interval_days, payout_flow')
       .eq('company_id', booking.company_id).maybeSingle()
 
     if (!company) return ok({ error: 'Empresa sem gateway configurado' }, 400)
+
+    const { data: employeeRow } = await supa
+      .from('employees')
+      .select('payout_flow_override')
+      .eq('id', booking.employee_id).maybeSingle()
 
     const { data: employee } = await supa
       .from('employee_payment_settings')
       .select('provider, api_key_encrypted, pix_key, payout_rule, payout_interval_days, is_active')
       .eq('employee_id', booking.employee_id).maybeSingle()
 
+    // Fluxo aplicado (override do employee > default da empresa)
+    const payoutFlow: 'via_company' | 'direct_to_autonomous' =
+      (employeeRow?.payout_flow_override as any) || (company.payout_flow as any) || 'via_company'
+
     const total = Number(booking.total_amount ?? 0)
     const sharePct = Number(company.autonomous_share_pct ?? 95)
     const amountEmp = +(total * sharePct / 100).toFixed(2)
     const amountCo = +(total - amountEmp).toFixed(2)
 
-    // 2) Modo e agendamento
+    // Quem TRANSFERE e quem RECEBE depende do fluxo:
+    //  via_company         -> empresa transfere amountEmp para o autônomo
+    //  direct_to_autonomous-> autônomo transfere amountCo para a empresa
     const sameGateway = employee?.is_active &&
       employee.provider === company.own_gateway_provider &&
       !!employee.api_key_encrypted
@@ -140,6 +151,11 @@ serve(async (req) => {
       const d = new Date(); d.setDate(d.getDate() + days); scheduledFor = d.toISOString()
     }
 
+    // Quem precisa ter credenciais para executar a transferência:
+    const senderHasKey = payoutFlow === 'via_company'
+      ? !!company.own_gateway_api_key_encrypted
+      : !!(employee?.is_active && employee?.api_key_encrypted)
+
     // 3) Registro inicial
     const { data: payoutRow, error: insErr } = await supa
       .from('autonomous_payouts')
@@ -152,7 +168,8 @@ serve(async (req) => {
         amount_to_company: amountCo,
         company_provider: company.own_gateway_provider,
         employee_provider: employee?.provider || null,
-        mode: !employee?.is_active ? 'pending' : (sameGateway ? 'native_split' : 'cross_gateway'),
+        payout_flow: payoutFlow,
+        mode: !senderHasKey ? 'pending' : (sameGateway ? 'native_split' : 'cross_gateway'),
         status: 'pending',
         scheduled_for: scheduledFor,
       })
