@@ -20,7 +20,8 @@ import {
   X,
   AlertCircle,
   MoreVertical,
-  CalendarClock
+  CalendarClock,
+  UserCog
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { RescheduleBookingDialog } from "@/components/business/RescheduleBookingDialog";
+import { ReassignBookingDialog } from "@/components/business/ReassignBookingDialog";
 
 
 const statusConfig = {
@@ -73,6 +75,7 @@ export default function BusinessBookings() {
     search: ""
   });
   const [rescheduleBooking, setRescheduleBooking] = useState<any>(null);
+  const [reassignBooking, setReassignBooking] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -537,6 +540,10 @@ export default function BusinessBookings() {
                             Cancelar
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setReassignBooking(booking)}>
+                            <UserCog className="mr-2 h-4 w-4" />
+                            Realocar p/ outro profissional
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
                             <CalendarClock className="mr-2 h-4 w-4" />
                             Reagendar
@@ -569,6 +576,15 @@ export default function BusinessBookings() {
         open={!!rescheduleBooking}
         onOpenChange={(open) => !open && setRescheduleBooking(null)}
         booking={rescheduleBooking}
+        companyId={company?.id}
+        onSuccess={() => fetchBookings(company.id)}
+      />
+
+      {/* Reassign Dialog */}
+      <ReassignBookingDialog
+        open={!!reassignBooking}
+        onOpenChange={(open) => !open && setReassignBooking(null)}
+        booking={reassignBooking}
         companyId={company?.id}
         onSuccess={() => fetchBookings(company.id)}
       />
