@@ -719,45 +719,85 @@ export default function CustomLandingPage() {
               
             </div>
             
-            <div className={`grid gap-6 ${
+            <div className={`grid gap-6 items-stretch ${
               customization?.cards_layout === 'horizontal' 
                 ? 'grid-cols-1' 
                 : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
             }`}>
-              {combos.length > 0 && combos.map((combo) => (
-                <div key={combo.id} className={`rounded-lg border border-primary/20 p-6 transition-colors custom-font ${customization?.cards_color_type === 'gradient' ? 'cards-custom-bg' : 'bg-card'}`}>
-                  <div className="flex-1 ">
-                    <div className='flex justify-between items-center mb-2'>
-                      <h3 className="text-xl font-semibold">{combo.name}</h3>
-                      <div className="text-2xl font-bold text-primary">{combo.combo_price ? `R$ ${Number(combo.combo_price).toFixed(2)}` : ''}</div>
-                    </div>
-                    {combo.description && <p className="mb-4 text-muted-foreground">{combo.description}</p>}
-                    <div className="flex justify-between items-center">
-                      {/* <div>
-                        <div className="text-sm text-muted-foreground">{combo.items?.length ?? 0} serviços</div>
-                      </div> */}
-                      <div className="text-sm flex w-full py-2 ">
-                        {combo.items?.map((it, index) => (
-                          <div className={index > 0 ? 'pl-1' : 'pl-0'} key={it.service_id}> {index > 0 && ' + '} {`${it.service?.name || 'Serviço'}`}</div>
-                        ))}
+              {combos.length > 0 && combos.map((combo) => {
+                const comboPrice = combo.price ?? combo.combo_price ?? 0;
+                const originalPrice = combo.original_total_price ?? 0;
+                return (
+                  <div
+                    key={combo.id}
+                    className={`rounded-lg border border-primary/20 p-6 transition-colors custom-font flex flex-col h-full ${
+                      customization?.cards_layout === 'horizontal' ? 'sm:flex-row sm:items-center sm:gap-6' : ''
+                    } ${customization?.cards_color_type === 'gradient' ? 'cards-custom-bg' : 'bg-card'}`}
+                  >
+                    {customization?.cards_show_images && combo.image_url && (
+                      <img
+                        src={combo.image_url}
+                        alt={combo.name}
+                        className={`object-cover rounded-lg ${
+                          customization?.cards_layout === 'horizontal'
+                            ? 'w-32 h-32 flex-shrink-0'
+                            : 'w-full h-48 mb-4'
+                        }`}
+                      />
+                    )}
+                    <div className="flex-1 flex flex-col">
+                      <h3 className={`text-xl font-semibold mb-2 custom-font ${
+                        customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
+                      }`}>
+                        {combo.name}
+                      </h3>
+                      {combo.description && (
+                        <p className={`mb-4 custom-font ${
+                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
+                        }`}>
+                          {combo.description}
+                        </p>
+                      )}
+                      {combo.items && combo.items.length > 0 && (
+                        <div className="text-sm flex flex-wrap py-1 text-muted-foreground">
+                          {combo.items.map((it, index) => (
+                            <div className={index > 0 ? 'pl-1' : 'pl-0'} key={it.service_id}>
+                              {index > 0 && ' + '} {`${it.service?.name || 'Serviço'}`}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="mt-auto pt-3">
+                        <div className="flex justify-between items-end">
+                          <div className="flex flex-col">
+                            <span className="text-2xl font-bold text-primary custom-font">
+                              R$ {Number(comboPrice).toFixed(2)}
+                            </span>
+                            {originalPrice > 0 && originalPrice > Number(comboPrice) && (
+                              <span className="text-sm line-through text-muted-foreground custom-font">
+                                R$ {Number(originalPrice).toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-sm custom-font ${
+                            customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
+                          }`}>
+                            <div className='flex items-center justify-end gap-0.5'>
+                              <TimerIcon />
+                              <p className='pt-1'>{combo.total_duration_minutes} min</p>
+                            </div>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className={`text-sm w-full text-right text-muted-foreground custom-font ${customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
-                      }`}>
-                        <div className='flex items-center justify-end gap-0.5'>
-                          <TimerIcon /> 
-                          <p className='pt-1'>{combo.total_duration_minutes} min</p>
-                        </div>
-                    </div>
-                    
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {services.slice(0, visibleServices).map((service) => (
                 <div 
                   key={service.id} 
-                  className={`rounded-lg border border-primary/20 p-6 hover:border-primary/40 transition-colors custom-font ${
-                    customization?.cards_layout === 'horizontal' ? 'flex gap-6 items-center' : ''
+                  className={`rounded-lg border border-primary/20 p-6 hover:border-primary/40 transition-colors custom-font flex flex-col h-full ${
+                    customization?.cards_layout === 'horizontal' ? 'sm:flex-row sm:gap-6 sm:items-center' : ''
                   } ${
                     customization?.cards_color_type === 'gradient' ? 'cards-custom-bg' : 'bg-card'
                   } ${
@@ -775,7 +815,7 @@ export default function CustomLandingPage() {
                       }`}
                     />
                   )}
-                  <div className="flex-1">
+                  <div className="flex-1 flex flex-col">
                     <h3 className={`text-xl font-semibold mb-2 custom-font ${
                       customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
                     }`}>
@@ -788,9 +828,7 @@ export default function CustomLandingPage() {
                         {service.description}
                       </p>
                     )}
-                    <div className={`flex justify-between items-center ${
-                      customization?.cards_layout === 'horizontal' ? 'mt-4' : ''
-                    }`}>
+                    <div className={`mt-auto pt-3 flex justify-between items-center`}>
                       <span className="text-2xl font-bold text-primary custom-font">
                         R$ {(service.price != null && !isNaN(Number(service.price))) 
                             ? Number(service.price).toFixed(2) 
