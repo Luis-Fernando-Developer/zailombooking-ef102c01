@@ -82,7 +82,7 @@ export function AutonomousAvailabilityConfig({ companyId, restrictToEmployeeId, 
       const { data, error } = await query;
 
       if (error) throw error;
-      setEmployees(data || []);
+      setEmployees(((data || []) as unknown) as Employee[]);
 
       if (data && data.length > 0) {
         setSelectedEmployee(data[0].id);
