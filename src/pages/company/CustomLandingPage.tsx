@@ -751,21 +751,19 @@ export default function CustomLandingPage() {
                       }`}>
                         {combo.name}
                       </h3>
+                      {combo.items && combo.items.length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-1">
+                          <span className="inline-flex items-center rounded-md bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium custom-font">
+                            {combo.items.map((it) => it.service?.name || 'Serviço').join(' + ')}
+                          </span>
+                        </div>
+                      )}
                       {combo.description && (
-                        <p className={`mb-4 custom-font ${
+                        <p className={`mb-4 text-sm custom-font ${
                           customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
                         }`}>
                           {combo.description}
                         </p>
-                      )}
-                      {combo.items && combo.items.length > 0 && (
-                        <div className="text-sm flex flex-wrap py-1 text-muted-foreground">
-                          {combo.items.map((it, index) => (
-                            <div className={index > 0 ? 'pl-1' : 'pl-0'} key={it.service_id}>
-                              {index > 0 && ' + '} {`${it.service?.name || 'Serviço'}`}
-                            </div>
-                          ))}
-                        </div>
                       )}
                       <div className="mt-auto pt-3">
                         <div className="flex justify-between items-end">
