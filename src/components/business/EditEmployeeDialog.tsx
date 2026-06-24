@@ -31,6 +31,7 @@ interface Employee {
   system_profile_id?: string | null;
   base_occupation_id?: string | null;
   internal_job_title?: string | null;
+  payout_flow_override?: string | null;
 }
 
 interface SystemProfile { id: string; code: string; name: string; }
@@ -66,6 +67,7 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
     system_profile_id: "",
     base_occupation_id: "",
     internal_job_title: "",
+    payout_flow_override: "" as "" | "via_company" | "direct_to_autonomous",
   });
 
   useEffect(() => {
@@ -85,6 +87,7 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
         system_profile_id: employee.system_profile_id || "",
         base_occupation_id: employee.base_occupation_id || "",
         internal_job_title: employee.internal_job_title || "",
+        payout_flow_override: (employee.payout_flow_override as any) || "",
       });
       fetchServices();
       fetchEmployeeServices();
@@ -189,6 +192,9 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
           system_profile_id: formData.system_profile_id || null,
           base_occupation_id: formData.base_occupation_id || null,
           internal_job_title: formData.internal_job_title || null,
+          payout_flow_override: formData.employee_type === 'autonomo'
+            ? (formData.payout_flow_override || null)
+            : null,
 
         })
         .eq('id', employee.id);

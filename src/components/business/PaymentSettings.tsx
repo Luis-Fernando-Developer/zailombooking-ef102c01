@@ -316,6 +316,44 @@ export function PaymentSettings({ companyId }: Props) {
       {enabled && (
         <Card>
           <CardHeader>
+            <CardTitle>Fluxo de repasse para autônomos</CardTitle>
+            <CardDescription>
+              Define o caminho padrão do dinheiro quando um cliente paga um agendamento de um profissional autônomo.
+              Você pode sobrescrever caso a caso na ficha de cada autônomo (Equipe → Editar).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {[
+              {
+                v: "via_company",
+                title: "Empresa recebe e repassa",
+                desc: "Cliente paga na conta da empresa. A empresa transfere o % combinado para o autônomo.",
+              },
+              {
+                v: "direct_to_autonomous",
+                title: "Autônomo recebe e repassa",
+                desc: "Cliente paga direto na conta do autônomo. O autônomo transfere o % combinado para a empresa.",
+              },
+            ].map((o) => (
+              <button
+                key={o.v}
+                type="button"
+                onClick={() => setSettings({ ...settings, payout_flow: o.v })}
+                className={`w-full p-4 border rounded-lg text-left transition-colors ${
+                  settings.payout_flow === o.v ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                }`}
+              >
+                <div className="font-medium text-sm">{o.title}</div>
+                <p className="text-xs text-muted-foreground mt-1">{o.desc}</p>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {enabled && (
+        <Card>
+          <CardHeader>
             <CardTitle>Métodos aceitos</CardTitle>
             <CardDescription>
               Habilite as formas de pagamento. Métodos não suportados pelo {info.label} ficam desabilitados.
