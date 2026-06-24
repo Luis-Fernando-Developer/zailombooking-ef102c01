@@ -25,6 +25,10 @@ interface AutonomousAvailabilityConfigProps {
 interface Employee {
   id: string;
   name: string;
+  email?: string | null;
+  phone?: string | null;
+  avatar_url?: string | null;
+  base_occupation?: { name: string } | null;
 }
 
 interface Availability {
