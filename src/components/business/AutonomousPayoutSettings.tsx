@@ -70,14 +70,20 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
     payout_interval_days: 7,
     is_active: true,
   });
+  const [resolvedFlow, setResolvedFlow] = useState<"via_company" | "direct_to_autonomous">("via_company");
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [employeeId]);
 
   async function load() {
     setLoading(true);
-    const { data } = await (supabase as any)
-      .from("employee_payment_settings")
-      .select("*").eq("employee_id", employeeId).maybeSingle();
+    const [{ data }, { data: emp }, { data: comp }] = await Promise.all([
+      (supabase as any).from("employee_payment_settings")
+        .select("*").eq("employee_id", employeeId).maybeSingle(),
+      (supabase as any).from("employees")
+        .select("payout_flow_override").eq("id", employeeId).maybeSingle(),
+      (supabase as any).from("company_payment_settings")
+        .select("payout_flow").eq("company_id", companyId).maybeSingle(),
+    ]);
     if (data) {
       setSettings({
         provider: data.provider || "asaas",
@@ -88,6 +94,9 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
       });
       setHasStoredKey(!!data.api_key_encrypted);
     }
+    setResolvedFlow(
+      (emp?.payout_flow_override as any) || (comp?.payout_flow as any) || "via_company"
+    );
     setLoading(false);
   }
 
