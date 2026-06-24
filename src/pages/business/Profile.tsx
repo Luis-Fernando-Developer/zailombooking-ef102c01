@@ -333,12 +333,26 @@ export default function BusinessProfile() {
                       {getInitials(employee.name)}
                     </AvatarFallback>
                   </Avatar>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarFile}
+                  />
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="absolute -bottom-2 -right-2 rounded-full p-2"
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="absolute -bottom-2 -right-2 rounded-full p-2 h-9 w-9"
+                    title="Alterar foto"
                   >
-                    <Camera className="w-4 h-4" />
+                    {uploadingAvatar ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
                 <div className="space-y-2">
