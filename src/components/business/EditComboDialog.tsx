@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit } from "lucide-react";
+import { ServiceImageField } from "@/components/business/ServiceImageField";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,22 +28,25 @@ interface Service {
 
 interface Combo {
   id: string;
+  company_id?: string;
   name: string;
   description?: string;
   price: number;
   original_total_price?: number;
   total_duration_minutes?: number;
   is_active?: boolean;
+  image_url?: string;
   items?: { service_id: string; service?: { id?: string; name?: string } }[];
 }
 
 interface EditComboDialogProps {
   combo: Combo;
   services: Service[];
+  companyId: string;
   onComboUpdated: () => void;
 }
 
-export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDialogProps) {
+export function EditComboDialog({ combo, services, companyId, onComboUpdated }: EditComboDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -51,6 +55,7 @@ export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDi
     description: "",
     price: 0,
     is_active: true,
+    image_url: "",
   });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
@@ -61,6 +66,7 @@ export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDi
         description: combo.description || "",
         price: combo.price,
         is_active: combo.is_active ?? true,
+        image_url: combo.image_url || "",
       });
       setSelectedServices(combo.items?.map((it) => it.service_id) || []);
     }
@@ -108,6 +114,7 @@ export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDi
           original_total_price: totalPrice,
           total_duration_minutes: totalDuration,
           is_active: formData.is_active,
+          image_url: formData.image_url || null,
         })
         .eq("id", combo.id);
 
@@ -193,6 +200,14 @@ export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDi
                 rows={2}
               />
             </div>
+
+            <ServiceImageField
+              companyId={companyId}
+              value={formData.image_url}
+              onChange={(url) => setFormData({ ...formData, image_url: url })}
+            />
+
+
 
             <div className="grid gap-2">
               <Label>Serviços do Combo *</Label>

@@ -18,6 +18,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { Package, Plus, Clock, DollarSign } from "lucide-react";
+import { ServiceImageField } from "@/components/business/ServiceImageField";
 
 interface Service {
   id: string;
@@ -41,7 +42,8 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price: 0
+    price: 0,
+    image_url: "",
   });
 
   useEffect(() => {
@@ -189,7 +191,8 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
           price: formData.price,
           original_total_price: totalPrice,
           total_duration_minutes: totalDuration,
-          is_active: true
+          is_active: true,
+          image_url: formData.image_url || null
         }])
         .select()
         .single();
@@ -227,7 +230,7 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
       });
 
       setOpen(false);
-      setFormData({ name: "", description: "", price: 0 });
+      setFormData({ name: "", description: "", price: 0, image_url: "" });
       setSelectedServices([]);
       onComboAdded?.();
     } catch (error) {
@@ -280,6 +283,14 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
               rows={2}
             />
           </div>
+
+          <ServiceImageField
+            companyId={companyId}
+            value={formData.image_url}
+            onChange={(url) => setFormData({ ...formData, image_url: url })}
+          />
+
+
 
           {/* Service Selection */}
           <div className="space-y-2">

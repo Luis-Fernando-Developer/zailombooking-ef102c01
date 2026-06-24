@@ -45,6 +45,7 @@ interface Combo {
   original_total_price?: number;
   total_duration_minutes?: number;
   is_active?: boolean;
+  image_url?: string;
   items?: { service_id: string; service?: { id?: string; name?: string } }[];
 }
 
@@ -317,7 +318,7 @@ export default function BusinessServices() {
                           {!combo.is_active && <Badge variant="secondary">Inativo</Badge>}
                         </CardTitle>
                         <div className="flex gap-1">
-                          <EditComboDialog combo={combo} services={services} onComboUpdated={fetchData} />
+                          <EditComboDialog combo={combo} services={services} companyId={company.id} onComboUpdated={fetchData} />
                           <DeleteComboDialog combo={combo} onComboDeleted={fetchData} />
                         </div>
                       </div>
