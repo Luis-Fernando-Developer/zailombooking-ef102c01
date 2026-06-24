@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Save, User, Camera, Briefcase, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { AutonomousPayoutSettings } from "@/components/business/AutonomousPayoutSettings";
 
 interface Company {
   id: string;
@@ -475,6 +476,11 @@ export default function BusinessProfile() {
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Conta de recebimento — visível para qualquer profissional ativo (autônomo ou owner-autônomo) */}
+          {profileData.is_active && (
+            <AutonomousPayoutSettings employeeId={employee.id} companyId={employee.company.id} />
           )}
 
           {/* Informações da Empresa */}
