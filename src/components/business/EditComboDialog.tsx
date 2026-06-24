@@ -66,6 +66,7 @@ export function EditComboDialog({ combo, services, companyId, onComboUpdated }: 
         description: combo.description || "",
         price: combo.price,
         is_active: combo.is_active ?? true,
+        image_url: combo.image_url || "",
       });
       setSelectedServices(combo.items?.map((it) => it.service_id) || []);
     }
