@@ -104,7 +104,7 @@ export default function BusinessSchedule() {
   const canSeeFixed = isManager || isSupervisor || isReceptionist;
   const canSeeAutonomous = isManager || isSupervisor || isReceptionist || (isEmployee && employeeType === 'autonomo');
   const canSeeAbsences = isManager || isSupervisor || isReceptionist;
-  const canSeeBlocked = isManager || isSupervisor;
+  const canSeeBlocked = isManager; // somente owner/gerente
   const canSeeRules = isManager;
   const canSeeScales = isManager;
   const canSeeBreaks = isManager || isSupervisor;
@@ -169,10 +169,14 @@ export default function BusinessSchedule() {
               <FixedEmployeesList companyId={company.id} />
             </TabsContent>
             <TabsContent value="autonomous" className="mt-6">
-              <AutonomousAvailabilityConfig companyId={company.id} readOnly={false} />
+              <AutonomousAvailabilityConfig companyId={company.id} readOnly={true} />
             </TabsContent>
             <TabsContent value="absences" className="mt-6">
-              <AbsencesManager companyId={company.id} />
+              <AbsencesManager
+                companyId={company.id}
+                viewerRole={role}
+                viewerEmployeeId={currentEmployee?.id}
+              />
             </TabsContent>
             <TabsContent value="blocked" className="mt-6">
               <BlockedSlotsManager companyId={company.id} />
@@ -272,15 +276,19 @@ export default function BusinessSchedule() {
             <TabsContent value="autonomous" className="mt-6">
               <AutonomousAvailabilityConfig
                 companyId={company.id}
-                restrictToEmployeeId={isEmployee ? currentEmployee?.id : undefined}
-                readOnly={isReceptionist}
+                restrictToEmployeeId={isEmployee && employeeType === 'autonomo' ? currentEmployee?.id : undefined}
+                readOnly={!(isEmployee && employeeType === 'autonomo')}
               />
             </TabsContent>
           )}
 
           {canSeeAbsences && (
             <TabsContent value="absences" className="mt-6">
-              <AbsencesManager companyId={company.id} />
+              <AbsencesManager
+                companyId={company.id}
+                viewerRole={role}
+                viewerEmployeeId={currentEmployee?.id}
+              />
             </TabsContent>
           )}
 

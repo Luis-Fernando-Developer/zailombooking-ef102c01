@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Save, User, Camera, Briefcase } from "lucide-react";
+import { Save, User, Camera, Briefcase, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,6 +41,8 @@ export default function BusinessProfile() {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [employeeServices, setEmployeeServices] = useState<string[]>([]);
   const { toast } = useToast();
@@ -197,6 +199,56 @@ export default function BusinessProfile() {
     }
   };
 
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !employee) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "Selecione uma imagem.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Imagem muito grande", description: "Tamanho máximo: 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const ext = file.name.split(".").pop() || "png";
+      const path = `${user.id}/${employee.id}-${Date.now()}.${ext}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatarUrl = pub.publicUrl;
+
+      const { error: updErr } = await supabase
+        .from("employees")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", employee.id);
+      if (updErr) throw updErr;
+
+      setEmployee(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
+      toast({ title: "Foto atualizada", description: "Sua foto de perfil foi atualizada." });
+    } catch (err: any) {
+      console.error("avatar upload error", err);
+      toast({
+        title: "Erro ao enviar foto",
+        description: err?.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const getRoleBadge = (role: string) => {
     const roleNames = {
       owner: { label: "Proprietário", variant: "default" as const },
@@ -281,12 +333,26 @@ export default function BusinessProfile() {
                       {getInitials(employee.name)}
                     </AvatarFallback>
                   </Avatar>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarFile}
+                  />
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="absolute -bottom-2 -right-2 rounded-full p-2"
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="absolute -bottom-2 -right-2 rounded-full p-2 h-9 w-9"
+                    title="Alterar foto"
                   >
-                    <Camera className="w-4 h-4" />
+                    {uploadingAvatar ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
                 <div className="space-y-2">

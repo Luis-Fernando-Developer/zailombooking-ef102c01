@@ -13,14 +13,20 @@ import { Plus, Trash2, Calendar, AlertTriangle } from "lucide-react";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AffectedBookingsDialog } from "@/components/business/AffectedBookingsDialog";
+import { getRoleLevel } from "@/lib/roleHierarchy";
 
 interface AbsencesManagerProps {
   companyId: string;
+  /** Cargo do usuário logado — filtra colaboradores que podem ser selecionados. */
+  viewerRole?: string;
+  /** Employee.id do usuário logado (sempre incluído na lista, mesmo se cargo igual). */
+  viewerEmployeeId?: string;
 }
 
 interface Employee {
   id: string;
   name: string;
+  role?: string | null;
 }
 
 interface Absence {
@@ -41,7 +47,7 @@ const ABSENCE_TYPES = [
   { value: 'other', label: 'Outro', color: 'bg-gray-500' },
 ];
 
-export function AbsencesManager({ companyId }: AbsencesManagerProps) {
+export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: AbsencesManagerProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);
@@ -59,19 +65,31 @@ export function AbsencesManager({ companyId }: AbsencesManagerProps) {
 
   useEffect(() => {
     fetchData();
-  }, [companyId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, viewerRole, viewerEmployeeId]);
 
   const fetchData = async () => {
     try {
       // Fetch employees
       const { data: employeesData } = await supabase
         .from('employees')
-        .select('id, name')
+        .select('id, name, role')
         .eq('company_id', companyId)
         .eq('is_active', true)
         .order('name');
 
-      setEmployees(employeesData || []);
+      const allEmployees = (employeesData || []) as Employee[];
+
+      // Filtra colaboradores que o viewer tem permissão de registrar ausência:
+      // o próprio + todos com cargo de nível <= ao seu.
+      const viewerLevel = getRoleLevel(viewerRole);
+      const allowedEmployees = viewerRole
+        ? allEmployees.filter(
+            (e) => e.id === viewerEmployeeId || getRoleLevel(e.role) <= viewerLevel,
+          )
+        : allEmployees;
+
+      setEmployees(allowedEmployees);
 
       // Fetch absences - using employee_absences table
       const { data: absencesData, error } = await supabase
@@ -82,14 +100,17 @@ export function AbsencesManager({ companyId }: AbsencesManagerProps) {
 
       if (error) throw error;
 
-      // Join with employee names
-      const absencesWithNames = (absencesData || []).map(abs => {
-        const employee = employeesData?.find(e => e.id === abs.employee_id);
-        return {
-          ...abs,
-          employee_name: employee?.name || 'Desconhecido'
-        };
-      });
+      // Join with employee names — restringe à lista permitida
+      const allowedIds = new Set(allowedEmployees.map((e) => e.id));
+      const absencesWithNames = (absencesData || [])
+        .filter((abs) => !abs.employee_id || allowedIds.has(abs.employee_id))
+        .map((abs) => {
+          const employee = allEmployees.find((e) => e.id === abs.employee_id);
+          return {
+            ...abs,
+            employee_name: employee?.name || 'Desconhecido',
+          };
+        });
 
       setAbsences(absencesWithNames);
     } catch (error) {
