@@ -284,6 +284,14 @@ export function ServiceComboDialog({ companyId, onComboAdded }: ServiceComboDial
             />
           </div>
 
+          <ServiceImageField
+            companyId={companyId}
+            value={formData.image_url}
+            onChange={(url) => setFormData({ ...formData, image_url: url })}
+          />
+
+
+
           {/* Service Selection */}
           <div className="space-y-2">
             <Label>Selecione os Serviços</Label>
