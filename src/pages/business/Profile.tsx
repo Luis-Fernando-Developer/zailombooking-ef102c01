@@ -41,6 +41,8 @@ export default function BusinessProfile() {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [employeeServices, setEmployeeServices] = useState<string[]>([]);
   const { toast } = useToast();
