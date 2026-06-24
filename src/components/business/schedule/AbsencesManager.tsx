@@ -65,7 +65,8 @@ export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: Abs
 
   useEffect(() => {
     fetchData();
-  }, [companyId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, viewerRole, viewerEmployeeId]);
 
   const fetchData = async () => {
     try {
