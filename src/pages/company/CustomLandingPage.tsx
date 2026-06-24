@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MapPin, Phone, Mail, Menu, LogInIcon, UserPlus2, ChevronDown, DoorClosedIcon, X, ChevronRight, TimerIcon } from "lucide-react";
+import { MapPin, Phone, Mail, Menu, LogInIcon, UserPlus2, ChevronDown, DoorClosedIcon, X, ChevronRight, TimerIcon, User } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
 import { BookingLogo } from "@/components/BookingLogo";
 import { Button } from "@/components/ui/button";
