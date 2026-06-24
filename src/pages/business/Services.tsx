@@ -317,7 +317,7 @@ export default function BusinessServices() {
                           {!combo.is_active && <Badge variant="secondary">Inativo</Badge>}
                         </CardTitle>
                         <div className="flex gap-1">
-                          <EditComboDialog combo={combo} services={services} onComboUpdated={fetchData} />
+                          <EditComboDialog combo={combo} services={services} companyId={company.id} onComboUpdated={fetchData} />
                           <DeleteComboDialog combo={combo} onComboDeleted={fetchData} />
                         </div>
                       </div>
