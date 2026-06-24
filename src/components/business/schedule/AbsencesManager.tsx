@@ -72,12 +72,23 @@ export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: Abs
       // Fetch employees
       const { data: employeesData } = await supabase
         .from('employees')
-        .select('id, name')
+        .select('id, name, role')
         .eq('company_id', companyId)
         .eq('is_active', true)
         .order('name');
 
-      setEmployees(employeesData || []);
+      const allEmployees = (employeesData || []) as Employee[];
+
+      // Filtra colaboradores que o viewer tem permissão de registrar ausência:
+      // o próprio + todos com cargo de nível <= ao seu.
+      const viewerLevel = getRoleLevel(viewerRole);
+      const allowedEmployees = viewerRole
+        ? allEmployees.filter(
+            (e) => e.id === viewerEmployeeId || getRoleLevel(e.role) <= viewerLevel,
+          )
+        : allEmployees;
+
+      setEmployees(allowedEmployees);
 
       // Fetch absences - using employee_absences table
       const { data: absencesData, error } = await supabase
