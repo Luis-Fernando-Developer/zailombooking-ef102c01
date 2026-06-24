@@ -46,7 +46,7 @@ interface EditComboDialogProps {
   onComboUpdated: () => void;
 }
 
-export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDialogProps) {
+export function EditComboDialog({ combo, services, companyId, onComboUpdated }: EditComboDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -55,6 +55,7 @@ export function EditComboDialog({ combo, services, onComboUpdated }: EditComboDi
     description: "",
     price: 0,
     is_active: true,
+    image_url: "",
   });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
