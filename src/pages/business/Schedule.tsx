@@ -169,10 +169,14 @@ export default function BusinessSchedule() {
               <FixedEmployeesList companyId={company.id} />
             </TabsContent>
             <TabsContent value="autonomous" className="mt-6">
-              <AutonomousAvailabilityConfig companyId={company.id} readOnly={false} />
+              <AutonomousAvailabilityConfig companyId={company.id} readOnly={true} />
             </TabsContent>
             <TabsContent value="absences" className="mt-6">
-              <AbsencesManager companyId={company.id} />
+              <AbsencesManager
+                companyId={company.id}
+                viewerRole={role}
+                viewerEmployeeId={currentEmployee?.id}
+              />
             </TabsContent>
             <TabsContent value="blocked" className="mt-6">
               <BlockedSlotsManager companyId={company.id} />
