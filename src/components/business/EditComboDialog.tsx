@@ -28,18 +28,21 @@ interface Service {
 
 interface Combo {
   id: string;
+  company_id?: string;
   name: string;
   description?: string;
   price: number;
   original_total_price?: number;
   total_duration_minutes?: number;
   is_active?: boolean;
+  image_url?: string;
   items?: { service_id: string; service?: { id?: string; name?: string } }[];
 }
 
 interface EditComboDialogProps {
   combo: Combo;
   services: Service[];
+  companyId: string;
   onComboUpdated: () => void;
 }
 
