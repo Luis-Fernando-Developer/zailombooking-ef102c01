@@ -47,7 +47,7 @@ const ABSENCE_TYPES = [
   { value: 'other', label: 'Outro', color: 'bg-gray-500' },
 ];
 
-export function AbsencesManager({ companyId }: AbsencesManagerProps) {
+export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: AbsencesManagerProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);
