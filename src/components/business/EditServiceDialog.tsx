@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Edit } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { ServiceImageField } from "./ServiceImageField";
 
 interface Service {
   id: string;
@@ -30,10 +31,11 @@ interface Service {
 
 interface EditServiceDialogProps {
   service: Service;
+  companyId: string;
   onServiceUpdated: () => void;
 }
 
-export function EditServiceDialog({ service, onServiceUpdated }: EditServiceDialogProps) {
+export function EditServiceDialog({ service, companyId, onServiceUpdated }: EditServiceDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -44,6 +46,7 @@ export function EditServiceDialog({ service, onServiceUpdated }: EditServiceDial
     duration_minutes: 60,
     is_active: true,
     payment_required: "optional" as "always" | "optional" | "never",
+    image_url: "",
   });
 
   useEffect(() => {
@@ -55,6 +58,7 @@ export function EditServiceDialog({ service, onServiceUpdated }: EditServiceDial
         duration_minutes: service.duration_minutes,
         is_active: service.is_active,
         payment_required: (service.payment_required as any) || "optional",
+        image_url: service.image_url || "",
       });
     }
   }, [open, service]);
@@ -73,6 +77,7 @@ export function EditServiceDialog({ service, onServiceUpdated }: EditServiceDial
           duration_minutes: formData.duration_minutes,
           is_active: formData.is_active,
           payment_required: formData.payment_required,
+          image_url: formData.image_url || null,
         })
         .eq("id", service.id);
 
@@ -169,6 +174,11 @@ export function EditServiceDialog({ service, onServiceUpdated }: EditServiceDial
                 <option value="always">Obrigatório antes de confirmar</option>
               </select>
             </div>
+            <ServiceImageField
+              companyId={companyId}
+              value={formData.image_url}
+              onChange={(url) => setFormData({ ...formData, image_url: url })}
+            />
             <div className="flex items-center justify-between">
               <Label htmlFor="edit-active">Serviço Ativo</Label>
               <Switch

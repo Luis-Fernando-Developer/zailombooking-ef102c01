@@ -267,6 +267,7 @@ export default function BusinessServices() {
                     <div className="flex gap-1">
                       <EditServiceDialog 
                         service={service} 
+                        companyId={company.id}
                         onServiceUpdated={fetchData} 
                       />
                       <DeleteServiceDialog 
