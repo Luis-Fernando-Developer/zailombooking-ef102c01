@@ -111,22 +111,33 @@ serve(async (req) => {
 
     const { data: company } = await supa
       .from('company_payment_settings')
-      .select('own_gateway_provider, own_gateway_api_key_encrypted, autonomous_share_pct, payout_rule, payout_interval_days')
+      .select('own_gateway_provider, own_gateway_api_key_encrypted, autonomous_share_pct, payout_rule, payout_interval_days, payout_flow')
       .eq('company_id', booking.company_id).maybeSingle()
 
     if (!company) return ok({ error: 'Empresa sem gateway configurado' }, 400)
+
+    const { data: employeeRow } = await supa
+      .from('employees')
+      .select('payout_flow_override')
+      .eq('id', booking.employee_id).maybeSingle()
 
     const { data: employee } = await supa
       .from('employee_payment_settings')
       .select('provider, api_key_encrypted, pix_key, payout_rule, payout_interval_days, is_active')
       .eq('employee_id', booking.employee_id).maybeSingle()
 
+    // Fluxo aplicado (override do employee > default da empresa)
+    const payoutFlow: 'via_company' | 'direct_to_autonomous' =
+      (employeeRow?.payout_flow_override as any) || (company.payout_flow as any) || 'via_company'
+
     const total = Number(booking.total_amount ?? 0)
     const sharePct = Number(company.autonomous_share_pct ?? 95)
     const amountEmp = +(total * sharePct / 100).toFixed(2)
     const amountCo = +(total - amountEmp).toFixed(2)
 
-    // 2) Modo e agendamento
+    // Quem TRANSFERE e quem RECEBE depende do fluxo:
+    //  via_company         -> empresa transfere amountEmp para o autônomo
+    //  direct_to_autonomous-> autônomo transfere amountCo para a empresa
     const sameGateway = employee?.is_active &&
       employee.provider === company.own_gateway_provider &&
       !!employee.api_key_encrypted
@@ -140,6 +151,11 @@ serve(async (req) => {
       const d = new Date(); d.setDate(d.getDate() + days); scheduledFor = d.toISOString()
     }
 
+    // Quem precisa ter credenciais para executar a transferência:
+    const senderHasKey = payoutFlow === 'via_company'
+      ? !!company.own_gateway_api_key_encrypted
+      : !!(employee?.is_active && employee?.api_key_encrypted)
+
     // 3) Registro inicial
     const { data: payoutRow, error: insErr } = await supa
       .from('autonomous_payouts')
@@ -152,41 +168,53 @@ serve(async (req) => {
         amount_to_company: amountCo,
         company_provider: company.own_gateway_provider,
         employee_provider: employee?.provider || null,
-        mode: !employee?.is_active ? 'pending' : (sameGateway ? 'native_split' : 'cross_gateway'),
+        payout_flow: payoutFlow,
+        mode: !senderHasKey ? 'pending' : (sameGateway ? 'native_split' : 'cross_gateway'),
         status: 'pending',
         scheduled_for: scheduledFor,
       })
       .select().single()
     if (insErr) return ok({ error: insErr.message }, 500)
 
-    // 4) Se sem gateway do autônomo OU agendado, sai como pending
-    if (!employee?.is_active || !employee.api_key_encrypted) {
-      return ok({ payout: payoutRow, message: 'Autônomo sem gateway — repasse pendente manual' })
+    // 4) Sem credenciais do remetente -> pending manual
+    if (!senderHasKey) {
+      const msg = payoutFlow === 'via_company'
+        ? 'Empresa sem gateway configurado — repasse pendente'
+        : 'Autônomo sem gateway configurado — repasse pendente'
+      return ok({ payout: payoutRow, message: msg })
     }
     if (scheduledFor) {
       return ok({ payout: payoutRow, message: `Agendado para ${scheduledFor} (job processa)` })
     }
 
-    // 5) Cenário A: split nativo já configurado na cobrança (apenas confirmamos).
+    // 5) Cenário A: mesmo gateway -> split nativo já configurado na cobrança
     if (sameGateway) {
       await supa.from('autonomous_payouts').update({
         status: 'paid', paid_at: new Date().toISOString(),
       }).eq('id', payoutRow.id)
-      return ok({ payout: payoutRow, mode: 'native_split' })
+      return ok({ payout: payoutRow, mode: 'native_split', flow: payoutFlow })
     }
 
-    // 6) Cenário B: cross-gateway -> dispara transferência via gateway do autônomo
+    // 6) Cenário B: cross-gateway -> dispara transferência
+    //    via_company         => empresa transfere amountEmp para o autônomo
+    //    direct_to_autonomous=> autônomo transfere amountCo para a empresa
+    const senderProvider = payoutFlow === 'via_company'
+      ? company.own_gateway_provider
+      : employee!.provider
+    const senderKey = payoutFlow === 'via_company'
+      ? (company.own_gateway_api_key_encrypted || '').trim()
+      : (employee!.api_key_encrypted || '').trim()
+    const transferAmount = payoutFlow === 'via_company' ? amountEmp : amountCo
+    const destinationPix = payoutFlow === 'via_company'
+      ? (employee?.pix_key || undefined)
+      : undefined // empresa deve ter PIX em settings — fora do MVP
+
     try {
-      const externalId = await runTransfer(
-        employee.provider,
-        (employee.api_key_encrypted || '').trim(),
-        amountEmp,
-        employee.pix_key || undefined,
-      )
+      const externalId = await runTransfer(senderProvider, senderKey, transferAmount, destinationPix)
       await supa.from('autonomous_payouts').update({
         status: 'paid', external_payout_id: externalId, paid_at: new Date().toISOString(),
       }).eq('id', payoutRow.id)
-      return ok({ payout: { ...payoutRow, external_payout_id: externalId }, mode: 'cross_gateway' })
+      return ok({ payout: { ...payoutRow, external_payout_id: externalId }, mode: 'cross_gateway', flow: payoutFlow })
     } catch (e: any) {
       await supa.from('autonomous_payouts').update({
         status: 'failed', error_message: e.message,

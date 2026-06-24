@@ -70,14 +70,20 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
     payout_interval_days: 7,
     is_active: true,
   });
+  const [resolvedFlow, setResolvedFlow] = useState<"via_company" | "direct_to_autonomous">("via_company");
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [employeeId]);
 
   async function load() {
     setLoading(true);
-    const { data } = await (supabase as any)
-      .from("employee_payment_settings")
-      .select("*").eq("employee_id", employeeId).maybeSingle();
+    const [{ data }, { data: emp }, { data: comp }] = await Promise.all([
+      (supabase as any).from("employee_payment_settings")
+        .select("*").eq("employee_id", employeeId).maybeSingle(),
+      (supabase as any).from("employees")
+        .select("payout_flow_override").eq("id", employeeId).maybeSingle(),
+      (supabase as any).from("company_payment_settings")
+        .select("payout_flow").eq("company_id", companyId).maybeSingle(),
+    ]);
     if (data) {
       setSettings({
         provider: data.provider || "asaas",
@@ -88,6 +94,9 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
       });
       setHasStoredKey(!!data.api_key_encrypted);
     }
+    setResolvedFlow(
+      (emp?.payout_flow_override as any) || (comp?.payout_flow as any) || "via_company"
+    );
     setLoading(false);
   }
 
@@ -161,6 +170,17 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+            <div className="font-medium mb-1">Fluxo de repasse acordado com a empresa</div>
+            <p className="text-xs text-muted-foreground">
+              {resolvedFlow === "direct_to_autonomous"
+                ? "Pagamentos dos clientes caem direto na SUA conta. Você repassa o % combinado para a empresa."
+                : "Pagamentos dos clientes caem na conta da EMPRESA. Ela repassa o seu % para a conta abaixo."}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Apenas a empresa pode alterar esse fluxo.
+            </p>
+          </div>
           <div>
             <Label>Provedor</Label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">

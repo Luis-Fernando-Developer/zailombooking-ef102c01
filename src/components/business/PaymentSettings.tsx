@@ -96,6 +96,7 @@ export function PaymentSettings({ companyId }: Props) {
     payment_mode: "none",
     accepted_methods: { pix: true, credit_card: true, debit_card: true, boleto: false },
     own_gateway_provider: "asaas" as Provider,
+    payout_flow: "via_company" as "via_company" | "direct_to_autonomous",
   });
 
   useEffect(() => { load(); }, [companyId]);
@@ -112,6 +113,7 @@ export function PaymentSettings({ companyId }: Props) {
         payment_mode: s.payment_mode || "none",
         accepted_methods: s.accepted_methods || { pix: true, credit_card: true, debit_card: true, boleto: false },
         own_gateway_provider: (s.own_gateway_provider as Provider) || "asaas",
+        payout_flow: (s.payout_flow as any) || "via_company",
       });
       setHasStoredKey(!!s.own_gateway_api_key_encrypted);
     }
@@ -126,6 +128,7 @@ export function PaymentSettings({ companyId }: Props) {
         payment_mode: settings.payment_mode,
         accepted_methods: settings.accepted_methods,
         own_gateway_provider: settings.own_gateway_provider,
+        payout_flow: settings.payout_flow,
       };
 
       if (apiKeyInput.trim()) {
@@ -306,6 +309,44 @@ export function PaymentSettings({ companyId }: Props) {
                 Abrir painel {info.label} <ExternalLink className="w-3 h-3" />
               </a>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {enabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Fluxo de repasse para autônomos</CardTitle>
+            <CardDescription>
+              Define o caminho padrão do dinheiro quando um cliente paga um agendamento de um profissional autônomo.
+              Você pode sobrescrever caso a caso na ficha de cada autônomo (Equipe → Editar).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {[
+              {
+                v: "via_company",
+                title: "Empresa recebe e repassa",
+                desc: "Cliente paga na conta da empresa. A empresa transfere o % combinado para o autônomo.",
+              },
+              {
+                v: "direct_to_autonomous",
+                title: "Autônomo recebe e repassa",
+                desc: "Cliente paga direto na conta do autônomo. O autônomo transfere o % combinado para a empresa.",
+              },
+            ].map((o) => (
+              <button
+                key={o.v}
+                type="button"
+                onClick={() => setSettings({ ...settings, payout_flow: o.v })}
+                className={`w-full p-4 border rounded-lg text-left transition-colors ${
+                  settings.payout_flow === o.v ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                }`}
+              >
+                <div className="font-medium text-sm">{o.title}</div>
+                <p className="text-xs text-muted-foreground mt-1">{o.desc}</p>
+              </button>
+            ))}
           </CardContent>
         </Card>
       )}

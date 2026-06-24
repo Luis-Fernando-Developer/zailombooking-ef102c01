@@ -31,6 +31,7 @@ interface Employee {
   system_profile_id?: string | null;
   base_occupation_id?: string | null;
   internal_job_title?: string | null;
+  payout_flow_override?: string | null;
 }
 
 interface SystemProfile { id: string; code: string; name: string; }
@@ -59,13 +60,14 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
     nickname: "",
     email: "",
     phone: "",
-    role: "employee" as const,
-    employee_type: "fixo" as const,
+    role: "employee" as string,
+    employee_type: "fixo" as string,
     is_active: true,
     services: [] as string[],
     system_profile_id: "",
     base_occupation_id: "",
     internal_job_title: "",
+    payout_flow_override: "" as "" | "via_company" | "direct_to_autonomous",
   });
 
   useEffect(() => {
@@ -85,6 +87,7 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
         system_profile_id: employee.system_profile_id || "",
         base_occupation_id: employee.base_occupation_id || "",
         internal_job_title: employee.internal_job_title || "",
+        payout_flow_override: (employee.payout_flow_override as any) || "",
       });
       fetchServices();
       fetchEmployeeServices();
@@ -189,6 +192,9 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
           system_profile_id: formData.system_profile_id || null,
           base_occupation_id: formData.base_occupation_id || null,
           internal_job_title: formData.internal_job_title || null,
+          payout_flow_override: formData.employee_type === 'autonomo'
+            ? (formData.payout_flow_override || null)
+            : null,
 
         })
         .eq('id', employee.id);
@@ -341,6 +347,33 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
               </SelectContent>
             </Select>
           </div>
+
+          {formData.employee_type === 'autonomo' && (
+            <div className="space-y-2">
+              <Label htmlFor="payout_flow_override">Fluxo de repasse</Label>
+              <Select
+                value={formData.payout_flow_override || "__default__"}
+                onValueChange={(v) => setFormData(prev => ({
+                  ...prev,
+                  payout_flow_override: v === "__default__" ? "" : (v as any),
+                }))}
+              >
+                <SelectTrigger id="payout_flow_override">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">Usar padrão da empresa</SelectItem>
+                  <SelectItem value="via_company">Empresa recebe e repassa</SelectItem>
+                  <SelectItem value="direct_to_autonomous">Autônomo recebe e repassa</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Define para qual conta vai o pagamento do cliente neste profissional.
+              </p>
+            </div>
+          )}
+
+
 
           <div className="space-y-2">
             <Label htmlFor="system_profile">Perfil do Sistema</Label>
