@@ -92,6 +92,8 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
         base_occupation_id: employee.base_occupation_id || "",
         internal_job_title: employee.internal_job_title || "",
         payout_flow_override: (employee.payout_flow_override as any) || "",
+        termination_effective_date: employee.termination_effective_date || "",
+        termination_reason: employee.termination_reason || "",
       });
       fetchServices();
       fetchEmployeeServices();
