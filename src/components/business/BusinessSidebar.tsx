@@ -61,14 +61,23 @@ const menuItems: MenuItem[] = [
       { title: "Zailom Flow", url: "/admin/chatbot/talkmap", icon: MessageSquare },
     ],
   },
+  {
+    title: "Integrações",
+    url: "/admin/integracoes/whatsapp",
+    icon: Plug2,
+    children: [
+      { title: "WhatsApp", url: "/admin/integracoes/whatsapp", icon: Smartphone },
+      { title: "E-mail", url: "/admin/integracoes/email", icon: Mail },
+    ],
+  },
   { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
 ];
 
 // Matriz única de permissões por role (fonte da verdade global)
 // Usada também por outras superfícies (botões de ação) via getMenuAccess()
 const ROLE_MENU_ACCESS: Record<string, string[]> = {
-  owner:         ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Configurações"],
-  manager:       ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Configurações"],
+  owner:         ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Integrações", "Configurações"],
+  manager:       ["Dashboard", "Agendamentos", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Integrações", "Configurações"],
   supervisor:    ["Dashboard", "Agendamentos", "Horários", "Colaboradores", "Solicitações", "Notificações", "Bate-papo"],
   receptionist:  ["Dashboard", "Agendamentos", "Horários", "Solicitações", "Notificações", "Bate-papo"],
   employee:      ["Dashboard", "Agendamentos", "Horários", "Solicitações", "Notificações", "Bate-papo"],
