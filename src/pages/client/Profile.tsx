@@ -188,6 +188,37 @@ export default function ClientProfile() {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !client) return;
+    setIsUploadingAvatar(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) throw new Error("not_authenticated");
+      const ext = file.name.split('.').pop() || 'png';
+      const path = `${userData.user.id}/${client.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('client-avatars')
+        .upload(path, file, { upsert: true, cacheControl: '3600' });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from('client-avatars').getPublicUrl(path);
+      const publicUrl = pub.publicUrl;
+      const { error: updErr } = await supabase
+        .from('clients')
+        .update({ avatar_url: publicUrl })
+        .eq('id', client.id);
+      if (updErr) throw updErr;
+      setClient({ ...client, avatar_url: publicUrl });
+      toast({ title: "Foto atualizada", description: "Sua nova foto foi salva." });
+    } catch (err: any) {
+      console.error("avatar upload", err);
+      toast({ title: "Erro no upload", description: err?.message || "Não foi possível enviar a foto.", variant: "destructive" });
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
   const handleDeleteData = async () => {
     if (!client) return;
     setIsDeleting(true);
