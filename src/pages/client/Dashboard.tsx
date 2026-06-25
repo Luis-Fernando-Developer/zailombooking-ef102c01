@@ -226,9 +226,13 @@ export default function ClientDashboard() {
                 
                 <div className="hidden lg:block">
                   <div className="w-40 h-40 rounded-full bg-gradient-primary p-1 animate-float">
-                    <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-4xl font-bold text-gradient">
-                      {client?.name?.charAt(0) || "U"}
-                    </div>
+                    {client?.avatar_url ? (
+                      <img src={client.avatar_url} alt={client.name} className="w-full h-full rounded-full object-cover bg-card" />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-4xl font-bold text-gradient">
+                        {client?.name?.charAt(0) || "U"}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
