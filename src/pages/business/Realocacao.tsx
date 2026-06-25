@@ -303,6 +303,12 @@ function ReallocateDialog({ booking, companyId, employees, onClose, onDone }: Re
         title: "Agendamento realocado",
         description: `Movido para ${format(newDate, "dd/MM/yyyy")} às ${newTime.slice(0, 5)}.`,
       });
+
+      // Notifica cliente (não bloqueia o fluxo se falhar)
+      supabase.functions.invoke("notify-booking-change", {
+        body: { booking_id: booking.id, change_type: "reallocation" },
+      }).catch((err) => console.error("notify failed", err));
+
       onDone();
     } catch (e: any) {
       console.error(e);
