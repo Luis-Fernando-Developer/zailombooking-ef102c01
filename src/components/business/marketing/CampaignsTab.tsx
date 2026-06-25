@@ -191,8 +191,46 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
                 <div className="flex flex-wrap gap-1">
                   {c.placements.map((p) => <Badge key={p} variant="outline" className="text-xs">{PLACEMENTS.find(x => x.v === p)?.l ?? p}</Badge>)}
                 </div>
+          const editDraft = () => {
+            setEditing(c);
+            setForm({
+              name: c.name,
+              description: c.description ?? "",
+              objective: c.objective ?? "",
+              start_at: toLocalInput(c.start_at),
+              end_at: toLocalInput(c.end_at),
+              placements: [...(c.placements ?? [])],
+              audience_type: c.audience_type ?? 'all',
+              audience_filters: JSON.stringify(c.audience_filters ?? {}, null, 2),
+              placement_config: { ...(c.placement_config ?? {}) },
+            });
+            setSelectedMaterials([]);
+            setOpen(true);
+          };
+
+          return (
+            <Card key={c.id}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-base">{c.name}</CardTitle>
+                  <Badge>{badgeLabel}</Badge>
+                </div>
+                <CardDescription>
+                  {c.start_at ? new Date(c.start_at).toLocaleString() : '—'} → {c.end_at ? new Date(c.end_at).toLocaleString() : '—'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {c.description && <p className="text-sm text-muted-foreground">{c.description}</p>}
+                <div className="flex flex-wrap gap-1">
+                  {c.placements.map((p) => <Badge key={p} variant="outline" className="text-xs">{PLACEMENTS.find(x => x.v === p)?.l ?? p}</Badge>)}
+                </div>
                 {canEdit && (
                   <div className="flex gap-2 pt-2 flex-wrap">
+                    {(c.status === 'draft' || c.status === 'pending_approval') && (
+                      <Button size="sm" variant="outline" onClick={editDraft}>
+                        <Pencil className="w-3 h-3 mr-1" /> Editar
+                      </Button>
+                    )}
                     {c.status === 'draft' && (
                       <Button size="sm" variant="outline" onClick={() => submitMut.mutate(c.id)}>
                         <Send className="w-3 h-3 mr-1" /> Enviar p/ aprovação
