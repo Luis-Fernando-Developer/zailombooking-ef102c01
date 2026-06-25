@@ -256,19 +256,22 @@ function ReallocateDialog({ booking, companyId, employees, onClose, onDone }: Re
       const endMins = hh * 60 + mm + duration;
       const end = `${String(Math.floor(endMins / 60)).padStart(2, "0")}:${String(endMins % 60).padStart(2, "0")}:00`;
 
-      // Check conflict
-      const { data: conflicts } = await supabase
-        .from("bookings")
-        .select("id, start_time, end_time")
-        .eq("company_id", companyId)
-        .eq("employee_id", newEmployeeId)
-        .eq("booking_date", dateStr)
-        .not("booking_status", "in", "(cancelled,no_show)")
-        .neq("id", booking.id);
-
-      const overlap = (conflicts || []).some((c: any) => start < c.end_time && end > c.start_time);
-      if (overlap) {
-        toast({ title: "Conflito de horário", description: "Esse horário já está ocupado.", variant: "destructive" });
+      // Gate único: a função consolidada decide se o slot é válido (escala, ausência, desligamento, breaks, bookings, etc.)
+      const { data: ok, error: gateErr } = await supabase.rpc("is_slot_available", {
+        p_company: companyId,
+        p_employee: newEmployeeId,
+        p_service: booking.service_id,
+        p_date: dateStr,
+        p_start: start,
+        p_ignore_booking: booking.id,
+      });
+      if (gateErr) throw gateErr;
+      if (!ok) {
+        toast({
+          title: "Horário indisponível",
+          description: "Esse horário não está livre na escala do profissional escolhido (ausência, folga, intervalo ou conflito).",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -308,6 +311,7 @@ function ReallocateDialog({ booking, companyId, employees, onClose, onDone }: Re
       setSaving(false);
     }
   }
+
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>

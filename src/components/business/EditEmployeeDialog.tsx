@@ -32,6 +32,8 @@ interface Employee {
   base_occupation_id?: string | null;
   internal_job_title?: string | null;
   payout_flow_override?: string | null;
+  termination_effective_date?: string | null;
+  termination_reason?: string | null;
 }
 
 interface SystemProfile { id: string; code: string; name: string; }
@@ -68,6 +70,8 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
     base_occupation_id: "",
     internal_job_title: "",
     payout_flow_override: "" as "" | "via_company" | "direct_to_autonomous",
+    termination_effective_date: "",
+    termination_reason: "",
   });
 
   useEffect(() => {
@@ -88,6 +92,8 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
         base_occupation_id: employee.base_occupation_id || "",
         internal_job_title: employee.internal_job_title || "",
         payout_flow_override: (employee.payout_flow_override as any) || "",
+        termination_effective_date: employee.termination_effective_date || "",
+        termination_reason: employee.termination_reason || "",
       });
       fetchServices();
       fetchEmployeeServices();
@@ -195,7 +201,8 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
           payout_flow_override: formData.employee_type === 'autonomo'
             ? (formData.payout_flow_override || null)
             : null,
-
+          termination_effective_date: formData.termination_effective_date || null,
+          termination_reason: formData.termination_reason || null,
         })
         .eq('id', employee.id);
 
@@ -457,6 +464,39 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
             </div>
           </div>
 
+          <div className="space-y-3 rounded-md border border-destructive/30 p-3">
+            <div>
+              <Label htmlFor="termination_effective_date" className="text-destructive">
+                Data de desligamento
+              </Label>
+              <Input
+                id="termination_effective_date"
+                type="date"
+                value={formData.termination_effective_date}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, termination_effective_date: e.target.value }))
+                }
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                A partir desta data, todas as escalas futuras do colaborador serão marcadas como
+                Desligado (D) e ele deixa de aparecer na disponibilidade.
+              </p>
+            </div>
+            {formData.termination_effective_date && (
+              <div>
+                <Label htmlFor="termination_reason">Motivo (opcional)</Label>
+                <Input
+                  id="termination_reason"
+                  value={formData.termination_reason}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, termination_reason: e.target.value }))
+                  }
+                  placeholder="Ex: Pedido de demissão, fim de contrato..."
+                />
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center space-x-2">
             <Switch
               id="is_active"
@@ -465,6 +505,7 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
             />
             <Label htmlFor="is_active">Colaborador ativo</Label>
           </div>
+
 
           <div className="flex gap-4 pt-4">
             <Button

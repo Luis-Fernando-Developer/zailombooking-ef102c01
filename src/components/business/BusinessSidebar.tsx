@@ -34,6 +34,7 @@ import {
   Send,
   CalendarClock,
   ArrowRightLeft,
+  CalendarOff,
 
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -51,6 +52,7 @@ const menuItems: MenuItem[] = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
   { title: "Agendamentos", url: "/admin/agendamentos", icon: Calendar },
   { title: "Realocação", url: "/admin/realocacao", icon: ArrowRightLeft },
+  { title: "Ausências", url: "/admin/ausencias", icon: CalendarOff },
 
   { title: "Horários", url: "/admin/horarios", icon: Clock },
   { title: "Serviços", url: "/admin/servicos", icon: Briefcase },
@@ -86,9 +88,9 @@ const menuItems: MenuItem[] = [
 // Matriz única de permissões por role (fonte da verdade global)
 // Usada também por outras superfícies (botões de ação) via getMenuAccess()
 const ROLE_MENU_ACCESS: Record<string, string[]> = {
-  owner:         ["Dashboard", "Agendamentos", "Realocação", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Automações", "Integrações", "Configurações"],
-  manager:       ["Dashboard", "Agendamentos", "Realocação", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Automações", "Integrações", "Configurações"],
-  supervisor:    ["Dashboard", "Agendamentos", "Realocação", "Horários", "Colaboradores", "Solicitações", "Notificações", "Bate-papo"],
+  owner:         ["Dashboard", "Agendamentos", "Realocação", "Ausências", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Automações", "Integrações", "Configurações"],
+  manager:       ["Dashboard", "Agendamentos", "Realocação", "Ausências", "Horários", "Serviços", "Colaboradores", "Solicitações", "Notificações", "Bate-papo", "Marketing", "Chatbot", "Automações", "Integrações", "Configurações"],
+  supervisor:    ["Dashboard", "Agendamentos", "Realocação", "Ausências", "Horários", "Colaboradores", "Solicitações", "Notificações", "Bate-papo"],
   receptionist:  ["Dashboard", "Agendamentos", "Horários", "Solicitações", "Notificações", "Bate-papo"],
   employee:      ["Dashboard", "Agendamentos", "Horários", "Solicitações", "Notificações", "Bate-papo"],
   rh:            ["Dashboard", "Notificações", "Bate-papo", "Marketing"],
