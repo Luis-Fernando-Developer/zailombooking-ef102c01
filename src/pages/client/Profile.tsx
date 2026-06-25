@@ -71,7 +71,7 @@ export default function ClientProfile() {
       // Get company
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
-        .select('id, name, slug')
+        .select('id, name, slug, logo_url')
         .eq('slug', slug)
         .single();
 
