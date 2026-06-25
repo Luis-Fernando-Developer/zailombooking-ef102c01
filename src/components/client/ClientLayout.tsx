@@ -214,23 +214,21 @@ export default function ClientLayout() {
   };
 
   const canModifyBooking = (booking: Booking) => {
-    // Bloqueia apenas estados terminais/em-execução
     const terminal = ['completed', 'cancelled', 'no_show', 'in_progress'];
     if (terminal.includes(booking.booking_status)) return false;
 
-    // Não permitir alterar agendamentos no passado
     const [year, month, day] = booking.booking_date.split('-').map(Number);
-    const [hours, minutes] = booking.start_time.split(':').map(Number);
+    const [hours, minutes] = parseHM(booking.start_time);
     const bookingDateTime = new Date(year, month - 1, day, hours, minutes);
     const now = new Date();
     if (bookingDateTime.getTime() <= now.getTime()) return false;
 
-    // Respeitar janela mínima da empresa (default 2h)
     if (company?.allow_client_reschedule === false) return false;
     const minHours = company?.min_reschedule_hours ?? 2;
     const minMs = minHours * 60 * 60 * 1000;
     return (bookingDateTime.getTime() - now.getTime()) >= minMs;
   };
+
 
   const parseHM = (time?: string): [number, number] => {
     if (!time) return [0, 0];
