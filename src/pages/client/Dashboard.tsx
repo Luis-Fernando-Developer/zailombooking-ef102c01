@@ -129,13 +129,16 @@ export default function ClientDashboard() {
     }
   };
 
-  const formatDate = (date: string) => {
+  const formatLongDate = (date: string, time: string) => {
     if (!date) return "";
-    const [year, month, day] = date.split('-').map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
-      day: 'numeric',
-      month: 'short'
-    });
+    const [y, m, d] = date.split('-').map(Number);
+    const t = (time || '').split(':');
+    const dt = new Date(y, m - 1, d, Number(t[0] || 0), Number(t[1] || 0));
+    const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const dd = String(d).padStart(2, '0');
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const mi = String(dt.getMinutes()).padStart(2, '0');
+    return `${dd} de ${months[m - 1]} de ${y} às ${hh}:${mi}`;
   };
 
   const formatTime = (time: string) => {
