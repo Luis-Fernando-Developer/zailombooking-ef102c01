@@ -10,7 +10,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Send, Ban, RotateCcw } from "lucide-react";
+import { Plus, Send, Ban, RotateCcw, Pencil } from "lucide-react";
+
+const toLocalInput = (iso: string | null | undefined) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 import {
   listCampaigns, listMaterials, createCampaign, updateCampaign,
   setCampaignMaterials, submitCampaignForApproval, revokeCampaign,
