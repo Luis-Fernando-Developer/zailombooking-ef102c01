@@ -403,7 +403,7 @@ export default function ClientBooking() {
          // buscar dados dos employees elegíveis (apenas do mesmo company)
         const { data: employeesData } = await supabase
           .from('employees')
-          .select('id, name, email')
+          .select('id, name, email, avatar_url')
           .in('id', eligibleEmployeeIds)
           .eq('company_id', company.id)
           .eq('is_active', true);
