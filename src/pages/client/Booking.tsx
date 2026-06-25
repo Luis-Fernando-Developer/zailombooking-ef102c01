@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { BookingPaymentDialog } from "@/components/booking/BookingPaymentDialog";
-import { getAvailability } from "@/lib/api/availability";
+import { getAvailability, AVAILABILITY_REASON_LABELS } from "@/lib/api/availability";
 
 
 interface Service {
