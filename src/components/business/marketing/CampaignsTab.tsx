@@ -175,24 +175,6 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
             setOpen(true);
           };
 
-          return (
-            <Card key={c.id}>
-          const editDraft = () => {
-            setEditing(c);
-            setForm({
-              name: c.name,
-              description: c.description ?? "",
-              objective: c.objective ?? "",
-              start_at: toLocalInput(c.start_at),
-              end_at: toLocalInput(c.end_at),
-              placements: [...(c.placements ?? [])],
-              audience_type: c.audience_type ?? 'all',
-              audience_filters: JSON.stringify(c.audience_filters ?? {}, null, 2),
-              placement_config: { ...(c.placement_config ?? {}) },
-            });
-            setSelectedMaterials([]);
-            setOpen(true);
-          };
 
           return (
             <Card key={c.id}>
