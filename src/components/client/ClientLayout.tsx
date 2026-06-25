@@ -33,9 +33,14 @@ interface Booking {
     duration_minutes?: number;
     price?: number;
   };
+  employee?: { name: string } | null;
   company: {
     name: string;
     slug: string;
+    logo_url?: string | null;
+    min_reschedule_hours?: number | null;
+    allow_client_reschedule?: boolean | null;
+    allow_client_cancel?: boolean | null;
   };
 }
 
@@ -43,6 +48,10 @@ interface Company {
   id: string;
   name: string;
   slug: string;
+  logo_url?: string | null;
+  min_reschedule_hours?: number | null;
+  allow_client_reschedule?: boolean | null;
+  allow_client_cancel?: boolean | null;
 }
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
