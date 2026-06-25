@@ -7,7 +7,7 @@ import { ClientSidebar } from "./ClientSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Calendar, Clock, DollarSign, RefreshCw, X, MoreVertical } from "lucide-react";
+import { Calendar, Clock, DollarSign, RefreshCw, X, MoreVertical, User } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
