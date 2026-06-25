@@ -132,14 +132,17 @@ export default function ClientDashboard() {
   const formatLongDate = (date: string, time: string) => {
     if (!date) return "";
     const [y, m, d] = date.split('-').map(Number);
-    const t = (time || '').split(':');
-    const dt = new Date(y, m - 1, d, Number(t[0] || 0), Number(t[1] || 0));
+    let s = time || '';
+    if (s.includes('T')) s = s.split('T')[1];
+    s = s.replace(/[zZ].*$/, '').replace(/[+\-]\d{2}:?\d{2}$/, '');
+    const [hStr, miStr] = s.split(':');
+    const hh = String(Number(hStr) || 0).padStart(2, '0');
+    const mi = String(Number(miStr) || 0).padStart(2, '0');
     const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     const dd = String(d).padStart(2, '0');
-    const hh = String(dt.getHours()).padStart(2, '0');
-    const mi = String(dt.getMinutes()).padStart(2, '0');
     return `${dd} de ${months[m - 1]} de ${y} às ${hh}:${mi}`;
   };
+
 
   const formatTime = (time: string) => {
     if (!time) return "--:--";

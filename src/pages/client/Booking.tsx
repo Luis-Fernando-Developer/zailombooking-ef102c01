@@ -628,19 +628,32 @@ export default function ClientBooking() {
 
       const isCombo = selectedService.id?.startsWith?.('combo:');
       const bookingDate = format(selectedDate, 'yyyy-MM-dd');
+      // start_time / end_time são TIMESTAMPTZ no banco — montar ISO local
+      const [shStr, smStr] = (selectedTime || '00:00').split(':');
+      const sh = Number(shStr) || 0;
+      const sm = Number(smStr) || 0;
+      const duration = Number(selectedService.duration_minutes) || 30;
+      const startISO = `${bookingDate}T${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}:00`;
+      const endTotal = sh * 60 + sm + duration;
+      const eh = Math.floor(endTotal / 60) % 24;
+      const em = endTotal % 60;
+      const endISO = `${bookingDate}T${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}:00`;
+
       const payloadBase: any = {
         company_id: company.id,
         employee_id: selectedEmployee.id,
         service_id: isCombo ? null : selectedService.id,
         combo_id: isCombo ? selectedService.id.replace('combo:', '') : null,
-        start_time: selectedTime,
+        start_time: startISO,
+        end_time: endISO,
         booking_date: bookingDate,
-        duration_minutes: selectedService.duration_minutes,
+        duration_minutes: duration,
         price: selectedService.price,
         notes: formData.notes,
         client_id: clientId,
         booking_status: 'pending'
       };
+
 
       let newBookingId: string;
 

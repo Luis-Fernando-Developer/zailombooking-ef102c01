@@ -214,41 +214,56 @@ export default function ClientLayout() {
   };
 
   const canModifyBooking = (booking: Booking) => {
-    // Bloqueia apenas estados terminais/em-execução
     const terminal = ['completed', 'cancelled', 'no_show', 'in_progress'];
     if (terminal.includes(booking.booking_status)) return false;
 
-    // Não permitir alterar agendamentos no passado
     const [year, month, day] = booking.booking_date.split('-').map(Number);
-    const [hours, minutes] = booking.start_time.split(':').map(Number);
+    const [hours, minutes] = parseHM(booking.start_time);
     const bookingDateTime = new Date(year, month - 1, day, hours, minutes);
     const now = new Date();
     if (bookingDateTime.getTime() <= now.getTime()) return false;
 
-    // Respeitar janela mínima da empresa (default 2h)
     if (company?.allow_client_reschedule === false) return false;
     const minHours = company?.min_reschedule_hours ?? 2;
     const minMs = minHours * 60 * 60 * 1000;
     return (bookingDateTime.getTime() - now.getTime()) >= minMs;
   };
 
+
+  const parseHM = (time?: string): [number, number] => {
+    if (!time) return [0, 0];
+    let s = time;
+    if (s.includes('T')) s = s.split('T')[1];
+    // strip timezone suffix if any
+    s = s.replace(/[zZ].*$/, '').replace(/[+\-]\d{2}:?\d{2}$/, '');
+    const [hh, mm] = s.split(':');
+    return [Number(hh) || 0, Number(mm) || 0];
+  };
+
   const formatLongDate = (date: string, time: string) => {
     if (!date) return "";
     const [y, m, d] = date.split('-').map(Number);
-    const t = (time || '').split(':');
-    const dt = new Date(y, m - 1, d, Number(t[0] || 0), Number(t[1] || 0));
+    const [hh, mi] = parseHM(time);
     const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     const dd = String(d).padStart(2, '0');
-    const hh = String(dt.getHours()).padStart(2, '0');
-    const mi = String(dt.getMinutes()).padStart(2, '0');
-    return `${dd} de ${months[m - 1]} de ${y} às ${hh}:${mi}`;
+    return `${dd} de ${months[m - 1]} de ${y} às ${String(hh).padStart(2,'0')}:${String(mi).padStart(2,'0')}`;
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex flex-col h-screen w-full bg-gradient-hero overflow-hidden">
-        {/* Header - Agora ocupa toda a largura no topo */}
-        <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20 shrink-0 w-full">
+    <SidebarProvider className="min-h-screen flex w-full">
+      <ClientSidebar
+        clientId={client?.id || "N/A"}
+        clientName={client?.name || null}
+        clientAvatarUrl={client?.avatar_url || null}
+        currentUser={null}
+        companySlug={company?.slug || ""}
+        companyName={company?.name || ""}
+        companyId={company?.id || ""}
+        companyLogoUrl={(company as any)?.logo_url || null}
+      />
+
+      <div className="flex flex-col flex-1 h-screen overflow-hidden">
+        <header className="h-20 shrink-0 w-full flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20">
           <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
           <div className="flex flex-col">
             <h1 className="text-xl font-bold text-gradient">Meus Agendamentos</h1>
@@ -259,20 +274,8 @@ export default function ClientLayout() {
           </div>
         </header>
 
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <ClientSidebar
-            clientId={client?.id || "N/A"}
-            clientName={client?.name || null}
-            clientAvatarUrl={client?.avatar_url || null}
-            currentUser={null}
-            companySlug={company?.slug || ""}
-            companyName={company?.name || ""}
-            companyId={company?.id || ""}
-            companyLogoUrl={(company as any)?.logo_url || null}
-          />
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-gradient-hero">
 
-
-          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
 
 
 
@@ -417,7 +420,7 @@ export default function ClientLayout() {
           </div>
           </main>
         </div>
-      </div>
+
 
       {rescheduleBooking && company && (
         <ClientRescheduleDialog
