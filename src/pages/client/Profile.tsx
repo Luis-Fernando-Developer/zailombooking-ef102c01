@@ -283,10 +283,13 @@ export default function ClientProfile() {
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <ClientSidebar
             clientId={client?.id || ""}
+            clientName={client?.name || null}
+            clientAvatarUrl={client?.avatar_url || null}
             currentUser={null}
             companySlug={company?.slug || ""}
             companyName={company?.name || ""}
             companyId={company?.id || ""}
+            companyLogoUrl={(company as any)?.logo_url || null}
           />
 
           <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
@@ -303,13 +306,15 @@ export default function ClientProfile() {
                 <div className="relative group">
                   <div className="absolute -inset-1 bg-gradient-primary rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
                   <Avatar className="w-24 h-24 border-2 border-primary/20 relative">
+                    {client?.avatar_url && <AvatarImage src={client.avatar_url} alt={client?.name || ''} />}
                     <AvatarFallback className="bg-gradient-primary text-3xl font-black text-white">
                       {client?.name?.charAt(0)?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <button className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-neon hover:scale-110 transition-transform">
-                    <Camera className="w-4 h-4" />
-                  </button>
+                  <label className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-neon hover:scale-110 transition-transform cursor-pointer">
+                    {isUploadingAvatar ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploadingAvatar} />
+                  </label>
                 </div>
                 <div className="text-center md:text-left space-y-1">
                   <h2 className="text-3xl font-extrabold tracking-tight">{client?.name}</h2>
