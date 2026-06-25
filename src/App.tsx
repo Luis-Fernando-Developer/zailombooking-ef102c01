@@ -79,6 +79,8 @@ const App = () => (
             <Route path="/:slug/admin/dashboard" element={<RequireBusinessAuth><BusinessDashboard /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/agendamentos" element={<RequireBusinessAuth><BusinessBookings /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/realocacao" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessRealocacao /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/realocacao" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessRealocacao /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/ausencias" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessAusencias /></RequireRole></RequireBusinessAuth>} />
 
             <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessServices /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/colaboradores" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessEmployees /></RequireRole></RequireBusinessAuth>} />
