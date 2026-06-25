@@ -1013,8 +1013,9 @@ export default function ClientBooking() {
                 </div>
               ) : availableTimes.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  Nenhum horário disponível para esta data.
+                  {AVAILABILITY_REASON_LABELS[availabilityReason ?? 'no_slots'] ?? 'Nenhum horário disponível para esta data.'}
                 </p>
+
               ) : (
                 <div>
                   <Label className="text-base font-medium">Horários disponíveis</Label>
