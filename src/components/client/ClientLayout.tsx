@@ -150,7 +150,8 @@ export default function ClientLayout() {
         .select(`
           *,
           service:services(name, description, duration_minutes, price),
-          company:companies(name, slug)
+          employee:employees(name),
+          company:companies(name, slug, logo_url, min_reschedule_hours, allow_client_reschedule, allow_client_cancel)
         `)
         .eq('client_id', clientData.id)
         .order('booking_date', { ascending: false });
