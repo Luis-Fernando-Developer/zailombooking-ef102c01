@@ -256,7 +256,7 @@ BEGIN
        WHERE bk.company_id  = p_company
          AND bk.employee_id = p_employee
          AND bk.booking_date = p_date
-         AND LOWER(COALESCE(bk.booking_status,'')) NOT IN ('cancelled','canceled','rejected','no_show')
+         AND LOWER(COALESCE(bk.booking_status::text,'')) NOT IN ('cancelled','canceled','rejected','no_show')
          AND (v_cur, v_slot_end) OVERLAPS (bk.start_time::TIME,
                                            COALESCE(bk.end_time::TIME,
                                                     (bk.start_time::TIME
@@ -346,7 +346,7 @@ BEGIN
               WHERE bk.company_id = p_company AND bk.employee_id = p_employee
                 AND bk.booking_date = p_date
                 AND (p_ignore_booking IS NULL OR bk.id <> p_ignore_booking)
-                AND LOWER(COALESCE(bk.booking_status,'')) NOT IN ('cancelled','canceled','rejected','no_show')
+                AND LOWER(COALESCE(bk.booking_status::text,'')) NOT IN ('cancelled','canceled','rejected','no_show')
                 AND (p_start, v_end) OVERLAPS (bk.start_time::TIME,
                        COALESCE(bk.end_time::TIME,
                                 (bk.start_time::TIME + (COALESCE(bk.duration_minutes,30)||' min')::INTERVAL)))
@@ -423,7 +423,7 @@ SELECT bk.*,
                                     bk.booking_date, bk.start_time::TIME, bk.id) AS is_inconsistent
   FROM public.bookings bk
  WHERE bk.booking_date >= CURRENT_DATE
-   AND LOWER(COALESCE(bk.booking_status,'')) NOT IN ('cancelled','canceled','rejected','no_show','completed');
+   AND LOWER(COALESCE(bk.booking_status::text,'')) NOT IN ('cancelled','canceled','rejected','no_show','completed');
 
 GRANT SELECT ON public.bookings_needing_action TO authenticated, service_role;
 
