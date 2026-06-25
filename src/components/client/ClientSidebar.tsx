@@ -19,9 +19,12 @@ interface ClientSidebarProps {
   companySlug: string;
   companyName: string;
   companyId: string;
+  companyLogoUrl?: string | null;
   userRole?: string;
 
   clientId?: string;
+  clientName?: string | null;
+  clientAvatarUrl?: string | null;
   currentUser?: SupabaseUser | null;
 }
 
