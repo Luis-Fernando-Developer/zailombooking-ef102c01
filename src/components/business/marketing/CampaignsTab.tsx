@@ -177,20 +177,6 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
 
           return (
             <Card key={c.id}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-base">{c.name}</CardTitle>
-                  <Badge>{badgeLabel}</Badge>
-                </div>
-                <CardDescription>
-                  {c.start_at ? new Date(c.start_at).toLocaleString() : '—'} → {c.end_at ? new Date(c.end_at).toLocaleString() : '—'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {c.description && <p className="text-sm text-muted-foreground">{c.description}</p>}
-                <div className="flex flex-wrap gap-1">
-                  {c.placements.map((p) => <Badge key={p} variant="outline" className="text-xs">{PLACEMENTS.find(x => x.v === p)?.l ?? p}</Badge>)}
-                </div>
           const editDraft = () => {
             setEditing(c);
             setForm({
