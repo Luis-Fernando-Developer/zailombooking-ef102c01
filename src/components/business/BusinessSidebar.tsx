@@ -56,19 +56,12 @@ const menuItems: MenuItem[] = [
   { title: "Bate-papo", url: "/admin/bate-papo", icon: MessageSquare },
   { title: "Marketing", url: "/admin/marketing", icon: Megaphone },
   {
-    title: "Chatbot",
-    url: "/admin/chatbot/integracao",
-    icon: Bot,
-    children: [
-      { title: "Integração", url: "/admin/chatbot/integracao", icon: Plug },
-      { title: "Zailom Flow", url: "/admin/chatbot/talkmap", icon: MessageSquare },
-    ],
-  },
-  {
     title: "Automações",
     url: "/admin/automacoes/disparos",
     icon: Zap,
     children: [
+      { title: "Chatbot - Conexão", url: "/admin/chatbot/integracao", icon: Plug },
+      { title: "Chatbot - Zailom Flow", url: "/admin/chatbot/talkmap", icon: Bot },
       { title: "Disparos WhatsApp", url: "/admin/automacoes/disparos", icon: Send },
       { title: "E-mail Marketing", url: "/admin/automacoes/email-marketing", icon: Mail },
       { title: "Gatilhos / Agenda", url: "/admin/automacoes/gatilhos", icon: CalendarClock },
