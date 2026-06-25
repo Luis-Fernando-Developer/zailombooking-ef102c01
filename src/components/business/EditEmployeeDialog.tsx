@@ -464,6 +464,39 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
             </div>
           </div>
 
+          <div className="space-y-3 rounded-md border border-destructive/30 p-3">
+            <div>
+              <Label htmlFor="termination_effective_date" className="text-destructive">
+                Data de desligamento
+              </Label>
+              <Input
+                id="termination_effective_date"
+                type="date"
+                value={formData.termination_effective_date}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, termination_effective_date: e.target.value }))
+                }
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                A partir desta data, todas as escalas futuras do colaborador serão marcadas como
+                Desligado (D) e ele deixa de aparecer na disponibilidade.
+              </p>
+            </div>
+            {formData.termination_effective_date && (
+              <div>
+                <Label htmlFor="termination_reason">Motivo (opcional)</Label>
+                <Input
+                  id="termination_reason"
+                  value={formData.termination_reason}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, termination_reason: e.target.value }))
+                  }
+                  placeholder="Ex: Pedido de demissão, fim de contrato..."
+                />
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center space-x-2">
             <Switch
               id="is_active"
@@ -472,6 +505,7 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
             />
             <Label htmlFor="is_active">Colaborador ativo</Label>
           </div>
+
 
           <div className="flex gap-4 pt-4">
             <Button
