@@ -32,6 +32,8 @@ interface Employee {
   base_occupation_id?: string | null;
   internal_job_title?: string | null;
   payout_flow_override?: string | null;
+  termination_effective_date?: string | null;
+  termination_reason?: string | null;
 }
 
 interface SystemProfile { id: string; code: string; name: string; }
