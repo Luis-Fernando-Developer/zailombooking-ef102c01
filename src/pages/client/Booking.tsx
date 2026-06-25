@@ -754,23 +754,32 @@ export default function ClientBooking() {
                       style={{ background: customStyles["--cards-background"] }}
                       onClick={() => handleSelectCombo(combo)}
                     >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-lg">{combo.name}</h3>
-                          <p className="text-muted-foreground text-sm mb-2">{combo.description}</p>
-                          <div className="flex gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {synthetic.duration_minutes} min
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4" />
-                              R$ {synthetic.price.toFixed(2)}
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="flex gap-3 flex-1 min-w-0">
+                          {(combo.image_url || synthetic.image_url) && (
+                            <img
+                              src={combo.image_url || synthetic.image_url}
+                              alt={combo.name}
+                              className="w-16 h-16 rounded-md object-cover flex-shrink-0"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-lg">{combo.name}</h3>
+                            <p className="text-muted-foreground text-sm mb-2">{combo.description}</p>
+                            <div className="flex gap-4 text-sm flex-wrap">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {synthetic.duration_minutes} min
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <DollarSign className="w-4 h-4" />
+                                R$ {synthetic.price.toFixed(2)}
+                              </div>
                             </div>
                           </div>
                         </div>
                         {selectedService?.id === synthetic.id && (
-                          <Check className="w-6 h-6 text-primary" />
+                          <Check className="w-6 h-6 text-primary flex-shrink-0" />
                         )}
                       </div>
                     </div>
