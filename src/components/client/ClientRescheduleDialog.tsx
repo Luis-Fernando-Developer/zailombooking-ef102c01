@@ -90,16 +90,24 @@ export function ClientRescheduleDialog({
 
     try {
       const newDate = format(selectedDate, 'yyyy-MM-dd');
-      
-      const { error } = await supabase
-        .from('bookings')
-        .update({
-          booking_date: newDate,
-          start_time: selectedTime
-        })
-        .eq('id', booking.id);
+      const startTime = selectedTime.length === 5 ? `${selectedTime}:00` : selectedTime;
 
-      if (error) throw error;
+      const { error } = await supabase.rpc('client_reschedule_booking', {
+        p_booking_id: booking.id,
+        p_new_date: newDate,
+        p_new_start: startTime,
+        p_new_employee: null,
+        p_new_service: null,
+      });
+
+      if (error) {
+        const code = (error.message || '').toLowerCase();
+        let description = "Não foi possível reagendar o agendamento.";
+        if (code.includes('slot_taken')) description = "Esse horário foi ocupado. Escolha outro.";
+        else if (code.includes('booking_locked')) description = "Este agendamento não pode mais ser alterado.";
+        else if (code.includes('booking_not_found')) description = "Agendamento não encontrado.";
+        throw new Error(description);
+      }
 
       toast({
         title: "Agendamento reagendado!",
@@ -108,17 +116,18 @@ export function ClientRescheduleDialog({
 
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error rescheduling:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível reagendar o agendamento.",
+        description: error?.message || "Não foi possível reagendar o agendamento.",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
