@@ -72,6 +72,8 @@ export default function ClientBooking() {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [availabilityReason, setAvailabilityReason] = useState<string | null>(null);
+
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [formData, setFormData] = useState<BookingForm>({
