@@ -28,7 +28,7 @@ interface ClientSidebarProps {
   currentUser?: SupabaseUser | null;
 }
 
-export function ClientSidebar({  companySlug, companyName, companyId, userRole,  clientId, currentUser }: ClientSidebarProps) {
+export function ClientSidebar({  companySlug, companyName, companyId, companyLogoUrl, userRole,  clientId, clientName, clientAvatarUrl, currentUser }: ClientSidebarProps) {
   const { state } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
