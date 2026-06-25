@@ -94,8 +94,10 @@ export function PlacementConfigEditor({ placement, label, value, onChange }: Pro
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs">Countdown — termina em (ISO)</Label>
-              <Input type="datetime-local" value={value.countdownEnd ? value.countdownEnd.slice(0, 16) : ""} onChange={(e) => onChange({ countdownEnd: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
+              <Label className="text-xs">Countdown</Label>
+              <div className="h-9 px-3 flex items-center rounded-md border bg-muted/40 text-xs text-muted-foreground">
+                Calculado automaticamente até o fim da campanha
+              </div>
             </div>
             <div>
               <Label className="text-xs">Prefixo do countdown</Label>
