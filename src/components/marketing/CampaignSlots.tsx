@@ -61,13 +61,9 @@ function handleClick(c: CampaignWithMaterials, placement: string) {
   openHref(href);
 }
 
-/** Barra superior informativa */
-export function CampaignTopBar({ companyId }: { companyId?: string | null }) {
-  const { campaigns } = useActiveCampaigns(companyId, "top_bar");
-  const c = campaigns[0];
-  const cfg = c ? getCfg(c, "top_bar") : {};
-  const countdown = useCountdown(c?.end_at ?? undefined);
-  if (!c) return null;
+function TopBarItem({ c }: { c: CampaignWithMaterials }) {
+  const cfg = getCfg(c, "top_bar");
+  const countdown = useCountdown(c.end_at ?? undefined);
   const href = resolveHref(cfg, "top_bar");
   return (
     <div
@@ -96,6 +92,17 @@ export function CampaignTopBar({ companyId }: { companyId?: string | null }) {
           {cfg.label ?? "Saiba mais"}
         </button>
       )}
+    </div>
+  );
+}
+
+/** Barra superior informativa — renderiza todas as campanhas ativas empilhadas */
+export function CampaignTopBar({ companyId }: { companyId?: string | null }) {
+  const { campaigns } = useActiveCampaigns(companyId, "top_bar");
+  if (campaigns.length === 0) return null;
+  return (
+    <div className="w-full flex flex-col">
+      {campaigns.map((c) => <TopBarItem key={c.id} c={c} />)}
     </div>
   );
 }
