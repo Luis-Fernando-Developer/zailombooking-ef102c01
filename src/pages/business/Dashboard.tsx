@@ -184,6 +184,10 @@ export default function BusinessDashboard() {
           </p>
         </div>
 
+        <InconsistencyAlert companyId={company.id} companySlug={company.slug} />
+
+
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
