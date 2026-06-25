@@ -30,6 +30,8 @@ import BillingManagement from "./pages/business/BillingManagement";
 import BusinessProfile from "./pages/business/Profile";
 import ChatbotIntegracao from "./pages/business/chatbot/Integracao";
 import ChatbotZailomFlow from "./pages/business/chatbot/ZailomFlow";
+import IntegracaoWhatsApp from "./pages/business/integracoes/WhatsApp";
+import IntegracaoEmail from "./pages/business/integracoes/Email";
 import BusinessSchedule from "./pages/business/Schedule";
 import BusinessSolicitacoes from "./pages/business/Solicitacoes";
 import BusinessNotifications from "./pages/business/Notifications";
@@ -79,6 +81,8 @@ const App = () => (
             <Route path="/:slug/admin/chatbot/integracao" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><ChatbotIntegracao /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/chatbot/talkmap" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><ChatbotZailomFlow /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/chatbot/talkmap/*" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><ChatbotZailomFlow /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/integracoes/whatsapp" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><IntegracaoWhatsApp /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/integracoes/email" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><IntegracaoEmail /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/horarios" element={<RequireBusinessAuth><BusinessSchedule /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/solicitacoes" element={<RequireBusinessAuth><BusinessSolicitacoes /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/notificacoes" element={<RequireBusinessAuth><BusinessNotifications /></RequireBusinessAuth>} />
