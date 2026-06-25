@@ -55,7 +55,7 @@ export default function ClientDashboard() {
       // Get company
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
-        .select('id, name, slug')
+        .select('id, name, slug, logo_url')
         .eq('slug', slug)
         .single();
 
@@ -89,7 +89,7 @@ export default function ClientDashboard() {
       // Get bookings stats
       const { data: bookings } = await supabase
         .from('bookings')
-        .select('booking_status, booking_date, start_time, service:services(name)')
+        .select('booking_status, booking_date, start_time, service:services(name), employee:employees(name)')
         .eq('client_id', clientData.id);
 
       if (bookings) {
