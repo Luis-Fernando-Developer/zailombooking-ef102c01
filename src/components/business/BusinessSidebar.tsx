@@ -27,6 +27,9 @@ import {
   Inbox,
   Bell,
   Megaphone,
+  Plug2,
+  Mail,
+  Smartphone,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
