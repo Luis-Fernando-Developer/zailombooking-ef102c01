@@ -36,6 +36,8 @@ import AutomacoesDisparos from "./pages/business/automacoes/Disparos";
 import AutomacoesEmailMarketing from "./pages/business/automacoes/EmailMarketing";
 import AutomacoesGatilhos from "./pages/business/automacoes/Gatilhos";
 import BusinessSchedule from "./pages/business/Schedule";
+import BusinessRealocacao from "./pages/business/Realocacao";
+
 import BusinessSolicitacoes from "./pages/business/Solicitacoes";
 import BusinessNotifications from "./pages/business/Notifications";
 import BusinessChat from "./pages/business/Chat";
@@ -75,6 +77,8 @@ const App = () => (
             <Route path="/super-admin/add-company" element={<RequireSuperAdmin><CreateCompany /></RequireSuperAdmin>} />
             <Route path="/:slug/admin/dashboard" element={<RequireBusinessAuth><BusinessDashboard /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/agendamentos" element={<RequireBusinessAuth><BusinessBookings /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/realocacao" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessRealocacao /></RequireRole></RequireBusinessAuth>} />
+
             <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessServices /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/colaboradores" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessEmployees /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/configuracoes" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessSettings /></RequireRole></RequireBusinessAuth>} />
