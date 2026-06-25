@@ -84,16 +84,40 @@ export default function CustomLandingPage() {
   const [optionHeader, setOptionHeader] = useState(false);
   const [visibleServices, setVisibleServices] = useState(4);
   const [visibleEmployees, setVisibleEmployees] = useState(4);
+  const [loggedClient, setLoggedClient] = useState<{ id: string; name: string; avatar_url?: string | null } | null>(null);
   // activeFlowId removido — chatbot agora é gerenciado pelo builder externo (TalkMap).
 
   useEffect(() => {
     if ( slug) {
       fetchData();
     }
-    // if (customization?.header_position === 'fixed' && headerRef.current) {
-    //   setHeaderHeight(headerRef.current.offsetHeight);
-    // }
   }, [slug]);
+
+  // Detecta cliente logado e mantém em estado (sem deslogar ao navegar de volta).
+  useEffect(() => {
+    let active = true;
+    const loadClient = async (companyId?: string) => {
+      const { data: userData } = await supabaseClient.auth.getUser();
+      if (!userData?.user || !companyId) { if (active) setLoggedClient(null); return; }
+      const { data: c } = await supabaseClient
+        .from('clients')
+        .select('id, name, avatar_url')
+        .eq('user_id', userData.user.id)
+        .eq('company_id', companyId)
+        .maybeSingle();
+      if (active) setLoggedClient(c || null);
+    };
+    if (company?.id) loadClient(company.id);
+    const { data: sub } = supabaseClient.auth.onAuthStateChange(() => {
+      if (company?.id) loadClient(company.id);
+    });
+    return () => { active = false; sub?.subscription?.unsubscribe(); };
+  }, [company?.id]);
+
+  const handleClientLogout = async () => {
+    await supabaseClient.auth.signOut();
+    setLoggedClient(null);
+  };
 
   const fetchData = async () => {
     try {
