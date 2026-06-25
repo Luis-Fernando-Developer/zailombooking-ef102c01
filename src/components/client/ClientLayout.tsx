@@ -422,7 +422,7 @@ export default function ClientLayout() {
           </div>
           </main>
         </div>
-      </div>
+
 
       {rescheduleBooking && company && (
         <ClientRescheduleDialog
