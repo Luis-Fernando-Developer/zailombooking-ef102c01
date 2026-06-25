@@ -97,7 +97,7 @@ export default function ClientLayout() {
     try {
       const { data: companyData, error } = await supabase
         .from('companies')
-        .select('id, name, slug')
+        .select('id, name, slug, logo_url, min_reschedule_hours, allow_client_reschedule, allow_client_cancel')
         .eq('slug', slug)
         .single();
 
