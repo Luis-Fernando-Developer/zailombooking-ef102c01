@@ -70,6 +70,8 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
     base_occupation_id: "",
     internal_job_title: "",
     payout_flow_override: "" as "" | "via_company" | "direct_to_autonomous",
+    termination_effective_date: "",
+    termination_reason: "",
   });
 
   useEffect(() => {
