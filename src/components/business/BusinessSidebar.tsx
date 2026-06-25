@@ -60,7 +60,6 @@ const menuItems: MenuItem[] = [
     url: "/admin/automacoes/disparos",
     icon: Zap,
     children: [
-      { title: "Chatbot - Conexão", url: "/admin/chatbot/integracao", icon: Plug },
       { title: "Chatbot - Zailom Flow", url: "/admin/chatbot/talkmap", icon: Bot },
       { title: "Disparos WhatsApp", url: "/admin/automacoes/disparos", icon: Send },
       { title: "E-mail Marketing", url: "/admin/automacoes/email-marketing", icon: Mail },
@@ -72,6 +71,7 @@ const menuItems: MenuItem[] = [
     url: "/admin/integracoes/whatsapp",
     icon: Plug2,
     children: [
+      { title: "Chatbot", url: "/admin/chatbot/integracao", icon: Plug },
       { title: "WhatsApp", url: "/admin/integracoes/whatsapp", icon: Smartphone },
       { title: "E-mail", url: "/admin/integracoes/email", icon: Mail },
     ],
