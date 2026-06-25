@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Send, Ban } from "lucide-react";
+import { Plus, Send, Ban, RotateCcw } from "lucide-react";
 import {
   listCampaigns, listMaterials, createCampaign, updateCampaign,
   setCampaignMaterials, submitCampaignForApproval, revokeCampaign,
