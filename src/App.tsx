@@ -30,6 +30,8 @@ import BillingManagement from "./pages/business/BillingManagement";
 import BusinessProfile from "./pages/business/Profile";
 import ChatbotIntegracao from "./pages/business/chatbot/Integracao";
 import ChatbotZailomFlow from "./pages/business/chatbot/ZailomFlow";
+import IntegracaoWhatsApp from "./pages/business/integracoes/WhatsApp";
+import IntegracaoEmail from "./pages/business/integracoes/Email";
 import BusinessSchedule from "./pages/business/Schedule";
 import BusinessSolicitacoes from "./pages/business/Solicitacoes";
 import BusinessNotifications from "./pages/business/Notifications";
