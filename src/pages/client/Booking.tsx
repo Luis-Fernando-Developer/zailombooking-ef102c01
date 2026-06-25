@@ -558,7 +558,7 @@ export default function ClientBooking() {
 
       }
       
-      const { slots, error } = await getAvailability({
+      const { slots, reason, error } = await getAvailability({
         data: {
           company_id: company.id,
           service_id: selectedService.id,
@@ -567,13 +567,15 @@ export default function ClientBooking() {
         }
       });
 
-      if (error) throw new Error(error);
-      
+      if (error && !slots) throw new Error(error);
+
+      setAvailabilityReason(reason ?? null);
       if (slots && slots.length > 0) {
         setAvailableTimes(slots.map((slot: any) => typeof slot === 'string' ? slot : slot.time));
       } else {
         setAvailableTimes([]);
       }
+
 
     } catch (error) {
       console.error("Erro ao carregar horários:", error);
