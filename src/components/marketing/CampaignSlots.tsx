@@ -173,7 +173,7 @@ export function CampaignPopup({ companyId }: { companyId?: string | null }) {
   const [open, setOpen] = useState(false);
   const first = campaigns[0];
   const cfg = first ? getCfg(first, "popup") : {};
-  const countdown = useCountdown(cfg.countdownEnd ?? first?.end_at ?? undefined);
+  const countdown = useCountdown(first?.end_at ?? undefined);
   useEffect(() => {
     if (!first) return;
     const key = `mkt-popup-${first.id}`;
