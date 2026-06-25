@@ -52,6 +52,7 @@ const menuItems: MenuItem[] = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
   { title: "Agendamentos", url: "/admin/agendamentos", icon: Calendar },
   { title: "Realocação", url: "/admin/realocacao", icon: ArrowRightLeft },
+  { title: "Ausências", url: "/admin/ausencias", icon: CalendarOff },
 
   { title: "Horários", url: "/admin/horarios", icon: Clock },
   { title: "Serviços", url: "/admin/servicos", icon: Briefcase },
