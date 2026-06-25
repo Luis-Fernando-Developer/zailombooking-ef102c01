@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Send, Ban } from "lucide-react";
+import { Plus, Send, Ban, RotateCcw } from "lucide-react";
 import {
   listCampaigns, listMaterials, createCampaign, updateCampaign,
   setCampaignMaterials, submitCampaignForApproval, revokeCampaign,
@@ -136,39 +136,77 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {campsQ.data?.map((c) => (
-          <Card key={c.id}>
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-base">{c.name}</CardTitle>
-                <Badge>{STATUS_LABEL[c.status]}</Badge>
-              </div>
-              <CardDescription>
-                {c.start_at ? new Date(c.start_at).toLocaleString() : '—'} → {c.end_at ? new Date(c.end_at).toLocaleString() : '—'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {c.description && <p className="text-sm text-muted-foreground">{c.description}</p>}
-              <div className="flex flex-wrap gap-1">
-                {c.placements.map((p) => <Badge key={p} variant="outline" className="text-xs">{PLACEMENTS.find(x => x.v === p)?.l ?? p}</Badge>)}
-              </div>
-              {canEdit && (
-                <div className="flex gap-2 pt-2 flex-wrap">
-                  {c.status === 'draft' && (
-                    <Button size="sm" variant="outline" onClick={() => submitMut.mutate(c.id)}>
-                      <Send className="w-3 h-3 mr-1" /> Enviar p/ aprovação
-                    </Button>
-                  )}
-                  {(c.status === 'active' || c.status === 'scheduled' || c.status === 'approved') && (
-                    <Button size="sm" variant="destructive" onClick={() => revokeMut.mutate(c.id)}>
-                      <Ban className="w-3 h-3 mr-1" /> Revogar
-                    </Button>
-                  )}
+        {campsQ.data?.map((c) => {
+          const now = Date.now();
+          const endMs = c.end_at ? new Date(c.end_at).getTime() : null;
+          const startMs = c.start_at ? new Date(c.start_at).getTime() : null;
+          const isEnded = endMs !== null && endMs < now;
+          const isApproved = c.status === 'approved' || c.status === 'active' || c.status === 'scheduled' || c.status === 'ended';
+
+          let badgeLabel = STATUS_LABEL[c.status] ?? c.status;
+          if (isApproved) {
+            if (c.status === 'cancelled') badgeLabel = 'Aprovada - Cancelada';
+            else if (isEnded || c.status === 'ended') badgeLabel = 'Aprovada - Encerrada';
+            else if (startMs !== null && startMs > now) badgeLabel = 'Aprovada - Agendada';
+            else badgeLabel = 'Aprovada - Ativa';
+          }
+
+          const republish = () => {
+            setEditing(null);
+            setForm({
+              name: `${c.name} (cópia)`,
+              description: c.description ?? "",
+              objective: c.objective ?? "",
+              start_at: "",
+              end_at: "",
+              placements: [...(c.placements ?? [])],
+              audience_type: c.audience_type ?? 'all',
+              audience_filters: JSON.stringify(c.audience_filters ?? {}, null, 2),
+              placement_config: { ...(c.placement_config ?? {}) },
+            });
+            setSelectedMaterials([]);
+            setOpen(true);
+          };
+
+          return (
+            <Card key={c.id}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-base">{c.name}</CardTitle>
+                  <Badge>{badgeLabel}</Badge>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                <CardDescription>
+                  {c.start_at ? new Date(c.start_at).toLocaleString() : '—'} → {c.end_at ? new Date(c.end_at).toLocaleString() : '—'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {c.description && <p className="text-sm text-muted-foreground">{c.description}</p>}
+                <div className="flex flex-wrap gap-1">
+                  {c.placements.map((p) => <Badge key={p} variant="outline" className="text-xs">{PLACEMENTS.find(x => x.v === p)?.l ?? p}</Badge>)}
+                </div>
+                {canEdit && (
+                  <div className="flex gap-2 pt-2 flex-wrap">
+                    {c.status === 'draft' && (
+                      <Button size="sm" variant="outline" onClick={() => submitMut.mutate(c.id)}>
+                        <Send className="w-3 h-3 mr-1" /> Enviar p/ aprovação
+                      </Button>
+                    )}
+                    {!isEnded && (c.status === 'active' || c.status === 'scheduled' || c.status === 'approved') && (
+                      <Button size="sm" variant="destructive" onClick={() => revokeMut.mutate(c.id)}>
+                        <Ban className="w-3 h-3 mr-1" /> Revogar
+                      </Button>
+                    )}
+                    {(isEnded || c.status === 'ended' || c.status === 'cancelled' || c.status === 'rejected') && (
+                      <Button size="sm" variant="outline" onClick={republish}>
+                        <RotateCcw className="w-3 h-3 mr-1" /> Republicar
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
         {campsQ.data?.length === 0 && <p className="text-muted-foreground col-span-full text-center py-12">Nenhuma campanha cadastrada.</p>}
       </div>
 

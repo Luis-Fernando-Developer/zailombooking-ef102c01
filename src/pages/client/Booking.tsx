@@ -403,7 +403,7 @@ export default function ClientBooking() {
          // buscar dados dos employees elegíveis (apenas do mesmo company)
         const { data: employeesData } = await supabase
           .from('employees')
-          .select('id, name, email')
+          .select('id, name, email, avatar_url')
           .in('id', eligibleEmployeeIds)
           .eq('company_id', company.id)
           .eq('is_active', true);
@@ -419,6 +419,7 @@ export default function ClientBooking() {
           id, 
           name, 
           email,
+          avatar_url,
           employee_services!inner(
             service_id
           )
@@ -753,23 +754,32 @@ export default function ClientBooking() {
                       style={{ background: customStyles["--cards-background"] }}
                       onClick={() => handleSelectCombo(combo)}
                     >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-lg">{combo.name}</h3>
-                          <p className="text-muted-foreground text-sm mb-2">{combo.description}</p>
-                          <div className="flex gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {synthetic.duration_minutes} min
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4" />
-                              R$ {synthetic.price.toFixed(2)}
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="flex gap-3 flex-1 min-w-0">
+                          {(combo.image_url || synthetic.image_url) && (
+                            <img
+                              src={combo.image_url || synthetic.image_url}
+                              alt={combo.name}
+                              className="w-16 h-16 rounded-md object-cover flex-shrink-0"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-lg">{combo.name}</h3>
+                            <p className="text-muted-foreground text-sm mb-2">{combo.description}</p>
+                            <div className="flex gap-4 text-sm flex-wrap">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {synthetic.duration_minutes} min
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <DollarSign className="w-4 h-4" />
+                                R$ {synthetic.price.toFixed(2)}
+                              </div>
                             </div>
                           </div>
                         </div>
                         {selectedService?.id === synthetic.id && (
-                          <Check className="w-6 h-6 text-primary" />
+                          <Check className="w-6 h-6 text-primary flex-shrink-0" />
                         )}
                       </div>
                     </div>
@@ -788,23 +798,32 @@ export default function ClientBooking() {
                     }}
                     onClick={() => setSelectedService(service)}
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg">{service.name}</h3>
-                        <p className="text-muted-foreground text-sm mb-2">{service.description}</p>
-                        <div className="flex gap-4 text-sm">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {service.duration_minutes} min
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />
-                            R$ {service.price.toFixed(2)}
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex gap-3 flex-1 min-w-0">
+                        {service.image_url && (
+                          <img
+                            src={service.image_url}
+                            alt={service.name}
+                            className="w-16 h-16 rounded-md object-cover flex-shrink-0"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-lg">{service.name}</h3>
+                          <p className="text-muted-foreground text-sm mb-2">{service.description}</p>
+                          <div className="flex gap-4 text-sm flex-wrap">
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {service.duration_minutes} min
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="w-4 h-4" />
+                              R$ {service.price.toFixed(2)}
+                            </div>
                           </div>
                         </div>
                       </div>
                       {selectedService?.id === service.id && (
-                        <Check className="w-6 h-6 text-primary" />
+                        <Check className="w-6 h-6 text-primary flex-shrink-0" />
                       )}
                     </div>
                   </div>
@@ -854,8 +873,12 @@ export default function ClientBooking() {
                     >
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
-                            <User className="w-6 h-6" />
+                          <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center overflow-hidden">
+                            {employee.avatar_url ? (
+                              <img src={employee.avatar_url} alt={employee.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="w-6 h-6" />
+                            )}
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">{employee.name}</h3>
