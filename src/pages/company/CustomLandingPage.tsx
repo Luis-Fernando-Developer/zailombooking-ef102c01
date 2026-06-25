@@ -98,9 +98,20 @@ export default function CustomLandingPage() {
   }, [slug]);
 
   useLayoutEffect(() => {
-    if (customization?.header_position === 'fixed' && headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight);
+    if (customization?.header_position !== 'fixed' || !headerRef.current) {
+      setHeaderHeight(0);
+      return;
     }
+    const el = headerRef.current;
+    const update = () => setHeaderHeight(el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
   }, [customization, company]);
 
   const fetchData = async () => {
