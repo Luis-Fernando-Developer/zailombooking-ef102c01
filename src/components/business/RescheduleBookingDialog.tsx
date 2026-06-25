@@ -90,14 +90,30 @@ export function RescheduleBookingDialog({
 
     try {
       const newDate = format(selectedDate, 'yyyy-MM-dd');
-      const timeFormatted = selectedTime.includes(':') ? (selectedTime.length === 5 ? selectedTime : selectedTime.slice(0, 5)) : selectedTime;
-      
+      const start = selectedTime.length === 5 ? `${selectedTime}:00` : selectedTime;
+
+      // Gate único de disponibilidade
+      const { data: ok, error: gateErr } = await supabase.rpc('is_slot_available', {
+        p_company: companyId,
+        p_employee: booking.employee_id,
+        p_service: booking.service_id,
+        p_date: newDate,
+        p_start: start,
+        p_ignore_booking: booking.id,
+      });
+      if (gateErr) throw gateErr;
+      if (!ok) {
+        toast({
+          title: "Horário indisponível",
+          description: "Esse horário não está livre na escala atual (ausência, folga, intervalo ou conflito).",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('bookings')
-        .update({
-          booking_date: newDate,
-          start_time: timeFormatted
-        })
+        .update({ booking_date: newDate, start_time: start })
         .eq('id', booking.id);
 
       if (error) throw error;
@@ -109,17 +125,18 @@ export function RescheduleBookingDialog({
 
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error rescheduling:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível reagendar o agendamento.",
+        description: error?.message || "Não foi possível reagendar o agendamento.",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const formatCurrentDate = (date: string) => {
     if (!date) return "";
