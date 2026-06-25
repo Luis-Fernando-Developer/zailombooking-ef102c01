@@ -14,6 +14,45 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
+
+function InconsistencyAlert({ companyId, companySlug }: { companyId: string; companySlug: string }) {
+  const [count, setCount] = useState<number>(0);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("bookings_needing_action")
+        .select("id, is_inconsistent")
+        .eq("company_id", companyId);
+      const n = (data || []).filter((r: any) => r.is_inconsistent).length;
+      setCount(n);
+    })();
+  }, [companyId]);
+  if (!count) return null;
+  return (
+    <Card className="border-destructive/40 bg-destructive/5">
+      <CardContent className="p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-destructive" />
+          <div>
+            <p className="font-medium">
+              {count} agendamento{count > 1 ? "s" : ""} fora da escala atual
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Profissional ficou indisponível (desligamento, ausência ou folga). Realoque para liberar a agenda.
+            </p>
+          </div>
+        </div>
+        <Link
+          to={`/${companySlug}/admin/realocacao`}
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Resolver →
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function BusinessDashboard() {
   const { slug } = useParams();
