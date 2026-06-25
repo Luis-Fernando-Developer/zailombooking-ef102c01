@@ -506,9 +506,10 @@ export default function CustomLandingPage() {
 
       {/* Header */}
       {customization?.header_position === 'fixed' && (
-        <header 
-          ref={headerRef}
-          className={`fixed top-0 left-0 right-0 z-50  backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
+        <div ref={headerRef} className="fixed top-0 left-0 right-0 z-50">
+          <CampaignTopBar companyId={company?.id} />
+          <header
+          className={`backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
           <div className="max-w-7xl  mx-auto  px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center  justify-between">
               <div className="w-full justify-between flex items-center gap-4 ">
