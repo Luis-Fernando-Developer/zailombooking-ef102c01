@@ -179,10 +179,13 @@ export default function ClientDashboard() {
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <ClientSidebar
             clientId={client?.id || ""}
+            clientName={client?.name || null}
+            clientAvatarUrl={client?.avatar_url || null}
             currentUser={null}
             companySlug={company?.slug || ""}
             companyName={company?.name || ""}
             companyId={company?.id || ""}
+            companyLogoUrl={(company as any)?.logo_url || null}
           />
 
           <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
