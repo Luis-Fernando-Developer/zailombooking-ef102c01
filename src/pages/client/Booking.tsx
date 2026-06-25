@@ -873,8 +873,12 @@ export default function ClientBooking() {
                     >
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
-                            <User className="w-6 h-6" />
+                          <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center overflow-hidden">
+                            {employee.avatar_url ? (
+                              <img src={employee.avatar_url} alt={employee.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="w-6 h-6" />
+                            )}
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">{employee.name}</h3>
