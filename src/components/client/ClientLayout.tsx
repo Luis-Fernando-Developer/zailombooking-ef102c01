@@ -7,7 +7,7 @@ import { ClientSidebar } from "./ClientSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Calendar, Clock, DollarSign, RefreshCw, X, MoreVertical } from "lucide-react";
+import { Calendar, Clock, DollarSign, RefreshCw, X, MoreVertical, User } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -33,9 +33,14 @@ interface Booking {
     duration_minutes?: number;
     price?: number;
   };
+  employee?: { name: string } | null;
   company: {
     name: string;
     slug: string;
+    logo_url?: string | null;
+    min_reschedule_hours?: number | null;
+    allow_client_reschedule?: boolean | null;
+    allow_client_cancel?: boolean | null;
   };
 }
 
@@ -43,6 +48,10 @@ interface Company {
   id: string;
   name: string;
   slug: string;
+  logo_url?: string | null;
+  min_reschedule_hours?: number | null;
+  allow_client_reschedule?: boolean | null;
+  allow_client_cancel?: boolean | null;
 }
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -88,7 +97,7 @@ export default function ClientLayout() {
     try {
       const { data: companyData, error } = await supabase
         .from('companies')
-        .select('id, name, slug')
+        .select('id, name, slug, logo_url, min_reschedule_hours, allow_client_reschedule, allow_client_cancel')
         .eq('slug', slug)
         .single();
 
@@ -141,7 +150,8 @@ export default function ClientLayout() {
         .select(`
           *,
           service:services(name, description, duration_minutes, price),
-          company:companies(name, slug)
+          employee:employees(name),
+          company:companies(name, slug, logo_url, min_reschedule_hours, allow_client_reschedule, allow_client_cancel)
         `)
         .eq('client_id', clientData.id)
         .order('booking_date', { ascending: false });
@@ -204,22 +214,34 @@ export default function ClientLayout() {
   };
 
   const canModifyBooking = (booking: Booking) => {
-    // Only pending or confirmed can be modified
-    if (booking.booking_status !== 'pending' && booking.booking_status !== 'confirmed') {
-      return false;
-    }
-    
-    // Check if booking time has passed or is within 30 minutes
-    const now = new Date();
+    // Bloqueia apenas estados terminais/em-execução
+    const terminal = ['completed', 'cancelled', 'no_show', 'in_progress'];
+    if (terminal.includes(booking.booking_status)) return false;
+
+    // Não permitir alterar agendamentos no passado
     const [year, month, day] = booking.booking_date.split('-').map(Number);
     const [hours, minutes] = booking.start_time.split(':').map(Number);
     const bookingDateTime = new Date(year, month - 1, day, hours, minutes);
-    
-    // Must be at least 30 minutes before the appointment
-    const minAdvanceMs = 30 * 60 * 1000; // 30 minutes in milliseconds
-    const timeUntilBooking = bookingDateTime.getTime() - now.getTime();
-    
-    return timeUntilBooking >= minAdvanceMs;
+    const now = new Date();
+    if (bookingDateTime.getTime() <= now.getTime()) return false;
+
+    // Respeitar janela mínima da empresa (default 2h)
+    if (company?.allow_client_reschedule === false) return false;
+    const minHours = company?.min_reschedule_hours ?? 2;
+    const minMs = minHours * 60 * 60 * 1000;
+    return (bookingDateTime.getTime() - now.getTime()) >= minMs;
+  };
+
+  const formatLongDate = (date: string, time: string) => {
+    if (!date) return "";
+    const [y, m, d] = date.split('-').map(Number);
+    const t = (time || '').split(':');
+    const dt = new Date(y, m - 1, d, Number(t[0] || 0), Number(t[1] || 0));
+    const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const dd = String(d).padStart(2, '0');
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const mi = String(dt.getMinutes()).padStart(2, '0');
+    return `${dd} de ${months[m - 1]} de ${y} às ${hh}:${mi}`;
   };
 
   return (
@@ -240,11 +262,15 @@ export default function ClientLayout() {
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <ClientSidebar
             clientId={client?.id || "N/A"}
+            clientName={client?.name || null}
+            clientAvatarUrl={client?.avatar_url || null}
             currentUser={null}
             companySlug={company?.slug || ""}
             companyName={company?.name || ""}
             companyId={company?.id || ""}
+            companyLogoUrl={(company as any)?.logo_url || null}
           />
+
 
           <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
 
@@ -317,21 +343,18 @@ export default function ClientLayout() {
                               </Badge>
                             </div>
                             
+                            <div className="flex items-center gap-2 text-sm bg-background/40 px-3 py-1 rounded-lg w-fit">
+                              <Calendar className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-foreground">
+                                {formatLongDate(booking.booking_date, booking.start_time)}
+                              </span>
+                            </div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-2 gap-x-6">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/40 px-3 py-1 rounded-lg">
-                                <Calendar className="h-4 w-4 text-primary" />
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <User className="h-4 w-4 text-primary" />
                                 <span className="font-medium text-foreground">
-                                  {(() => {
-                                    if (!booking.booking_date) return "";
-                                    const [year, month, day] = booking.booking_date.split('-').map(Number);
-                                    return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: 'numeric'
-                                    });
-                                  })()}
+                                  {booking.employee?.name || 'Profissional a definir'}
                                 </span>
-                                <span className="font-bold text-primary ml-1">às {formatTime(booking.start_time)}</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Clock className="h-4 w-4" />

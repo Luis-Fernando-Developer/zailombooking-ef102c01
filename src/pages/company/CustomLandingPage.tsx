@@ -84,16 +84,40 @@ export default function CustomLandingPage() {
   const [optionHeader, setOptionHeader] = useState(false);
   const [visibleServices, setVisibleServices] = useState(4);
   const [visibleEmployees, setVisibleEmployees] = useState(4);
+  const [loggedClient, setLoggedClient] = useState<{ id: string; name: string; avatar_url?: string | null } | null>(null);
   // activeFlowId removido — chatbot agora é gerenciado pelo builder externo (TalkMap).
 
   useEffect(() => {
     if ( slug) {
       fetchData();
     }
-    // if (customization?.header_position === 'fixed' && headerRef.current) {
-    //   setHeaderHeight(headerRef.current.offsetHeight);
-    // }
   }, [slug]);
+
+  // Detecta cliente logado e mantém em estado (sem deslogar ao navegar de volta).
+  useEffect(() => {
+    let active = true;
+    const loadClient = async (companyId?: string) => {
+      const { data: userData } = await supabaseClient.auth.getUser();
+      if (!userData?.user || !companyId) { if (active) setLoggedClient(null); return; }
+      const { data: c } = await supabaseClient
+        .from('clients')
+        .select('id, name, avatar_url')
+        .eq('user_id', userData.user.id)
+        .eq('company_id', companyId)
+        .maybeSingle();
+      if (active) setLoggedClient(c || null);
+    };
+    if (company?.id) loadClient(company.id);
+    const { data: sub } = supabaseClient.auth.onAuthStateChange(() => {
+      if (company?.id) loadClient(company.id);
+    });
+    return () => { active = false; sub?.subscription?.unsubscribe(); };
+  }, [company?.id]);
+
+  const handleClientLogout = async () => {
+    await supabaseClient.auth.signOut();
+    setLoggedClient(null);
+  };
 
   const fetchData = async () => {
     try {
@@ -534,23 +558,45 @@ export default function CustomLandingPage() {
               {optionHeader && (
                 <div className={`flex ${customization?.header_background_type ? 'p-0 mt-2 border-t border-primary/40 pt-2' : ''}`}>
                   <div className="flex gap-2 justify-end items-center w-full ">
-                    <Button 
-                      variant="neon" 
-                      className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
-                      onClick={() => navigate(`/${slug}/entrar`)}
-                    >
-                      <LogInIcon />
-                      Entrar
-                    </Button>
-
-                    <Button 
-                      variant="neon" 
-                      className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
-                      onClick={() => navigate(`/${slug}/cadastro`)}
-                    >
-                      <UserPlus2 />
-                      Cadastrar
-                    </Button>
+                    {loggedClient ? (
+                      <>
+                        <div className="flex items-center gap-2 mr-2">
+                          {loggedClient.avatar_url ? (
+                            <img src={loggedClient.avatar_url} alt={loggedClient.name} className="w-8 h-8 rounded-full object-cover border border-primary/30" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-white">
+                              {loggedClient.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-bold text-sm">{loggedClient.name.split(' ')[0]}</span>
+                        </div>
+                        <Button variant="neon" className="h-[30px] p-2 font-bold" onClick={() => navigate(`/${slug}/client/dashboard`)}>
+                          Meu Painel
+                        </Button>
+                        <Button variant="ghost" className="h-[30px] p-2 font-bold" onClick={handleClientLogout}>
+                          Sair
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button 
+                          variant="neon" 
+                          className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
+                          onClick={() => navigate(`/${slug}/entrar`)}
+                        >
+                          <LogInIcon />
+                          Entrar
+                        </Button>
+                        <Button 
+                          variant="neon" 
+                          className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
+                          onClick={() => navigate(`/${slug}/cadastro`)}
+                        >
+                          <UserPlus2 />
+                          Cadastrar
+                        </Button>
+                      </>
+                    )}
                   </div>
                   
                 </div>
@@ -591,22 +637,45 @@ export default function CustomLandingPage() {
               {optionHeader && (
                 <div className={`flex ${customization?.header_background_type ? 'p-0 mt-2 border-t border-primary/40 pt-2' : ''}`}>
                   <div className="flex gap-1 justify-end items-center w-full ">
-                    <Button 
-                      variant="ghost" 
-                      className="bg-black/20 font-bold custom-font button-custom-bg"
-                      onClick={() => navigate(`/${slug}/entrar`)}
-                    >
-                      <LogInIcon />
-                      ENTRAR
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      className="bg-black/20 font-bold custom-font button-custom-bg"
-                      onClick={() => navigate(`/${slug}/cadastro`)}
-                    >
-                      <UserPlus2 />
-                      CADASTRAR
-                    </Button>
+                    {loggedClient ? (
+                      <>
+                        <div className="flex items-center gap-2 mr-2">
+                          {loggedClient.avatar_url ? (
+                            <img src={loggedClient.avatar_url} alt={loggedClient.name} className="w-8 h-8 rounded-full object-cover border border-primary/30" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-white">
+                              {loggedClient.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-bold text-sm">{loggedClient.name.split(' ')[0]}</span>
+                        </div>
+                        <Button variant="ghost" className="bg-black/20 font-bold button-custom-bg" onClick={() => navigate(`/${slug}/client/dashboard`)}>
+                          MEU PAINEL
+                        </Button>
+                        <Button variant="ghost" className="bg-black/20 font-bold button-custom-bg" onClick={handleClientLogout}>
+                          SAIR
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button 
+                          variant="ghost" 
+                          className="bg-black/20 font-bold custom-font button-custom-bg"
+                          onClick={() => navigate(`/${slug}/entrar`)}
+                        >
+                          <LogInIcon />
+                          ENTRAR
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          className="bg-black/20 font-bold custom-font button-custom-bg"
+                          onClick={() => navigate(`/${slug}/cadastro`)}
+                        >
+                          <UserPlus2 />
+                          CADASTRAR
+                        </Button>
+                      </>
+                    )}
                   </div>
                   
                 </div>

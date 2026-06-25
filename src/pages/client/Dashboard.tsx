@@ -55,7 +55,7 @@ export default function ClientDashboard() {
       // Get company
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
-        .select('id, name, slug')
+        .select('id, name, slug, logo_url')
         .eq('slug', slug)
         .single();
 
@@ -89,7 +89,7 @@ export default function ClientDashboard() {
       // Get bookings stats
       const { data: bookings } = await supabase
         .from('bookings')
-        .select('booking_status, booking_date, start_time, service:services(name)')
+        .select('booking_status, booking_date, start_time, service:services(name), employee:employees(name)')
         .eq('client_id', clientData.id);
 
       if (bookings) {
@@ -129,13 +129,16 @@ export default function ClientDashboard() {
     }
   };
 
-  const formatDate = (date: string) => {
+  const formatLongDate = (date: string, time: string) => {
     if (!date) return "";
-    const [year, month, day] = date.split('-').map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
-      day: 'numeric',
-      month: 'short'
-    });
+    const [y, m, d] = date.split('-').map(Number);
+    const t = (time || '').split(':');
+    const dt = new Date(y, m - 1, d, Number(t[0] || 0), Number(t[1] || 0));
+    const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const dd = String(d).padStart(2, '0');
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const mi = String(dt.getMinutes()).padStart(2, '0');
+    return `${dd} de ${months[m - 1]} de ${y} às ${hh}:${mi}`;
   };
 
   const formatTime = (time: string) => {
@@ -176,10 +179,13 @@ export default function ClientDashboard() {
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <ClientSidebar
             clientId={client?.id || ""}
+            clientName={client?.name || null}
+            clientAvatarUrl={client?.avatar_url || null}
             currentUser={null}
             companySlug={company?.slug || ""}
             companyName={company?.name || ""}
             companyId={company?.id || ""}
+            companyLogoUrl={(company as any)?.logo_url || null}
           />
 
           <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
@@ -220,9 +226,13 @@ export default function ClientDashboard() {
                 
                 <div className="hidden lg:block">
                   <div className="w-40 h-40 rounded-full bg-gradient-primary p-1 animate-float">
-                    <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-4xl font-bold text-gradient">
-                      {client?.name?.charAt(0) || "U"}
-                    </div>
+                    {client?.avatar_url ? (
+                      <img src={client.avatar_url} alt={client.name} className="w-full h-full rounded-full object-cover bg-card" />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-4xl font-bold text-gradient">
+                        {client?.name?.charAt(0) || "U"}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -293,12 +303,14 @@ export default function ClientDashboard() {
                               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1.5">
                                   <Clock className="w-4 h-4" />
-                                  {formatDate(booking.booking_date)}
-                                </span>
-                                <span className="flex items-center gap-1.5 font-bold text-foreground">
-                                  às {formatTime(booking.start_time)}
+                                  {formatLongDate(booking.booking_date, booking.start_time)}
                                 </span>
                               </div>
+                              {booking.employee?.name && (
+                                <p className="text-xs text-muted-foreground">
+                                  Profissional: <span className="font-semibold text-foreground">{booking.employee.name}</span>
+                                </p>
+                              )}
                             </div>
                           </div>
                           
