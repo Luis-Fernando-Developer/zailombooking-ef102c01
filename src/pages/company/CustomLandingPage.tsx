@@ -637,22 +637,45 @@ export default function CustomLandingPage() {
               {optionHeader && (
                 <div className={`flex ${customization?.header_background_type ? 'p-0 mt-2 border-t border-primary/40 pt-2' : ''}`}>
                   <div className="flex gap-1 justify-end items-center w-full ">
-                    <Button 
-                      variant="ghost" 
-                      className="bg-black/20 font-bold custom-font button-custom-bg"
-                      onClick={() => navigate(`/${slug}/entrar`)}
-                    >
-                      <LogInIcon />
-                      ENTRAR
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      className="bg-black/20 font-bold custom-font button-custom-bg"
-                      onClick={() => navigate(`/${slug}/cadastro`)}
-                    >
-                      <UserPlus2 />
-                      CADASTRAR
-                    </Button>
+                    {loggedClient ? (
+                      <>
+                        <div className="flex items-center gap-2 mr-2">
+                          {loggedClient.avatar_url ? (
+                            <img src={loggedClient.avatar_url} alt={loggedClient.name} className="w-8 h-8 rounded-full object-cover border border-primary/30" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-white">
+                              {loggedClient.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-bold text-sm">{loggedClient.name.split(' ')[0]}</span>
+                        </div>
+                        <Button variant="ghost" className="bg-black/20 font-bold button-custom-bg" onClick={() => navigate(`/${slug}/client/dashboard`)}>
+                          MEU PAINEL
+                        </Button>
+                        <Button variant="ghost" className="bg-black/20 font-bold button-custom-bg" onClick={handleClientLogout}>
+                          SAIR
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button 
+                          variant="ghost" 
+                          className="bg-black/20 font-bold custom-font button-custom-bg"
+                          onClick={() => navigate(`/${slug}/entrar`)}
+                        >
+                          <LogInIcon />
+                          ENTRAR
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          className="bg-black/20 font-bold custom-font button-custom-bg"
+                          onClick={() => navigate(`/${slug}/cadastro`)}
+                        >
+                          <UserPlus2 />
+                          CADASTRAR
+                        </Button>
+                      </>
+                    )}
                   </div>
                   
                 </div>
