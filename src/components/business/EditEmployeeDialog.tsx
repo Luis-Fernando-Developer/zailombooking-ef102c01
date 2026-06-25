@@ -201,7 +201,8 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
           payout_flow_override: formData.employee_type === 'autonomo'
             ? (formData.payout_flow_override || null)
             : null,
-
+          termination_effective_date: formData.termination_effective_date || null,
+          termination_reason: formData.termination_reason || null,
         })
         .eq('id', employee.id);
 
