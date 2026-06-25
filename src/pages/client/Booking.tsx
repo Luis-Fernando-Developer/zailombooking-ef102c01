@@ -419,6 +419,7 @@ export default function ClientBooking() {
           id, 
           name, 
           email,
+          avatar_url,
           employee_services!inner(
             service_id
           )
