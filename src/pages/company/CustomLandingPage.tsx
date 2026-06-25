@@ -565,6 +565,7 @@ export default function CustomLandingPage() {
               )}
           </div>
         </header>
+        </div>
       )}
       {customization?.header_position === 'relative' && (
         <header 
