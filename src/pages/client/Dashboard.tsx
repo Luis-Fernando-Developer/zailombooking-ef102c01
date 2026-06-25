@@ -303,12 +303,14 @@ export default function ClientDashboard() {
                               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1.5">
                                   <Clock className="w-4 h-4" />
-                                  {formatDate(booking.booking_date)}
-                                </span>
-                                <span className="flex items-center gap-1.5 font-bold text-foreground">
-                                  às {formatTime(booking.start_time)}
+                                  {formatLongDate(booking.booking_date, booking.start_time)}
                                 </span>
                               </div>
+                              {booking.employee?.name && (
+                                <p className="text-xs text-muted-foreground">
+                                  Profissional: <span className="font-semibold text-foreground">{booking.employee.name}</span>
+                                </p>
+                              )}
                             </div>
                           </div>
                           
