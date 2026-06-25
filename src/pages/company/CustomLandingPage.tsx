@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { MapPin, Phone, Mail, Menu, LogInIcon, UserPlus2, ChevronDown, DoorClosedIcon, X, ChevronRight, TimerIcon, User } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -81,8 +81,6 @@ export default function CustomLandingPage() {
   const [loading, setLoading] = useState(true);
   const [businessHours, setBusinessHours] = useState<any[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
   const [optionHeader, setOptionHeader] = useState(false);
   const [visibleServices, setVisibleServices] = useState(4);
   const [visibleEmployees, setVisibleEmployees] = useState(4);
@@ -96,23 +94,6 @@ export default function CustomLandingPage() {
     //   setHeaderHeight(headerRef.current.offsetHeight);
     // }
   }, [slug]);
-
-  useLayoutEffect(() => {
-    if (customization?.header_position !== 'fixed' || !headerRef.current) {
-      setHeaderHeight(0);
-      return;
-    }
-    const el = headerRef.current;
-    const update = () => setHeaderHeight(el.offsetHeight);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    window.addEventListener('resize', update);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', update);
-    };
-  }, [customization, company]);
 
   const fetchData = async () => {
     try {
@@ -517,7 +498,7 @@ export default function CustomLandingPage() {
 
       {/* Header */}
       {customization?.header_position === 'fixed' && (
-        <div ref={headerRef} className="fixed top-0 left-0 right-0 z-50">
+        <div className="sticky top-0 left-0 right-0 z-50">
           <CampaignTopBar companyId={company?.id} />
           <header
           className={`backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
@@ -580,7 +561,6 @@ export default function CustomLandingPage() {
       )}
       {customization?.header_position === 'relative' && (
         <header 
-          ref={headerRef}
           className={`relative top-0 left-0 right-0 z-50  backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
           <div className="max-w-7xl  mx-auto  px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center  justify-between">
@@ -636,7 +616,7 @@ export default function CustomLandingPage() {
       )}
 
       {/* Main Content */}
-      <div style={customization?.header_position === 'fixed' ? {paddingTop: headerHeight} : {}}>
+      <div>
         {/* Banners de campanhas de marketing (hero / carrossel) */}
         <CampaignHeroBanner companyId={company?.id} />
         <CampaignHeroCarousel companyId={company?.id} />
