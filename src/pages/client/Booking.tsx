@@ -798,23 +798,32 @@ export default function ClientBooking() {
                     }}
                     onClick={() => setSelectedService(service)}
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg">{service.name}</h3>
-                        <p className="text-muted-foreground text-sm mb-2">{service.description}</p>
-                        <div className="flex gap-4 text-sm">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {service.duration_minutes} min
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />
-                            R$ {service.price.toFixed(2)}
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex gap-3 flex-1 min-w-0">
+                        {service.image_url && (
+                          <img
+                            src={service.image_url}
+                            alt={service.name}
+                            className="w-16 h-16 rounded-md object-cover flex-shrink-0"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-lg">{service.name}</h3>
+                          <p className="text-muted-foreground text-sm mb-2">{service.description}</p>
+                          <div className="flex gap-4 text-sm flex-wrap">
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {service.duration_minutes} min
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="w-4 h-4" />
+                              R$ {service.price.toFixed(2)}
+                            </div>
                           </div>
                         </div>
                       </div>
                       {selectedService?.id === service.id && (
-                        <Check className="w-6 h-6 text-primary" />
+                        <Check className="w-6 h-6 text-primary flex-shrink-0" />
                       )}
                     </div>
                   </div>
