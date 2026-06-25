@@ -30,6 +30,9 @@ import {
   Plug2,
   Mail,
   Smartphone,
+  Zap,
+  Send,
+  CalendarClock,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
