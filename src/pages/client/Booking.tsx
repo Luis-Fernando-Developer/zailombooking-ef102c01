@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { BookingPaymentDialog } from "@/components/booking/BookingPaymentDialog";
-import { getAvailability } from "@/lib/api/availability";
+import { getAvailability, AVAILABILITY_REASON_LABELS } from "@/lib/api/availability";
 
 
 interface Service {
@@ -72,6 +72,8 @@ export default function ClientBooking() {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [availabilityReason, setAvailabilityReason] = useState<string | null>(null);
+
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [formData, setFormData] = useState<BookingForm>({
@@ -556,7 +558,7 @@ export default function ClientBooking() {
 
       }
       
-      const { slots, error } = await getAvailability({
+      const { slots, reason, error } = await getAvailability({
         data: {
           company_id: company.id,
           service_id: selectedService.id,
@@ -565,13 +567,15 @@ export default function ClientBooking() {
         }
       });
 
-      if (error) throw new Error(error);
-      
+      if (error && !slots) throw new Error(error);
+
+      setAvailabilityReason(reason ?? null);
       if (slots && slots.length > 0) {
         setAvailableTimes(slots.map((slot: any) => typeof slot === 'string' ? slot : slot.time));
       } else {
         setAvailableTimes([]);
       }
+
 
     } catch (error) {
       console.error("Erro ao carregar horários:", error);
@@ -1009,8 +1013,9 @@ export default function ClientBooking() {
                 </div>
               ) : availableTimes.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  Nenhum horário disponível para esta data.
+                  {AVAILABILITY_REASON_LABELS[availabilityReason ?? 'no_slots'] ?? 'Nenhum horário disponível para esta data.'}
                 </p>
+
               ) : (
                 <div>
                   <Label className="text-base font-medium">Horários disponíveis</Label>
