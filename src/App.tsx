@@ -37,6 +37,7 @@ import AutomacoesEmailMarketing from "./pages/business/automacoes/EmailMarketing
 import AutomacoesGatilhos from "./pages/business/automacoes/Gatilhos";
 import BusinessSchedule from "./pages/business/Schedule";
 import BusinessRealocacao from "./pages/business/Realocacao";
+import BusinessAusencias from "./pages/business/Ausencias";
 
 import BusinessSolicitacoes from "./pages/business/Solicitacoes";
 import BusinessNotifications from "./pages/business/Notifications";
