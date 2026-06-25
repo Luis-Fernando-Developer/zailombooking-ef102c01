@@ -85,6 +85,19 @@ serve(async (req) => {
     const normalizedBookingTime = normalizeTime(booking_time)
     if (!normalizedBookingTime) throw new Error('Horário do agendamento inválido')
 
+    // Gate único de disponibilidade (mesma regra usada pelo cliente)
+    const { data: okSlot, error: gateErr } = await supabaseClient.rpc('is_slot_available', {
+      p_company: company_id,
+      p_employee: employee_id,
+      p_service: service_id,
+      p_date: booking_date,
+      p_start: normalizedBookingTime,
+      p_ignore_booking: null,
+    })
+    if (gateErr) throw gateErr
+    if (!okSlot) throw new Error('Horário indisponível — viola escala, ausência, bloqueio ou conflita com outro agendamento.')
+
+
     const { data: bookingData, error: bookingError } = await supabaseClient
       .from('bookings')
       .insert({
