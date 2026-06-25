@@ -558,23 +558,45 @@ export default function CustomLandingPage() {
               {optionHeader && (
                 <div className={`flex ${customization?.header_background_type ? 'p-0 mt-2 border-t border-primary/40 pt-2' : ''}`}>
                   <div className="flex gap-2 justify-end items-center w-full ">
-                    <Button 
-                      variant="neon" 
-                      className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
-                      onClick={() => navigate(`/${slug}/entrar`)}
-                    >
-                      <LogInIcon />
-                      Entrar
-                    </Button>
-
-                    <Button 
-                      variant="neon" 
-                      className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
-                      onClick={() => navigate(`/${slug}/cadastro`)}
-                    >
-                      <UserPlus2 />
-                      Cadastrar
-                    </Button>
+                    {loggedClient ? (
+                      <>
+                        <div className="flex items-center gap-2 mr-2">
+                          {loggedClient.avatar_url ? (
+                            <img src={loggedClient.avatar_url} alt={loggedClient.name} className="w-8 h-8 rounded-full object-cover border border-primary/30" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-white">
+                              {loggedClient.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-bold text-sm">{loggedClient.name.split(' ')[0]}</span>
+                        </div>
+                        <Button variant="neon" className="h-[30px] p-2 font-bold" onClick={() => navigate(`/${slug}/client/dashboard`)}>
+                          Meu Painel
+                        </Button>
+                        <Button variant="ghost" className="h-[30px] p-2 font-bold" onClick={handleClientLogout}>
+                          Sair
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button 
+                          variant="neon" 
+                          className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
+                          onClick={() => navigate(`/${slug}/entrar`)}
+                        >
+                          <LogInIcon />
+                          Entrar
+                        </Button>
+                        <Button 
+                          variant="neon" 
+                          className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
+                          onClick={() => navigate(`/${slug}/cadastro`)}
+                        >
+                          <UserPlus2 />
+                          Cadastrar
+                        </Button>
+                      </>
+                    )}
                   </div>
                   
                 </div>
