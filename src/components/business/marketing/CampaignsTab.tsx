@@ -10,7 +10,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Send, Ban, RotateCcw } from "lucide-react";
+import { Plus, Send, Ban, RotateCcw, Pencil } from "lucide-react";
+
+const toLocalInput = (iso: string | null | undefined) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 import {
   listCampaigns, listMaterials, createCampaign, updateCampaign,
   setCampaignMaterials, submitCampaignForApproval, revokeCampaign,
@@ -168,6 +175,23 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
             setOpen(true);
           };
 
+          const editDraft = () => {
+            setEditing(c);
+            setForm({
+              name: c.name,
+              description: c.description ?? "",
+              objective: c.objective ?? "",
+              start_at: toLocalInput(c.start_at),
+              end_at: toLocalInput(c.end_at),
+              placements: [...(c.placements ?? [])],
+              audience_type: c.audience_type ?? 'all',
+              audience_filters: JSON.stringify(c.audience_filters ?? {}, null, 2),
+              placement_config: { ...(c.placement_config ?? {}) },
+            });
+            setSelectedMaterials([]);
+            setOpen(true);
+          };
+
           return (
             <Card key={c.id}>
               <CardHeader className="pb-2">
@@ -186,6 +210,11 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
                 </div>
                 {canEdit && (
                   <div className="flex gap-2 pt-2 flex-wrap">
+                    {(c.status === 'draft' || c.status === 'pending_approval') && (
+                      <Button size="sm" variant="outline" onClick={editDraft}>
+                        <Pencil className="w-3 h-3 mr-1" /> Editar
+                      </Button>
+                    )}
                     {c.status === 'draft' && (
                       <Button size="sm" variant="outline" onClick={() => submitMut.mutate(c.id)}>
                         <Send className="w-3 h-3 mr-1" /> Enviar p/ aprovação
