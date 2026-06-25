@@ -123,6 +123,10 @@ export function RescheduleBookingDialog({
         description: `Novo horário: ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime.slice(0, 5)}`
       });
 
+      supabase.functions.invoke("notify-booking-change", {
+        body: { booking_id: booking.id, change_type: "reschedule" },
+      }).catch((err) => console.error("notify failed", err));
+
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
