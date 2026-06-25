@@ -339,21 +339,18 @@ export default function ClientLayout() {
                               </Badge>
                             </div>
                             
+                            <div className="flex items-center gap-2 text-sm bg-background/40 px-3 py-1 rounded-lg w-fit">
+                              <Calendar className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-foreground">
+                                {formatLongDate(booking.booking_date, booking.start_time)}
+                              </span>
+                            </div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-2 gap-x-6">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/40 px-3 py-1 rounded-lg">
-                                <Calendar className="h-4 w-4 text-primary" />
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <User className="h-4 w-4 text-primary" />
                                 <span className="font-medium text-foreground">
-                                  {(() => {
-                                    if (!booking.booking_date) return "";
-                                    const [year, month, day] = booking.booking_date.split('-').map(Number);
-                                    return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: 'numeric'
-                                    });
-                                  })()}
+                                  {booking.employee?.name || 'Profissional a definir'}
                                 </span>
-                                <span className="font-bold text-primary ml-1">às {formatTime(booking.start_time)}</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Clock className="h-4 w-4" />
