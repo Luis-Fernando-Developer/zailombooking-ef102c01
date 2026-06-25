@@ -66,7 +66,7 @@ export function CampaignTopBar({ companyId }: { companyId?: string | null }) {
   const { campaigns } = useActiveCampaigns(companyId, "top_bar");
   const c = campaigns[0];
   const cfg = c ? getCfg(c, "top_bar") : {};
-  const countdown = useCountdown(cfg.countdownEnd ?? c?.end_at ?? undefined);
+  const countdown = useCountdown(c?.end_at ?? undefined);
   if (!c) return null;
   const href = resolveHref(cfg, "top_bar");
   return (
