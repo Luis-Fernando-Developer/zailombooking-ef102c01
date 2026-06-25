@@ -87,41 +87,20 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
   });
 
   return (
-    <Sidebar className={state === "collapsed" ? "w-14" : "w-64"} collapsible="none">
+    <Sidebar className={state === "collapsed" ? "w-14" : "w-64"} collapsible="icon">
       <SidebarContent className="bg-card/30 backdrop-blur-md border-r border-primary/20 overflow-hidden">
         {/* Brand */}
-        <div className="px-4 pt-6 pb-2 flex items-center gap-3 border-b border-primary/10">
-          {companyLogoUrl ? (
-            <img src={companyLogoUrl} alt={companyName} className="w-10 h-10 rounded-xl object-cover border border-primary/20" />
-          ) : (
+        <div className="px-4 pt-6 pb-3 flex items-center gap-3 border-b border-primary/10">
+          {state === "collapsed" ? (
             <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black">
               {(companyName || '?').charAt(0).toUpperCase()}
             </div>
-          )}
-          {state !== "collapsed" && (
-            <div className="min-w-0">
-              <p className="text-sm font-bold truncate">{companyName}</p>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Área do Cliente</p>
-            </div>
+          ) : (
+            <CompanyLogo companySlug={companySlug} showText className="flex-1 min-w-0" />
           )}
         </div>
 
-        {/* Client identity */}
-        {state !== "collapsed" && clientName && (
-          <div className="px-4 py-3 flex items-center gap-3 border-b border-primary/10">
-            {clientAvatarUrl ? (
-              <img src={clientAvatarUrl} alt={clientName} className="w-9 h-9 rounded-full object-cover border border-primary/30" />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold">
-                {clientName.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold truncate">{clientName}</p>
-              <p className="text-[10px] text-muted-foreground">Logado</p>
-            </div>
-          </div>
-        )}
+
 
         {/* Navigation */}
         <SidebarGroup className="px-3 py-6">
