@@ -33,8 +33,10 @@ export function ScheduleTemplatesManager({ tenantId }: Props) {
 
   const setLen = (n: number) => {
     if (!draft) return;
-    const days = [...draft.pattern_days];
-    while (days.length < n) days.push({ ...EMPTY_DAY });
+    const base = draft.pattern_days.length > 0 ? draft.pattern_days : [{ ...EMPTY_DAY }];
+    const days = [...base];
+    // Ao estender o ciclo, repete o padrão existente em vez de preencher com folgas.
+    while (days.length < n) days.push({ ...base[days.length % base.length] });
     days.length = n;
     setDraft({ ...draft, pattern_days: days, cycle_length_days: n });
   };
