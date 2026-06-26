@@ -449,7 +449,6 @@ export default function ClientBooking() {
     setAvailabilityReason(null);
     try {
       // Get dates from current month and next month
-      const dates: Date[] = [];
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -469,7 +468,7 @@ export default function ClientBooking() {
           if (selectedService.id?.startsWith?.('combo:')) {
             const comboId = selectedService.id.replace('combo:', '');
             const combo = combos.find(c => c.id === comboId);
-            if (!combo) return null;
+            if (!combo) return { date: null, reason: 'service_not_found', error: null };
             const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
             
             // Check first service availability as a proxy for the whole day to speed up
@@ -513,10 +512,10 @@ export default function ClientBooking() {
       });
 
       const results = await Promise.all(datePromises);
-      const dates = results.map((result) => result.date).filter((d): d is Date => d !== null);
-      setAvailableDates(dates);
+      const availableDateResults = results.map((result) => result.date).filter((d): d is Date => d !== null);
+      setAvailableDates(availableDateResults);
 
-      if (dates.length === 0) {
+      if (availableDateResults.length === 0) {
         const firstProblem = results.find((result) => result.error || result.reason);
         setAvailabilityReason(firstProblem?.reason ?? null);
       }
