@@ -4,6 +4,12 @@
 -- Também permite chamada direta via RPC pelo frontend público, sem Edge Function.
 -- ============================================================================
 
+-- Garante que os valores do enum schedule_entry_type usados pela função existem.
+-- ALTER TYPE ... ADD VALUE precisa rodar fora de bloco DO/transação.
+ALTER TYPE public.schedule_entry_type ADD VALUE IF NOT EXISTS 'FE';
+ALTER TYPE public.schedule_entry_type ADD VALUE IF NOT EXISTS 'DO';
+
+
 CREATE OR REPLACE FUNCTION public.get_available_slots(
   p_company  UUID,
   p_employee UUID,
