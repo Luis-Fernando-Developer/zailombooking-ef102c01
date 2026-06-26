@@ -84,6 +84,16 @@ export default function BusinessSettings() {
         address: companyData.address || "",
       });
 
+      // Carrega configurações de agendamento persistidas
+      const bs = (companyData as any).booking_settings || {};
+      setBusinessSettings({
+        allowOnlineBooking: bs.allow_online_booking ?? true,
+        requireConfirmation: bs.require_confirmation ?? true,
+        sendReminders: bs.send_reminders ?? true,
+        advanceBookingDays: bs.advance_booking_days ?? 30,
+        cancellationPolicy: bs.cancellation_policy ?? "",
+      });
+
       // Buscar dados do funcionário
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -133,6 +143,31 @@ export default function BusinessSettings() {
         description: "Erro ao atualizar informações da empresa",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveBookingSettings = async () => {
+    if (!company) return;
+    setSaving(true);
+    try {
+      const payload = {
+        allow_online_booking: businessSettings.allowOnlineBooking,
+        require_confirmation: businessSettings.requireConfirmation,
+        send_reminders: businessSettings.sendReminders,
+        advance_booking_days: businessSettings.advanceBookingDays,
+        cancellation_policy: businessSettings.cancellationPolicy,
+      };
+      const { error } = await supabase
+        .from('companies')
+        .update({ booking_settings: payload } as any)
+        .eq('id', company.id);
+      if (error) throw error;
+      toast({ title: "Configurações salvas" });
+    } catch (error: any) {
+      console.error('Error saving booking settings:', error);
+      toast({ title: "Erro", description: error.message || "Erro ao salvar configurações", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -322,6 +357,13 @@ export default function BusinessSettings() {
                 disabled={!canEditSettings}
               />
             </div>
+
+            {canEditSettings && (
+              <Button onClick={handleSaveBookingSettings} disabled={saving} className="gap-2">
+                <Save className="w-4 h-4" />
+                {saving ? "Salvando..." : "Salvar Configurações"}
+              </Button>
+            )}
           </CardContent>
         </Card>
 
