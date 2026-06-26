@@ -30,8 +30,10 @@ export function ClientRescheduleDialog({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
+  const [isLoadingDates, setIsLoadingDates] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -39,14 +41,55 @@ export function ClientRescheduleDialog({
       setSelectedDate(undefined);
       setSelectedTime("");
       setAvailableTimes([]);
+      setAvailableDates([]);
+      if (booking?.service_id && booking?.employee_id) {
+        fetchAvailableDates();
+      }
     }
-  }, [open]);
+  }, [open, booking?.id]);
 
   useEffect(() => {
     if (selectedDate && booking?.service_id && booking?.employee_id) {
       fetchAvailableTimes();
     }
   }, [selectedDate]);
+
+  const fetchAvailableDates = async () => {
+    if (!booking?.service_id || !booking?.employee_id || !companyId) return;
+    setIsLoadingDates(true);
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const next31 = Array.from({ length: 31 }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        return d;
+      });
+
+      const results = await Promise.all(
+        next31.map(async (date) => {
+          const dateStr = format(date, 'yyyy-MM-dd');
+          try {
+            const { slots, error } = await getAvailability({
+              data: {
+                company_id: companyId,
+                service_id: booking.service_id,
+                employee_id: booking.employee_id,
+                date: dateStr,
+              },
+            });
+            if (slots && !error && slots.length > 0) return date;
+            return null;
+          } catch {
+            return null;
+          }
+        })
+      );
+      setAvailableDates(results.filter((d): d is Date => d !== null));
+    } finally {
+      setIsLoadingDates(false);
+    }
+  };
 
   const fetchAvailableTimes = async () => {
     if (!selectedDate || !booking) return;
@@ -161,11 +204,24 @@ export function ClientRescheduleDialog({
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  if (date < today) return true;
+                  return !availableDates.some(
+                    (d) => d.toDateString() === date.toDateString()
+                  );
+                }}
                 locale={ptBR}
                 className="rounded-md border border-primary/20"
               />
             </div>
+            {isLoadingDates && (
+              <p className="text-xs text-center text-muted-foreground">Carregando datas disponíveis...</p>
+            )}
+            {!isLoadingDates && availableDates.length === 0 && (
+              <p className="text-xs text-center text-muted-foreground">Nenhuma data disponível nos próximos 30 dias.</p>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
                 Cancelar
