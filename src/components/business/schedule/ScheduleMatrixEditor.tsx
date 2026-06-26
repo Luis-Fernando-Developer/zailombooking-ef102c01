@@ -6,15 +6,31 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { Send, RefreshCw, Wand2, Trash2, UserPlus } from "lucide-react";
 import {
-  ScheduleRow, ScheduleEntry, EntryType, ENTRY_TYPE_LABEL, ENTRY_TYPE_COLOR,
-  fetchScheduleEntries, upsertScheduleEntry, bulkUpdateEntries,
-  generateSchedule, fetchTemplates, ScheduleTemplate, listSchedulableEmployees,
-  addEmployeesToSchedule, removeEmployeesFromSchedule, SCHEDULE_STATUS_LABEL,
+  ScheduleRow,
+  ScheduleEntry,
+  EntryType,
+  ENTRY_TYPE_LABEL,
+  ENTRY_TYPE_COLOR,
+  fetchScheduleEntries,
+  upsertScheduleEntry,
+  bulkUpdateEntries,
+  generateSchedule,
+  fetchTemplates,
+  ScheduleTemplate,
+  listSchedulableEmployees,
+  addEmployeesToSchedule,
+  removeEmployeesFromSchedule,
+  SCHEDULE_STATUS_LABEL,
 } from "@/lib/api/schedules";
 import { SubmitScheduleDialog } from "./SubmitScheduleDialog";
 
@@ -26,7 +42,10 @@ interface Props {
   onClose?: () => void;
 }
 
-interface Emp { id: string; name: string; }
+interface Emp {
+  id: string;
+  name: string;
+}
 
 const ENTRY_TYPES: EntryType[] = ["T", "F", "A", "FA", "D"];
 
@@ -44,7 +63,7 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
 
   const days = useMemo(
     () => eachDayOfInterval({ start: parseISO(schedule.period_start), end: parseISO(schedule.period_end) }),
-    [schedule.period_start, schedule.period_end]
+    [schedule.period_start, schedule.period_end],
   );
 
   const load = async () => {
@@ -58,7 +77,9 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
     setTemplates(tpls);
     setSelectedRows(new Set());
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [schedule.id]);
+  useEffect(() => {
+    load(); /* eslint-disable-next-line */
+  }, [schedule.id]);
 
   const entryMap = useMemo(() => {
     const m = new Map<string, ScheduleEntry>();
@@ -87,36 +108,47 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
     setBusy(true);
     try {
       await generateSchedule({
-        tenant_id: tenantId, schedule_id: schedule.id,
-        template_id: selectedTpl || null, employee_ids: selectedEmps,
+        tenant_id: tenantId,
+        schedule_id: schedule.id,
+        template_id: selectedTpl || null,
+        employee_ids: selectedEmps,
       });
       await load();
       onChanged?.();
       toast({ title: "Escala gerada" });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleAddEmployee = async (empId: string) => {
     setBusy(true);
     try {
       await addEmployeesToSchedule({
-        tenant_id: tenantId, schedule_id: schedule.id,
-        template_id: schedule.template_id, employee_ids: [empId],
+        tenant_id: tenantId,
+        schedule_id: schedule.id,
+        template_id: schedule.template_id,
+        employee_ids: [empId],
       });
       await load();
       onChanged?.();
       toast({ title: "Colaborador adicionado à escala" });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleRemoveSelected = async () => {
     const ids = Array.from(selectedRows);
     if (!ids.length) return;
-    if (!confirm(`Remover ${ids.length} colaborador(es) desta escala? Os agendamentos existentes não serão cancelados.`)) return;
+    if (
+      !confirm(`Remover ${ids.length} colaborador(es) desta escala? Os agendamentos existentes não serão cancelados.`)
+    )
+      return;
     setBusy(true);
     try {
       await removeEmployeesFromSchedule(schedule.id, ids);
@@ -125,7 +157,9 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
       toast({ title: "Colaboradores removidos" });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const toggleCell = (empId: string, date: string) => {
@@ -137,7 +171,9 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
   };
 
   const bulkSetType = async (type: EntryType) => {
-    const ids = Array.from(selectedCells).map((k) => entryMap.get(k)?.id).filter(Boolean) as string[];
+    const ids = Array.from(selectedCells)
+      .map((k) => entryMap.get(k)?.id)
+      .filter(Boolean) as string[];
     if (!ids.length) return;
     setBusy(true);
     try {
@@ -146,13 +182,16 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
       setSelectedCells(new Set());
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleCellChange = async (entry: ScheduleEntry, patch: Partial<ScheduleEntry>) => {
-    setEntries((prev) => prev.map((e) => e.id === entry.id ? { ...e, ...patch } : e));
-    try { await upsertScheduleEntry({ id: entry.id, ...patch }); }
-    catch (e: any) {
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, ...patch } : e)));
+    try {
+      await upsertScheduleEntry({ id: entry.id, ...patch });
+    } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
       await load();
     }
@@ -178,7 +217,9 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
         <span className="text-xs text-muted-foreground">
           {format(parseISO(schedule.period_start), "dd/MM/yy")} → {format(parseISO(schedule.period_end), "dd/MM/yy")}
         </span>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-muted">{SCHEDULE_STATUS_LABEL[schedule.status] ?? schedule.status}</span>
+        <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
+          {SCHEDULE_STATUS_LABEL[schedule.status] ?? schedule.status}
+        </span>
 
         {canEdit && entries.length > 0 && (
           <DropdownMenu>
@@ -203,7 +244,13 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
         )}
 
         {canEdit && selectedRows.size > 0 && (
-          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={handleRemoveSelected} disabled={busy}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={handleRemoveSelected}
+            disabled={busy}
+          >
             <Trash2 className="w-4 h-4 mr-1" /> Remover linha ({selectedRows.size})
           </Button>
         )}
@@ -218,7 +265,9 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
               {t} · {ENTRY_TYPE_LABEL[t]}
             </Button>
           ))}
-          <Button size="sm" variant="ghost" onClick={() => setSelectedCells(new Set())}>Limpar</Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedCells(new Set())}>
+            Limpar
+          </Button>
         </div>
       )}
 
@@ -231,11 +280,20 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
               <div className="flex flex-wrap gap-2 items-end">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Modelo (opcional)</label>
-                  <Select value={selectedTpl || "__none__"} onValueChange={(v) => setSelectedTpl(v === "__none__" ? "" : v)}>
-                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                  <Select
+                    value={selectedTpl || "__none__"}
+                    onValueChange={(v) => setSelectedTpl(v === "__none__" ? "" : v)}
+                  >
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Sem modelo</SelectItem>
-                      {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                      {templates.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -249,10 +307,16 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
                   {employees.map((e) => {
                     const checked = selectedEmps.includes(e.id);
                     return (
-                      <label key={e.id} className="flex items-center gap-2 text-xs border border-border rounded-md px-2 py-1 cursor-pointer">
-                        <Checkbox checked={checked} onCheckedChange={(v) => {
-                          setSelectedEmps((prev) => v ? [...prev, e.id] : prev.filter((x) => x !== e.id));
-                        }} />
+                      <label
+                        key={e.id}
+                        className="flex items-center gap-2 text-xs border border-border rounded-md px-2 py-1 cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            setSelectedEmps((prev) => (v ? [...prev, e.id] : prev.filter((x) => x !== e.id)));
+                          }}
+                        />
                         {e.name}
                       </label>
                     );
@@ -268,22 +332,21 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
             <table className="text-xs border-separate border-spacing-0">
               <thead>
                 <tr>
-                  <th className="sticky top-0 left-0 z-30 bg-muted/60 backdrop-blur border-b border-r border-border px-0 py-2 w-10 text-center align-middle">
+                  <th className="sticky top-0 left-0 z-30 bg-muted/60 backdrop-blur border-b border-r border-border px-0 py-2 text-center align-middle">
                     {canEdit && (
                       <div className="flex items-center justify-center">
-                        <Checkbox
-                          checked={allChecked}
-                          onCheckedChange={toggleAllRows}
-                          aria-label="Selecionar todos"
-                        />
+                        <Checkbox checked={allChecked} onCheckedChange={toggleAllRows} aria-label="Selecionar todos" />
                       </div>
                     )}
                   </th>
-                  <th className="sticky top-0 left-10 z-30 bg-muted/60 backdrop-blur border-b border-r border-border p-2 text-left min-w-[160px]">
+                  <th className="sticky top-0 left-10 z-30 bg-muted/60 backdrop-blur border-b border-r border-border text-left min-w-[160px]">
                     Colaborador
                   </th>
                   {days.map((d) => (
-                    <th key={d.toISOString()} className="sticky top-0 z-20 bg-muted/60 backdrop-blur p-1 text-center border-b border-r border-border min-w-[72px]">
+                    <th
+                      key={d.toISOString()}
+                      className="sticky top-0 z-20 bg-muted/60 backdrop-blur p-1 text-center border-b border-r border-border min-w-[72px]"
+                    >
                       <div className="text-[10px] text-muted-foreground">{format(d, "EEE", { locale: ptBR })}</div>
                       <div>{format(d, "dd/MM")}</div>
                     </th>
@@ -295,7 +358,9 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
                   const rowSelected = selectedRows.has(emp.id);
                   return (
                     <tr key={emp.id}>
-                      <td className={`sticky left-0 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border px-0 py-2 text-center align-middle w-10`}>
+                      <td
+                        className={`sticky left-0 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border px-0 py-2 text-center align-middle w-10`}
+                      >
                         {canEdit && (
                           <div className="flex items-center justify-center">
                             <Checkbox
@@ -306,13 +371,16 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
                           </div>
                         )}
                       </td>
-                      <td className={`sticky left-10 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-2 font-medium`}>
+                      <td
+                        className={`sticky left-10 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-2 font-medium`}
+                      >
                         {emp.name}
                       </td>
                       {days.map((d) => {
                         const date = format(d, "yyyy-MM-dd");
                         const entry = entryMap.get(`${emp.id}|${date}`);
-                        if (!entry) return <td key={date} className="p-1 border-b border-r border-border bg-muted/10" />;
+                        if (!entry)
+                          return <td key={date} className="p-1 border-b border-r border-border bg-muted/10" />;
                         const key = `${emp.id}|${date}`;
                         const selected = selectedCells.has(key);
                         return (
@@ -321,17 +389,25 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
                             onClick={() => toggleCell(emp.id, date)}
                             className={`p-1 border-b border-r border-border align-top ${canEdit ? "cursor-pointer" : ""} ${selected ? "ring-2 ring-primary ring-inset" : ""}`}
                           >
-                            <div className={`text-center rounded border px-1 py-0.5 ${ENTRY_TYPE_COLOR[entry.entry_type]}`}>
+                            <div
+                              className={`text-center rounded border px-1 py-0.5 ${ENTRY_TYPE_COLOR[entry.entry_type]}`}
+                            >
                               {entry.entry_type}
                             </div>
                             {entry.entry_type === "T" && canEdit && (
                               <div className="mt-1 space-y-0.5" onClick={(e) => e.stopPropagation()}>
-                                <Input type="time" value={entry.start_time ?? ""}
+                                <Input
+                                  type="time"
+                                  value={entry.start_time ?? ""}
                                   onChange={(e) => handleCellChange(entry, { start_time: e.target.value || null })}
-                                  className="h-6 text-[10px] px-1" />
-                                <Input type="time" value={entry.end_time ?? ""}
+                                  className="h-6 text-[10px] px-1"
+                                />
+                                <Input
+                                  type="time"
+                                  value={entry.end_time ?? ""}
                                   onChange={(e) => handleCellChange(entry, { end_time: e.target.value || null })}
-                                  className="h-6 text-[10px] px-1" />
+                                  className="h-6 text-[10px] px-1"
+                                />
                               </div>
                             )}
                             {entry.entry_type === "T" && !canEdit && (
@@ -365,7 +441,9 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
             )}
           </>
         )}
-        <Button variant="ghost" onClick={onClose}>Fechar</Button>
+        <Button variant="ghost" onClick={onClose}>
+          Fechar
+        </Button>
       </div>
 
       <SubmitScheduleDialog
@@ -374,7 +452,10 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
         tenantId={tenantId}
         scheduleId={schedule.id}
         scheduleName={schedule.name}
-        onSubmitted={() => { onChanged?.(); onClose?.(); }}
+        onSubmitted={() => {
+          onChanged?.();
+          onClose?.();
+        }}
       />
     </>
   );
