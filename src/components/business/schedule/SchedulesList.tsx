@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit3, Download } from "lucide-react";
+import { Plus, Trash2, Edit3, Download, Undo2 } from "lucide-react";
 import {
-  fetchSchedules, createSchedule, deleteSchedule,
+  fetchSchedules, createSchedule, deleteSchedule, revokeSchedule,
   ScheduleRow, SCHEDULE_STATUS_LABEL,
 } from "@/lib/api/schedules";
 import { ScheduleMatrixEditor } from "./ScheduleMatrixEditor";
@@ -48,6 +48,22 @@ export function SchedulesList({ tenantId, canManage }: Props) {
     if (!confirm("Excluir esta escala?")) return;
     try { await deleteSchedule(id); await load(); }
     catch (e: any) { toast({ title: "Erro", description: e.message, variant: "destructive" }); }
+  };
+
+  const handleRevoke = async (s: ScheduleRow) => {
+    const msg =
+      "Revogar esta escala irá retorná-la ao estado de RASCUNHO, " +
+      "permitindo edição completa. Agendamentos existentes NÃO são " +
+      "cancelados, mas a disponibilidade futura passará a respeitar " +
+      "as novas alterações após nova aprovação.\n\nDeseja continuar?";
+    if (!confirm(msg)) return;
+    try {
+      await revokeSchedule(s.id, tenantId);
+      toast({ title: "Escala revogada", description: "Voltou para rascunho. Edite e reenvie para aprovação." });
+      await load();
+    } catch (e: any) {
+      toast({ title: "Erro ao revogar", description: e.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -99,13 +115,24 @@ export function SchedulesList({ tenantId, canManage }: Props) {
                   <span className="px-1.5 py-0.5 rounded bg-muted">{SCHEDULE_STATUS_LABEL[s.status]}</span>
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap justify-end">
                 <Button variant="outline" size="sm" onClick={() => setExporting(s)}>
                   <Download className="w-4 h-4 mr-1" /> Baixar
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
-                  <Edit3 className="w-4 h-4 mr-1" /> {(s.status === "draft" || s.status === "revision_requested") ? "Editar" : "Ver"}
+                  <Edit3 className="w-4 h-4 mr-1" />
+                  {(s.status === "draft" || s.status === "revision_requested") ? "Editar" : "Ver"}
                 </Button>
+                {canManage && (s.status === "approved" || s.status === "partially_approved" || s.status === "pending_approval") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => handleRevoke(s)}
+                  >
+                    <Undo2 className="w-4 h-4 mr-1" /> Revogar
+                  </Button>
+                )}
                 {canManage && (s.status === "draft" || s.status === "revision_requested") && (
                   <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}>
                     <Trash2 className="w-4 h-4" />
