@@ -109,9 +109,27 @@ Deno.serve(async (req) => {
         rows.push({
           schedule_id, employee_id: empId, entry_date: isoDate,
           entry_type: entryType, start_time: st, end_time: et,
-          break_start: bs, break_end: be, decision_status: 'pending',
+          break_start: bs, break_end: be,
+          decision_status: append && (schedule.status === 'approved' || schedule.status === 'partially_approved') ? 'approved' : 'pending',
         });
       }
+    }
+
+    if (append) {
+      // Não apaga existentes; só insere combinações (employee_id, entry_date) que não existem
+      const { data: existing } = await supabase
+        .from('schedule_entries')
+        .select('employee_id, entry_date')
+        .eq('schedule_id', schedule_id)
+        .in('employee_id', employee_ids);
+      const existingKeys = new Set((existing ?? []).map((e: any) => `${e.employee_id}|${e.entry_date}`));
+      const filtered = rows.filter((r) => !existingKeys.has(`${r.employee_id}|${r.entry_date}`));
+      const chunkSize = 500;
+      for (let i = 0; i < filtered.length; i += chunkSize) {
+        const { error } = await supabase.from('schedule_entries').insert(filtered.slice(i, i + chunkSize));
+        if (error) throw error;
+      }
+      return json({ ok: true, inserted: filtered.length, mode: 'append' });
     }
 
     // Limpa entries existentes e insere novos
