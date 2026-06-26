@@ -148,6 +148,31 @@ export default function BusinessSettings() {
     }
   };
 
+  const handleSaveBookingSettings = async () => {
+    if (!company) return;
+    setSaving(true);
+    try {
+      const payload = {
+        allow_online_booking: businessSettings.allowOnlineBooking,
+        require_confirmation: businessSettings.requireConfirmation,
+        send_reminders: businessSettings.sendReminders,
+        advance_booking_days: businessSettings.advanceBookingDays,
+        cancellation_policy: businessSettings.cancellationPolicy,
+      };
+      const { error } = await supabase
+        .from('companies')
+        .update({ booking_settings: payload } as any)
+        .eq('id', company.id);
+      if (error) throw error;
+      toast({ title: "Configurações salvas" });
+    } catch (error: any) {
+      console.error('Error saving booking settings:', error);
+      toast({ title: "Erro", description: error.message || "Erro ao salvar configurações", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <BusinessLayout
