@@ -84,6 +84,16 @@ export default function BusinessSettings() {
         address: companyData.address || "",
       });
 
+      // Carrega configurações de agendamento persistidas
+      const bs = (companyData as any).booking_settings || {};
+      setBusinessSettings({
+        allowOnlineBooking: bs.allow_online_booking ?? true,
+        requireConfirmation: bs.require_confirmation ?? true,
+        sendReminders: bs.send_reminders ?? true,
+        advanceBookingDays: bs.advance_booking_days ?? 30,
+        cancellationPolicy: bs.cancellation_policy ?? "",
+      });
+
       // Buscar dados do funcionário
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
