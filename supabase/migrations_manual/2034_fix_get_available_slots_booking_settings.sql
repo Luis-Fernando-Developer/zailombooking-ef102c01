@@ -156,13 +156,12 @@ BEGIN
     IF EXISTS (
       SELECT 1 FROM public.blocked_slots bs
        WHERE bs.employee_id = p_employee
-         AND tstzrange(bs.start_time, bs.end_time, '[)')
-             && tstzrange((p_date + v_cur)::TIMESTAMPTZ,
-                          (p_date + v_slot_end)::TIMESTAMPTZ, '[)')
+         AND (v_cur, v_slot_end) OVERLAPS (bs.start_time::TIME, bs.end_time::TIME)
     ) THEN
       v_cur := (v_cur::INTERVAL + (v_step||' min')::INTERVAL)::TIME;
       CONTINUE;
     END IF;
+
 
     IF EXISTS (
       SELECT 1 FROM public.bookings bk
