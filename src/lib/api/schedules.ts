@@ -195,6 +195,25 @@ export async function deleteSchedule(id: string) {
   if (error) throw error;
 }
 
+/**
+ * Revoga uma escala publicada/aprovada, retornando-a ao estado de rascunho
+ * para edição. Reseta a decisão das entradas para pending.
+ */
+export async function revokeSchedule(scheduleId: string, tenantId: string) {
+  const { error: e1 } = await supabase
+    .from("schedules")
+    .update({ status: "draft" })
+    .eq("id", scheduleId)
+    .eq("tenant_id", tenantId);
+  if (e1) throw e1;
+
+  const { error: e2 } = await supabase
+    .from("schedule_entries")
+    .update({ decision_status: "pending", decided_by: null, decided_at: null })
+    .eq("schedule_id", scheduleId);
+  if (e2) throw e2;
+}
+
 export async function fetchScheduleEntries(scheduleId: string) {
   const { data, error } = await supabase
     .from("schedule_entries")
