@@ -332,14 +332,20 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
             <table className="text-xs border-separate border-spacing-0">
               <thead>
                 <tr>
-                  <th className="sticky top-0 left-0 z-30 bg-muted/60 backdrop-blur border-b border-r border-border px-0 py-2 text-center align-middle">
+                  <th
+                    style={{ width: 32, minWidth: 32, maxWidth: 32, left: 0 }}
+                    className="sticky top-0 z-30 bg-muted/60 backdrop-blur border-b border-r border-border p-0 text-center align-middle"
+                  >
                     {canEdit && (
                       <div className="flex items-center justify-center">
                         <Checkbox checked={allChecked} onCheckedChange={toggleAllRows} aria-label="Selecionar todos" />
                       </div>
                     )}
                   </th>
-                  <th className="sticky top-0 left-10 z-30 bg-muted/60 backdrop-blur border-b border-r border-border text-left min-w-[160px]">
+                  <th
+                    style={{ left: 32, minWidth: 160 }}
+                    className="sticky top-0 z-30 bg-muted/60 backdrop-blur border-b border-r border-border text-left px-2"
+                  >
                     Colaborador
                   </th>
                   {days.map((d) => (
@@ -359,7 +365,8 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
                   return (
                     <tr key={emp.id}>
                       <td
-                        className={`sticky left-0 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border px-0 py-2 text-center align-middle w-10`}
+                        style={{ width: 32, minWidth: 32, maxWidth: 32, left: 0 }}
+                        className={`sticky z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-0 text-center align-middle`}
                       >
                         {canEdit && (
                           <div className="flex items-center justify-center">
@@ -372,7 +379,8 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
                         )}
                       </td>
                       <td
-                        className={`sticky left-10 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-2 font-medium`}
+                        style={{ left: 32 }}
+                        className={`sticky z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border px-2 py-2 font-medium`}
                       >
                         {emp.name}
                       </td>
