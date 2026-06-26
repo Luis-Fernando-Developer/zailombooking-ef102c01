@@ -204,11 +204,24 @@ export function ClientRescheduleDialog({
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  if (date < today) return true;
+                  return !availableDates.some(
+                    (d) => d.toDateString() === date.toDateString()
+                  );
+                }}
                 locale={ptBR}
                 className="rounded-md border border-primary/20"
               />
             </div>
+            {isLoadingDates && (
+              <p className="text-xs text-center text-muted-foreground">Carregando datas disponíveis...</p>
+            )}
+            {!isLoadingDates && availableDates.length === 0 && (
+              <p className="text-xs text-center text-muted-foreground">Nenhuma data disponível nos próximos 30 dias.</p>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
                 Cancelar
