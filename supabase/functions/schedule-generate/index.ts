@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     if (userErr || !user) return json({ error: 'invalid_token' }, 401);
 
     const body = await req.json();
-    const { tenant_id, schedule_id, template_id, employee_ids } = body ?? {};
+    const { tenant_id, schedule_id, template_id, employee_ids, append } = body ?? {};
     if (!tenant_id || !schedule_id || !Array.isArray(employee_ids) || employee_ids.length === 0) {
       return json({ error: 'tenant_id, schedule_id, employee_ids[] obrigatórios' }, 400);
     }
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     const { data: schedule, error: schErr } = await supabase
       .from('schedules').select('*').eq('id', schedule_id).eq('tenant_id', tenant_id).single();
     if (schErr || !schedule) return json({ error: 'schedule_not_found' }, 404);
-    if (schedule.status !== 'draft') return json({ error: 'schedule_not_draft' }, 400);
+    if (!append && schedule.status !== 'draft') return json({ error: 'schedule_not_draft' }, 400);
 
     // Carrega template (opcional)
     let pattern: PatternDay[] | null = null;
