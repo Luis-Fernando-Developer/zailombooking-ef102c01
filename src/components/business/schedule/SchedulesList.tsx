@@ -121,7 +121,7 @@ export function SchedulesList({ tenantId, canManage }: Props) {
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
                   <Edit3 className="w-4 h-4 mr-1" />
-                  {(s.status === "draft" || s.status === "revision_requested") ? "Editar" : "Ver"}
+                  {canManage ? "Editar" : "Ver"}
                 </Button>
                 {canManage && (s.status === "approved" || s.status === "partially_approved" || s.status === "pending_approval") && (
                   <Button
