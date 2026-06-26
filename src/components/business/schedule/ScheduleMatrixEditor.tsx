@@ -107,12 +107,15 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
     }
     setBusy(true);
     try {
+      // Se a escala não está em draft, usa modo append para não apagar entradas existentes
+      const isDraft = schedule.status === 'draft';
       await generateSchedule({
         tenant_id: tenantId,
         schedule_id: schedule.id,
         template_id: selectedTpl || null,
         employee_ids: selectedEmps,
-      });
+        append: !isDraft,
+      } as any);
       await load();
       onChanged?.();
       toast({ title: "Escala gerada" });
