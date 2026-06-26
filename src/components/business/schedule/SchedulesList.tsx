@@ -115,13 +115,24 @@ export function SchedulesList({ tenantId, canManage }: Props) {
                   <span className="px-1.5 py-0.5 rounded bg-muted">{SCHEDULE_STATUS_LABEL[s.status]}</span>
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap justify-end">
                 <Button variant="outline" size="sm" onClick={() => setExporting(s)}>
                   <Download className="w-4 h-4 mr-1" /> Baixar
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
-                  <Edit3 className="w-4 h-4 mr-1" /> {(s.status === "draft" || s.status === "revision_requested") ? "Editar" : "Ver"}
+                  <Edit3 className="w-4 h-4 mr-1" />
+                  {(s.status === "draft" || s.status === "revision_requested") ? "Editar" : "Ver"}
                 </Button>
+                {canManage && (s.status === "approved" || s.status === "partially_approved" || s.status === "pending_approval") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => handleRevoke(s)}
+                  >
+                    <Undo2 className="w-4 h-4 mr-1" /> Revogar
+                  </Button>
+                )}
                 {canManage && (s.status === "draft" || s.status === "revision_requested") && (
                   <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}>
                     <Trash2 className="w-4 h-4" />
