@@ -97,7 +97,10 @@ Deno.serve(async (req) => {
           a.employee_id === empId && isoDate >= a.start_date && isoDate <= a.end_date)) {
           entryType = 'A';
         } else if (pattern && pattern.length > 0) {
-          const p = pattern[cycleIdx % cycleLen] ?? pattern[0];
+          // Usa o tamanho real do pattern como ciclo efetivo para evitar dias "vazios"
+          // quando cycle_length_days > pattern.length (template desalinhado).
+          const effectiveLen = Math.min(cycleLen || pattern.length, pattern.length);
+          const p = pattern[cycleIdx % effectiveLen] ?? pattern[0];
           if (p.work) { entryType = 'T'; st = p.start ?? null; et = p.end ?? null; bs = p.break_start ?? null; be = p.break_end ?? null; }
           else { entryType = 'F'; }
         } else {
