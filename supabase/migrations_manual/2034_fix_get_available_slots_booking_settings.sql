@@ -78,7 +78,7 @@ BEGIN
     SELECT 1 FROM public.business_hours bh
      WHERE bh.company_id = p_company
        AND bh.day_of_week = v_dow
-       AND COALESCE(bh.is_closed, FALSE) = FALSE
+       AND COALESCE(bh.is_open, TRUE) = TRUE
   ) THEN
     RETURN QUERY SELECT NULL::TIME, 'company_closed'::TEXT; RETURN;
   END IF;
