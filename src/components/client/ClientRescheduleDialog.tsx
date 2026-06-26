@@ -187,7 +187,7 @@ export function ClientRescheduleDialog({
           <div className="p-3 bg-background/50 rounded-lg border border-primary/20 mb-4">
             <p className="text-sm font-medium">{booking.service?.name}</p>
             <p className="text-xs text-muted-foreground">
-              Data atual: {booking.booking_date} às {booking.start_time?.slice(0, 5)}
+              Data atual: {booking.booking_date} às {(booking.start_time?.includes('T') ? booking.start_time.split('T')[1] : booking.start_time)?.slice(0, 5)}
             </p>
           </div>
         )}

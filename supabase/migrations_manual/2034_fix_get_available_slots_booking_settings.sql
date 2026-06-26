@@ -43,13 +43,20 @@ BEGIN
     RETURN QUERY SELECT NULL::TIME, 'service_not_found'::TEXT; RETURN;
   END IF;
 
-  -- Configurações de agendamento (JSONB em companies.booking_settings)
+  -- Configurações de agendamento: primeiro tenta company_schedule_settings (UI),
+  -- depois faz fallback para companies.booking_settings (JSONB legado).
   SELECT booking_settings INTO v_bs FROM public.companies WHERE id = p_company;
   v_bs := COALESCE(v_bs, '{}'::jsonb);
-  v_step    := COALESCE((v_bs->>'slot_duration_minutes')::INT, 30);
-  v_min_adv := COALESCE((v_bs->>'min_advance_minutes')::INT, 0);
-  v_max_adv := COALESCE((v_bs->>'advance_booking_days')::INT,
-                        (v_bs->>'max_advance_days')::INT, 365);
+
+  SELECT
+    COALESCE(css.slot_duration_minutes, (v_bs->>'slot_duration_minutes')::INT, 30),
+    COALESCE(css.min_advance_hours * 60, (v_bs->>'min_advance_minutes')::INT, 0),
+    COALESCE(css.max_advance_days,
+             (v_bs->>'advance_booking_days')::INT,
+             (v_bs->>'max_advance_days')::INT, 365)
+  INTO v_step, v_min_adv, v_max_adv
+  FROM (SELECT 1) x
+  LEFT JOIN public.company_schedule_settings css ON css.company_id = p_company;
 
   -- Limite de antecedência
   IF p_date < v_today THEN
