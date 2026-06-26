@@ -50,6 +50,22 @@ export function SchedulesList({ tenantId, canManage }: Props) {
     catch (e: any) { toast({ title: "Erro", description: e.message, variant: "destructive" }); }
   };
 
+  const handleRevoke = async (s: ScheduleRow) => {
+    const msg =
+      "Revogar esta escala irá retorná-la ao estado de RASCUNHO, " +
+      "permitindo edição completa. Agendamentos existentes NÃO são " +
+      "cancelados, mas a disponibilidade futura passará a respeitar " +
+      "as novas alterações após nova aprovação.\n\nDeseja continuar?";
+    if (!confirm(msg)) return;
+    try {
+      await revokeSchedule(s.id, tenantId);
+      toast({ title: "Escala revogada", description: "Voltou para rascunho. Edite e reenvie para aprovação." });
+      await load();
+    } catch (e: any) {
+      toast({ title: "Erro ao revogar", description: e.message, variant: "destructive" });
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between">
