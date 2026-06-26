@@ -1,6 +1,7 @@
 -- ============================================================================
 -- 2034 — Corrige get_available_slots para ler de companies.booking_settings
 -- Remove dependência da tabela inexistente public.company_schedule_settings
+-- Também permite chamada direta via RPC pelo frontend público, sem Edge Function.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.get_available_slots(

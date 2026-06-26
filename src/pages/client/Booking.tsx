@@ -446,9 +446,9 @@ export default function ClientBooking() {
     if (!selectedEmployee || !company || !selectedService) return;
 
     setIsLoadingAvailability(true);
+    setAvailabilityReason(null);
     try {
       // Get dates from current month and next month
-      const dates: Date[] = [];
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -468,12 +468,12 @@ export default function ClientBooking() {
           if (selectedService.id?.startsWith?.('combo:')) {
             const comboId = selectedService.id.replace('combo:', '');
             const combo = combos.find(c => c.id === comboId);
-            if (!combo) return null;
+            if (!combo) return { date: null, reason: 'service_not_found', error: null };
             const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
             
             // Check first service availability as a proxy for the whole day to speed up
             if (serviceIds.length > 0) {
-              const { slots, error } = await getAvailability({
+              const { slots, reason, error } = await getAvailability({
                 data: {
                   company_id: company.id,
                   service_id: serviceIds[0],
@@ -482,13 +482,14 @@ export default function ClientBooking() {
                 }
               });
               if (slots && !error && slots.length > 0) {
-                return date;
+                return { date, reason: null, error: null };
               }
+              return { date: null, reason: reason ?? null, error: error ?? null };
             }
-            return null;
+            return { date: null, reason: 'service_not_found', error: null };
           }
 
-          const { slots, error } = await getAvailability({
+          const { slots, reason, error } = await getAvailability({
             data: {
               company_id: company.id,
               service_id: selectedService.id,
@@ -498,16 +499,26 @@ export default function ClientBooking() {
           });
           
           if (slots && !error && slots.length > 0) {
-            return date;
+            return { date, reason: null, error: null };
           }
+          return { date: null, reason: reason ?? null, error: error ?? null };
         } catch (err) {
-          // Silent error for individual date checks
+          return {
+            date: null,
+            reason: 'error',
+            error: err instanceof Error ? err.message : 'Erro ao consultar disponibilidade',
+          };
         }
-        return null;
       });
 
       const results = await Promise.all(datePromises);
-      setAvailableDates(results.filter((d): d is Date => d !== null));
+      const availableDateResults = results.map((result) => result.date).filter((d): d is Date => d !== null);
+      setAvailableDates(availableDateResults);
+
+      if (availableDateResults.length === 0) {
+        const firstProblem = results.find((result) => result.error || result.reason);
+        setAvailabilityReason(firstProblem?.reason ?? null);
+      }
     } catch (error) {
       console.error("Erro ao carregar datas disponíveis:", error);
       toast({
@@ -953,7 +964,7 @@ export default function ClientBooking() {
                   </div>
                 ) : availableDates.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
-                    Nenhuma data disponível nos próximos 30 dias.
+                    {AVAILABILITY_REASON_LABELS[availabilityReason ?? 'no_slots'] ?? 'Nenhuma data disponível nos próximos 30 dias.'}
                   </p>
                 ) : (
                   <Calendar
