@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit3, Download } from "lucide-react";
+import { Plus, Trash2, Edit3, Download, Undo2 } from "lucide-react";
 import {
-  fetchSchedules, createSchedule, deleteSchedule,
+  fetchSchedules, createSchedule, deleteSchedule, revokeSchedule,
   ScheduleRow, SCHEDULE_STATUS_LABEL,
 } from "@/lib/api/schedules";
 import { ScheduleMatrixEditor } from "./ScheduleMatrixEditor";
