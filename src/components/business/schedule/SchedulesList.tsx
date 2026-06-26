@@ -121,7 +121,7 @@ export function SchedulesList({ tenantId, canManage }: Props) {
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setEditing(s)}>
                   <Edit3 className="w-4 h-4 mr-1" />
-                  {(s.status === "draft" || s.status === "revision_requested") ? "Editar" : "Ver"}
+                  {canManage ? "Editar" : "Ver"}
                 </Button>
                 {canManage && (s.status === "approved" || s.status === "partially_approved" || s.status === "pending_approval") && (
                   <Button
@@ -144,13 +144,15 @@ export function SchedulesList({ tenantId, canManage }: Props) {
         </div>
 
         <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-          <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-auto">
-            <DialogHeader><DialogTitle>Escala</DialogTitle></DialogHeader>
+          <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 flex flex-col overflow-hidden gap-0">
+            <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
+              <DialogTitle>Escala</DialogTitle>
+            </DialogHeader>
             {editing && (
               <ScheduleMatrixEditor
                 schedule={editing}
                 tenantId={tenantId}
-                readOnly={!canManage || (editing.status !== "draft" && editing.status !== "revision_requested")}
+                readOnly={!canManage}
                 onChanged={load}
                 onClose={() => setEditing(null)}
               />

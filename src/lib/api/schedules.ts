@@ -238,11 +238,27 @@ export async function bulkUpdateEntries(ids: string[], patch: Partial<ScheduleEn
 
 // ---------- Edge functions ----------
 export async function generateSchedule(input: {
-  tenant_id: string; schedule_id: string; template_id?: string | null; employee_ids: string[];
+  tenant_id: string; schedule_id: string; template_id?: string | null; employee_ids: string[]; append?: boolean;
 }) {
   const { data, error } = await supabase.functions.invoke("schedule-generate", { body: input });
   if (error) throw error;
   return data;
+}
+
+export async function addEmployeesToSchedule(input: {
+  tenant_id: string; schedule_id: string; template_id?: string | null; employee_ids: string[];
+}) {
+  return generateSchedule({ ...input, append: true });
+}
+
+export async function removeEmployeesFromSchedule(scheduleId: string, employeeIds: string[]) {
+  if (!employeeIds.length) return;
+  const { error } = await supabase
+    .from("schedule_entries")
+    .delete()
+    .eq("schedule_id", scheduleId)
+    .in("employee_id", employeeIds);
+  if (error) throw error;
 }
 
 export async function submitSchedule(input: {
