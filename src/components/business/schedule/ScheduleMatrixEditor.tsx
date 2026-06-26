@@ -268,13 +268,15 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
             <table className="text-xs border-separate border-spacing-0">
               <thead>
                 <tr>
-                  <th className="sticky top-0 left-0 z-30 bg-muted/60 backdrop-blur border-b border-r border-border p-2 w-10">
+                  <th className="sticky top-0 left-0 z-30 bg-muted/60 backdrop-blur border-b border-r border-border px-0 py-2 w-10 text-center align-middle">
                     {canEdit && (
-                      <Checkbox
-                        checked={allChecked}
-                        onCheckedChange={toggleAllRows}
-                        aria-label="Selecionar todos"
-                      />
+                      <div className="flex items-center justify-center">
+                        <Checkbox
+                          checked={allChecked}
+                          onCheckedChange={toggleAllRows}
+                          aria-label="Selecionar todos"
+                        />
+                      </div>
                     )}
                   </th>
                   <th className="sticky top-0 left-10 z-30 bg-muted/60 backdrop-blur border-b border-r border-border p-2 text-left min-w-[160px]">
@@ -293,13 +295,15 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
                   const rowSelected = selectedRows.has(emp.id);
                   return (
                     <tr key={emp.id}>
-                      <td className={`sticky left-0 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-2 text-center`}>
+                      <td className={`sticky left-0 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border px-0 py-2 text-center align-middle w-10`}>
                         {canEdit && (
-                          <Checkbox
-                            checked={rowSelected}
-                            onCheckedChange={() => toggleRow(emp.id)}
-                            aria-label={`Selecionar ${emp.name}`}
-                          />
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              checked={rowSelected}
+                              onCheckedChange={() => toggleRow(emp.id)}
+                              aria-label={`Selecionar ${emp.name}`}
+                            />
+                          </div>
                         )}
                       </td>
                       <td className={`sticky left-10 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-2 font-medium`}>
