@@ -268,13 +268,15 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
             <table className="text-xs border-separate border-spacing-0">
               <thead>
                 <tr>
-                  <th className="sticky top-0 left-0 z-30 bg-muted/60 backdrop-blur border-b border-r border-border p-2 w-10">
+                  <th className="sticky top-0 left-0 z-30 bg-muted/60 backdrop-blur border-b border-r border-border px-0 py-2 w-10 text-center align-middle">
                     {canEdit && (
-                      <Checkbox
-                        checked={allChecked}
-                        onCheckedChange={toggleAllRows}
-                        aria-label="Selecionar todos"
-                      />
+                      <div className="flex items-center justify-center">
+                        <Checkbox
+                          checked={allChecked}
+                          onCheckedChange={toggleAllRows}
+                          aria-label="Selecionar todos"
+                        />
+                      </div>
                     )}
                   </th>
                   <th className="sticky top-0 left-10 z-30 bg-muted/60 backdrop-blur border-b border-r border-border p-2 text-left min-w-[160px]">
