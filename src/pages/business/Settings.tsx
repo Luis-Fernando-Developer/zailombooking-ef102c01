@@ -357,6 +357,13 @@ export default function BusinessSettings() {
                 disabled={!canEditSettings}
               />
             </div>
+
+            {canEditSettings && (
+              <Button onClick={handleSaveBookingSettings} disabled={saving} className="gap-2">
+                <Save className="w-4 h-4" />
+                {saving ? "Salvando..." : "Salvar Configurações"}
+              </Button>
+            )}
           </CardContent>
         </Card>
 
