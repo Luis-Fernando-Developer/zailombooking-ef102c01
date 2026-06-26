@@ -295,13 +295,15 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
                   const rowSelected = selectedRows.has(emp.id);
                   return (
                     <tr key={emp.id}>
-                      <td className={`sticky left-0 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-2 text-center`}>
+                      <td className={`sticky left-0 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border px-0 py-2 text-center align-middle w-10`}>
                         {canEdit && (
-                          <Checkbox
-                            checked={rowSelected}
-                            onCheckedChange={() => toggleRow(emp.id)}
-                            aria-label={`Selecionar ${emp.name}`}
-                          />
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              checked={rowSelected}
+                              onCheckedChange={() => toggleRow(emp.id)}
+                              aria-label={`Selecionar ${emp.name}`}
+                            />
+                          </div>
                         )}
                       </td>
                       <td className={`sticky left-10 z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-2 font-medium`}>
