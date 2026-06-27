@@ -51,9 +51,10 @@ interface Emp {
 
 const ENTRY_TYPES: EntryType[] = ["T", "F", "A", "FA", "D"];
 
-export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, onClose }: Props) {
+export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, currentEmployeeId, onChanged, onClose }: Props) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Emp[]>([]);
+  const [entryEmployees, setEntryEmployees] = useState<Emp[]>([]);
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   const [selectedTpl, setSelectedTpl] = useState<string>(schedule.template_id ?? "");
@@ -78,6 +79,21 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
     setEntries(ents);
     setTemplates(tpls);
     setSelectedRows(new Set());
+
+    // Para garantir visibilidade de todos os colaboradores presentes na escala
+    // (incluindo o próprio supervisor e pares que a RPC não retorna),
+    // buscamos os nomes diretamente da tabela employees pelos IDs das entries.
+    const empIdsInEntries = Array.from(new Set(ents.map((e) => e.employee_id)));
+    if (empIdsInEntries.length > 0) {
+      const { supabase } = await import("@/lib/supabaseClient");
+      const { data: rows } = await supabase
+        .from("employees")
+        .select("id, name")
+        .in("id", empIdsInEntries);
+      setEntryEmployees((rows ?? []) as Emp[]);
+    } else {
+      setEntryEmployees([]);
+    }
   };
   useEffect(() => {
     load(); /* eslint-disable-next-line */
@@ -91,14 +107,20 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
 
   const visibleEmployees = useMemo(() => {
     if (entries.length === 0) return [] as Emp[];
-    const ids = new Set(entries.map((e) => e.employee_id));
-    return employees.filter((e) => ids.has(e.id));
-  }, [employees, entries]);
+    const ids = Array.from(new Set(entries.map((e) => e.employee_id)));
+    const dict = new Map<string, Emp>();
+    employees.forEach((e) => dict.set(e.id, e));
+    entryEmployees.forEach((e) => dict.set(e.id, e));
+    return ids
+      .map((id) => dict.get(id) ?? { id, name: "(colaborador)" })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [employees, entryEmployees, entries]);
 
   const availableToAdd = useMemo(() => {
     const inMatrix = new Set(visibleEmployees.map((e) => e.id));
     return employees.filter((e) => !inMatrix.has(e.id));
   }, [employees, visibleEmployees]);
+
 
   const canEdit = !readOnly;
 
