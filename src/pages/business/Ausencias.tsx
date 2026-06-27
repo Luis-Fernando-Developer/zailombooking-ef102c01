@@ -149,7 +149,7 @@ export default function Ausencias() {
               Nenhuma ausência registrada para os filtros selecionados.
             </CardContent></Card>
           ) : absences.map((a) => {
-            const t = ABSENCE_TYPES[a.absence_type] ?? ABSENCE_TYPES.absence;
+            const t = ABSENCE_TYPES[a.absence_type] ?? ABSENCE_TYPES.other;
             return (
               <Card key={a.id}>
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
