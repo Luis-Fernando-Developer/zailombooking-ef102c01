@@ -38,6 +38,7 @@ interface Props {
   schedule: ScheduleRow;
   tenantId: string;
   readOnly?: boolean;
+  currentEmployeeId?: string | null;
   onChanged?: () => void;
   onClose?: () => void;
 }
@@ -46,6 +47,7 @@ interface Emp {
   id: string;
   name: string;
 }
+
 
 const ENTRY_TYPES: EntryType[] = ["T", "F", "A", "FA", "D"];
 
