@@ -14,6 +14,7 @@ import { format, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AffectedBookingsDialog } from "@/components/business/AffectedBookingsDialog";
 import { getRoleLevel } from "@/lib/roleHierarchy";
+import { createRequest } from "@/lib/api/requests";
 
 interface AbsencesManagerProps {
   companyId: string;
@@ -27,6 +28,7 @@ interface Employee {
   id: string;
   name: string;
   role?: string | null;
+  employee_type?: string | null;
 }
 
 interface Absence {
@@ -73,12 +75,15 @@ export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: Abs
       // Fetch employees
       const { data: employeesData } = await supabase
         .from('employees')
-        .select('id, name, role')
+        .select('id, name, role, employee_type')
         .eq('company_id', companyId)
         .eq('is_active', true)
         .order('name');
 
-      const allEmployees = (employeesData || []) as Employee[];
+      // Autônomos gerenciam a própria disponibilidade — não aparecem em ausências.
+      const allEmployees = ((employeesData || []) as Employee[]).filter(
+        (e) => e.employee_type !== 'autonomo',
+      );
 
       // Filtra colaboradores que o viewer tem permissão de registrar ausência:
       // o próprio + todos com cargo de nível <= ao seu.
@@ -131,22 +136,24 @@ export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: Abs
     }
 
     try {
-      const { error } = await supabase
-        .from('employee_absences')
-        .insert({
-          company_id: companyId,
+      await createRequest({
+        tenant_id: companyId,
+        request_type: "absence_request",
+        title: `Ausência (${newAbsence.absence_type}) ${newAbsence.start_date} → ${newAbsence.end_date}`,
+        description: newAbsence.reason,
+        priority: "normal",
+        request_payload: {
           employee_id: newAbsence.employee_id,
           absence_type: newAbsence.absence_type,
           start_date: newAbsence.start_date,
           end_date: newAbsence.end_date,
-          reason: newAbsence.reason || null,
-        });
-
-      if (error) throw error;
+          reason: newAbsence.reason,
+        },
+      });
 
       toast({
-        title: "Sucesso",
-        description: "Ausência registrada!"
+        title: "Solicitação enviada",
+        description: "A ausência foi encaminhada para aprovação."
       });
 
       setDialogOpen(false);
@@ -158,11 +165,11 @@ export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: Abs
         reason: "",
       });
       fetchData();
-    } catch (error) {
-      console.error('Error adding absence:', error);
+    } catch (error: any) {
+      console.error('Error creating absence request:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível registrar a ausência.",
+        description: error?.message || "Não foi possível enviar a solicitação.",
         variant: "destructive"
       });
     }
@@ -328,7 +335,7 @@ export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: Abs
                 </div>
 
                 <Button onClick={handleAddAbsence} className="w-full">
-                  Registrar Ausência
+                  Enviar para aprovação
                 </Button>
               </div>
             </DialogContent>
