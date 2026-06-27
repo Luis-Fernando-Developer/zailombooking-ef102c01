@@ -401,13 +401,14 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, currentEmpl
               <tbody>
                 {visibleEmployees.map((emp) => {
                   const rowSelected = selectedRows.has(emp.id);
+                  const isSelf = emp.id === currentEmployeeId;
                   return (
                     <tr key={emp.id}>
                       <td
                         style={{ width: 32, minWidth: 32, maxWidth: 32, left: 0 }}
                         className={`sticky z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-0 text-center align-middle`}
                       >
-                        {canEdit && (
+                        {canEdit && !isSelf && (
                           <div className="flex items-center justify-center">
                             <Checkbox
                               checked={rowSelected}
@@ -422,7 +423,9 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, currentEmpl
                         className={`sticky z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border px-2 py-2 font-medium`}
                       >
                         {emp.name}
+                        {isSelf && <span className="ml-1 text-[10px] text-muted-foreground">(você)</span>}
                       </td>
+
                       {days.map((d) => {
                         const date = format(d, "yyyy-MM-dd");
                         const entry = entryMap.get(`${emp.id}|${date}`);
