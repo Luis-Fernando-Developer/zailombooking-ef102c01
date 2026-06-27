@@ -14,6 +14,7 @@ import { format, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AffectedBookingsDialog } from "@/components/business/AffectedBookingsDialog";
 import { getRoleLevel } from "@/lib/roleHierarchy";
+import { createRequest } from "@/lib/api/requests";
 
 interface AbsencesManagerProps {
   companyId: string;
