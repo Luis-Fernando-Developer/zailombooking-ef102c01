@@ -335,7 +335,7 @@ export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: Abs
                 </div>
 
                 <Button onClick={handleAddAbsence} className="w-full">
-                  Registrar Ausência
+                  Enviar para aprovação
                 </Button>
               </div>
             </DialogContent>
