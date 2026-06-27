@@ -75,12 +75,15 @@ export function AbsencesManager({ companyId, viewerRole, viewerEmployeeId }: Abs
       // Fetch employees
       const { data: employeesData } = await supabase
         .from('employees')
-        .select('id, name, role')
+        .select('id, name, role, employee_type')
         .eq('company_id', companyId)
         .eq('is_active', true)
         .order('name');
 
-      const allEmployees = (employeesData || []) as Employee[];
+      // Autônomos gerenciam a própria disponibilidade — não aparecem em ausências.
+      const allEmployees = ((employeesData || []) as Employee[]).filter(
+        (e) => e.employee_type !== 'autonomo',
+      );
 
       // Filtra colaboradores que o viewer tem permissão de registrar ausência:
       // o próprio + todos com cargo de nível <= ao seu.
