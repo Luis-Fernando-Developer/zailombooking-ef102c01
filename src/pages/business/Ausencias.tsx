@@ -17,11 +17,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
 const ABSENCE_TYPES: Record<string, { label: string; tone: string }> = {
-  vacation:   { label: "Férias",       tone: "bg-blue-500/10 text-blue-500 border-blue-500/30" },
-  sick_leave: { label: "Atestado",     tone: "bg-amber-500/10 text-amber-500 border-amber-500/30" },
-  leave:      { label: "Licença",      tone: "bg-purple-500/10 text-purple-500 border-purple-500/30" },
-  dayoff:     { label: "Folga extra",  tone: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" },
-  absence:    { label: "Ausência",     tone: "bg-muted text-muted-foreground border-border" },
+  vacation:   { label: "Férias",          tone: "bg-blue-500/10 text-blue-500 border-blue-500/30" },
+  day_off:    { label: "Folga",           tone: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" },
+  sick_leave: { label: "Atestado Médico", tone: "bg-amber-500/10 text-amber-500 border-amber-500/30" },
+  suspension: { label: "Suspensão",       tone: "bg-red-500/10 text-red-500 border-red-500/30" },
+  other:      { label: "Outro",           tone: "bg-muted text-muted-foreground border-border" },
 };
 
 interface Absence {
@@ -149,7 +149,7 @@ export default function Ausencias() {
               Nenhuma ausência registrada para os filtros selecionados.
             </CardContent></Card>
           ) : absences.map((a) => {
-            const t = ABSENCE_TYPES[a.absence_type] ?? ABSENCE_TYPES.absence;
+            const t = ABSENCE_TYPES[a.absence_type] ?? ABSENCE_TYPES.other;
             return (
               <Card key={a.id}>
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
