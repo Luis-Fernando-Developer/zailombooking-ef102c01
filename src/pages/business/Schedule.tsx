@@ -305,7 +305,7 @@ export default function BusinessSchedule() {
             <TabsContent value="scales" className="mt-6 space-y-6">
               <ScheduleCycleConfig tenantId={company.id} />
               <ScheduleTemplatesManager tenantId={company.id} />
-              <SchedulesList tenantId={company.id} canManage={true} />
+              <SchedulesList tenantId={company.id} canManage={true} currentEmployeeId={currentEmployee?.id} />
             </TabsContent>
           )}
 
