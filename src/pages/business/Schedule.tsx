@@ -182,7 +182,8 @@ export default function BusinessSchedule() {
               <BlockedSlotsManager companyId={company.id} />
             </TabsContent>
             <TabsContent value="scales" className="mt-6">
-              <SchedulesList tenantId={company.id} canManage={true} />
+              <SchedulesList tenantId={company.id} canManage={true} currentEmployeeId={currentEmployee?.id} />
+
             </TabsContent>
             <TabsContent value="breaks" className="mt-6">
               <BreaksManager companyId={company.id} canManage={true} />
