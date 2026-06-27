@@ -170,8 +170,15 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, currentEmpl
   };
 
   const handleRemoveSelected = async () => {
-    const ids = Array.from(selectedRows);
-    if (!ids.length) return;
+    const ids = Array.from(selectedRows).filter((id) => id !== currentEmployeeId);
+    if (!ids.length) {
+      toast({
+        title: "Nada a remover",
+        description: "Você não pode remover a si mesmo da escala.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (
       !confirm(`Remover ${ids.length} colaborador(es) desta escala? Os agendamentos existentes não serão cancelados.`)
     )
@@ -188,6 +195,7 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, currentEmpl
       setBusy(false);
     }
   };
+
 
   const toggleCell = (empId: string, date: string) => {
     if (!canEdit) return;
