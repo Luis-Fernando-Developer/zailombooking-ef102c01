@@ -14,7 +14,7 @@ import {
 import { ScheduleMatrixEditor } from "./ScheduleMatrixEditor";
 import { ExportScheduleDialog } from "./ExportScheduleDialog";
 
-interface Props { tenantId: string; canManage: boolean; }
+interface Props { tenantId: string; canManage: boolean; currentEmployeeId?: string | null; }
 
 export function SchedulesList({ tenantId, canManage }: Props) {
   const { toast } = useToast();
