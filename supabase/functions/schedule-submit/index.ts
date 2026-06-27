@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     const { data: schedule, error: sErr } = await admin
       .from('schedules').select('*').eq('id', schedule_id).eq('tenant_id', tenant_id).single();
     if (sErr || !schedule) return json({ error: 'schedule_not_found' }, 404);
-    if (!['draft', 'revision_requested'].includes(schedule.status)) {
+    if (!['draft', 'revision_requested', 'approved', 'partially_approved'].includes(schedule.status)) {
       return json({ error: 'schedule_not_submittable', status: schedule.status }, 400);
     }
 
