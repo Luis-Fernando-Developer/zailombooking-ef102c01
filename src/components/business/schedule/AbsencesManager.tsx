@@ -28,6 +28,7 @@ interface Employee {
   id: string;
   name: string;
   role?: string | null;
+  employee_type?: string | null;
 }
 
 interface Absence {
