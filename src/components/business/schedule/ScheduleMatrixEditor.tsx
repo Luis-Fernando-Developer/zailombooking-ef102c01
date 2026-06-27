@@ -484,7 +484,7 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, currentEmpl
             <Button variant="outline" onClick={load} disabled={busy}>
               <RefreshCw className="w-4 h-4 mr-1" /> Recarregar
             </Button>
-            {(schedule.status === "draft" || schedule.status === "revision_requested") && (
+            {schedule.status !== "pending_approval" && (
               <Button onClick={() => setSubmitOpen(true)} disabled={busy}>
                 <Send className="w-4 h-4 mr-1" /> Enviar para aprovação
               </Button>
