@@ -38,6 +38,7 @@ interface Props {
   schedule: ScheduleRow;
   tenantId: string;
   readOnly?: boolean;
+  currentEmployeeId?: string | null;
   onChanged?: () => void;
   onClose?: () => void;
 }
@@ -47,11 +48,13 @@ interface Emp {
   name: string;
 }
 
+
 const ENTRY_TYPES: EntryType[] = ["T", "F", "A", "FA", "D"];
 
-export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, onClose }: Props) {
+export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, currentEmployeeId, onChanged, onClose }: Props) {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Emp[]>([]);
+  const [entryEmployees, setEntryEmployees] = useState<Emp[]>([]);
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   const [selectedTpl, setSelectedTpl] = useState<string>(schedule.template_id ?? "");
@@ -76,6 +79,21 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
     setEntries(ents);
     setTemplates(tpls);
     setSelectedRows(new Set());
+
+    // Para garantir visibilidade de todos os colaboradores presentes na escala
+    // (incluindo o próprio supervisor e pares que a RPC não retorna),
+    // buscamos os nomes diretamente da tabela employees pelos IDs das entries.
+    const empIdsInEntries = Array.from(new Set(ents.map((e) => e.employee_id)));
+    if (empIdsInEntries.length > 0) {
+      const { supabase } = await import("@/lib/supabaseClient");
+      const { data: rows } = await supabase
+        .from("employees")
+        .select("id, name")
+        .in("id", empIdsInEntries);
+      setEntryEmployees((rows ?? []) as Emp[]);
+    } else {
+      setEntryEmployees([]);
+    }
   };
   useEffect(() => {
     load(); /* eslint-disable-next-line */
@@ -89,14 +107,20 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
 
   const visibleEmployees = useMemo(() => {
     if (entries.length === 0) return [] as Emp[];
-    const ids = new Set(entries.map((e) => e.employee_id));
-    return employees.filter((e) => ids.has(e.id));
-  }, [employees, entries]);
+    const ids = Array.from(new Set(entries.map((e) => e.employee_id)));
+    const dict = new Map<string, Emp>();
+    employees.forEach((e) => dict.set(e.id, e));
+    entryEmployees.forEach((e) => dict.set(e.id, e));
+    return ids
+      .map((id) => dict.get(id) ?? { id, name: "(colaborador)" })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [employees, entryEmployees, entries]);
 
   const availableToAdd = useMemo(() => {
     const inMatrix = new Set(visibleEmployees.map((e) => e.id));
     return employees.filter((e) => !inMatrix.has(e.id));
   }, [employees, visibleEmployees]);
+
 
   const canEdit = !readOnly;
 
@@ -146,8 +170,15 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
   };
 
   const handleRemoveSelected = async () => {
-    const ids = Array.from(selectedRows);
-    if (!ids.length) return;
+    const ids = Array.from(selectedRows).filter((id) => id !== currentEmployeeId);
+    if (!ids.length) {
+      toast({
+        title: "Nada a remover",
+        description: "Você não pode remover a si mesmo da escala.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (
       !confirm(`Remover ${ids.length} colaborador(es) desta escala? Os agendamentos existentes não serão cancelados.`)
     )
@@ -164,6 +195,7 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
       setBusy(false);
     }
   };
+
 
   const toggleCell = (empId: string, date: string) => {
     if (!canEdit) return;
@@ -201,19 +233,23 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
   };
 
   const toggleRow = (id: string) => {
+    if (id === currentEmployeeId) return; // não pode selecionar a si mesmo
     const n = new Set(selectedRows);
     n.has(id) ? n.delete(id) : n.add(id);
     setSelectedRows(n);
   };
   const toggleAllRows = () => {
-    if (selectedRows.size === visibleEmployees.length) setSelectedRows(new Set());
-    else setSelectedRows(new Set(visibleEmployees.map((e) => e.id)));
+    const selectable = visibleEmployees.filter((e) => e.id !== currentEmployeeId);
+    if (selectedRows.size === selectable.length) setSelectedRows(new Set());
+    else setSelectedRows(new Set(selectable.map((e) => e.id)));
   };
 
-  const allChecked = visibleEmployees.length > 0 && selectedRows.size === visibleEmployees.length;
+  const selectableCount = visibleEmployees.filter((e) => e.id !== currentEmployeeId).length;
+  const allChecked = selectableCount > 0 && selectedRows.size === selectableCount;
 
   return (
     <>
+
       {/* Description 1: período + status + ações */}
       <div className="px-4 py-2 border-b border-border shrink-0 flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium">{schedule.name}</span>
@@ -365,13 +401,14 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
               <tbody>
                 {visibleEmployees.map((emp) => {
                   const rowSelected = selectedRows.has(emp.id);
+                  const isSelf = emp.id === currentEmployeeId;
                   return (
                     <tr key={emp.id}>
                       <td
                         style={{ width: 32, minWidth: 32, maxWidth: 32, left: 0 }}
                         className={`sticky z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border p-0 text-center align-middle`}
                       >
-                        {canEdit && (
+                        {canEdit && !isSelf && (
                           <div className="flex items-center justify-center">
                             <Checkbox
                               checked={rowSelected}
@@ -386,7 +423,9 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, onChanged, 
                         className={`sticky z-10 ${rowSelected ? "bg-primary/10" : "bg-background"} border-b border-r border-border px-2 py-2 font-medium`}
                       >
                         {emp.name}
+                        {isSelf && <span className="ml-1 text-[10px] text-muted-foreground">(você)</span>}
                       </td>
+
                       {days.map((d) => {
                         const date = format(d, "yyyy-MM-dd");
                         const entry = entryMap.get(`${emp.id}|${date}`);

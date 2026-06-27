@@ -14,9 +14,9 @@ import {
 import { ScheduleMatrixEditor } from "./ScheduleMatrixEditor";
 import { ExportScheduleDialog } from "./ExportScheduleDialog";
 
-interface Props { tenantId: string; canManage: boolean; }
+interface Props { tenantId: string; canManage: boolean; currentEmployeeId?: string | null; }
 
-export function SchedulesList({ tenantId, canManage }: Props) {
+export function SchedulesList({ tenantId, canManage, currentEmployeeId }: Props) {
   const { toast } = useToast();
   const [items, setItems] = useState<ScheduleRow[]>([]);
   const [creating, setCreating] = useState(false);
@@ -153,10 +153,12 @@ export function SchedulesList({ tenantId, canManage }: Props) {
                 schedule={editing}
                 tenantId={tenantId}
                 readOnly={!canManage}
+                currentEmployeeId={currentEmployeeId}
                 onChanged={load}
                 onClose={() => setEditing(null)}
               />
             )}
+
           </DialogContent>
         </Dialog>
 
