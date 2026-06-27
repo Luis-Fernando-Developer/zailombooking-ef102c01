@@ -16,7 +16,7 @@ import { ExportScheduleDialog } from "./ExportScheduleDialog";
 
 interface Props { tenantId: string; canManage: boolean; currentEmployeeId?: string | null; }
 
-export function SchedulesList({ tenantId, canManage }: Props) {
+export function SchedulesList({ tenantId, canManage, currentEmployeeId }: Props) {
   const { toast } = useToast();
   const [items, setItems] = useState<ScheduleRow[]>([]);
   const [creating, setCreating] = useState(false);
