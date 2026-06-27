@@ -153,10 +153,12 @@ export function SchedulesList({ tenantId, canManage, currentEmployeeId }: Props)
                 schedule={editing}
                 tenantId={tenantId}
                 readOnly={!canManage}
+                currentEmployeeId={currentEmployeeId}
                 onChanged={load}
                 onClose={() => setEditing(null)}
               />
             )}
+
           </DialogContent>
         </Dialog>
 
