@@ -233,19 +233,23 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, currentEmpl
   };
 
   const toggleRow = (id: string) => {
+    if (id === currentEmployeeId) return; // não pode selecionar a si mesmo
     const n = new Set(selectedRows);
     n.has(id) ? n.delete(id) : n.add(id);
     setSelectedRows(n);
   };
   const toggleAllRows = () => {
-    if (selectedRows.size === visibleEmployees.length) setSelectedRows(new Set());
-    else setSelectedRows(new Set(visibleEmployees.map((e) => e.id)));
+    const selectable = visibleEmployees.filter((e) => e.id !== currentEmployeeId);
+    if (selectedRows.size === selectable.length) setSelectedRows(new Set());
+    else setSelectedRows(new Set(selectable.map((e) => e.id)));
   };
 
-  const allChecked = visibleEmployees.length > 0 && selectedRows.size === visibleEmployees.length;
+  const selectableCount = visibleEmployees.filter((e) => e.id !== currentEmployeeId).length;
+  const allChecked = selectableCount > 0 && selectedRows.size === selectableCount;
 
   return (
     <>
+
       {/* Description 1: período + status + ações */}
       <div className="px-4 py-2 border-b border-border shrink-0 flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium">{schedule.name}</span>
