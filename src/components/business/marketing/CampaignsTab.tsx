@@ -159,7 +159,7 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
             else badgeLabel = 'Aprovada - Ativa';
           }
 
-          const republish = () => {
+          const republish = async () => {
             setEditing(null);
             setForm({
               name: `${c.name} (cópia)`,
@@ -172,11 +172,14 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
               audience_filters: JSON.stringify(c.audience_filters ?? {}, null, 2),
               placement_config: { ...(c.placement_config ?? {}) },
             });
-            setSelectedMaterials([]);
+            try {
+              const links = await getCampaignMaterials(c.id);
+              setSelectedMaterials(links.map((l: any) => l.material_id));
+            } catch { setSelectedMaterials([]); }
             setOpen(true);
           };
 
-          const editDraft = () => {
+          const editDraft = async () => {
             setEditing(c);
             setForm({
               name: c.name,
@@ -189,7 +192,10 @@ export function CampaignsTab({ companyId, canEdit }: { companyId: string; canEdi
               audience_filters: JSON.stringify(c.audience_filters ?? {}, null, 2),
               placement_config: { ...(c.placement_config ?? {}) },
             });
-            setSelectedMaterials([]);
+            try {
+              const links = await getCampaignMaterials(c.id);
+              setSelectedMaterials(links.map((l: any) => l.material_id));
+            } catch { setSelectedMaterials([]); }
             setOpen(true);
           };
 
