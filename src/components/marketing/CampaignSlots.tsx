@@ -183,11 +183,8 @@ export function CampaignPopup({ companyId }: { companyId?: string | null }) {
   const countdown = useCountdown(first?.end_at ?? undefined);
   useEffect(() => {
     if (!first) return;
-    const key = `mkt-popup-${first.id}`;
-    if (sessionStorage.getItem(key)) return;
     setOpen(true);
-    sessionStorage.setItem(key, "1");
-  }, [first?.id]);
+  }, [first?.id, first?.updated_at]);
   if (!open || !first) return null;
   const m = first.materials[0];
   const href = resolveHref(cfg, "popup");
