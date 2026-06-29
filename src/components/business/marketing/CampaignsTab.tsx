@@ -21,6 +21,7 @@ const toLocalInput = (iso: string | null | undefined) => {
 import {
   listCampaigns, listMaterials, createCampaign, updateCampaign,
   setCampaignMaterials, submitCampaignForApproval, revokeCampaign,
+  getCampaignMaterials,
   type MarketingCampaign, type PlacementConfig, type PlacementCTA,
 } from "@/lib/api/marketing";
 import { supabase } from "@/lib/supabaseClient";
