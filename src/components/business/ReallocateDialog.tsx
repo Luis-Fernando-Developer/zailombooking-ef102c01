@@ -30,8 +30,11 @@ export function toHHMMSS(v?: string | null): string {
 }
 
 export function toTimestamptz(date: string, time: string): string {
+  // IMPORTANT: keep ISO WITHOUT timezone suffix (same convention as
+  // client/Booking.tsx) so the value round-trips visually instead of being
+  // shifted to UTC on read.
   const t = time.length === 5 ? `${time}:00` : time;
-  return `${date}T${t}-03:00`;
+  return `${date}T${t}`;
 }
 
 export interface ReallocateBooking {
