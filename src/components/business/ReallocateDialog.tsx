@@ -313,15 +313,11 @@ export function ReallocateDialog({
       const endMins = hh * 60 + mm + duration;
       const end = `${String(Math.floor(endMins / 60)).padStart(2, "0")}:${String(endMins % 60).padStart(2, "0")}:00`;
 
-      const { data: ok, error: gateErr } = await supabase.rpc("is_slot_available", {
-        p_company: companyId,
-        p_employee: newEmployeeId,
-        p_service: booking.service_id,
-        p_date: dateStr,
-        p_start: start,
-        p_ignore_booking: booking.id,
+      const ok = await checkSlotViaAvailability({
+        employeeId: newEmployeeId,
+        date: dateStr,
+        timeHHMM: start,
       });
-      if (gateErr) throw gateErr;
       if (!ok) {
         toast({
           title: "Horário indisponível",
