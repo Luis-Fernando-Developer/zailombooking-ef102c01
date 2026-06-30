@@ -367,12 +367,14 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
     }
     setSaving(true);
     try {
+      const startHHMMSS = toHHMMSS(booking.start_time);
+      const endHHMMSS = toHHMMSS(booking.end_time);
       const { data: ok, error: gateErr } = await supabase.rpc("is_slot_available", {
         p_company: companyId,
         p_employee: newEmployeeId,
         p_service: booking.service_id,
         p_date: booking.booking_date,
-        p_start: booking.start_time,
+        p_start: startHHMMSS,
         p_ignore_booking: booking.id,
       });
       if (gateErr) throw gateErr;
@@ -386,8 +388,8 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
       }
       await persistReallocation({
         booking_date: booking.booking_date,
-        start_time: booking.start_time,
-        end_time: booking.end_time,
+        start_time: startHHMMSS,
+        end_time: endHHMMSS,
         employee_id: newEmployeeId,
       });
       toast({ title: "Profissional alterado" });
