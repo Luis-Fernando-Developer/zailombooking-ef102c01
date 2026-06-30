@@ -315,8 +315,11 @@ export async function listApproversAbove(companyId: string) {
   }>;
 }
 
-export async function listSchedulableEmployees(companyId: string) {
-  const { data, error } = await supabase.rpc("list_schedulable_employees", { _company_id: companyId });
+export async function listSchedulableEmployees(companyId: string, asOfDate?: string) {
+  const params = asOfDate
+    ? { _company_id: companyId, _as_of: asOfDate }
+    : { _company_id: companyId };
+  const { data, error } = await supabase.rpc("list_schedulable_employees", params);
   if (error) throw error;
   return (data ?? []) as Array<{
     id: string; name: string; profile_code: string | null; profile_name: string | null; level: number;
