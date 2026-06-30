@@ -71,7 +71,7 @@ export function ScheduleMatrixEditor({ schedule, tenantId, readOnly, currentEmpl
 
   const load = async () => {
     const [emps, ents, tpls] = await Promise.all([
-      listSchedulableEmployees(tenantId).catch(() => [] as Array<{ id: string; name: string }>),
+      listSchedulableEmployees(tenantId, schedule.period_start).catch(() => [] as Array<{ id: string; name: string }>),
       fetchScheduleEntries(schedule.id),
       fetchTemplates(tenantId),
     ]);

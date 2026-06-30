@@ -3,7 +3,11 @@
 // - schedule_templates.pattern_days (ciclo)
 // - business_hours (fallback)
 // - employee_absences aprovadas no período → entry_type='A'
-// - employees.is_active=false → entry_type='D'
+// - desligamento efetivo:
+//   * antes da data efetiva: gera disponibilidade normalmente
+//   * a partir da data efetiva: entry_type='D'
+//   * se a data efetiva for anterior/igual ao início do ciclo: não gera o colaborador
+// - employees.is_active=false sem termination_effective_date → entry_type='D' imediato
 //
 // Body: { tenant_id, schedule_id, template_id?, employee_ids: string[] }
 
@@ -14,6 +18,12 @@ interface PatternDay {
   work: boolean;
   start?: string; end?: string;
   break_start?: string | null; break_end?: string | null;
+}
+
+interface EmployeeTerminationState {
+  id: string;
+  is_active: boolean;
+  termination_effective_date: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -71,10 +81,17 @@ Deno.serve(async (req) => {
       .lte('start_date', schedule.period_end)
       .gte('end_date', schedule.period_start);
 
-    // Employees (para detectar inativos)
+    // Employees (para detectar inativos e desligamento programado)
     const { data: emps } = await supabase
-      .from('employees').select('id, is_active').in('id', employee_ids);
-    const inactiveSet = new Set((emps ?? []).filter((e: any) => !e.is_active).map((e: any) => e.id));
+      .from('employees')
+      .select('id, is_active, termination_effective_date')
+      .in('id', employee_ids)
+      .eq('company_id', tenant_id);
+
+    const employeeStateById = new Map<string, EmployeeTerminationState>();
+    (emps ?? []).forEach((employee: EmployeeTerminationState) => {
+      employeeStateById.set(employee.id, employee);
+    });
 
     // Gera entries
     const start = new Date(schedule.period_start + 'T00:00:00');
@@ -87,11 +104,23 @@ Deno.serve(async (req) => {
       const dow = d.getDay();
 
       for (const empId of employee_ids) {
+        const employeeState = employeeStateById.get(empId);
+        if (!employeeState) continue;
+
+        const terminationDate = employeeState.termination_effective_date;
+
+        // Se o colaborador já estará desligado no começo do ciclo, não cria
+        // nenhuma linha para ele. Assim ele não aparece na próxima escala.
+        if (terminationDate && terminationDate <= schedule.period_start) {
+          continue;
+        }
+
         let entryType: string = 'F';
         let st: string | null = null, et: string | null = null, bs: string | null = null, be: string | null = null;
 
-        // Desligado
-        if (inactiveSet.has(empId)) {
+        // Desligado efetivo: só bloqueia a partir da data efetiva.
+        // is_active=false sem data efetiva significa desligamento imediato/manual.
+        if ((terminationDate && isoDate >= terminationDate) || (!employeeState.is_active && !terminationDate)) {
           entryType = 'D';
         } else if ((absences ?? []).some((a: any) =>
           a.employee_id === empId && isoDate >= a.start_date && isoDate <= a.end_date)) {
