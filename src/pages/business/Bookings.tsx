@@ -32,8 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { RescheduleBookingDialog } from "@/components/business/RescheduleBookingDialog";
-import { ReassignBookingDialog } from "@/components/business/ReassignBookingDialog";
+import { ReallocateDialog } from "@/components/business/ReallocateDialog";
 
 
 const statusConfig = {
@@ -83,8 +82,8 @@ export default function BusinessBookings() {
     date: "",
     search: ""
   });
-  const [rescheduleBooking, setRescheduleBooking] = useState<any>(null);
-  const [reassignBooking, setReassignBooking] = useState<any>(null);
+  const [reallocateBooking, setReallocateBooking] = useState<any>(null);
+  const [reallocateMode, setReallocateMode] = useState<"swap" | "reschedule" | "cancel">("swap");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -574,13 +573,13 @@ export default function BusinessBookings() {
                                 Cancelar
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => setReassignBooking(booking)}>
+                              <DropdownMenuItem onClick={() => { setReallocateBooking(booking); setReallocateMode("swap"); }}>
                                 <UserCog className="mr-2 h-4 w-4" />
                                 Realocar p/ outro profissional
                               </DropdownMenuItem>
                             </>
                           )}
-                          <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
+                          <DropdownMenuItem onClick={() => { setReallocateBooking(booking); setReallocateMode("reschedule"); }}>
                             <CalendarClock className="mr-2 h-4 w-4" />
                             Reagendar
                           </DropdownMenuItem>
@@ -603,23 +602,16 @@ export default function BusinessBookings() {
         </div>
       </div>
 
-      {/* Reschedule Dialog */}
-      <RescheduleBookingDialog
-        open={!!rescheduleBooking}
-        onOpenChange={(open) => !open && setRescheduleBooking(null)}
-        booking={rescheduleBooking}
-        companyId={company?.id}
-        onSuccess={() => fetchBookings(company.id)}
-      />
-
-      {/* Reassign Dialog */}
-      <ReassignBookingDialog
-        open={!!reassignBooking}
-        onOpenChange={(open) => !open && setReassignBooking(null)}
-        booking={reassignBooking}
-        companyId={company?.id}
-        onSuccess={() => fetchBookings(company.id)}
-      />
+      {reallocateBooking && company?.id && (
+        <ReallocateDialog
+          booking={reallocateBooking}
+          companyId={company.id}
+          currentUser={currentUser}
+          initialMode={reallocateMode}
+          onClose={() => setReallocateBooking(null)}
+          onDone={() => { setReallocateBooking(null); fetchBookings(company.id); }}
+        />
+      )}
     </BusinessLayout>
   );
 }
