@@ -400,6 +400,11 @@ $$;
 GRANT EXECUTE ON FUNCTION public.list_available_dates(UUID, UUID, UUID, DATE, DATE)
   TO authenticated, anon, service_role;
 
+-- Esta função teve alteração nos OUT parameters em relação ao SQL anterior.
+-- PostgreSQL não permite trocar o tipo de retorno com CREATE OR REPLACE,
+-- então é obrigatório dropar a assinatura antiga antes de recriar.
+DROP FUNCTION IF EXISTS public.debug_employee_availability_reasons(UUID, UUID, UUID, DATE, DATE);
+
 CREATE OR REPLACE FUNCTION public.debug_employee_availability_reasons(
   p_company  UUID,
   p_employee UUID,
