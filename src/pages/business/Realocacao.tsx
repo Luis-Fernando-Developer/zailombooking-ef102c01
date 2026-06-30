@@ -434,7 +434,7 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
     });
 
     supabase.functions.invoke("notify-booking-change", {
-      body: { booking_id: booking.id, change_type: "reallocation" },
+      body: { booking_id: booking.id, change_type: "reallocation", previous: old, current: updated },
     }).catch((err) => console.error("notify failed", err));
   }
 
@@ -545,13 +545,13 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
       await supabase.from("booking_history").insert({
         booking_id: booking.id,
         changed_by: currentUser?.id,
-        change_type: "cancellation",
+        change_type: "cancel",
         old_data: old,
         new_data: updated,
       });
 
       supabase.functions.invoke("notify-booking-change", {
-        body: { booking_id: booking.id, change_type: "cancellation" },
+        body: { booking_id: booking.id, change_type: "cancellation", previous: old, current: updated },
       }).catch((err) => console.error("notify failed", err));
 
       toast({ title: "Agendamento cancelado" });

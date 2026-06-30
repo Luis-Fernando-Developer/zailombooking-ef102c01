@@ -147,6 +147,26 @@ BEGIN
 END;
 $$;
 
+DO $$
+DECLARE
+  v_constraint_name TEXT;
+BEGIN
+  SELECT conname INTO v_constraint_name
+    FROM pg_constraint
+   WHERE conrelid = 'public.booking_history'::regclass
+     AND contype = 'c'
+     AND pg_get_constraintdef(oid) ILIKE '%change_type%'
+   LIMIT 1;
+
+  IF v_constraint_name IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE public.booking_history DROP CONSTRAINT %I', v_constraint_name);
+  END IF;
+
+  ALTER TABLE public.booking_history
+    ADD CONSTRAINT booking_history_change_type_check
+    CHECK (change_type IN ('reschedule','service_change','employee_change','cancel','reallocation'));
+END $$;
+
 DROP TRIGGER IF EXISTS trg_prevent_locked_booking_update ON public.bookings;
 CREATE TRIGGER trg_prevent_locked_booking_update
   BEFORE UPDATE ON public.bookings

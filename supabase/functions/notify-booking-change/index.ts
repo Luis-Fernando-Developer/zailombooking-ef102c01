@@ -74,7 +74,11 @@ Deno.serve(async (req) => {
     let current = body.current ?? null;
 
     if (!previous || !current) {
-      const historyType = body.change_type === "reschedule" ? "reschedule" : "reallocation";
+      const historyType = body.change_type === "reschedule"
+        ? "reschedule"
+        : body.change_type === "cancellation"
+          ? "cancel"
+          : "reallocation";
       const { data: hist } = await admin
         .from("booking_history")
         .select("old_data,new_data,change_type,created_at")
