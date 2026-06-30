@@ -135,6 +135,17 @@ export function ClientRescheduleDialog({
       const newDate = format(selectedDate, 'yyyy-MM-dd');
       const startTime = selectedTime.length === 5 ? `${selectedTime}:00` : selectedTime;
 
+      // Snapshot previous state for notification
+      const previousSnapshot = {
+        booking_date: booking.booking_date,
+        start_time: booking.start_time,
+        end_time: booking.end_time,
+        employee_id: booking.employee_id,
+        service_id: booking.service_id,
+        employee: booking.employee ?? null,
+        service: booking.service ?? null,
+      };
+
       const { error } = await supabase.rpc('client_reschedule_booking', {
         p_booking_id: booking.id,
         p_new_date: newDate,
@@ -156,6 +167,22 @@ export function ClientRescheduleDialog({
         console.error('reschedule rpc error:', error);
         throw new Error(description);
       }
+
+      // Fetch updated booking to send accurate current state
+      const { data: updated } = await supabase
+        .from('bookings')
+        .select('id, booking_date, start_time, end_time, employee_id, service_id, employee:employees(id,name), service:services(id,name)')
+        .eq('id', booking.id)
+        .maybeSingle();
+
+      supabase.functions.invoke('notify-booking-change', {
+        body: {
+          booking_id: booking.id,
+          change_type: 'reschedule',
+          previous: previousSnapshot,
+          current: updated ?? { booking_date: newDate, start_time: startTime, employee_id: booking.employee_id, service_id: booking.service_id, service: booking.service, employee: booking.employee },
+        },
+      }).catch((err) => console.error('notify failed', err));
 
       toast({
         title: "Agendamento reagendado!",
