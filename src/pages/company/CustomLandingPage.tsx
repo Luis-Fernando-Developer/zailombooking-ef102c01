@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Divide as Hamburger } from 'hamburger-react';
 import { custom } from "zod";
 // ChatWidget removido — o chatbot agora é gerenciado pelo builder externo (TalkMap).
-import { CampaignTopBar, CampaignPopup, CampaignHeroBanner, CampaignHeroCarousel } from "@/components/marketing/CampaignSlots";
+import { CampaignTopBar, CampaignPopup, CampaignHeroBanner } from "@/components/marketing/CampaignSlots";
+import { useActiveCampaigns } from "@/hooks/use-active-campaigns";
 
 interface CustomizationData {
   company_id: string;
@@ -86,6 +87,18 @@ export default function CustomLandingPage() {
   const [visibleEmployees, setVisibleEmployees] = useState(4);
   const [loggedClient, setLoggedClient] = useState<{ id: string; name: string; avatar_url?: string | null } | null>(null);
   // activeFlowId removido — chatbot agora é gerenciado pelo builder externo (TalkMap).
+
+  // Campanhas com placement "carrossel do hero" — injeta materiais como banners adicionais
+  // dentro da Hero da Landing Page, respeitando tipo de banner e posição do conteúdo.
+  const { campaigns: heroCarouselCampaigns } = useActiveCampaigns(company?.id, "hero_carousel");
+  const campaignHeroUrls = heroCarouselCampaigns
+    .flatMap((c) => c.materials.map((m) => m.file_url))
+    .filter((u): u is string => !!u);
+  const heroBannerUrls = [
+    ...((customization?.hero_banner_urls as string[] | undefined) ?? []),
+    ...campaignHeroUrls,
+  ];
+
 
   useEffect(() => {
     if ( slug) {
@@ -264,18 +277,19 @@ export default function CustomLandingPage() {
   // }
 
   const nextBanner = () => {
-    if (customization?.hero_banner_urls && customization.hero_banner_urls.length > 1) {
-      const urls = customization.hero_banner_urls;
+    const urls = heroBannerUrls;
+    if (urls.length > 1) {
       setBannerIndex((prevIndex) => (prevIndex + 1) % urls.length);
     }
   };
 
   const prevBanner = () => {
-    if (customization?.hero_banner_urls && customization.hero_banner_urls.length > 1) {
-      const urls = customization.hero_banner_urls;
+    const urls = heroBannerUrls;
+    if (urls.length > 1) {
       setBannerIndex((prevIndex) => (prevIndex - 1 + urls.length) % urls.length);
     }
   };
+
 
   const getLogoUrl = () => {
     if (!customization) return null;
@@ -686,23 +700,22 @@ export default function CustomLandingPage() {
 
       {/* Main Content */}
       <div>
-        {/* Banners de campanhas de marketing (hero / carrossel) */}
+        {/* Banner extra de campanha (placement "hero da Landing Page") — section adicional acima da hero */}
         <CampaignHeroBanner companyId={company?.id} />
-        <CampaignHeroCarousel companyId={company?.id} />
 
         {/* Hero Section with Custom Styling */}
         <section className={`relative ${customization?.hero_content_position === 'absolute' ? 'h-[500px]' : ''} flex ${customization?.hero_content_position === 'below' ? 'flex-col' : customization?.hero_content_position === 'above' ? 'flex-col-reverse' : 'items-center justify-center'} overflow-hidden ${customization?.hero_background_type ? 'hero-custom-bg' : 'bg-gradient-hero'}`}>
           {/* Background Elements */}
           {customization?.hero_content_position === 'absolute' && (
             <div className="absolute inset-0">
-              {customization?.hero_banner_urls && customization.hero_banner_urls.length > 0 && (
+              {heroBannerUrls.length > 0 && (
                 <div className="absolute inset-0 ">
                   <img
-                    src={customization.hero_banner_urls[bannerIndex]}
+                    src={heroBannerUrls[bannerIndex % heroBannerUrls.length]}
                     alt="Hero banner"
                     className="w-full h-full object-fit opacity-50"
                   />
-                  {customization.hero_banner_urls.length > 1 && (
+                  {heroBannerUrls.length > 1 && (
                     <>
                       <button
                         onClick={prevBanner}
@@ -724,14 +737,14 @@ export default function CustomLandingPage() {
           )}
 
           {/* Banner Section for below/above positions */}
-          {(customization?.hero_content_position === 'below' || customization?.hero_content_position === 'above') && customization?.hero_banner_urls && customization.hero_banner_urls.length > 0 && (
+          {(customization?.hero_content_position === 'below' || customization?.hero_content_position === 'above') && heroBannerUrls.length > 0 && (
             <div className="relative w-full h-[400px]">
               <img
-                src={customization.hero_banner_urls[bannerIndex]}
+                src={heroBannerUrls[bannerIndex % heroBannerUrls.length]}
                 alt="Hero banner"
                 className="w-full h-full object-cover"
               />
-              {customization.hero_banner_urls.length > 1 && (
+              {heroBannerUrls.length > 1 && (
                 <>
                   <button
                     onClick={prevBanner}
@@ -747,6 +760,7 @@ export default function CustomLandingPage() {
               )}
             </div>
           )}
+
 
           <div className={`${customization?.hero_content_position === 'absolute' ? 'relative z-10' : 'py-16'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`}>
             <div className="text-center">
