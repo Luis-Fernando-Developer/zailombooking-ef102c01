@@ -154,8 +154,8 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT se.*, s.period_start, s.template_id
-    INTO v_entry, v_sched_period_start, v_sched_template_id
+  SELECT se.*
+    INTO v_entry
     FROM public.schedule_entries se
     JOIN public.schedules s ON s.id = se.schedule_id
    WHERE se.employee_id = p_employee
@@ -182,6 +182,11 @@ BEGIN
     RETURN QUERY SELECT NULL::TIME, 'no_entry'::TEXT;
     RETURN;
   END IF;
+
+  SELECT s.period_start, s.template_id
+    INTO v_sched_period_start, v_sched_template_id
+    FROM public.schedules s
+   WHERE s.id = v_entry.schedule_id;
 
   -- D antes da data efetiva é resíduo de bug antigo. Reconstitui a jornada
   -- para não zerar a disponibilidade enquanto o colaborador ainda não saiu.
