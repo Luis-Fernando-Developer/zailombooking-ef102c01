@@ -338,20 +338,28 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
         const to = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
         const today = new Date(); today.setHours(0, 0, 0, 0);
         if (from < today) from.setTime(today.getTime());
-        const { data, error } = await supabase.rpc("list_available_dates", {
+        const payload = {
           p_company: companyId,
           p_employee: newEmployeeId,
           p_service: booking.service_id,
           p_from: format(from, "yyyy-MM-dd"),
           p_to: format(to, "yyyy-MM-dd"),
-        });
+        };
+        console.log("[Realocacao] list_available_dates payload:", payload);
+        const { data, error } = await supabase.rpc("list_available_dates", payload);
+        console.log("[Realocacao] list_available_dates response:", { data, error });
         if (cancelled) return;
         if (error) {
           console.warn("list_available_dates indisponível:", error.message);
           setAvailableDatesError("Não foi possível validar as datas disponíveis.");
           setAvailableDates(new Set());
         } else {
-          const next = new Set<string>((data || []).map((r: any) => String(r.available_date || r)));
+          const next = new Set<string>(
+            (data || []).map((r: any) =>
+              typeof r === "string" ? r : String(r.available_date ?? r.date ?? r)
+            )
+          );
+          console.log("[Realocacao] datas disponíveis carregadas:", Array.from(next));
           setAvailableDates(next);
 
           if (newDate) {
