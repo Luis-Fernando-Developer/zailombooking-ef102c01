@@ -157,7 +157,10 @@ Deno.serve(async (req) => {
         current: currentBooking,
       },
     });
-    if (notifErr) console.error("notif insert error:", notifErr);
+    if (notifErr) {
+      console.error("notif insert error:", notifErr);
+      return json({ ok: false, error: notifErr.message, details: notifErr }, 500);
+    }
 
     // 2) Mensagem direta no chat (caso o cliente esteja logado)
     if (c.client?.user_id) {
@@ -172,6 +175,7 @@ Deno.serve(async (req) => {
     }
 
     return json({ ok: true });
+
   } catch (e: any) {
     console.error("notify-booking-change failed:", e);
     return json({ error: e?.message || "internal_error" }, 500);
