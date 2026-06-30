@@ -9,7 +9,8 @@ import { Divide as Hamburger } from 'hamburger-react';
 import { custom } from "zod";
 // ChatWidget removido — o chatbot agora é gerenciado pelo builder externo (TalkMap).
 import { CampaignTopBar, CampaignPopup, CampaignHeroBanner } from "@/components/marketing/CampaignSlots";
-import { useActiveCampaigns } from "@/hooks/use-active-campaigns";
+import { useActiveCampaigns, type CampaignWithMaterials } from "@/hooks/use-active-campaigns";
+import { trackCampaignClick, type PlacementCTA } from "@/lib/api/marketing";
 
 interface CustomizationData {
   company_id: string;
@@ -91,13 +92,35 @@ export default function CustomLandingPage() {
   // Campanhas com placement "carrossel do hero" — injeta materiais como banners adicionais
   // dentro da Hero da Landing Page, respeitando tipo de banner e posição do conteúdo.
   const { campaigns: heroCarouselCampaigns } = useActiveCampaigns(company?.id, "hero_carousel");
-  const campaignHeroUrls = heroCarouselCampaigns
-    .flatMap((c) => c.materials.map((m) => m.file_url))
-    .filter((u): u is string => !!u);
-  const heroBannerUrls = [
-    ...((customization?.hero_banner_urls as string[] | undefined) ?? []),
-    ...campaignHeroUrls,
-  ];
+  type HeroBannerItem = { url: string; campaign?: CampaignWithMaterials; cfg?: PlacementCTA };
+  const campaignHeroItems: HeroBannerItem[] = heroCarouselCampaigns.flatMap((c) => {
+    const cfg = (c.placement_config?.["hero_carousel"] ?? {}) as PlacementCTA;
+    return c.materials
+      .filter((m) => !!m.file_url)
+      .map((m) => ({ url: m.file_url as string, campaign: c, cfg }));
+  });
+  const customBannerItems: HeroBannerItem[] = ((customization?.hero_banner_urls as string[] | undefined) ?? []).map((url) => ({ url }));
+  const heroBannerItems: HeroBannerItem[] = [...customBannerItems, ...campaignHeroItems];
+  const heroBannerUrls = heroBannerItems.map((i) => i.url);
+
+  const handleHeroBannerClick = (item: HeroBannerItem) => {
+    if (!item.campaign || !item.cfg) return;
+    const cfg = item.cfg;
+    if (cfg.buttonPosition !== "full") return;
+    const href = cfg.url;
+    if (!href) return;
+    trackCampaignClick({ campaignId: item.campaign.id, companyId: item.campaign.company_id, placement: "hero_carousel", url: href });
+    if (href.startsWith("/")) window.location.href = href;
+    else window.open(href, "_blank", "noopener,noreferrer");
+  };
+
+  const handleHeroCtaClick = (item: HeroBannerItem) => {
+    if (!item.campaign || !item.cfg?.url) return;
+    const href = item.cfg.url;
+    trackCampaignClick({ campaignId: item.campaign.id, companyId: item.campaign.company_id, placement: "hero_carousel", url: href });
+    if (href.startsWith("/")) window.location.href = href;
+    else window.open(href, "_blank", "noopener,noreferrer");
+  };
 
 
   useEffect(() => {
@@ -708,58 +731,88 @@ export default function CustomLandingPage() {
           {/* Background Elements */}
           {customization?.hero_content_position === 'absolute' && (
             <div className="absolute inset-0">
-              {heroBannerUrls.length > 0 && (
-                <div className="absolute inset-0 ">
-                  <img
-                    src={heroBannerUrls[bannerIndex % heroBannerUrls.length]}
-                    alt="Hero banner"
-                    className="w-full h-full object-fit opacity-50"
-                  />
-                  {heroBannerUrls.length > 1 && (
-                    <>
+              {heroBannerItems.length > 0 && (() => {
+                const item = heroBannerItems[bannerIndex % heroBannerItems.length];
+                const fullClickable = item.campaign && item.cfg?.buttonPosition === 'full' && item.cfg?.url;
+                return (
+                  <div className="absolute inset-0">
+                    <img
+                      src={item.url}
+                      alt="Hero banner"
+                      onClick={fullClickable ? () => handleHeroBannerClick(item) : undefined}
+                      className={`w-full h-full object-fit opacity-50 ${fullClickable ? 'cursor-pointer' : ''}`}
+                    />
+                    {item.campaign && item.cfg?.url && item.cfg?.buttonPosition !== 'full' && (
                       <button
-                        onClick={prevBanner}
-                        className=" absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                        style={{ zIndex: 20 }}
-                      >&#8592;</button>
-                      <button
-                        onClick={nextBanner}
-                        className=" absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                        style={{ zIndex: 20 }}
-                      >&#8594;</button>
-                    </>
-                  )}
-                </div>
-              )}
+                        type="button"
+                        onClick={() => handleHeroCtaClick(item)}
+                        className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
+                        style={{ zIndex: 25 }}
+                      >
+                        {item.cfg.label ?? 'Saiba mais'}
+                      </button>
+                    )}
+                    {heroBannerItems.length > 1 && (
+                      <>
+                        <button
+                          onClick={prevBanner}
+                          className=" absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
+                          style={{ zIndex: 20 }}
+                        >&#8592;</button>
+                        <button
+                          onClick={nextBanner}
+                          className=" absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
+                          style={{ zIndex: 20 }}
+                        >&#8594;</button>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="absolute top-20 left-10 w-72 h-72 bg-neon-violet/10 rounded-full blur-3xl animate-pulse-glow"></div>
               <div className="absolute bottom-20 right-10 w-96 h-96 bg-neon-pink/10 rounded-full blur-3xl animate-float"></div>
             </div>
           )}
 
           {/* Banner Section for below/above positions */}
-          {(customization?.hero_content_position === 'below' || customization?.hero_content_position === 'above') && heroBannerUrls.length > 0 && (
-            <div className="relative w-full h-[400px]">
-              <img
-                src={heroBannerUrls[bannerIndex % heroBannerUrls.length]}
-                alt="Hero banner"
-                className="w-full h-full object-cover"
-              />
-              {heroBannerUrls.length > 1 && (
-                <>
+          {(customization?.hero_content_position === 'below' || customization?.hero_content_position === 'above') && heroBannerItems.length > 0 && (() => {
+            const item = heroBannerItems[bannerIndex % heroBannerItems.length];
+            const fullClickable = item.campaign && item.cfg?.buttonPosition === 'full' && item.cfg?.url;
+            return (
+              <div className="relative w-full h-[400px]">
+                <img
+                  src={item.url}
+                  alt="Hero banner"
+                  onClick={fullClickable ? () => handleHeroBannerClick(item) : undefined}
+                  className={`w-full h-full object-cover ${fullClickable ? 'cursor-pointer' : ''}`}
+                />
+                {item.campaign && item.cfg?.url && item.cfg?.buttonPosition !== 'full' && (
                   <button
-                    onClick={prevBanner}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                    style={{ zIndex: 20 }}
-                  >&#8592;</button>
-                  <button
-                    onClick={nextBanner}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                    style={{ zIndex: 20 }}
-                  >&#8594;</button>
-                </>
-              )}
-            </div>
-          )}
+                    type="button"
+                    onClick={() => handleHeroCtaClick(item)}
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
+                    style={{ zIndex: 25 }}
+                  >
+                    {item.cfg.label ?? 'Saiba mais'}
+                  </button>
+                )}
+                {heroBannerItems.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevBanner}
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
+                      style={{ zIndex: 20 }}
+                    >&#8592;</button>
+                    <button
+                      onClick={nextBanner}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
+                      style={{ zIndex: 20 }}
+                    >&#8594;</button>
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
 
           <div className={`${customization?.hero_content_position === 'absolute' ? 'relative z-10' : 'py-16'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`}>
