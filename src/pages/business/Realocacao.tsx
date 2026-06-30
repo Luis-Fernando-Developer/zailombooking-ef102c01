@@ -271,10 +271,9 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
   // Cancelamento
   const [cancelReason, setCancelReason] = useState("");
 
-  // Datas disponíveis (pré-calculadas) apenas para feedback visual/textual.
-  // Não usamos mais esta lista para bloquear clique no calendário: em cenários
-  // de desligamento futuro, uma RPC mensal antiga/inconsistente pode voltar vazia
-  // e impedir o gestor de selecionar datas que ainda são válidas antes da data efetiva.
+  // Datas disponíveis (pré-calculadas) são a fonte visual do calendário:
+  // somente datas com pelo menos um slot real ficam clicáveis. Datas com A/FE/F/D,
+  // desligamento efetivo ou sem horários ficam cinza e não selecionáveis.
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [availableDatesLoaded, setAvailableDatesLoaded] = useState(false);
   const [availableDatesError, setAvailableDatesError] = useState<string | null>(null);
@@ -372,12 +371,13 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
       }
     })();
     return () => { cancelled = true; };
-  }, [calendarMonth, newEmployeeId, booking.service_id, companyId, newDate]);
+  }, [calendarMonth, newEmployeeId, booking.service_id, companyId]);
 
   function isCalendarDateSelectable(date: Date): boolean {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     if (date < today) return false;
-    return true;
+    if (!availableDatesLoaded || availableDatesError) return false;
+    return availableDates.has(format(date, "yyyy-MM-dd"));
   }
 
   async function loadSlots() {
