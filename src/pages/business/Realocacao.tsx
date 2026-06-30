@@ -40,6 +40,15 @@ function toHHMMSS(v?: string | null): string {
   return hhmm ? `${hhmm}:00` : "";
 }
 
+/**
+ * Combina date (YYYY-MM-DD) + time (HH:MM ou HH:MM:SS) em ISO timestamp
+ * compatível com a coluna TIMESTAMPTZ. Usa offset -03:00 (America/Sao_Paulo).
+ */
+function toTimestamptz(date: string, time: string): string {
+  const t = time.length === 5 ? `${time}:00` : time;
+  return `${date}T${t}-03:00`;
+}
+
 interface BookingRow {
   id: string;
   booking_date: string;
