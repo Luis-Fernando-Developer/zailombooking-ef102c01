@@ -273,6 +273,8 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
 
   // Datas disponíveis (pré-calculadas) para desabilitar dias sem oferta no calendário.
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [availableDatesLoaded, setAvailableDatesLoaded] = useState(false);
+  const [availableDatesError, setAvailableDatesError] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date>(
     newDate ?? new Date(booking.booking_date + "T00:00:00")
   );
@@ -321,10 +323,16 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
   useEffect(() => {
     if (!newEmployeeId || !booking.service_id) {
       setAvailableDates(new Set());
+      setAvailableDatesLoaded(true);
+      setAvailableDatesError(null);
       return;
     }
+    let cancelled = false;
     (async () => {
       setLoadingDates(true);
+      setAvailableDatesLoaded(false);
+      setAvailableDatesError(null);
+      setAvailableDates(new Set());
       try {
         const from = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
         const to = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
@@ -337,18 +345,44 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
           p_from: format(from, "yyyy-MM-dd"),
           p_to: format(to, "yyyy-MM-dd"),
         });
+        if (cancelled) return;
         if (error) {
-          // RPC pode não estar deployada ainda — não bloqueia o uso.
           console.warn("list_available_dates indisponível:", error.message);
+          setAvailableDatesError("Não foi possível validar as datas disponíveis.");
           setAvailableDates(new Set());
         } else {
-          setAvailableDates(new Set((data || []).map((r: any) => r.available_date || r)));
+          const next = new Set((data || []).map((r: any) => r.available_date || r));
+          setAvailableDates(next);
+
+          if (newDate) {
+            const selectedKey = format(newDate, "yyyy-MM-dd");
+            const selectedInVisibleMonth =
+              newDate.getFullYear() === calendarMonth.getFullYear() &&
+              newDate.getMonth() === calendarMonth.getMonth();
+            if (selectedInVisibleMonth && !next.has(selectedKey)) {
+              setNewDate(undefined);
+              setNewTime("");
+              setSlots([]);
+              setSlotReason(null);
+            }
+          }
         }
       } finally {
-        setLoadingDates(false);
+        if (!cancelled) {
+          setAvailableDatesLoaded(true);
+          setLoadingDates(false);
+        }
       }
     })();
-  }, [calendarMonth, newEmployeeId, booking.service_id, companyId]);
+    return () => { cancelled = true; };
+  }, [calendarMonth, newEmployeeId, booking.service_id, companyId, newDate]);
+
+  function isCalendarDateSelectable(date: Date): boolean {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (date < today) return false;
+    if (loadingDates || !availableDatesLoaded) return false;
+    return availableDates.has(format(date, "yyyy-MM-dd"));
+  }
 
   async function loadSlots() {
     if (!newDate) return;
@@ -618,21 +652,32 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
                   <Calendar
                     mode="single"
                     selected={newDate}
-                    onSelect={(d) => { setNewDate(d); if (d) setCalendarMonth(d); }}
+                    onSelect={(d) => {
+                      if (!d) {
+                        setNewDate(undefined);
+                        return;
+                      }
+                      if (!isCalendarDateSelectable(d)) return;
+                      setNewDate(d);
+                      setCalendarMonth(d);
+                    }}
                     month={calendarMonth}
                     onMonthChange={setCalendarMonth}
-                    disabled={(d) => {
-                      const today = new Date(); today.setHours(0, 0, 0, 0);
-                      if (d < today) return true;
-                      // Se a lista veio vazia (RPC ainda não publicada), não bloqueia além do passado.
-                      if (availableDates.size === 0) return false;
-                      return !availableDates.has(format(d, "yyyy-MM-dd"));
-                    }}
+                    disabled={(d) => !isCalendarDateSelectable(d)}
                     locale={ptBR}
                     className="rounded-md border border-primary/20"
+                    classNames={{
+                      disabled:
+                        "text-muted-foreground opacity-35 [&_button]:cursor-not-allowed [&_button]:text-muted-foreground [&_button]:opacity-50",
+                    }}
                   />
                   {loadingDates && (
                     <p className="text-xs text-muted-foreground mt-1">Verificando disponibilidade…</p>
+                  )}
+                  {!loadingDates && availableDatesLoaded && availableDates.size === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {availableDatesError || "Nenhuma data disponível neste mês para este profissional."}
+                    </p>
                   )}
                 </div>
                 <div>
