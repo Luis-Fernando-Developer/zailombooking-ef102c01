@@ -775,29 +775,44 @@ export default function CustomLandingPage() {
           )}
 
           {/* Banner Section for below/above positions */}
-          {(customization?.hero_content_position === 'below' || customization?.hero_content_position === 'above') && heroBannerUrls.length > 0 && (
-            <div className="relative w-full h-[400px]">
-              <img
-                src={heroBannerUrls[bannerIndex % heroBannerUrls.length]}
-                alt="Hero banner"
-                className="w-full h-full object-cover"
-              />
-              {heroBannerUrls.length > 1 && (
-                <>
+          {(customization?.hero_content_position === 'below' || customization?.hero_content_position === 'above') && heroBannerItems.length > 0 && (() => {
+            const item = heroBannerItems[bannerIndex % heroBannerItems.length];
+            const fullClickable = item.campaign && item.cfg?.buttonPosition === 'full' && item.cfg?.url;
+            return (
+              <div className="relative w-full h-[400px]">
+                <img
+                  src={item.url}
+                  alt="Hero banner"
+                  onClick={fullClickable ? () => handleHeroBannerClick(item) : undefined}
+                  className={`w-full h-full object-cover ${fullClickable ? 'cursor-pointer' : ''}`}
+                />
+                {item.campaign && item.cfg?.url && item.cfg?.buttonPosition !== 'full' && (
                   <button
-                    onClick={prevBanner}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                    style={{ zIndex: 20 }}
-                  >&#8592;</button>
-                  <button
-                    onClick={nextBanner}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                    style={{ zIndex: 20 }}
-                  >&#8594;</button>
-                </>
-              )}
-            </div>
-          )}
+                    type="button"
+                    onClick={() => handleHeroCtaClick(item)}
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
+                    style={{ zIndex: 25 }}
+                  >
+                    {item.cfg.label ?? 'Saiba mais'}
+                  </button>
+                )}
+                {heroBannerItems.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevBanner}
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
+                      style={{ zIndex: 20 }}
+                    >&#8592;</button>
+                    <button
+                      onClick={nextBanner}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
+                      style={{ zIndex: 20 }}
+                    >&#8594;</button>
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
 
           <div className={`${customization?.hero_content_position === 'absolute' ? 'relative z-10' : 'py-16'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`}>
