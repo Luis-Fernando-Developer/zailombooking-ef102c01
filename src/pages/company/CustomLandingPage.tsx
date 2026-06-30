@@ -699,23 +699,22 @@ export default function CustomLandingPage() {
 
       {/* Main Content */}
       <div>
-        {/* Banners de campanhas de marketing (hero / carrossel) */}
+        {/* Banner extra de campanha (placement "hero da Landing Page") — section adicional acima da hero */}
         <CampaignHeroBanner companyId={company?.id} />
-        <CampaignHeroCarousel companyId={company?.id} />
 
         {/* Hero Section with Custom Styling */}
         <section className={`relative ${customization?.hero_content_position === 'absolute' ? 'h-[500px]' : ''} flex ${customization?.hero_content_position === 'below' ? 'flex-col' : customization?.hero_content_position === 'above' ? 'flex-col-reverse' : 'items-center justify-center'} overflow-hidden ${customization?.hero_background_type ? 'hero-custom-bg' : 'bg-gradient-hero'}`}>
           {/* Background Elements */}
           {customization?.hero_content_position === 'absolute' && (
             <div className="absolute inset-0">
-              {customization?.hero_banner_urls && customization.hero_banner_urls.length > 0 && (
+              {heroBannerUrls.length > 0 && (
                 <div className="absolute inset-0 ">
                   <img
-                    src={customization.hero_banner_urls[bannerIndex]}
+                    src={heroBannerUrls[bannerIndex % heroBannerUrls.length]}
                     alt="Hero banner"
                     className="w-full h-full object-fit opacity-50"
                   />
-                  {customization.hero_banner_urls.length > 1 && (
+                  {heroBannerUrls.length > 1 && (
                     <>
                       <button
                         onClick={prevBanner}
@@ -737,14 +736,14 @@ export default function CustomLandingPage() {
           )}
 
           {/* Banner Section for below/above positions */}
-          {(customization?.hero_content_position === 'below' || customization?.hero_content_position === 'above') && customization?.hero_banner_urls && customization.hero_banner_urls.length > 0 && (
+          {(customization?.hero_content_position === 'below' || customization?.hero_content_position === 'above') && heroBannerUrls.length > 0 && (
             <div className="relative w-full h-[400px]">
               <img
-                src={customization.hero_banner_urls[bannerIndex]}
+                src={heroBannerUrls[bannerIndex % heroBannerUrls.length]}
                 alt="Hero banner"
                 className="w-full h-full object-cover"
               />
-              {customization.hero_banner_urls.length > 1 && (
+              {heroBannerUrls.length > 1 && (
                 <>
                   <button
                     onClick={prevBanner}
@@ -760,6 +759,7 @@ export default function CustomLandingPage() {
               )}
             </div>
           )}
+
 
           <div className={`${customization?.hero_content_position === 'absolute' ? 'relative z-10' : 'py-16'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`}>
             <div className="text-center">
