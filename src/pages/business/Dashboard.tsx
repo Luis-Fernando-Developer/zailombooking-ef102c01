@@ -17,38 +17,87 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
 function InconsistencyAlert({ companyId, companySlug }: { companyId: string; companySlug: string }) {
-  const [count, setCount] = useState<number>(0);
+  const [items, setItems] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      const { data: flags } = await supabase
         .from("bookings_needing_action")
         .select("id, is_inconsistent")
         .eq("company_id", companyId);
-      const n = (data || []).filter((r: any) => r.is_inconsistent).length;
-      setCount(n);
+      const ids = (flags || []).filter((r: any) => r.is_inconsistent).map((r: any) => r.id);
+      if (ids.length === 0) { setItems([]); return; }
+      const { data: rows } = await supabase
+        .from("bookings")
+        .select("id, booking_date, start_time, booking_status, client:clients(name), service:services(name), combo:service_combos(name), employee:employees(name)")
+        .in("id", ids)
+        .order("booking_date", { ascending: true });
+      setItems(rows || []);
     })();
   }, [companyId]);
+
+  const count = items.length;
   if (!count) return null;
+
+  const fmtDate = (d: string) => {
+    const [y, m, day] = d.split("-").map(Number);
+    return new Date(y, m - 1, day).toLocaleDateString("pt-BR");
+  };
+  const fmtTime = (t: string) => {
+    if (!t) return "";
+    if (t.includes("T")) return t.split("T")[1].slice(0, 5);
+    return t.slice(0, 5);
+  };
+
   return (
     <Card className="border-destructive/40 bg-destructive/5">
-      <CardContent className="p-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-destructive" />
-          <div>
-            <p className="font-medium">
-              {count} agendamento{count > 1 ? "s" : ""} fora da escala atual
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Profissional ficou indisponível (desligamento, ausência ou folga). Realoque para liberar a agenda.
-            </p>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
+            <div>
+              <p className="font-medium">
+                {count} agendamento{count > 1 ? "s" : ""} fora da escala atual
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Profissional ficou indisponível (desligamento, ausência ou folga). Realoque para liberar a agenda.
+              </p>
+            </div>
           </div>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="text-sm font-medium text-primary hover:underline shrink-0"
+          >
+            {open ? "Ocultar" : "Ver detalhes"}
+          </button>
         </div>
-        <Link
-          to={`/${companySlug}/admin/realocacao`}
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          Resolver →
-        </Link>
+
+        {open && (
+          <div className="space-y-2 pt-2 border-t border-destructive/20">
+            {items.map((b) => (
+              <div
+                key={b.id}
+                className="flex items-center justify-between gap-3 p-3 rounded-md bg-background/40 border border-primary/10"
+              >
+                <div className="text-sm space-y-0.5 min-w-0">
+                  <p className="font-medium truncate">
+                    {b.client?.name || "Cliente"} — {b.combo?.name || b.service?.name || "Serviço"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {fmtDate(b.booking_date)} às {fmtTime(b.start_time)} · Prof.: {b.employee?.name || "—"}
+                  </p>
+                </div>
+                <Link
+                  to={`/${companySlug}/admin/agendamentos?bookingId=${b.id}`}
+                  className="text-sm font-medium text-primary hover:underline shrink-0"
+                >
+                  Resolver →
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
