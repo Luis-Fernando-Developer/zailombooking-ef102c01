@@ -227,25 +227,46 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
               
               <SidebarMenu className={state === "collapsed" ? "flex flex-col items-center" : ""}>
                 {filteredMenuItems.map((item) => {
+                  const parentBadge = badges[item.title];
                   if (item.children && item.children.length > 0) {
                     const childActive = item.children.some((c) => isActive(c.url));
                     const collapsed = state === "collapsed";
+                    // Soma badges dos filhos para mostrar no topo do grupo (quando colapsado)
+                    const childrenBadgeTotal = item.children.reduce(
+                      (sum, c) => sum + (badges[c.title]?.count ?? 0),
+                      parentBadge?.count ?? 0,
+                    );
+                    const childrenWorstSev =
+                      item.children.some((c) => badges[c.title]?.severity === "red") ||
+                      parentBadge?.severity === "red"
+                        ? "red"
+                        : "yellow";
+                    const groupBadge: BadgeInfo | undefined =
+                      childrenBadgeTotal > 0
+                        ? { count: childrenBadgeTotal, severity: childrenWorstSev as "red" | "yellow" }
+                        : undefined;
                     return (
                       <Collapsible key={item.title} defaultOpen={childActive} className="w-full">
                         <SidebarMenuItem className={collapsed ? "flex justify-center w-full" : ""}>
                           <CollapsibleTrigger asChild>
                             <SidebarMenuButton
-                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
+                              className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
                                 collapsed ? "justify-center w-10 h-10 p-0" : "w-full"
                               } ${
-                                childActive ? "bg-primary/20 text-primary" : "hover:bg-primary/10 hover:text-primary"
+                                childActive
+                                  ? "bg-primary/20 text-primary border-l-4 border-l-primary font-semibold"
+                                  : "border-l-4 border-l-transparent hover:bg-primary/10 hover:text-primary"
                               }`}
                             >
-                              <item.icon className={`w-5 h-5 flex-shrink-0 ${collapsed ? "m-0" : ""}`} />
+                              <span className="relative">
+                                <item.icon className={`w-5 h-5 flex-shrink-0 ${collapsed ? "m-0" : ""}`} />
+                                {collapsed && collapsedBadgeDot(groupBadge)}
+                              </span>
                               {!collapsed && (
                                 <>
                                   <span className="flex-1 text-left transition-opacity duration-500">{item.title}</span>
-                                  <ChevronDown className="w-4 h-4 transition-transform duration-300 data-[state=open]:rotate-180" />
+                                  {renderBadge(groupBadge)}
+                                  <ChevronDown className="w-4 h-4 ml-1 transition-transform duration-300 data-[state=open]:rotate-180" />
                                 </>
                               )}
                             </SidebarMenuButton>
@@ -253,18 +274,22 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
                           {!collapsed && (
                             <CollapsibleContent className="w-full">
                               <div className="ml-6 mt-1 flex flex-col gap-1 border-l border-primary/20 pl-2">
-                                {item.children.map((child) => (
-                                  <NavLink
-                                    key={child.title}
-                                    to={`${basePath}${child.url}`}
-                                    className={({ isActive }) =>
-                                      `flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${getNavCls(isActive)}`
-                                    }
-                                  >
-                                    <child.icon className="w-4 h-4" />
-                                    <span>{child.title}</span>
-                                  </NavLink>
-                                ))}
+                                {item.children.map((child) => {
+                                  const childBadge = badges[child.title];
+                                  return (
+                                    <NavLink
+                                      key={child.title}
+                                      to={`${basePath}${child.url}`}
+                                      className={({ isActive: navActive }) =>
+                                        `flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${getNavCls(navActive || isActive(child.url))}`
+                                      }
+                                    >
+                                      <child.icon className="w-4 h-4" />
+                                      <span className="flex-1">{child.title}</span>
+                                      {renderBadge(childBadge)}
+                                    </NavLink>
+                                  );
+                                })}
                               </div>
                             </CollapsibleContent>
                           )}
@@ -275,16 +300,24 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
                   return (
                     <SidebarMenuItem key={item.title} className={state === "collapsed" ? "flex justify-center w-full" : ""}>
                       <SidebarMenuButton asChild>
-                        <NavLink 
-                          to={`${basePath}${item.url}`} 
-                          className={({ isActive }) => 
-                            `flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
+                        <NavLink
+                          to={`${basePath}${item.url}`}
+                          className={({ isActive: navActive }) =>
+                            `relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
                               state === "collapsed" ? "justify-center w-10 h-10 p-0" : "w-full"
-                            } ${getNavCls(isActive)}`
+                            } ${getNavCls(navActive || isActive(item.url))}`
                           }
                         >
-                          <item.icon className={`w-5 h-5 flex-shrink-0 ${state === "collapsed" ? "m-0" : ""}`} />
-                          {state !== "collapsed" && <span className="transition-opacity duration-500">{item.title}</span>}
+                          <span className="relative">
+                            <item.icon className={`w-5 h-5 flex-shrink-0 ${state === "collapsed" ? "m-0" : ""}`} />
+                            {state === "collapsed" && collapsedBadgeDot(parentBadge)}
+                          </span>
+                          {state !== "collapsed" && (
+                            <>
+                              <span className="flex-1 transition-opacity duration-500">{item.title}</span>
+                              {renderBadge(parentBadge)}
+                            </>
+                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
