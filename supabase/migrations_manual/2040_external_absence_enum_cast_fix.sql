@@ -445,7 +445,7 @@ BEGIN
        LIMIT 1
     ), absence_info AS (
       SELECT
-        EXISTS (SELECT 1) AS has_absence,
+        COUNT(*) > 0 AS has_absence,
         STRING_AGG(DISTINCT COALESCE(a.absence_type::TEXT, 'NULL'), ', ' ORDER BY COALESCE(a.absence_type::TEXT, 'NULL')) AS absence_types
         FROM public.employee_absences a
        WHERE a.employee_id = p_employee
