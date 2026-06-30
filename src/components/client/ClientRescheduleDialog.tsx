@@ -175,14 +175,24 @@ export function ClientRescheduleDialog({
         .eq('id', booking.id)
         .maybeSingle();
 
-      supabase.functions.invoke('notify-booking-change', {
-        body: {
-          booking_id: booking.id,
-          change_type: 'reschedule',
-          previous: previousSnapshot,
-          current: updated ?? { booking_date: newDate, start_time: startTime, employee_id: booking.employee_id, service_id: booking.service_id, service: booking.service, employee: booking.employee },
-        },
-      }).catch((err) => console.error('notify failed', err));
+      try {
+        const { data: notifData, error: notifError } = await supabase.functions.invoke('notify-booking-change', {
+          body: {
+            booking_id: booking.id,
+            change_type: 'reschedule',
+            previous: previousSnapshot,
+            current: updated ?? { booking_date: newDate, start_time: startTime, employee_id: booking.employee_id, service_id: booking.service_id, service: booking.service, employee: booking.employee },
+          },
+        });
+        if (notifError) {
+          console.error('notify-booking-change error:', notifError, notifData);
+        } else {
+          console.log('notify-booking-change ok:', notifData);
+        }
+      } catch (err) {
+        console.error('notify-booking-change threw:', err);
+      }
+
 
       toast({
         title: "Agendamento reagendado!",
