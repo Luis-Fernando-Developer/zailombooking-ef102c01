@@ -44,6 +44,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { useSidebarBadges, type BadgeInfo } from "@/hooks/use-sidebar-badges";
+import { cn } from "@/lib/utils";
 
 type SubItem = { title: string; url: string; icon: typeof LayoutDashboard };
 type MenuItem = { title: string; url: string; icon: typeof LayoutDashboard; children?: SubItem[] };
@@ -66,7 +68,7 @@ const menuItems: MenuItem[] = [
     url: "/admin/automacoes/disparos",
     icon: Zap,
     children: [
-      { title: "Chatbot - Zailom Flow", url: "/admin/chatbot/talkmap", icon: Bot },
+      { title: "Chatbot - Zailom Flow", url: "/admin/automacoes/chatbot/zailom-flow", icon: Bot },
       { title: "Disparos WhatsApp", url: "/admin/automacoes/disparos", icon: Send },
       { title: "E-mail Marketing", url: "/admin/automacoes/email-marketing", icon: Mail },
       { title: "Gatilhos / Agenda", url: "/admin/automacoes/gatilhos", icon: CalendarClock },
@@ -77,7 +79,7 @@ const menuItems: MenuItem[] = [
     url: "/admin/integracoes/whatsapp",
     icon: Plug2,
     children: [
-      { title: "Chatbot", url: "/admin/chatbot/integracao", icon: Plug },
+      { title: "Chatbot", url: "/admin/integracao/chatbot", icon: Plug },
       { title: "WhatsApp", url: "/admin/integracoes/whatsapp", icon: Smartphone },
       { title: "E-mail", url: "/admin/integracoes/email", icon: Mail },
     ],
