@@ -351,7 +351,7 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
           setAvailableDatesError("Não foi possível validar as datas disponíveis.");
           setAvailableDates(new Set());
         } else {
-          const next = new Set((data || []).map((r: any) => r.available_date || r));
+          const next = new Set<string>((data || []).map((r: any) => String(r.available_date || r)));
           setAvailableDates(next);
 
           if (newDate) {
