@@ -437,8 +437,8 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
       }
       await persistReallocation({
         booking_date: booking.booking_date,
-        start_time: startHHMMSS,
-        end_time: endHHMMSS,
+        start_time: toTimestamptz(booking.booking_date, startHHMMSS),
+        end_time: toTimestamptz(booking.booking_date, endHHMMSS),
         employee_id: newEmployeeId,
       });
       toast({ title: "Profissional alterado" });
