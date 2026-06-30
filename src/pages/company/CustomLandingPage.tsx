@@ -92,13 +92,35 @@ export default function CustomLandingPage() {
   // Campanhas com placement "carrossel do hero" — injeta materiais como banners adicionais
   // dentro da Hero da Landing Page, respeitando tipo de banner e posição do conteúdo.
   const { campaigns: heroCarouselCampaigns } = useActiveCampaigns(company?.id, "hero_carousel");
-  const campaignHeroUrls = heroCarouselCampaigns
-    .flatMap((c) => c.materials.map((m) => m.file_url))
-    .filter((u): u is string => !!u);
-  const heroBannerUrls = [
-    ...((customization?.hero_banner_urls as string[] | undefined) ?? []),
-    ...campaignHeroUrls,
-  ];
+  type HeroBannerItem = { url: string; campaign?: CampaignWithMaterials; cfg?: PlacementCTA };
+  const campaignHeroItems: HeroBannerItem[] = heroCarouselCampaigns.flatMap((c) => {
+    const cfg = (c.placement_config?.["hero_carousel"] ?? {}) as PlacementCTA;
+    return c.materials
+      .filter((m) => !!m.file_url)
+      .map((m) => ({ url: m.file_url as string, campaign: c, cfg }));
+  });
+  const customBannerItems: HeroBannerItem[] = ((customization?.hero_banner_urls as string[] | undefined) ?? []).map((url) => ({ url }));
+  const heroBannerItems: HeroBannerItem[] = [...customBannerItems, ...campaignHeroItems];
+  const heroBannerUrls = heroBannerItems.map((i) => i.url);
+
+  const handleHeroBannerClick = (item: HeroBannerItem) => {
+    if (!item.campaign || !item.cfg) return;
+    const cfg = item.cfg;
+    if (cfg.buttonPosition !== "full") return;
+    const href = cfg.url;
+    if (!href) return;
+    trackCampaignClick({ campaignId: item.campaign.id, companyId: item.campaign.company_id, placement: "hero_carousel", url: href });
+    if (href.startsWith("/")) window.location.href = href;
+    else window.open(href, "_blank", "noopener,noreferrer");
+  };
+
+  const handleHeroCtaClick = (item: HeroBannerItem) => {
+    if (!item.campaign || !item.cfg?.url) return;
+    const href = item.cfg.url;
+    trackCampaignClick({ campaignId: item.campaign.id, companyId: item.campaign.company_id, placement: "hero_carousel", url: href });
+    if (href.startsWith("/")) window.location.href = href;
+    else window.open(href, "_blank", "noopener,noreferrer");
+  };
 
 
   useEffect(() => {
