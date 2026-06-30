@@ -15,7 +15,6 @@ import {
   Mail,
   Filter,
   Plus,
-  Edit,
   Check,
   X,
   AlertCircle,
@@ -51,6 +50,16 @@ const paymentConfig = {
   cancelled: { label: "Cancelado", color: "bg-red-500" },
   free: { label: "Isento", color: "bg-blue-500" }
 };
+
+const FINAL_LOCKED_STATUSES = new Set(["cancelled", "completed"]);
+
+function isFinalLockedStatus(status?: string) {
+  return FINAL_LOCKED_STATUSES.has(String(status ?? "").toLowerCase());
+}
+
+function canOnlyReschedule(status?: string) {
+  return String(status ?? "").toLowerCase() === "no_show";
+}
 
 interface Company {
   id: string;
@@ -183,8 +192,7 @@ export default function BusinessBookings() {
           employee:employees(*)
         `)
         .eq('company_id', companyId)
-        .order('booking_date', { ascending: false })
-        .order('start_time', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching bookings:', error);
@@ -235,8 +243,26 @@ export default function BusinessBookings() {
   };
 
   const updateBookingStatus = async (bookingId: string, status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show') => {
-    // Atualizar o estado local imediatamente
-    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, booking_status: status } : b));
+    const current = bookings.find((booking) => booking.id === bookingId);
+    if (!current) return;
+
+    if (isFinalLockedStatus(current.booking_status)) {
+      toast({
+        title: "Agendamento bloqueado",
+        description: "Agendamentos cancelados ou concluídos são imutáveis.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (canOnlyReschedule(current.booking_status)) {
+      toast({
+        title: "Apenas reagendamento permitido",
+        description: "Agendamentos marcados como não compareceu só podem ser reagendados.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -245,6 +271,8 @@ export default function BusinessBookings() {
         .eq('id', bookingId);
 
       if (error) throw error;
+
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, booking_status: status } : b));
 
       toast({
         title: "Status atualizado",
@@ -442,7 +470,11 @@ export default function BusinessBookings() {
               </CardContent>
             </Card>
           ) : (
-            filteredBookings.map((booking) => (
+            filteredBookings.map((booking) => {
+              const finalLocked = isFinalLockedStatus(booking.booking_status);
+              const noShow = canOnlyReschedule(booking.booking_status);
+
+              return (
               <Card key={booking.id} className="flex flex-col card-glow bg-card/50 backdrop-blur-sm border-primary/20 ">
                 <CardContent className="relative w-full p-6 flex flex-col  h-full">
                   <div className="w-full flex flex-col">
@@ -516,41 +548,41 @@ export default function BusinessBookings() {
                     <div className="absolute top-5 right-3">
                       <DropdownMenu >
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={finalLocked}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-card border-primary/20">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
-                            <Check className="mr-2 h-4 w-4" />
-                            Confirmar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
-                            <Check className="mr-2 h-4 w-4" />
-                            Marcar como Concluído
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'no_show')}>
-                            <AlertCircle className="mr-2 h-4 w-4" />
-                            Não Realizado
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'cancelled')}>
-                            <X className="mr-2 h-4 w-4" />
-                            Cancelar
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => setReassignBooking(booking)}>
-                            <UserCog className="mr-2 h-4 w-4" />
-                            Realocar p/ outro profissional
-                          </DropdownMenuItem>
+                          {!noShow && (
+                            <>
+                              <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
+                                <Check className="mr-2 h-4 w-4" />
+                                Confirmar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
+                                <Check className="mr-2 h-4 w-4" />
+                                Marcar como Concluído
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'no_show')}>
+                                <AlertCircle className="mr-2 h-4 w-4" />
+                                Não Realizado
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'cancelled')}>
+                                <X className="mr-2 h-4 w-4" />
+                                Cancelar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => setReassignBooking(booking)}>
+                                <UserCog className="mr-2 h-4 w-4" />
+                                Realocar p/ outro profissional
+                              </DropdownMenuItem>
+                            </>
+                          )}
                           <DropdownMenuItem onClick={() => setRescheduleBooking(booking)}>
                             <CalendarClock className="mr-2 h-4 w-4" />
                             Reagendar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -566,7 +598,7 @@ export default function BusinessBookings() {
                   )}
                 </CardContent>
               </Card>
-            ))
+            )})
           )}
         </div>
       </div>
