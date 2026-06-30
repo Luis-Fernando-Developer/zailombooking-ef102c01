@@ -609,11 +609,22 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
                   <Calendar
                     mode="single"
                     selected={newDate}
-                    onSelect={setNewDate}
-                    disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                    onSelect={(d) => { setNewDate(d); if (d) setCalendarMonth(d); }}
+                    month={calendarMonth}
+                    onMonthChange={setCalendarMonth}
+                    disabled={(d) => {
+                      const today = new Date(); today.setHours(0, 0, 0, 0);
+                      if (d < today) return true;
+                      // Se a lista veio vazia (RPC ainda não publicada), não bloqueia além do passado.
+                      if (availableDates.size === 0) return false;
+                      return !availableDates.has(format(d, "yyyy-MM-dd"));
+                    }}
                     locale={ptBR}
                     className="rounded-md border border-primary/20"
                   />
+                  {loadingDates && (
+                    <p className="text-xs text-muted-foreground mt-1">Verificando disponibilidade…</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Novo horário</label>
