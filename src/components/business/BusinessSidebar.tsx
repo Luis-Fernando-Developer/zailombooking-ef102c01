@@ -121,11 +121,47 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   const currentPath = location.pathname;
   const basePath = `/${companySlug}`;
 
-  const isActive = (path: string) => currentPath === `${basePath}${path}`;
-  const getNavCls = (isActive: boolean) =>
-    isActive
-      ? "bg-primary/20 text-primary border-r-2 border-primary"
-      : "hover:bg-primary/10 hover:text-primary";
+  // Activo: match exato OU prefixo + "/" (cobre subpaths como /talkmap/123)
+  const isActive = (path: string) => {
+    const full = `${basePath}${path}`;
+    return currentPath === full || currentPath.startsWith(`${full}/`);
+  };
+  const getNavCls = (active: boolean) =>
+    active
+      ? "bg-primary/20 text-primary border-l-4 border-l-primary font-semibold shadow-[inset_0_0_12px_rgba(0,200,255,0.08)]"
+      : "border-l-4 border-l-transparent hover:bg-primary/10 hover:text-primary";
+
+  // Badges em tempo real (vermelho = ação imediata; amarelo = atenção/aprovação)
+  const badges = useSidebarBadges(companyId, currentUser?.id);
+  const renderBadge = (info?: BadgeInfo) => {
+    if (!info || info.count <= 0) return null;
+    const color =
+      info.severity === "red"
+        ? "bg-destructive text-destructive-foreground"
+        : "bg-yellow-500 text-black";
+    return (
+      <span
+        className={cn(
+          "ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center",
+          color,
+        )}
+      >
+        {info.count > 99 ? "99+" : info.count}
+      </span>
+    );
+  };
+  const collapsedBadgeDot = (info?: BadgeInfo) => {
+    if (!info || info.count <= 0) return null;
+    const color = info.severity === "red" ? "bg-destructive" : "bg-yellow-500";
+    return (
+      <span
+        className={cn(
+          "absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-card",
+          color,
+        )}
+      />
+    );
+  };
 
   const handleLogout = async () => {
     try {
