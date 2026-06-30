@@ -277,18 +277,19 @@ export default function CustomLandingPage() {
   // }
 
   const nextBanner = () => {
-    if (customization?.hero_banner_urls && customization.hero_banner_urls.length > 1) {
-      const urls = customization.hero_banner_urls;
+    const urls = heroBannerUrls;
+    if (urls.length > 1) {
       setBannerIndex((prevIndex) => (prevIndex + 1) % urls.length);
     }
   };
 
   const prevBanner = () => {
-    if (customization?.hero_banner_urls && customization.hero_banner_urls.length > 1) {
-      const urls = customization.hero_banner_urls;
+    const urls = heroBannerUrls;
+    if (urls.length > 1) {
       setBannerIndex((prevIndex) => (prevIndex - 1 + urls.length) % urls.length);
     }
   };
+
 
   const getLogoUrl = () => {
     if (!customization) return null;
