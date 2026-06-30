@@ -481,8 +481,8 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
 
       await persistReallocation({
         booking_date: dateStr,
-        start_time: start,
-        end_time: end,
+        start_time: toTimestamptz(dateStr, start),
+        end_time: toTimestamptz(dateStr, end),
         employee_id: newEmployeeId,
       });
       toast({
