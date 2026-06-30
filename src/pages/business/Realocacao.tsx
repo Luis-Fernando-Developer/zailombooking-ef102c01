@@ -203,7 +203,7 @@ export default function Realocacao() {
                     <span className="flex items-center gap-1"><CalIcon className="w-3.5 h-3.5" />
                       {format(new Date(b.booking_date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
                     </span>
-                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{b.start_time?.slice(0,5)}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{toHHMM(b.start_time)}</span>
                     <span>Prof.: {b.employee?.name}</span>
                   </div>
                 </div>
