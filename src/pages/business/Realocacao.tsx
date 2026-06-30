@@ -40,6 +40,15 @@ function toHHMMSS(v?: string | null): string {
   return hhmm ? `${hhmm}:00` : "";
 }
 
+/**
+ * Combina date (YYYY-MM-DD) + time (HH:MM ou HH:MM:SS) em ISO timestamp
+ * compatível com a coluna TIMESTAMPTZ. Usa offset -03:00 (America/Sao_Paulo).
+ */
+function toTimestamptz(date: string, time: string): string {
+  const t = time.length === 5 ? `${time}:00` : time;
+  return `${date}T${t}-03:00`;
+}
+
 interface BookingRow {
   id: string;
   booking_date: string;
@@ -428,8 +437,8 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
       }
       await persistReallocation({
         booking_date: booking.booking_date,
-        start_time: startHHMMSS,
-        end_time: endHHMMSS,
+        start_time: toTimestamptz(booking.booking_date, startHHMMSS),
+        end_time: toTimestamptz(booking.booking_date, endHHMMSS),
         employee_id: newEmployeeId,
       });
       toast({ title: "Profissional alterado" });
@@ -472,8 +481,8 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
 
       await persistReallocation({
         booking_date: dateStr,
-        start_time: start,
-        end_time: end,
+        start_time: toTimestamptz(dateStr, start),
+        end_time: toTimestamptz(dateStr, end),
         employee_id: newEmployeeId,
       });
       toast({
