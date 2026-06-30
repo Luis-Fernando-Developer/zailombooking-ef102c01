@@ -385,6 +385,7 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
     const today = new Date(); today.setHours(0, 0, 0, 0);
     if (date < today) return false;
     if (loadingDates || !availableDatesLoaded) return false;
+    if (availableDatesError) return true;
     return availableDates.has(format(date, "yyyy-MM-dd"));
   }
 
