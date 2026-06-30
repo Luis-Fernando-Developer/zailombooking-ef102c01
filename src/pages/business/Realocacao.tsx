@@ -17,6 +17,29 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { getAvailability } from "@/lib/api/availability";
 
+/**
+ * Normaliza qualquer representação de horário vinda do banco (TIMESTAMPTZ,
+ * TIMETZ, "HH:MM", "HH:MM:SS") para "HH:MM".
+ */
+function toHHMM(v?: string | null): string {
+  if (!v) return "";
+  const s = String(v);
+  // ISO com data: "2026-06-30T09:00:00+00:00"
+  if (s.includes("T")) {
+    const m = s.match(/T(\d{2}):(\d{2})/);
+    if (m) return `${m[1]}:${m[2]}`;
+  }
+  // "HH:MM:SS+00" / "HH:MM:SS" / "HH:MM"
+  const m2 = s.match(/^(\d{2}):(\d{2})/);
+  if (m2) return `${m2[1]}:${m2[2]}`;
+  return s.slice(0, 5);
+}
+
+function toHHMMSS(v?: string | null): string {
+  const hhmm = toHHMM(v);
+  return hhmm ? `${hhmm}:00` : "";
+}
+
 interface BookingRow {
   id: string;
   booking_date: string;
@@ -180,7 +203,7 @@ export default function Realocacao() {
                     <span className="flex items-center gap-1"><CalIcon className="w-3.5 h-3.5" />
                       {format(new Date(b.booking_date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
                     </span>
-                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{b.start_time?.slice(0,5)}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{toHHMM(b.start_time)}</span>
                     <span>Prof.: {b.employee?.name}</span>
                   </div>
                 </div>
@@ -239,6 +262,13 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
   // Cancelamento
   const [cancelReason, setCancelReason] = useState("");
 
+  // Datas disponíveis (pré-calculadas) para desabilitar dias sem oferta no calendário.
+  const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [calendarMonth, setCalendarMonth] = useState<Date>(
+    newDate ?? new Date(booking.booking_date + "T00:00:00")
+  );
+  const [loadingDates, setLoadingDates] = useState(false);
+
   // Carrega profissionais elegíveis para o SERVIÇO desse agendamento
   useEffect(() => {
     (async () => {
@@ -277,6 +307,39 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
     if (newDate && newEmployeeId) loadSlots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newDate, newEmployeeId]);
+
+  // Pré-calcula datas disponíveis do mês visível para desabilitar no calendário
+  useEffect(() => {
+    if (!newEmployeeId || !booking.service_id) {
+      setAvailableDates(new Set());
+      return;
+    }
+    (async () => {
+      setLoadingDates(true);
+      try {
+        const from = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+        const to = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        if (from < today) from.setTime(today.getTime());
+        const { data, error } = await supabase.rpc("list_available_dates", {
+          p_company: companyId,
+          p_employee: newEmployeeId,
+          p_service: booking.service_id,
+          p_from: format(from, "yyyy-MM-dd"),
+          p_to: format(to, "yyyy-MM-dd"),
+        });
+        if (error) {
+          // RPC pode não estar deployada ainda — não bloqueia o uso.
+          console.warn("list_available_dates indisponível:", error.message);
+          setAvailableDates(new Set());
+        } else {
+          setAvailableDates(new Set((data || []).map((r: any) => r.available_date || r)));
+        }
+      } finally {
+        setLoadingDates(false);
+      }
+    })();
+  }, [calendarMonth, newEmployeeId, booking.service_id, companyId]);
 
   async function loadSlots() {
     if (!newDate) return;
@@ -344,12 +407,14 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
     }
     setSaving(true);
     try {
+      const startHHMMSS = toHHMMSS(booking.start_time);
+      const endHHMMSS = toHHMMSS(booking.end_time);
       const { data: ok, error: gateErr } = await supabase.rpc("is_slot_available", {
         p_company: companyId,
         p_employee: newEmployeeId,
         p_service: booking.service_id,
         p_date: booking.booking_date,
-        p_start: booking.start_time,
+        p_start: startHHMMSS,
         p_ignore_booking: booking.id,
       });
       if (gateErr) throw gateErr;
@@ -363,8 +428,8 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
       }
       await persistReallocation({
         booking_date: booking.booking_date,
-        start_time: booking.start_time,
-        end_time: booking.end_time,
+        start_time: startHHMMSS,
+        end_time: endHHMMSS,
         employee_id: newEmployeeId,
       });
       toast({ title: "Profissional alterado" });
@@ -465,7 +530,7 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
         <DialogHeader>
           <DialogTitle>Realocar agendamento</DialogTitle>
           <DialogDescription>
-            {booking.client?.name} · {booking.service?.name} · {format(new Date(booking.booking_date + "T00:00:00"), "dd/MM/yyyy")} {booking.start_time?.slice(0, 5)} · Prof. atual: {booking.employee?.name}
+            {booking.client?.name} · {booking.service?.name} · {format(new Date(booking.booking_date + "T00:00:00"), "dd/MM/yyyy")} {toHHMM(booking.start_time)} · Prof. atual: {booking.employee?.name}
           </DialogDescription>
         </DialogHeader>
 
@@ -505,7 +570,7 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
                     </Select>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Mantém a data ({format(new Date(booking.booking_date + "T00:00:00"), "dd/MM/yyyy")}) e o horário ({booking.start_time?.slice(0, 5)}). Se o novo profissional não tiver disponibilidade nesse slot, use a aba "Nova data/horário".
+                    Mantém a data ({format(new Date(booking.booking_date + "T00:00:00"), "dd/MM/yyyy")}) e o horário ({toHHMM(booking.start_time)}). Se o novo profissional não tiver disponibilidade nesse slot, use a aba "Nova data/horário".
                   </p>
                   <div className="flex justify-end gap-2 pt-2">
                     <Button variant="outline" onClick={onClose}>Fechar</Button>
@@ -544,11 +609,22 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
                   <Calendar
                     mode="single"
                     selected={newDate}
-                    onSelect={setNewDate}
-                    disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                    onSelect={(d) => { setNewDate(d); if (d) setCalendarMonth(d); }}
+                    month={calendarMonth}
+                    onMonthChange={setCalendarMonth}
+                    disabled={(d) => {
+                      const today = new Date(); today.setHours(0, 0, 0, 0);
+                      if (d < today) return true;
+                      // Se a lista veio vazia (RPC ainda não publicada), não bloqueia além do passado.
+                      if (availableDates.size === 0) return false;
+                      return !availableDates.has(format(d, "yyyy-MM-dd"));
+                    }}
                     locale={ptBR}
                     className="rounded-md border border-primary/20"
                   />
+                  {loadingDates && (
+                    <p className="text-xs text-muted-foreground mt-1">Verificando disponibilidade…</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Novo horário</label>
