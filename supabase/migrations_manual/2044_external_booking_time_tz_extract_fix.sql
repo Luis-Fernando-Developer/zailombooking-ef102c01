@@ -96,7 +96,10 @@ GRANT EXECUTE ON FUNCTION public.is_slot_available(uuid,uuid,uuid,date,time,uuid
   TO authenticated, anon, service_role;
 
 -- View precisa extrair o TIME no mesmo fuso que a escala usa.
-CREATE OR REPLACE VIEW public.bookings_needing_action AS
+-- DROP + CREATE (não usar REPLACE: colunas da tabela bk.* podem ter mudado de
+-- ordem/nome desde a criação original, o que impede CREATE OR REPLACE VIEW).
+DROP VIEW IF EXISTS public.bookings_needing_action;
+CREATE VIEW public.bookings_needing_action AS
 SELECT bk.*,
        NOT public.is_slot_available(
          bk.company_id, bk.employee_id, bk.service_id,
