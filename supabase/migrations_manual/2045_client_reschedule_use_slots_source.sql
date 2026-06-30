@@ -35,6 +35,7 @@ DECLARE
   v_emp uuid;
   v_svc uuid;
   v_slot_exists boolean;
+  v_start_type text;
 BEGIN
   SELECT b.* INTO v_old
     FROM public.bookings b
@@ -96,19 +97,47 @@ BEGIN
     RAISE EXCEPTION 'slot_taken';
   END IF;
 
-  UPDATE public.bookings
-     SET booking_date = p_new_date,
-         start_time = p_new_start,
-         end_time = v_end,
-         employee_id = v_emp,
-         service_id = v_svc,
-         booking_status = CASE
-           WHEN LOWER(COALESCE(v_old.booking_status::TEXT, '')) = 'no_show' THEN 'confirmed'
-           ELSE booking_status
-         END,
-         updated_at = NOW()
-   WHERE id = p_booking_id
-   RETURNING * INTO v_new;
+  SELECT c.data_type
+    INTO v_start_type
+    FROM information_schema.columns c
+   WHERE c.table_schema = 'public'
+     AND c.table_name = 'bookings'
+     AND c.column_name = 'start_time'
+   LIMIT 1;
+
+  IF v_start_type IN ('timestamp with time zone', 'timestamp without time zone') THEN
+    EXECUTE $sql$
+      UPDATE public.bookings
+         SET booking_date = $2,
+             start_time = ($2::DATE + $3::TIME),
+             end_time = ($2::DATE + $4::TIME),
+             employee_id = $5,
+             service_id = $6,
+             booking_status = CASE
+               WHEN LOWER(COALESCE($7::TEXT, '')) = 'no_show' THEN 'confirmed'
+               ELSE booking_status
+             END,
+             updated_at = NOW()
+       WHERE id = $1
+       RETURNING *
+    $sql$
+    INTO v_new
+    USING p_booking_id, p_new_date, p_new_start, v_end, v_emp, v_svc, v_old.booking_status;
+  ELSE
+    UPDATE public.bookings
+       SET booking_date = p_new_date,
+           start_time = p_new_start,
+           end_time = v_end,
+           employee_id = v_emp,
+           service_id = v_svc,
+           booking_status = CASE
+             WHEN LOWER(COALESCE(v_old.booking_status::TEXT, '')) = 'no_show' THEN 'confirmed'
+             ELSE booking_status
+           END,
+           updated_at = NOW()
+     WHERE id = p_booking_id
+     RETURNING * INTO v_new;
+  END IF;
 
   INSERT INTO public.booking_history(booking_id, changed_by, change_type, old_data, new_data)
   VALUES (p_booking_id, auth.uid(), 'reschedule', to_jsonb(v_old), to_jsonb(v_new));
