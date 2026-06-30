@@ -262,6 +262,13 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
   // Cancelamento
   const [cancelReason, setCancelReason] = useState("");
 
+  // Datas disponíveis (pré-calculadas) para desabilitar dias sem oferta no calendário.
+  const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [calendarMonth, setCalendarMonth] = useState<Date>(
+    newDate ?? new Date(booking.booking_date + "T00:00:00")
+  );
+  const [loadingDates, setLoadingDates] = useState(false);
+
   // Carrega profissionais elegíveis para o SERVIÇO desse agendamento
   useEffect(() => {
     (async () => {
