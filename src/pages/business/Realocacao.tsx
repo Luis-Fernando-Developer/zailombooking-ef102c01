@@ -308,6 +308,39 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newDate, newEmployeeId]);
 
+  // Pré-calcula datas disponíveis do mês visível para desabilitar no calendário
+  useEffect(() => {
+    if (!newEmployeeId || !booking.service_id) {
+      setAvailableDates(new Set());
+      return;
+    }
+    (async () => {
+      setLoadingDates(true);
+      try {
+        const from = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+        const to = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        if (from < today) from.setTime(today.getTime());
+        const { data, error } = await supabase.rpc("list_available_dates", {
+          p_company: companyId,
+          p_employee: newEmployeeId,
+          p_service: booking.service_id,
+          p_from: format(from, "yyyy-MM-dd"),
+          p_to: format(to, "yyyy-MM-dd"),
+        });
+        if (error) {
+          // RPC pode não estar deployada ainda — não bloqueia o uso.
+          console.warn("list_available_dates indisponível:", error.message);
+          setAvailableDates(new Set());
+        } else {
+          setAvailableDates(new Set((data || []).map((r: any) => r.available_date || r)));
+        }
+      } finally {
+        setLoadingDates(false);
+      }
+    })();
+  }, [calendarMonth, newEmployeeId, booking.service_id, companyId]);
+
   async function loadSlots() {
     if (!newDate) return;
     setLoadingSlots(true);
