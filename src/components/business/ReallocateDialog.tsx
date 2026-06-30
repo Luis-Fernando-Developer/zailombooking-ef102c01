@@ -247,6 +247,24 @@ export function ReallocateDialog({
     }).catch((err) => console.error("notify failed", err));
   }
 
+  async function checkSlotViaAvailability(params: {
+    employeeId: string;
+    date: string;
+    timeHHMM: string;
+  }): Promise<boolean> {
+    const data = await getAvailability({
+      data: {
+        company_id: companyId,
+        service_id: booking.service_id,
+        employee_id: params.employeeId,
+        date: params.date,
+      },
+    });
+    const raw = data?.slots || [];
+    const normalized = raw.map((s: any) => (typeof s === "string" ? s : s.time)).map((s: string) => s.slice(0, 5));
+    return normalized.includes(params.timeHHMM.slice(0, 5));
+  }
+
   async function handleSwapSameSlot() {
     if (!newEmployeeId || newEmployeeId === booking.employee_id) {
       toast({ title: "Selecione outro profissional", variant: "destructive" });
@@ -256,15 +274,11 @@ export function ReallocateDialog({
     try {
       const startHHMMSS = toHHMMSS(booking.start_time);
       const endHHMMSS = toHHMMSS(booking.end_time);
-      const { data: ok, error: gateErr } = await supabase.rpc("is_slot_available", {
-        p_company: companyId,
-        p_employee: newEmployeeId,
-        p_service: booking.service_id,
-        p_date: booking.booking_date,
-        p_start: startHHMMSS,
-        p_ignore_booking: booking.id,
+      const ok = await checkSlotViaAvailability({
+        employeeId: newEmployeeId,
+        date: booking.booking_date,
+        timeHHMM: startHHMMSS,
       });
-      if (gateErr) throw gateErr;
       if (!ok) {
         toast({
           title: "Horário indisponível para este profissional",
@@ -299,15 +313,11 @@ export function ReallocateDialog({
       const endMins = hh * 60 + mm + duration;
       const end = `${String(Math.floor(endMins / 60)).padStart(2, "0")}:${String(endMins % 60).padStart(2, "0")}:00`;
 
-      const { data: ok, error: gateErr } = await supabase.rpc("is_slot_available", {
-        p_company: companyId,
-        p_employee: newEmployeeId,
-        p_service: booking.service_id,
-        p_date: dateStr,
-        p_start: start,
-        p_ignore_booking: booking.id,
+      const ok = await checkSlotViaAvailability({
+        employeeId: newEmployeeId,
+        date: dateStr,
+        timeHHMM: start,
       });
-      if (gateErr) throw gateErr;
       if (!ok) {
         toast({
           title: "Horário indisponível",
