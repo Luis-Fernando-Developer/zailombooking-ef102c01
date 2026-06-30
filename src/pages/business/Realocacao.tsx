@@ -488,7 +488,7 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
         <DialogHeader>
           <DialogTitle>Realocar agendamento</DialogTitle>
           <DialogDescription>
-            {booking.client?.name} · {booking.service?.name} · {format(new Date(booking.booking_date + "T00:00:00"), "dd/MM/yyyy")} {booking.start_time?.slice(0, 5)} · Prof. atual: {booking.employee?.name}
+            {booking.client?.name} · {booking.service?.name} · {format(new Date(booking.booking_date + "T00:00:00"), "dd/MM/yyyy")} {toHHMM(booking.start_time)} · Prof. atual: {booking.employee?.name}
           </DialogDescription>
         </DialogHeader>
 
