@@ -144,11 +144,16 @@ export function ClientRescheduleDialog({
       });
 
       if (error) {
-        const code = (error.message || '').toLowerCase();
-        let description = "Não foi possível reagendar o agendamento.";
-        if (code.includes('slot_taken')) description = "Esse horário foi ocupado. Escolha outro.";
-        else if (code.includes('booking_locked')) description = "Este agendamento não pode mais ser alterado.";
-        else if (code.includes('booking_not_found')) description = "Agendamento não encontrado.";
+        const raw = (error.message || '').toLowerCase();
+        let description = error.message || "Não foi possível reagendar o agendamento.";
+        if (raw.includes('slot_taken') || raw.includes('slot_unavailable')) {
+          description = "Esse horário não está mais disponível. Escolha outro.";
+        } else if (raw.includes('booking_locked')) {
+          description = "Este agendamento não pode mais ser alterado.";
+        } else if (raw.includes('booking_not_found')) {
+          description = "Agendamento não encontrado.";
+        }
+        console.error('reschedule rpc error:', error);
         throw new Error(description);
       }
 
