@@ -271,7 +271,10 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
   // Cancelamento
   const [cancelReason, setCancelReason] = useState("");
 
-  // Datas disponíveis (pré-calculadas) para desabilitar dias sem oferta no calendário.
+  // Datas disponíveis (pré-calculadas) apenas para feedback visual/textual.
+  // Não usamos mais esta lista para bloquear clique no calendário: em cenários
+  // de desligamento futuro, uma RPC mensal antiga/inconsistente pode voltar vazia
+  // e impedir o gestor de selecionar datas que ainda são válidas antes da data efetiva.
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [availableDatesLoaded, setAvailableDatesLoaded] = useState(false);
   const [availableDatesError, setAvailableDatesError] = useState<string | null>(null);
@@ -358,18 +361,8 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
           );
           setAvailableDates(next);
 
-          if (newDate) {
-            const selectedKey = format(newDate, "yyyy-MM-dd");
-            const selectedInVisibleMonth =
-              newDate.getFullYear() === calendarMonth.getFullYear() &&
-              newDate.getMonth() === calendarMonth.getMonth();
-            if (selectedInVisibleMonth && !next.has(selectedKey)) {
-              setNewDate(undefined);
-              setNewTime("");
-              setSlots([]);
-              setSlotReason(null);
-            }
-          }
+          // Não limpa a data selecionada quando a lista mensal vem vazia.
+          // A validação real acontece ao carregar horários em get_available_slots.
         }
       } finally {
         if (!cancelled) {
@@ -384,9 +377,7 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
   function isCalendarDateSelectable(date: Date): boolean {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     if (date < today) return false;
-    if (loadingDates || !availableDatesLoaded) return false;
-    if (availableDatesError) return true;
-    return availableDates.has(format(date, "yyyy-MM-dd"));
+    return true;
   }
 
   async function loadSlots() {
@@ -681,7 +672,7 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
                   )}
                   {!loadingDates && availableDatesLoaded && availableDates.size === 0 && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      {availableDatesError || "Nenhuma data disponível neste mês para este profissional."}
+                      {availableDatesError || "Selecione uma data para consultar os horários deste profissional."}
                     </p>
                   )}
                 </div>
