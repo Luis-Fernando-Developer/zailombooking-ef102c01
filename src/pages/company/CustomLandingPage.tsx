@@ -88,6 +88,18 @@ export default function CustomLandingPage() {
   const [loggedClient, setLoggedClient] = useState<{ id: string; name: string; avatar_url?: string | null } | null>(null);
   // activeFlowId removido — chatbot agora é gerenciado pelo builder externo (TalkMap).
 
+  // Campanhas com placement "carrossel do hero" — injeta materiais como banners adicionais
+  // dentro da Hero da Landing Page, respeitando tipo de banner e posição do conteúdo.
+  const { campaigns: heroCarouselCampaigns } = useActiveCampaigns(company?.id, "hero_carousel");
+  const campaignHeroUrls = heroCarouselCampaigns
+    .flatMap((c) => c.materials.map((m) => m.file_url))
+    .filter((u): u is string => !!u);
+  const heroBannerUrls = [
+    ...((customization?.hero_banner_urls as string[] | undefined) ?? []),
+    ...campaignHeroUrls,
+  ];
+
+
   useEffect(() => {
     if ( slug) {
       fetchData();
