@@ -151,7 +151,7 @@ export default function ChatbotZailomFlow() {
         if (!data || typeof data !== "object") return;
         if (data.type === "zailomflow:navigate" && typeof data.path === "string") {
           const innerPath = data.path.replace(/^\/+/, "").replace(/^#\/?/, "");
-          const target = `/${slug}/admin/chatbot/talkmap/${innerPath}`;
+          const target = `/${slug}/admin/automacoes/chatbot/zailom-flow/${innerPath}`;
           if (target !== location.pathname) {
             navigate(target, { replace: false });
           }
@@ -207,7 +207,7 @@ export default function ChatbotZailomFlow() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-muted-foreground">{error || "É necessário conectar uma chave de API do ZailomFlow antes de usar o construtor."}</p>
-              <Button onClick={() => navigate(`/${slug}/admin/chatbot/integracao`)}>Ir para Integração</Button>
+              <Button onClick={() => navigate(`/${slug}/admin/integracao/chatbot`)}>Ir para Integração</Button>
             </CardContent>
           </Card>
         </div>
