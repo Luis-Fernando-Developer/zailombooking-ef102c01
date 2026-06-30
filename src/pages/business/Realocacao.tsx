@@ -1,53 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowRightLeft, Calendar as CalIcon, Clock, User, AlertCircle, Ban, UserCheck, CalendarClock } from "lucide-react";
+import { ArrowRightLeft, Calendar as CalIcon, Clock, User, AlertCircle } from "lucide-react";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar } from "@/components/ui/calendar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { getAvailability } from "@/lib/api/availability";
-
-/**
- * Normaliza qualquer representação de horário vinda do banco (TIMESTAMPTZ,
- * TIMETZ, "HH:MM", "HH:MM:SS") para "HH:MM".
- */
-function toHHMM(v?: string | null): string {
-  if (!v) return "";
-  const s = String(v);
-  // ISO com data: "2026-06-30T09:00:00+00:00"
-  if (s.includes("T")) {
-    const m = s.match(/T(\d{2}):(\d{2})/);
-    if (m) return `${m[1]}:${m[2]}`;
-  }
-  // "HH:MM:SS+00" / "HH:MM:SS" / "HH:MM"
-  const m2 = s.match(/^(\d{2}):(\d{2})/);
-  if (m2) return `${m2[1]}:${m2[2]}`;
-  return s.slice(0, 5);
-}
-
-function toHHMMSS(v?: string | null): string {
-  const hhmm = toHHMM(v);
-  return hhmm ? `${hhmm}:00` : "";
-}
-
-/**
- * Combina date (YYYY-MM-DD) + time (HH:MM ou HH:MM:SS) em ISO timestamp
- * compatível com a coluna TIMESTAMPTZ. Usa offset -03:00 (America/Sao_Paulo).
- */
-function toTimestamptz(date: string, time: string): string {
-  const t = time.length === 5 ? `${time}:00` : time;
-  return `${date}T${t}-03:00`;
-}
+import { ReallocateDialog, toHHMM } from "@/components/business/ReallocateDialog";
 
 interface BookingRow {
   id: string;
