@@ -17,6 +17,29 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { getAvailability } from "@/lib/api/availability";
 
+/**
+ * Normaliza qualquer representação de horário vinda do banco (TIMESTAMPTZ,
+ * TIMETZ, "HH:MM", "HH:MM:SS") para "HH:MM".
+ */
+function toHHMM(v?: string | null): string {
+  if (!v) return "";
+  const s = String(v);
+  // ISO com data: "2026-06-30T09:00:00+00:00"
+  if (s.includes("T")) {
+    const m = s.match(/T(\d{2}):(\d{2})/);
+    if (m) return `${m[1]}:${m[2]}`;
+  }
+  // "HH:MM:SS+00" / "HH:MM:SS" / "HH:MM"
+  const m2 = s.match(/^(\d{2}):(\d{2})/);
+  if (m2) return `${m2[1]}:${m2[2]}`;
+  return s.slice(0, 5);
+}
+
+function toHHMMSS(v?: string | null): string {
+  const hhmm = toHHMM(v);
+  return hhmm ? `${hhmm}:00` : "";
+}
+
 interface BookingRow {
   id: string;
   booking_date: string;
