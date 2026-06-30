@@ -117,7 +117,17 @@ DECLARE
     'booking_date', 'start_time', 'end_time', 'employee_id', 'service_id',
     'booking_status', 'updated_at'
   ];
+  v_allowed_finalize_keys TEXT[] := ARRAY[
+    'booking_status', 'cancellation_reason', 'updated_at'
+  ];
 BEGIN
+  IF LOWER(COALESCE(OLD.booking_status::TEXT, '')) NOT IN ('cancelled', 'canceled', 'completed', 'no_show')
+     AND LOWER(COALESCE(NEW.booking_status::TEXT, '')) IN ('cancelled', 'canceled', 'completed', 'no_show')
+     AND (to_jsonb(NEW) - v_allowed_finalize_keys) IS DISTINCT FROM (to_jsonb(OLD) - v_allowed_finalize_keys) THEN
+    RAISE EXCEPTION 'booking_finalize_status_only'
+      USING MESSAGE = 'Ao cancelar, concluir ou marcar não compareceu, apenas o status pode ser alterado.';
+  END IF;
+
   IF LOWER(COALESCE(OLD.booking_status::TEXT, '')) IN ('cancelled', 'canceled', 'completed')
      AND to_jsonb(NEW) IS DISTINCT FROM to_jsonb(OLD) THEN
     RAISE EXCEPTION 'booking_locked_final_status'
@@ -140,6 +150,18 @@ BEGIN
        AND NEW.employee_id IS NOT DISTINCT FROM OLD.employee_id THEN
       RAISE EXCEPTION 'booking_no_show_requires_new_slot'
         USING MESSAGE = 'Para alterar um não comparecimento, escolha uma nova data, horário ou profissional.';
+    END IF;
+
+    IF NOT public.is_slot_available(
+      OLD.company_id,
+      COALESCE(NEW.employee_id, OLD.employee_id),
+      COALESCE(NEW.service_id, OLD.service_id),
+      NEW.booking_date,
+      NEW.start_time::TIME,
+      OLD.id
+    ) THEN
+      RAISE EXCEPTION 'booking_no_show_slot_unavailable'
+        USING MESSAGE = 'O novo horário não está disponível na escala atual.';
     END IF;
   END IF;
 

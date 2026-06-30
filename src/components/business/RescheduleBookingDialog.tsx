@@ -60,6 +60,7 @@ export function RescheduleBookingDialog({
 
   useEffect(() => {
     if (selectedDate && booking?.service_id && booking?.employee_id) {
+      setSelectedTime("");
       fetchAvailableTimes();
     }
   }, [selectedDate]);
@@ -113,6 +114,7 @@ export function RescheduleBookingDialog({
   const fetchAvailableTimes = async () => {
     if (!selectedDate || !booking) return;
     setIsLoadingTimes(true);
+    setAvailableTimes([]);
 
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
