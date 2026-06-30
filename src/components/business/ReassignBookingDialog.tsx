@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { getAvailability } from "@/lib/api/availability";
 import { Loader2, UserCheck, AlertCircle } from "lucide-react";
 
 interface ReassignBookingDialogProps {
@@ -21,6 +20,20 @@ interface Candidate {
   available: boolean;
   reason?: string;
 }
+
+const normalizeTimeValue = (time?: string) => {
+  if (!time) return "";
+  const isoMatch = time.match(/T(\d{2}):(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}:${isoMatch[2]}`;
+  const timeMatch = time.match(/^(\d{2}):(\d{2})/);
+  if (timeMatch) return `${timeMatch[1]}:${timeMatch[2]}`;
+  return time.slice(0, 5);
+};
+
+const toHHMMSS = (time?: string) => {
+  const normalized = normalizeTimeValue(time);
+  return normalized ? `${normalized}:00` : "";
+};
 
 export function ReassignBookingDialog({
   open,
@@ -43,9 +56,7 @@ export function ReassignBookingDialog({
   }, [open, booking?.id]);
 
   const normalizeTime = (t?: string) => {
-    if (!t) return "";
-    if (t.includes("T")) return t.split("T")[1].slice(0, 5);
-    return t.slice(0, 5);
+    return normalizeTimeValue(t);
   };
 
   const loadCandidates = async () => {
@@ -78,45 +89,26 @@ export function ReassignBookingDialog({
         .from("employees")
         .select("id, name")
         .in("id", eligibleIds)
-        .eq("company_id", companyId)
-        .eq("is_active", true);
+        .eq("company_id", companyId);
 
-      // 2) Excluir colaboradores ausentes na data do agendamento
-      const { data: absences } = await supabase
-        .from("employee_absences")
-        .select("employee_id, start_date, end_date")
-        .eq("company_id", companyId)
-        .lte("start_date", booking.booking_date)
-        .gte("end_date", booking.booking_date);
-
-      const absentSet = new Set((absences || []).map((a) => a.employee_id));
-
-      const targetTime = normalizeTime(booking.start_time);
       const list: Candidate[] = [];
 
-      // 3) Para cada candidato, checar disponibilidade naquele horário
+      // 2) Para cada candidato, checar o mesmo gate da Realocação/agenda publicada.
       for (const emp of employeesData || []) {
-        if (absentSet.has(emp.id)) {
-          list.push({ id: emp.id, name: emp.name, available: false, reason: "Ausente nesta data" });
-          continue;
-        }
         try {
-          const data = await getAvailability({
-            data: {
-              company_id: companyId,
-              service_id: booking.service_id,
-              employee_id: emp.id,
-              date: booking.booking_date,
-            },
+          const { data: ok, error: gateErr } = await supabase.rpc("is_slot_available", {
+            p_company: companyId,
+            p_employee: emp.id,
+            p_service: booking.service_id,
+            p_date: booking.booking_date,
+            p_start: toHHMMSS(booking.start_time),
+            p_ignore_booking: booking.id,
           });
-          const slots = (data?.slots || []).map((s: any) =>
-            typeof s === "string" ? s.slice(0, 5) : (s.time || "").slice(0, 5)
-          );
-          const ok = slots.includes(targetTime);
+          if (gateErr) throw gateErr;
           list.push({
             id: emp.id,
             name: emp.name,
-            available: ok,
+            available: Boolean(ok),
             reason: ok ? undefined : "Sem disponibilidade no horário",
           });
         } catch {
@@ -143,11 +135,49 @@ export function ReassignBookingDialog({
     if (!selectedId) return;
     setSaving(true);
     try {
+      const selectedEmployee = candidates.find((candidate) => candidate.id === selectedId);
+      const { data: ok, error: gateErr } = await supabase.rpc("is_slot_available", {
+        p_company: companyId,
+        p_employee: selectedId,
+        p_service: booking.service_id,
+        p_date: booking.booking_date,
+        p_start: toHHMMSS(booking.start_time),
+        p_ignore_booking: booking.id,
+      });
+      if (gateErr) throw gateErr;
+      if (!ok) {
+        toast({
+          title: "Horário indisponível",
+          description: "A escala do profissional não permite esse horário.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const previous = { ...booking };
       const { error } = await supabase
         .from("bookings")
         .update({ employee_id: selectedId })
         .eq("id", booking.id);
       if (error) throw error;
+
+      const current = {
+        ...booking,
+        employee_id: selectedId,
+        employee: selectedEmployee ? { name: selectedEmployee.name } : booking.employee,
+      };
+
+      await supabase.from("booking_history").insert({
+        booking_id: booking.id,
+        change_type: "reallocation",
+        old_data: previous,
+        new_data: current,
+      });
+
+      supabase.functions.invoke("notify-booking-change", {
+        body: { booking_id: booking.id, change_type: "reallocation", previous, current },
+      }).catch((err) => console.error("notify failed", err));
+
       toast({
         title: "Realocado",
         description: "Agendamento transferido para o novo profissional.",

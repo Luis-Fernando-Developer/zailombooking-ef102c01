@@ -35,6 +35,36 @@ interface PlatformNotif {
   full_description?: string | null;
 }
 
+const REQUEST_TYPE_LABELS: Record<string, string> = {
+  schedule_change: "Alteração de escala",
+  absence_request: "Solicitação de ausência",
+  overtime_request: "Solicitação de hora extra",
+  marketing_campaign: "Campanha de marketing",
+};
+
+const REQUEST_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendente",
+  in_review: "Em revisão",
+  approved: "Aprovada",
+  partially_approved: "Parcialmente aprovada",
+  rejected: "Rejeitada",
+  cancelled: "Cancelada",
+  canceled: "Cancelada",
+};
+
+function translateNotificationText(value: string | null): string | null {
+  if (!value) return value;
+  let translated = value;
+  Object.entries(REQUEST_TYPE_LABELS).forEach(([raw, label]) => {
+    translated = translated.replace(new RegExp(raw, "gi"), label);
+  });
+  Object.entries(REQUEST_STATUS_LABELS).forEach(([raw, label]) => {
+    translated = translated.replace(new RegExp(`Status alterado para:\\s*${raw}`, "gi"), `Status alterado para: ${label}`);
+    translated = translated.replace(new RegExp(`\\b${raw}\\b`, "gi"), label);
+  });
+  return translated;
+}
+
 export function NotificationsBell({ companyId, companySlug }: Props) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"notifs" | "news">("notifs");
@@ -67,7 +97,13 @@ export function NotificationsBell({ companyId, companySlug }: Props) {
           .limit(30),
       ]);
       const viewed = new Set((vn.data ?? []).map((v: any) => v.notification_id as string));
-      setCompanyNotifs((cn.data ?? []) as CompanyNotif[]);
+      setCompanyNotifs(
+        ((cn.data ?? []) as CompanyNotif[]).map((item) => ({
+          ...item,
+          title: translateNotificationText(item.title) ?? item.title,
+          message: translateNotificationText(item.message),
+        }))
+      );
       setPlatformNotifs(
         ((pn.data ?? []) as any[]).map((p) => ({ ...p, is_read: viewed.has(p.id) }))
       );
@@ -346,12 +382,14 @@ function NotifList({
               <div className="flex items-center gap-2">
                 {!n.is_read && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
                 <p className={cn("text-sm truncate", !n.is_read ? "font-semibold text-foreground" : "text-muted-foreground")}>
-                  {n.title}
+                  {translateNotificationText(n.title) ?? n.title}
                 </p>
                 {showExternal && <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 ml-auto" />}
               </div>
               {n.message && (
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 whitespace-pre-line">
+                  {translateNotificationText(n.message)}
+                </p>
               )}
               <p className="text-[10px] text-muted-foreground/70 mt-1">
                 {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ptBR })}

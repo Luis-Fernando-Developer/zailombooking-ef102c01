@@ -13,6 +13,32 @@ interface Payload {
   booking_id: string;
   change_type: "reallocation" | "reschedule" | "cancellation";
   reason?: string;
+  previous?: Record<string, unknown>;
+  current?: Record<string, unknown>;
+}
+
+function toDateBR(value: unknown): string {
+  const raw = String(value ?? "");
+  if (!raw) return "—";
+  const datePart = raw.includes("T") ? raw.split("T")[0] : raw;
+  const [year, month, day] = datePart.split("-");
+  return year && month && day ? `${day}/${month}/${year}` : raw;
+}
+
+function toHHMM(value: unknown): string {
+  const raw = String(value ?? "");
+  if (!raw) return "—";
+  const iso = raw.match(/T(\d{2}):(\d{2})/);
+  if (iso) return `${iso[1]}:${iso[2]}`;
+  const time = raw.match(/^(\d{2}):(\d{2})/);
+  if (time) return `${time[1]}:${time[2]}`;
+  return raw.slice(0, 5);
+}
+
+async function nameById(admin: ReturnType<typeof createClient>, table: string, id: unknown): Promise<string | null> {
+  if (!id) return null;
+  const { data } = await admin.from(table).select("name").eq("id", id).maybeSingle();
+  return (data?.name as string | null) ?? null;
 }
 
 Deno.serve(async (req) => {
@@ -44,18 +70,61 @@ Deno.serve(async (req) => {
     if (bkErr || !bk) return json({ error: "booking_not_found" }, 404);
 
     const c: any = bk;
-    const dateStr = new Date(c.booking_date + "T00:00:00").toLocaleDateString("pt-BR");
-    const timeStr = String(c.start_time).slice(0, 5);
+    let previous = body.previous ?? null;
+    let current = body.current ?? null;
+
+    if (!previous || !current) {
+      const historyType = body.change_type === "reschedule" ? "reschedule" : "reallocation";
+      const { data: hist } = await admin
+        .from("booking_history")
+        .select("old_data,new_data,change_type,created_at")
+        .eq("booking_id", body.booking_id)
+        .eq("change_type", historyType)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      previous = previous ?? (hist?.old_data as Record<string, unknown> | null) ?? null;
+      current = current ?? (hist?.new_data as Record<string, unknown> | null) ?? null;
+    }
+
+    const previousBooking = previous ?? c;
+    const currentBooking = current ?? c;
+
+    const serviceName =
+      (currentBooking as any)?.service?.name ??
+      (previousBooking as any)?.service?.name ??
+      c.service?.name ??
+      (await nameById(admin, "services", (currentBooking as any)?.service_id ?? c.service_id)) ??
+      "Serviço";
+    const previousEmployeeName =
+      (previousBooking as any)?.employee?.name ??
+      (await nameById(admin, "employees", (previousBooking as any)?.employee_id)) ??
+      c.employee?.name ??
+      "Profissional anterior";
+    const currentEmployeeName =
+      (currentBooking as any)?.employee?.name ??
+      c.employee?.name ??
+      (await nameById(admin, "employees", (currentBooking as any)?.employee_id ?? c.employee_id)) ??
+      "Novo profissional";
+
+    const previousDate = toDateBR((previousBooking as any)?.booking_date ?? c.booking_date);
+    const previousTime = toHHMM((previousBooking as any)?.start_time ?? c.start_time);
+    const currentDate = toDateBR((currentBooking as any)?.booking_date ?? c.booking_date);
+    const currentTime = toHHMM((currentBooking as any)?.start_time ?? c.start_time);
 
     const titleByType: Record<string, string> = {
-      reallocation: "Seu agendamento foi realocado",
-      reschedule:   "Seu agendamento foi reagendado",
-      cancellation: "Seu agendamento foi cancelado",
+      reallocation: "Um agendamento foi realocado",
+      reschedule:   "Um agendamento foi reagendado",
+      cancellation: "Um agendamento foi cancelado",
     };
     const title = titleByType[body.change_type] ?? "Atualização no seu agendamento";
-    const message =
-      `${c.service?.name} com ${c.employee?.name} — ${dateStr} às ${timeStr}.` +
-      (body.reason ? ` Motivo: ${body.reason}` : "");
+    const message = body.change_type === "cancellation"
+      ? `Agendamento cancelado: ${serviceName} — ${currentEmployeeName} — ${currentDate} às ${currentTime}.` +
+        (body.reason ? ` Motivo: ${body.reason}` : "")
+      : `Atual: ${serviceName} — ${previousEmployeeName} — ${previousDate} às ${previousTime}.\n` +
+        `Realocado para: ${serviceName} — ${currentEmployeeName} — ${currentDate} às ${currentTime}.` +
+        (body.reason ? ` Motivo: ${body.reason}` : "");
 
     // 1) Notificação in-app (sino do cliente / sino da empresa usam company_notifications)
     const { error: notifErr } = await admin.from("company_notifications").insert({
@@ -63,7 +132,7 @@ Deno.serve(async (req) => {
       type: `booking_${body.change_type}`,
       title,
       message,
-      link: `/${c.company?.slug}/cliente/agendamentos`,
+      link: `/admin/agendamentos?bookingId=${c.id}`,
       metadata: {
         booking_id: c.id,
         client_user_id: c.client?.user_id ?? null,
@@ -71,6 +140,8 @@ Deno.serve(async (req) => {
         employee_id: c.employee_id,
         change_type: body.change_type,
         reason: body.reason ?? null,
+        previous: previousBooking,
+        current: currentBooking,
       },
     });
     if (notifErr) console.error("notif insert error:", notifErr);
@@ -82,7 +153,7 @@ Deno.serve(async (req) => {
         channel_type: "direct",
         sender_user_id: null,
         recipient_user_id: c.client.user_id,
-        content: `🔔 ${title}\n${message}`,
+        content: `🔔 ${title.replace("Um agendamento", "Seu agendamento")}\n${message}`,
         metadata: { booking_id: c.id, system: true, change_type: body.change_type },
       }).then(({ error }) => error && console.error("chat insert error:", error));
     }
