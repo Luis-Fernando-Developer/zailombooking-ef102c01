@@ -528,7 +528,7 @@ function ReallocateDialog({ booking, companyId, currentUser, onClose, onDone }: 
                     </Select>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Mantém a data ({format(new Date(booking.booking_date + "T00:00:00"), "dd/MM/yyyy")}) e o horário ({booking.start_time?.slice(0, 5)}). Se o novo profissional não tiver disponibilidade nesse slot, use a aba "Nova data/horário".
+                    Mantém a data ({format(new Date(booking.booking_date + "T00:00:00"), "dd/MM/yyyy")}) e o horário ({toHHMM(booking.start_time)}). Se o novo profissional não tiver disponibilidade nesse slot, use a aba "Nova data/horário".
                   </p>
                   <div className="flex justify-end gap-2 pt-2">
                     <Button variant="outline" onClick={onClose}>Fechar</Button>
