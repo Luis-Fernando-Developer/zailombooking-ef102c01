@@ -119,16 +119,25 @@ Deno.serve(async (req) => {
 
     const titleByType: Record<string, string> = {
       reallocation: "Um agendamento foi realocado",
-      reschedule:   "Um agendamento foi reagendado",
+      reschedule:   "Um agendamento foi reagendado pelo cliente",
       cancellation: "Um agendamento foi cancelado",
     };
     const title = titleByType[body.change_type] ?? "Atualização no seu agendamento";
+    const clientName = c.client?.name ?? "Cliente";
+    const previousServiceName =
+      (previousBooking as any)?.service?.name ??
+      (await nameById(admin, "services", (previousBooking as any)?.service_id)) ??
+      serviceName;
     const message = body.change_type === "cancellation"
       ? `Agendamento cancelado: ${serviceName} — ${currentEmployeeName} — ${currentDate} às ${currentTime}.` +
         (body.reason ? ` Motivo: ${body.reason}` : "")
-      : `Atual: ${serviceName} — ${previousEmployeeName} — ${previousDate} às ${previousTime}.\n` +
-        `Realocado para: ${serviceName} — ${currentEmployeeName} — ${currentDate} às ${currentTime}.` +
-        (body.reason ? ` Motivo: ${body.reason}` : "");
+      : body.change_type === "reschedule"
+        ? `Usuário ${clientName} reagendou serviço "${previousServiceName}", ${previousDate} ${previousTime} com profissional ${previousEmployeeName} ` +
+          `para "${serviceName}", ${currentDate} ${currentTime} com profissional ${currentEmployeeName}.` +
+          (body.reason ? ` Motivo: ${body.reason}` : "")
+        : `Atual: ${serviceName} — ${previousEmployeeName} — ${previousDate} às ${previousTime}.\n` +
+          `Realocado para: ${serviceName} — ${currentEmployeeName} — ${currentDate} às ${currentTime}.` +
+          (body.reason ? ` Motivo: ${body.reason}` : "");
 
     // 1) Notificação in-app (sino do cliente / sino da empresa usam company_notifications)
     const { error: notifErr } = await admin.from("company_notifications").insert({
