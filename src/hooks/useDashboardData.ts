@@ -365,12 +365,17 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           statusCounts,
           topEmployeeByRevenue: topByRevenue,
           topEmployeeByCount: topByCount,
+          employeesByRevenue,
+          employeesByCount,
           absentEmployees,
           reallocations,
           mostSoldService,
           leastSoldService,
+          servicesRanking,
           topSpender,
           mostFrequent,
+          clientsBySpending,
+          clientsByFrequency,
           inactiveClients: inactiveClients ?? 0,
         });
       } catch (err) {
