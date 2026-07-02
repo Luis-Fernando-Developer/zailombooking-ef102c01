@@ -61,12 +61,17 @@ const empty: DashboardData = {
   statusCounts: {},
   topEmployeeByRevenue: null,
   topEmployeeByCount: null,
+  employeesByRevenue: [],
+  employeesByCount: [],
   absentEmployees: 0,
   reallocations: 0,
   mostSoldService: null,
   leastSoldService: null,
+  servicesRanking: [],
   topSpender: null,
   mostFrequent: null,
+  clientsBySpending: [],
+  clientsByFrequency: [],
   inactiveClients: 0,
 };
 
