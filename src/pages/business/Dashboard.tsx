@@ -25,6 +25,7 @@ import {
   subMonths, format,
 } from "date-fns";
 import { useDashboardData, DateRange } from "@/hooks/useDashboardData";
+import { MetricGroup, PieDistribution, BarRanking, EmptyChart } from "@/components/business/dashboard/MetricGroup";
 
 // ─── InconsistencyAlert (preserved) ───────────────────────────────────────────
 function InconsistencyAlert({ companyId, companySlug }: { companyId: string; companySlug: string }) {
