@@ -400,117 +400,178 @@ export default function BusinessDashboard() {
         </section>
 
         {/* ══ GROUP 5 — Status dos Agendamentos ══ */}
-        <section>
-          <SectionTitle>📅 Status dos Agendamentos</SectionTitle>
-          {loading ? <SkeletonCards n={6} /> : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {[
-                { key: "pending", label: "Pendentes", icon: AlertCircle, color: "text-yellow-400" },
-                { key: "confirmed", label: "Confirmados", icon: CheckCircle, color: "text-green-400" },
-                { key: "in_progress", label: "Em andamento", icon: Activity, color: "text-blue-400" },
-                { key: "completed", label: "Finalizados", icon: Star, color: "text-primary" },
-                { key: "cancelled", label: "Cancelados", icon: XCircle, color: "text-destructive" },
-                { key: "no_show", label: "Não compareceu", icon: UserMinus, color: "text-orange-400" },
-              ].map(({ key, label, icon: Icon, color }) => (
-                <Card key={key} className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-                  <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-                    <Icon className={`h-6 w-6 ${color}`} />
-                    <div className="text-xl font-bold text-gradient">{d.statusCounts[key] ?? 0}</div>
-                    <div className="text-xs text-muted-foreground">{label}</div>
-                    {/* TODO: comparação com período anterior */}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
+        {loading ? (
+          <section><SectionTitle>📅 Status dos Agendamentos</SectionTitle><SkeletonCards n={6} /></section>
+        ) : (() => {
+          const statusMeta = [
+            { key: "pending", label: "Pendentes", icon: AlertCircle, color: "text-yellow-400" },
+            { key: "confirmed", label: "Confirmados", icon: CheckCircle, color: "text-green-400" },
+            { key: "in_progress", label: "Em andamento", icon: Activity, color: "text-blue-400" },
+            { key: "completed", label: "Finalizados", icon: Star, color: "text-primary" },
+            { key: "cancelled", label: "Cancelados", icon: XCircle, color: "text-destructive" },
+            { key: "no_show", label: "Não compareceu", icon: UserMinus, color: "text-orange-400" },
+          ];
+          const chartData = statusMeta
+            .map((s) => ({ name: s.label, value: d.statusCounts[s.key] ?? 0 }))
+            .filter((x) => x.value > 0);
+          return (
+            <MetricGroup
+              title="📅 Status dos Agendamentos"
+              storageKey="status"
+              numbers={
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {statusMeta.map(({ key, label, icon: Icon, color }) => (
+                    <Card key={key} className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+                      <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+                        <Icon className={`h-6 w-6 ${color}`} />
+                        <div className="text-xl font-bold text-gradient">{d.statusCounts[key] ?? 0}</div>
+                        <div className="text-xs text-muted-foreground">{label}</div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              }
+              chart={chartData.length ? <BarRanking data={chartData} layout="vertical" /> : <EmptyChart />}
+            />
+          );
+        })()}
 
         {/* ══ GROUP 6 — Equipe ══ */}
-        <section>
-          <SectionTitle>👥 Equipe</SectionTitle>
-          {loading ? <SkeletonCards n={4} /> : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard
-                title="Maior Faturamento"
-                value={d.topEmployeeByRevenue?.name ?? "—"}
-                description={d.topEmployeeByRevenue ? BRL(d.topEmployeeByRevenue.value) : "sem dados"}
-                icon={TrendingUp}
-              />
-              <StatCard
-                title="Mais Atendimentos"
-                value={d.topEmployeeByCount?.name ?? "—"}
-                description={d.topEmployeeByCount ? `${d.topEmployeeByCount.count} atendimentos` : "sem dados"}
-                icon={Users}
-              />
-              <StatCard
-                title="Colaboradores Ausentes"
-                value={d.absentEmployees}
-                description="com ausência no período"
-                icon={UserX}
-                iconColor="text-orange-400"
-              />
-              <StatCard
-                title="Realocações"
-                value={d.reallocations}
-                description="agendamentos realocados"
-                icon={Repeat2}
-              />
-            </div>
-          )}
-        </section>
+        {loading ? (
+          <section><SectionTitle>👥 Equipe</SectionTitle><SkeletonCards n={4} /></section>
+        ) : (
+          <MetricGroup
+            title="👥 Equipe"
+            storageKey="equipe"
+            numbers={
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard
+                  title="Maior Faturamento"
+                  value={d.topEmployeeByRevenue?.name ?? "—"}
+                  description={d.topEmployeeByRevenue ? BRL(d.topEmployeeByRevenue.value) : "sem dados"}
+                  icon={TrendingUp}
+                />
+                <StatCard
+                  title="Mais Atendimentos"
+                  value={d.topEmployeeByCount?.name ?? "—"}
+                  description={d.topEmployeeByCount ? `${d.topEmployeeByCount.count} atendimentos` : "sem dados"}
+                  icon={Users}
+                />
+                <StatCard
+                  title="Colaboradores Ausentes"
+                  value={d.absentEmployees}
+                  description="com ausência no período"
+                  icon={UserX}
+                  iconColor="text-orange-400"
+                />
+                <StatCard
+                  title="Realocações"
+                  value={d.reallocations}
+                  description="agendamentos realocados"
+                  icon={Repeat2}
+                />
+              </div>
+            }
+            chart={
+              d.employeesByRevenue.length ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2 px-1">Faturamento por profissional</p>
+                    <BarRanking data={d.employeesByRevenue} layout="vertical" valueFormatter={BRL} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2 px-1">Atendimentos por profissional</p>
+                    <BarRanking data={d.employeesByCount} layout="vertical" color="#10b981" />
+                  </div>
+                </div>
+              ) : <EmptyChart />
+            }
+          />
+        )}
 
         {/* ══ GROUP 7 — Serviços ══ */}
-        <section>
-          <SectionTitle>✂️ Serviços</SectionTitle>
-          {loading ? <SkeletonCards n={2} /> : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <StatCard
-                title="Serviço Mais Vendido"
-                value={d.mostSoldService?.name ?? "—"}
-                description={d.mostSoldService ? `${d.mostSoldService.count} agendamentos` : "sem dados no período"}
-                icon={Scissors}
-                iconColor="text-green-400"
-              />
-              <StatCard
-                title="Serviço Menos Vendido"
-                value={d.leastSoldService?.name ?? "—"}
-                description={d.leastSoldService ? `${d.leastSoldService.count} agendamentos` : "sem dados no período"}
-                icon={Scissors}
-                iconColor="text-muted-foreground"
-              />
-            </div>
-          )}
-        </section>
+        {loading ? (
+          <section><SectionTitle>✂️ Serviços</SectionTitle><SkeletonCards n={2} /></section>
+        ) : (
+          <MetricGroup
+            title="✂️ Serviços"
+            storageKey="servicos"
+            numbers={
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <StatCard
+                  title="Serviço Mais Vendido"
+                  value={d.mostSoldService?.name ?? "—"}
+                  description={d.mostSoldService ? `${d.mostSoldService.count} agendamentos` : "sem dados no período"}
+                  icon={Scissors}
+                  iconColor="text-green-400"
+                />
+                <StatCard
+                  title="Serviço Menos Vendido"
+                  value={d.leastSoldService?.name ?? "—"}
+                  description={d.leastSoldService ? `${d.leastSoldService.count} agendamentos` : "sem dados no período"}
+                  icon={Scissors}
+                  iconColor="text-muted-foreground"
+                />
+              </div>
+            }
+            chart={
+              d.servicesRanking.length ? (
+                <BarRanking data={d.servicesRanking} layout="vertical" />
+              ) : <EmptyChart />
+            }
+          />
+        )}
 
         {/* ══ GROUP 8 — Clientes ══ */}
-        <section>
-          <SectionTitle>🏆 Clientes</SectionTitle>
-          {loading ? <SkeletonCards n={3} /> : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard
-                title="Cliente que Mais Gastou"
-                value={d.topSpender?.name ?? "—"}
-                description={d.topSpender ? BRL(d.topSpender.value) : "sem dados no período"}
-                icon={DollarSign}
-                iconColor="text-yellow-400"
-              />
-              <StatCard
-                title="Cliente Mais Frequente"
-                value={d.mostFrequent?.name ?? "—"}
-                description={d.mostFrequent ? `${d.mostFrequent.count} visitas` : "sem dados no período"}
-                icon={Star}
-                iconColor="text-primary"
-              />
-              <StatCard
-                title="Clientes Inativos"
-                value={d.inactiveClients}
-                description={`sem visitas há mais de 60 dias`}
-                icon={UserX}
-                iconColor="text-destructive"
-              />
-            </div>
-          )}
-        </section>
+        {loading ? (
+          <section><SectionTitle>🏆 Clientes</SectionTitle><SkeletonCards n={3} /></section>
+        ) : (
+          <MetricGroup
+            title="🏆 Clientes"
+            storageKey="clientes"
+            numbers={
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatCard
+                  title="Cliente que Mais Gastou"
+                  value={d.topSpender?.name ?? "—"}
+                  description={d.topSpender ? BRL(d.topSpender.value) : "sem dados no período"}
+                  icon={DollarSign}
+                  iconColor="text-yellow-400"
+                />
+                <StatCard
+                  title="Cliente Mais Frequente"
+                  value={d.mostFrequent?.name ?? "—"}
+                  description={d.mostFrequent ? `${d.mostFrequent.count} visitas` : "sem dados no período"}
+                  icon={Star}
+                  iconColor="text-primary"
+                />
+                <StatCard
+                  title="Clientes Inativos"
+                  value={d.inactiveClients}
+                  description={`sem visitas há mais de 60 dias`}
+                  icon={UserX}
+                  iconColor="text-destructive"
+                />
+              </div>
+            }
+            chart={
+              d.clientsBySpending.length ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2 px-1">Top gastadores</p>
+                    <BarRanking data={d.clientsBySpending} layout="vertical" valueFormatter={BRL} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2 px-1">Mais frequentes</p>
+                    <BarRanking data={d.clientsByFrequency} layout="vertical" color="#f59e0b" />
+                  </div>
+                </div>
+              ) : <EmptyChart />
+            }
+          />
+        )}
+
+
 
         {/* ══ Ações Rápidas (preserved) ══ */}
         <section>
