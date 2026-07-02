@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Hash, BarChart3 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, LabelList,
 } from "recharts";
 
 export type MetricGroupView = "numbers" | "chart";
@@ -119,11 +119,17 @@ export function PieDistribution({
           data={data}
           dataKey="value"
           nameKey="name"
-          innerRadius={60}
-          outerRadius={100}
+          innerRadius={65}
+          outerRadius={110}
           paddingAngle={2}
-          label={(e: any) => total > 0 ? `${((e.value / total) * 100).toFixed(0)}%` : ""}
-          labelLine={false}
+          label={(e: any) => {
+            if (total <= 0) return "";
+            const pct = ((e.value / total) * 100).toFixed(0);
+            const val = valueFormatter ? valueFormatter(e.value) : e.value;
+            return `${e.name}: ${val} (${pct}%)`;
+          }}
+          labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1 }}
+          style={{ fontSize: 11, fill: "hsl(var(--foreground))" }}
         >
           {data.map((_, i) => (
             <Cell key={i} fill={PALETTE[i % PALETTE.length]} stroke="hsl(var(--background))" strokeWidth={2} />
@@ -131,7 +137,7 @@ export function PieDistribution({
         </Pie>
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(v: any) => valueFormatter ? valueFormatter(Number(v)) : v}
+          formatter={(v: any, n: any) => [valueFormatter ? valueFormatter(Number(v)) : v, n]}
         />
         <Legend wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }} />
       </PieChart>
@@ -148,30 +154,61 @@ export function BarRanking({
   color?: string;
 }) {
   const isVertical = layout === "vertical";
+  const fmt = (v: number) => valueFormatter ? valueFormatter(v) : String(v);
   return (
-    <ChartCard height={Math.max(300, data.length * 42 + 60)}>
-      <BarChart data={data} layout={isVertical ? "vertical" : "horizontal"} margin={{ top: 10, right: 20, bottom: 10, left: isVertical ? 100 : 10 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--primary) / 0.1)" />
+    <ChartCard height={Math.max(320, data.length * 46 + 80)}>
+      <BarChart
+        data={data}
+        layout={isVertical ? "vertical" : "horizontal"}
+        margin={{ top: 20, right: isVertical ? 60 : 20, bottom: 10, left: isVertical ? 110 : 10 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--primary) / 0.12)" />
         {isVertical ? (
           <>
-            <XAxis type="number" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickFormatter={valueFormatter} />
-            <YAxis type="category" dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} width={100} />
+            <XAxis
+              type="number"
+              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+              tickFormatter={fmt}
+              axisLine={{ stroke: "hsl(var(--border))" }}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+              width={110}
+              axisLine={{ stroke: "hsl(var(--border))" }}
+            />
           </>
         ) : (
           <>
-            <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-            <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickFormatter={valueFormatter} />
+            <XAxis
+              dataKey="name"
+              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+              axisLine={{ stroke: "hsl(var(--border))" }}
+            />
+            <YAxis
+              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+              tickFormatter={fmt}
+              axisLine={{ stroke: "hsl(var(--border))" }}
+              allowDecimals={false}
+            />
           </>
         )}
         <Tooltip
           contentStyle={tooltipStyle}
           cursor={{ fill: "hsl(var(--primary) / 0.05)" }}
-          formatter={(v: any) => valueFormatter ? valueFormatter(Number(v)) : v}
+          formatter={(v: any) => fmt(Number(v))}
         />
         <Bar dataKey="value" radius={[6, 6, 6, 6]} fill={color ?? "hsl(var(--primary))"}>
           {data.map((_, i) => (
             <Cell key={i} fill={color ?? PALETTE[i % PALETTE.length]} />
           ))}
+          <LabelList
+            dataKey="value"
+            position={isVertical ? "right" : "top"}
+            formatter={fmt}
+            style={{ fill: "hsl(var(--foreground))", fontSize: 11, fontWeight: 600 }}
+          />
         </Bar>
       </BarChart>
     </ChartCard>
