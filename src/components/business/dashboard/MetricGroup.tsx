@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Hash, BarChart3 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, LabelList,
 } from "recharts";
 
 export type MetricGroupView = "numbers" | "chart";
