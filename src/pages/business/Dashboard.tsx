@@ -346,16 +346,33 @@ export default function BusinessDashboard() {
         </section>
 
         {/* ══ GROUP 3 — Financeiro ══ */}
-        <section>
-          <SectionTitle>💳 Financeiro — Formas de Pagamento</SectionTitle>
-          {loading ? <SkeletonCards n={3} /> : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard title="Recebido via Pix" value={BRL(d.receivedPix)} description="pagamentos Pix no período" icon={Wallet} iconColor="text-green-400" />
-              <StatCard title="Recebido via Cartão" value={BRL(d.receivedCard)} description="crédito / débito" icon={CreditCard} iconColor="text-blue-400" />
-              <StatCard title="Recebido em Dinheiro" value={BRL(d.receivedCash)} description="pagamentos em espécie" icon={Banknote} iconColor="text-yellow-400" />
-            </div>
-          )}
-        </section>
+        {loading ? (
+          <section><SectionTitle>💳 Financeiro — Formas de Pagamento</SectionTitle><SkeletonCards n={3} /></section>
+        ) : (
+          <MetricGroup
+            title="💳 Financeiro — Formas de Pagamento"
+            storageKey="financeiro"
+            numbers={
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatCard title="Recebido via Pix" value={BRL(d.receivedPix)} description="pagamentos Pix no período" icon={Wallet} iconColor="text-green-400" />
+                <StatCard title="Recebido via Cartão" value={BRL(d.receivedCard)} description="crédito / débito" icon={CreditCard} iconColor="text-blue-400" />
+                <StatCard title="Recebido em Dinheiro" value={BRL(d.receivedCash)} description="pagamentos em espécie" icon={Banknote} iconColor="text-yellow-400" />
+              </div>
+            }
+            chart={
+              (d.receivedPix + d.receivedCard + d.receivedCash) > 0 ? (
+                <PieDistribution
+                  data={[
+                    { name: "Pix", value: d.receivedPix },
+                    { name: "Cartão", value: d.receivedCard },
+                    { name: "Dinheiro", value: d.receivedCash },
+                  ].filter((x) => x.value > 0)}
+                  valueFormatter={BRL}
+                />
+              ) : <EmptyChart />
+            }
+          />
+        )}
 
         {/* ══ GROUP 4 — Repasses de Autônomos ══ */}
         <section>
