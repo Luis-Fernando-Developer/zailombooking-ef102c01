@@ -277,12 +277,12 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           if (!empCntMap[id]) empCntMap[id] = { name: emp.name, count: 0 };
           empCntMap[id].count += 1;
         }
-        const topByRevenue =
-          Object.values(empRevMap).sort((a, b) => b.value - a.value)[0] ??
-          null;
-        const topByCount =
-          Object.values(empCntMap).sort((a, b) => b.count - a.count)[0] ??
-          null;
+        const empRevSorted = Object.values(empRevMap).sort((a, b) => b.value - a.value);
+        const empCntSorted = Object.values(empCntMap).sort((a, b) => b.count - a.count);
+        const topByRevenue = empRevSorted[0] ?? null;
+        const topByCount = empCntSorted[0] ?? null;
+        const employeesByRevenue = empRevSorted.slice(0, 8).map((e) => ({ name: e.name, value: e.value }));
+        const employeesByCount = empCntSorted.slice(0, 8).map((e) => ({ name: e.name, value: e.count }));
 
         const absentEmployees = (absencesRes as any)?.data?.length ?? 0;
         const reallocations = (reallocRes as any)?.data?.length ?? 0;
