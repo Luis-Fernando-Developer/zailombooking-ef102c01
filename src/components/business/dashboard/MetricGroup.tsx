@@ -119,11 +119,17 @@ export function PieDistribution({
           data={data}
           dataKey="value"
           nameKey="name"
-          innerRadius={60}
-          outerRadius={100}
+          innerRadius={65}
+          outerRadius={110}
           paddingAngle={2}
-          label={(e: any) => total > 0 ? `${((e.value / total) * 100).toFixed(0)}%` : ""}
-          labelLine={false}
+          label={(e: any) => {
+            if (total <= 0) return "";
+            const pct = ((e.value / total) * 100).toFixed(0);
+            const val = valueFormatter ? valueFormatter(e.value) : e.value;
+            return `${e.name}: ${val} (${pct}%)`;
+          }}
+          labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1 }}
+          style={{ fontSize: 11, fill: "hsl(var(--foreground))" }}
         >
           {data.map((_, i) => (
             <Cell key={i} fill={PALETTE[i % PALETTE.length]} stroke="hsl(var(--background))" strokeWidth={2} />
@@ -131,7 +137,7 @@ export function PieDistribution({
         </Pie>
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(v: any) => valueFormatter ? valueFormatter(Number(v)) : v}
+          formatter={(v: any, n: any) => [valueFormatter ? valueFormatter(Number(v)) : v, n]}
         />
         <Legend wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }} />
       </PieChart>
