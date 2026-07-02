@@ -51,7 +51,8 @@ export function BusinessLayout({
                 <Button size="sm" variant="link" className="ml-2 p-0"><Copy className="w-4 h-4" /></Button>
               </div>
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-1">
+              <ThemeToggle />
               <NotificationsBell companyId={companyId} companySlug={companySlug} />
             </div>
           </header>
