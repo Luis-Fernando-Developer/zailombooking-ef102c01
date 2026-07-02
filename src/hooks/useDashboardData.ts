@@ -97,7 +97,7 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           supabase
             .from("bookings")
             .select(
-              "id, booking_status, start_time, end_time, booking_date, payment_method, service:services(name, price), employee:employees(id, name, employee_type, autonomous_payment_flow, payment_receiver)"
+              "id, booking_status, start_time, end_time, booking_date, payment_method, service:services(name, price), employee:employees(id, name, employee_type, payout_flow_override)"
             )
             .eq("company_id", companyId)
             .gte("booking_date", from)
