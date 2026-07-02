@@ -97,7 +97,7 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           supabase
             .from("bookings")
             .select(
-              "id, booking_status, start_time, end_time, booking_date, payment_method, service:services(name, price), employee:employees(id, name, employee_type, autonomous_payment_flow, payment_receiver)"
+              "id, booking_status, start_time, end_time, booking_date, payment_method, service:services(name, price), employee:employees(id, name, employee_type, payout_flow_override)"
             )
             .eq("company_id", companyId)
             .gte("booking_date", from)
@@ -237,12 +237,11 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           const emp = b.employee as any;
           if (!emp || emp.employee_type !== "autonomo") continue;
           const price = Number(b.service?.price ?? 0);
-          const flow =
-            emp.autonomous_payment_flow ?? emp.payment_receiver ?? null;
-          if (flow === "company" || flow === "company_receives") {
+          const flow = emp.payout_flow_override ?? null;
+          if (flow === "via_company") {
             // Company collects, owes commission to autonomous
             toRepay += price * 0.5; // TODO: use actual commission rate
-          } else if (flow === "autonomous" || flow === "autonomous_receives") {
+          } else if (flow === "direct_to_autonomous") {
             // Autonomous collects, owes % to company
             toReceive += price * 0.3; // TODO: use actual commission rate
           }
