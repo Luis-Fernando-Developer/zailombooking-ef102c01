@@ -85,12 +85,16 @@ const PALETTE = [
 ];
 
 const tooltipStyle = {
-  backgroundColor: "hsl(var(--card))",
-  border: "1px solid hsl(var(--primary) / 0.3)",
+  backgroundColor: "hsl(var(--popover))",
+  border: "1px solid hsl(var(--primary) / 0.5)",
   borderRadius: 8,
-  color: "hsl(var(--foreground))",
+  color: "hsl(var(--popover-foreground))",
   fontSize: 12,
+  padding: "8px 12px",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
 };
+const tooltipLabelStyle = { color: "hsl(var(--popover-foreground))", fontWeight: 600, marginBottom: 4 };
+const tooltipItemStyle = { color: "hsl(var(--popover-foreground))" };
 
 function ChartCard({ children, height = 300 }: { children: ReactNode; height?: number }) {
   return (
