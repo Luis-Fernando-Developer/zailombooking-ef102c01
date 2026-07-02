@@ -119,7 +119,10 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   const { toast } = useToast();
 
   const currentPath = location.pathname;
-  const basePath = `/${companySlug}`;
+  const { slug: routeSlug } = useParams<{ slug: string }>();
+  // Prefer the slug from the URL (source of truth) — evita mismatch quando
+  // company.slug do banco difere do slug da rota atual.
+  const basePath = `/${routeSlug || companySlug}`;
 
   // Activo: match exato OU prefixo + "/" (cobre subpaths como /talkmap/123)
   const isActive = (path: string) => {
