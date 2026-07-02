@@ -97,7 +97,7 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           supabase
             .from("bookings")
             .select(
-              "id, booking_status, start_time, end_time, booking_date, payment_method, service:services(name, price), employee:employees(id, name, employment_type, autonomous_payment_flow, payment_receiver)"
+              "id, booking_status, start_time, end_time, booking_date, payment_method, service:services(name, price), employee:employees(id, name, employee_type, autonomous_payment_flow, payment_receiver)"
             )
             .eq("company_id", companyId)
             .gte("booking_date", from)
@@ -235,7 +235,7 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           toReceive = 0;
         for (const b of activeBookings) {
           const emp = b.employee as any;
-          if (!emp || emp.employment_type !== "autonomous") continue;
+          if (!emp || emp.employee_type !== "autonomo") continue;
           const price = Number(b.service?.price ?? 0);
           const flow =
             emp.autonomous_payment_flow ?? emp.payment_receiver ?? null;
