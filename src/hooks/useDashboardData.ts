@@ -329,12 +329,12 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           clientFreq[cid].count += 1;
         }
 
-        const topSpender =
-          Object.values(clientSpend).sort((a, b) => b.value - a.value)[0] ??
-          null;
-        const mostFrequent =
-          Object.values(clientFreq).sort((a, b) => b.count - a.count)[0] ??
-          null;
+        const spendSorted = Object.values(clientSpend).sort((a, b) => b.value - a.value);
+        const freqSorted = Object.values(clientFreq).sort((a, b) => b.count - a.count);
+        const topSpender = spendSorted[0] ?? null;
+        const mostFrequent = freqSorted[0] ?? null;
+        const clientsBySpending = spendSorted.slice(0, 8).map((c) => ({ name: c.name, value: c.value }));
+        const clientsByFrequency = freqSorted.slice(0, 8).map((c) => ({ name: c.name, value: c.count }));
 
         // Inactive: clients whose last booking is > INACTIVE_DAYS ago
         const cutoff = new Date();
