@@ -1,21 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card, CardContent, CardHeader, CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
-import { 
-  Calendar, 
-  Users, 
-  DollarSign, 
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle
+import {
+  CalendarIcon, Users, DollarSign, TrendingUp, Clock, CheckCircle,
+  XCircle, AlertCircle, Activity, UserMinus, Repeat2, Star, Scissors,
+  Wallet, CreditCard, Banknote, UserX,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import {
+  startOfDay, endOfDay, startOfMonth, endOfMonth, subDays,
+  subMonths, format,
+} from "date-fns";
+import { useDashboardData, DateRange } from "@/hooks/useDashboardData";
 
+// ─── InconsistencyAlert (preserved) ───────────────────────────────────────────
 function InconsistencyAlert({ companyId, companySlug }: { companyId: string; companySlug: string }) {
   const [items, setItems] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -61,37 +72,23 @@ function InconsistencyAlert({ companyId, companySlug }: { companyId: string; com
                 {count} agendamento{count > 1 ? "s" : ""} fora da escala atual
               </p>
               <p className="text-sm text-muted-foreground">
-                Profissional ficou indisponível (desligamento, ausência ou folga). Realoque para liberar a agenda.
+                Profissional ficou indisponível. Realoque para liberar a agenda.
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="text-sm font-medium text-primary hover:underline shrink-0"
-          >
+          <button onClick={() => setOpen((v) => !v)} className="text-sm font-medium text-primary hover:underline shrink-0">
             {open ? "Ocultar" : "Ver detalhes"}
           </button>
         </div>
-
         {open && (
           <div className="space-y-2 pt-2 border-t border-destructive/20">
             {items.map((b) => (
-              <div
-                key={b.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-md bg-background/40 border border-primary/10"
-              >
+              <div key={b.id} className="flex items-center justify-between gap-3 p-3 rounded-md bg-background/40 border border-primary/10">
                 <div className="text-sm space-y-0.5 min-w-0">
-                  <p className="font-medium truncate">
-                    {b.client?.name || "Cliente"} — {b.combo?.name || b.service?.name || "Serviço"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {fmtDate(b.booking_date)} às {fmtTime(b.start_time)} · Prof.: {b.employee?.name || "—"}
-                  </p>
+                  <p className="font-medium truncate">{b.client?.name || "Cliente"} — {b.combo?.name || b.service?.name || "Serviço"}</p>
+                  <p className="text-xs text-muted-foreground">{fmtDate(b.booking_date)} às {fmtTime(b.start_time)} · Prof.: {b.employee?.name || "—"}</p>
                 </div>
-                <Link
-                  to={`/${companySlug}/admin/agendamentos?bookingId=${b.id}`}
-                  className="text-sm font-medium text-primary hover:underline shrink-0"
-                >
+                <Link to={`/${companySlug}/admin/agendamentos?bookingId=${b.id}`} className="text-sm font-medium text-primary hover:underline shrink-0">
                   Resolver →
                 </Link>
               </div>
@@ -103,139 +100,140 @@ function InconsistencyAlert({ companyId, companySlug }: { companyId: string; com
   );
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const BRL = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function StatCard({
+  title, value, description, icon: Icon, iconColor,
+}: {
+  title: string; value: string | number; description?: string;
+  icon?: React.ElementType; iconColor?: string;
+}) {
+  return (
+    <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {Icon && <Icon className={`h-4 w-4 ${iconColor ?? "text-muted-foreground"}`} />}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-gradient">{value}</div>
+        {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+        {/* TODO: comparação com período anterior */}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-xl font-semibold text-gradient mb-4">{children}</h2>;
+}
+
+function SkeletonCards({ n = 4 }: { n?: number }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {Array.from({ length: n }).map((_, i) => (
+        <Card key={i} className="bg-card/50 border-primary/20">
+          <CardContent className="p-6 space-y-3">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-3 w-3/4" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ─── Period filter helpers ─────────────────────────────────────────────────────
+type PeriodKey =
+  | "today" | "yesterday" | "last7" | "last15" | "last30"
+  | "thisMonth" | "lastMonth" | "custom";
+
+function rangeForPeriod(key: PeriodKey): DateRange {
+  const now = new Date();
+  switch (key) {
+    case "today": return { from: startOfDay(now), to: endOfDay(now) };
+    case "yesterday": {
+      const y = subDays(now, 1);
+      return { from: startOfDay(y), to: endOfDay(y) };
+    }
+    case "last7": return { from: subDays(now, 6), to: now };
+    case "last15": return { from: subDays(now, 14), to: now };
+    case "last30": return { from: subDays(now, 29), to: now };
+    case "thisMonth": return { from: startOfMonth(now), to: endOfMonth(now) };
+    case "lastMonth": {
+      const lm = subMonths(now, 1);
+      return { from: startOfMonth(lm), to: endOfMonth(lm) };
+    }
+    default: return { from: startOfMonth(now), to: endOfMonth(now) };
+  }
+}
+
+const PERIOD_LABELS: Record<PeriodKey, string> = {
+  today: "Hoje",
+  yesterday: "Ontem",
+  last7: "Últimos 7 dias",
+  last15: "Últimos 15 dias",
+  last30: "Últimos 30 dias",
+  thisMonth: "Este mês",
+  lastMonth: "Mês passado",
+  custom: "Personalizado",
+};
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function BusinessDashboard() {
   const { slug } = useParams();
   const [company, setCompany] = useState<any>(null);
   const [employee, setEmployee] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [stats, setStats] = useState({
-    todayBookings: 0,
-    weekBookings: 0,
-    monthRevenue: 0,
-    totalClients: 0,
-    pendingBookings: 0,
-    confirmedBookings: 0,
-    completedBookings: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const [companyLoading, setCompanyLoading] = useState(true);
+
+  const [period, setPeriod] = useState<PeriodKey>("thisMonth");
+  const [range, setRange] = useState<DateRange>(rangeForPeriod("thisMonth"));
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
+
+  const handlePeriodChange = useCallback((key: PeriodKey) => {
+    setPeriod(key);
+    if (key !== "custom") setRange(rangeForPeriod(key));
+    else setCustomOpen(true);
+  }, []);
+
+  const applyCustomRange = useCallback(() => {
+    if (customRange.from && customRange.to) {
+      setRange({ from: customRange.from, to: customRange.to });
+      setCustomOpen(false);
+    }
+  }, [customRange]);
 
   useEffect(() => {
-    fetchDashboardData();
+    (async () => {
+      try {
+        const { data: companyData } = await supabase
+          .from("companies").select("*").eq("slug", slug).single();
+        if (!companyData) return;
+        setCompany(companyData);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUser(user);
+          const { data: emp } = await supabase
+            .from("employees").select("*")
+            .eq("company_id", companyData.id).eq("user_id", user.id).single();
+          setEmployee(emp);
+        }
+      } catch (e) { console.error(e); }
+      finally { setCompanyLoading(false); }
+    })();
   }, [slug]);
 
-  const fetchDashboardData = async () => {
-    try {
-      // Buscar dados da empresa
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('slug', slug)
-        .single();
+  const { data, loading } = useDashboardData(company?.id ?? null, range);
 
-      if (companyError) {
-        toast({
-          title: "Erro",
-          description: "Empresa não encontrada.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setCompany(companyData);
-
-      // Buscar dados do funcionário atual
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        setCurrentUser(user);
-        const { data: employeeData } = await supabase
-          .from('employees')
-          .select('*')
-          .eq('company_id', companyData.id)
-          .eq('user_id', user.id)
-          .single();
-
-        setEmployee(employeeData);
-
-        // Buscar estatísticas
-        await fetchStats(companyData.id);
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStats = async (companyId: string) => {
-    try {
-      const today = new Date();
-      const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-      // Agendamentos de hoje
-      const { count: todayCount } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', companyId)
-        .eq('booking_date', new Date().toISOString().split('T')[0]);
-
-      // Agendamentos da semana
-      const { count: weekCount } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', companyId)
-        .gte('booking_date', startOfWeek.toISOString().split('T')[0]);
-
-      // Total de clientes
-      const { count: clientsCount } = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', companyId);
-
-      // Agendamentos por status
-      const { data: bookingsByStatus } = await supabase
-        .from('bookings')
-        .select('booking_status')
-        .eq('company_id', companyId)
-        .gte('booking_date', startOfMonth.toISOString().split('T')[0]);
-
-      const statusCounts = bookingsByStatus?.reduce((acc: any, booking: any) => {
-        const status = booking.booking_status;
-        acc[status] = (acc[status] || 0) + 1;
-        return acc;
-      }, {}) || {};
-
-      // Receita do mês (simplificado - usando preço do serviço)
-      const { data: monthlyBookings } = await supabase
-        .from('bookings')
-        .select('service:services(price), booking_status')
-        .eq('company_id', companyId)
-        .in('booking_status', ['confirmed', 'completed'])
-        .gte('booking_date', startOfMonth.toISOString().split('T')[0]);
-
-      const totalRevenue = monthlyBookings?.reduce((sum, booking: any) => sum + Number(booking.service?.price || 0), 0) || 0;
-
-      setStats({
-        todayBookings: todayCount || 0,
-        weekBookings: weekCount || 0,
-        monthRevenue: totalRevenue,
-        totalClients: clientsCount || 0,
-        pendingBookings: statusCounts.pending || 0,
-        confirmedBookings: statusCounts.confirmed || 0,
-        completedBookings: statusCounts.completed || 0
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
-
-  if (loading) {
+  if (companyLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Carregando dashboard...</p>
         </div>
       </div>
@@ -253,166 +251,274 @@ export default function BusinessDashboard() {
     );
   }
 
+  const d = data;
+  const netBalance = d.revenue - d.toRepayAutonomous;
+
   return (
-    <BusinessLayout 
-      companySlug={company.slug} 
+    <BusinessLayout
+      companySlug={company.slug}
       companyName={company.name}
       companyId={company.id}
       userRole={employee.role}
       currentUser={currentUser}
     >
       <div className="p-6 space-y-8">
-        {/* Welcome Header */}
+        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gradient mb-2">
             Bem-vindo, {employee.name}!
           </h1>
-          <p className="text-muted-foreground">
-            Aqui está um resumo do seu estabelecimento hoje.
-          </p>
+          <p className="text-muted-foreground">Painel completo de gestão do seu estabelecimento.</p>
         </div>
 
         <InconsistencyAlert companyId={company.id} companySlug={company.slug} />
 
+        {/* ── GLOBAL FILTER (sticky) ── */}
+        <div className="sticky top-0 z-20 -mx-6 px-6 py-3 bg-background/80 backdrop-blur-md border-b border-primary/10 flex flex-wrap gap-3 items-center">
+          <span className="text-sm font-medium text-muted-foreground">Período:</span>
+          <Select value={period} onValueChange={(v) => handlePeriodChange(v as PeriodKey)}>
+            <SelectTrigger className="w-48 bg-card/50 border-primary/20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(PERIOD_LABELS) as PeriodKey[]).map((k) => (
+                <SelectItem key={k} value={k}>{PERIOD_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
+          {period === "custom" && (
+            <Popover open={customOpen} onOpenChange={setCustomOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="border-primary/20 gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  {customRange.from && customRange.to
+                    ? `${format(customRange.from, "dd/MM/yyyy")} – ${format(customRange.to, "dd/MM/yyyy")}`
+                    : "Selecionar datas"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={{ from: customRange.from, to: customRange.to }}
+                  onSelect={(r) => setCustomRange({ from: r?.from, to: r?.to })}
+                  numberOfMonths={2}
+                />
+                <div className="p-3 border-t border-primary/10 flex justify-end">
+                  <Button size="sm" onClick={applyCustomRange} disabled={!customRange.from || !customRange.to}>
+                    Aplicar
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Agendamentos Hoje</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gradient">{stats.todayBookings}</div>
-              <p className="text-xs text-muted-foreground">
-                agenda do dia
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Agendamentos Semana</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gradient">{stats.weekBookings}</div>
-              <p className="text-xs text-muted-foreground">
-                últimos 7 dias
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receita do Mês</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gradient">
-                R$ {stats.monthRevenue.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                faturamento mensal
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gradient">{stats.totalClients}</div>
-              <p className="text-xs text-muted-foreground">
-                clientes cadastrados
-              </p>
-            </CardContent>
-          </Card>
+          <span className="text-xs text-muted-foreground ml-auto">
+            {format(range.from, "dd/MM/yyyy")} – {format(range.to, "dd/MM/yyyy")}
+          </span>
         </div>
 
-        {/* Status Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Status dos Agendamentos */}
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-xl text-gradient">Status dos Agendamentos</CardTitle>
-              <CardDescription>Visão geral do status atual</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 text-yellow-500" />
-                    <span>Pendentes</span>
-                  </div>
-                  <span className="font-semibold text-yellow-500">{stats.pendingBookings}</span>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Confirmados</span>
-                  </div>
-                  <span className="font-semibold text-green-500">{stats.confirmedBookings}</span>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-blue-500" />
-                    <span>Completados</span>
-                  </div>
-                  <span className="font-semibold text-blue-500">{stats.completedBookings}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* ══ GROUP 1 — Indicadores Principais ══ */}
+        <section>
+          <SectionTitle>📊 Indicadores Principais</SectionTitle>
+          {loading ? <SkeletonCards n={4} /> : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard title="Agendamentos" value={d.bookingsCount} description="no período" icon={CalendarIcon} />
+              <StatCard title="Receita" value={BRL(d.revenue)} description="confirmados + concluídos" icon={DollarSign} />
+              <StatCard title="Novos Clientes" value={d.newClients} description="cadastrados no período" icon={Users} />
+              <StatCard title="Ticket Médio" value={BRL(d.avgTicket)} description="por atendimento" icon={TrendingUp} />
+            </div>
+          )}
+        </section>
 
-          {/* Ações Rápidas */}
+        {/* ══ GROUP 2 — Operação ══ */}
+        <section>
+          <SectionTitle>⚙️ Operação</SectionTitle>
+          {loading ? <SkeletonCards n={4} /> : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard title="Cancelamentos" value={d.cancellations} description="no período" icon={XCircle} iconColor="text-destructive" />
+              <StatCard title="Taxa de Comparecimento" value={`${d.attendanceRate}%`} description="concluídos / (concluídos + não compareceu)" icon={CheckCircle} iconColor="text-green-500" />
+              <StatCard title="Novos Clientes" value={d.newClients} description="cadastrados no período" icon={Users} />
+              <StatCard title="Tempo Médio" value={d.avgDurationMinutes > 0 ? `${d.avgDurationMinutes} min` : "—"} description="dos atendimentos concluídos" icon={Clock} />
+            </div>
+          )}
+        </section>
+
+        {/* ══ GROUP 3 — Financeiro ══ */}
+        <section>
+          <SectionTitle>💳 Financeiro — Formas de Pagamento</SectionTitle>
+          {loading ? <SkeletonCards n={3} /> : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <StatCard title="Recebido via Pix" value={BRL(d.receivedPix)} description="pagamentos Pix no período" icon={Wallet} iconColor="text-green-400" />
+              <StatCard title="Recebido via Cartão" value={BRL(d.receivedCard)} description="crédito / débito" icon={CreditCard} iconColor="text-blue-400" />
+              <StatCard title="Recebido em Dinheiro" value={BRL(d.receivedCash)} description="pagamentos em espécie" icon={Banknote} iconColor="text-yellow-400" />
+            </div>
+          )}
+        </section>
+
+        {/* ══ GROUP 4 — Repasses de Autônomos ══ */}
+        <section>
+          <SectionTitle>🤝 Repasses de Autônomos</SectionTitle>
+          {loading ? <SkeletonCards n={3} /> : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <StatCard title="A repassar para Autônomos" value={BRL(d.toRepayAutonomous)} description="comissão devida no período" icon={DollarSign} iconColor="text-orange-400" />
+              <StatCard title="A receber dos Autônomos" value={BRL(d.toReceiveFromAutonomous)} description="comissão que autônomos devem" icon={DollarSign} iconColor="text-green-400" />
+              <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Saldo Líquido Estimado</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  <div className="text-2xl font-bold text-gradient">{BRL(netBalance)}</div>
+                  <div className="text-xs text-muted-foreground space-y-0.5 pt-1">
+                    <div>Receita: {BRL(d.revenue)}</div>
+                    <div>Repasses: − {BRL(d.toRepayAutonomous)}</div>
+                    <div className="font-medium text-foreground">Saldo: {BRL(netBalance)}</div>
+                  </div>
+                  {/* TODO: comparação com período anterior */}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </section>
+
+        {/* ══ GROUP 5 — Status dos Agendamentos ══ */}
+        <section>
+          <SectionTitle>📅 Status dos Agendamentos</SectionTitle>
+          {loading ? <SkeletonCards n={6} /> : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[
+                { key: "pending", label: "Pendentes", icon: AlertCircle, color: "text-yellow-400" },
+                { key: "confirmed", label: "Confirmados", icon: CheckCircle, color: "text-green-400" },
+                { key: "in_progress", label: "Em andamento", icon: Activity, color: "text-blue-400" },
+                { key: "completed", label: "Finalizados", icon: Star, color: "text-primary" },
+                { key: "cancelled", label: "Cancelados", icon: XCircle, color: "text-destructive" },
+                { key: "no_show", label: "Não compareceu", icon: UserMinus, color: "text-orange-400" },
+              ].map(({ key, label, icon: Icon, color }) => (
+                <Card key={key} className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+                  <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+                    <Icon className={`h-6 w-6 ${color}`} />
+                    <div className="text-xl font-bold text-gradient">{d.statusCounts[key] ?? 0}</div>
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                    {/* TODO: comparação com período anterior */}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ══ GROUP 6 — Equipe ══ */}
+        <section>
+          <SectionTitle>👥 Equipe</SectionTitle>
+          {loading ? <SkeletonCards n={4} /> : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
+                title="Maior Faturamento"
+                value={d.topEmployeeByRevenue?.name ?? "—"}
+                description={d.topEmployeeByRevenue ? BRL(d.topEmployeeByRevenue.value) : "sem dados"}
+                icon={TrendingUp}
+              />
+              <StatCard
+                title="Mais Atendimentos"
+                value={d.topEmployeeByCount?.name ?? "—"}
+                description={d.topEmployeeByCount ? `${d.topEmployeeByCount.count} atendimentos` : "sem dados"}
+                icon={Users}
+              />
+              <StatCard
+                title="Colaboradores Ausentes"
+                value={d.absentEmployees}
+                description="com ausência no período"
+                icon={UserX}
+                iconColor="text-orange-400"
+              />
+              <StatCard
+                title="Realocações"
+                value={d.reallocations}
+                description="agendamentos realocados"
+                icon={Repeat2}
+              />
+            </div>
+          )}
+        </section>
+
+        {/* ══ GROUP 7 — Serviços ══ */}
+        <section>
+          <SectionTitle>✂️ Serviços</SectionTitle>
+          {loading ? <SkeletonCards n={2} /> : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <StatCard
+                title="Serviço Mais Vendido"
+                value={d.mostSoldService?.name ?? "—"}
+                description={d.mostSoldService ? `${d.mostSoldService.count} agendamentos` : "sem dados no período"}
+                icon={Scissors}
+                iconColor="text-green-400"
+              />
+              <StatCard
+                title="Serviço Menos Vendido"
+                value={d.leastSoldService?.name ?? "—"}
+                description={d.leastSoldService ? `${d.leastSoldService.count} agendamentos` : "sem dados no período"}
+                icon={Scissors}
+                iconColor="text-muted-foreground"
+              />
+            </div>
+          )}
+        </section>
+
+        {/* ══ GROUP 8 — Clientes ══ */}
+        <section>
+          <SectionTitle>🏆 Clientes</SectionTitle>
+          {loading ? <SkeletonCards n={3} /> : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <StatCard
+                title="Cliente que Mais Gastou"
+                value={d.topSpender?.name ?? "—"}
+                description={d.topSpender ? BRL(d.topSpender.value) : "sem dados no período"}
+                icon={DollarSign}
+                iconColor="text-yellow-400"
+              />
+              <StatCard
+                title="Cliente Mais Frequente"
+                value={d.mostFrequent?.name ?? "—"}
+                description={d.mostFrequent ? `${d.mostFrequent.count} visitas` : "sem dados no período"}
+                icon={Star}
+                iconColor="text-primary"
+              />
+              <StatCard
+                title="Clientes Inativos"
+                value={d.inactiveClients}
+                description={`sem visitas há mais de 60 dias`}
+                icon={UserX}
+                iconColor="text-destructive"
+              />
+            </div>
+          )}
+        </section>
+
+        {/* ══ Ações Rápidas (preserved) ══ */}
+        <section>
+          <SectionTitle>⚡ Ações Rápidas</SectionTitle>
           <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-xl text-gradient">Ações Rápidas</CardTitle>
-              <CardDescription>Acesse rapidamente as funções principais</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <a 
-                  href={`/${company.slug}/admin/agendamentos`}
-                  className="flex flex-col items-center gap-2 p-4 bg-background/50 rounded-lg hover:bg-primary/10 transition-colors"
-                >
-                  <Calendar className="w-8 h-8 text-primary" />
-                  <span className="text-sm font-medium">Ver Agenda</span>
-                </a>
-                
-                <a 
-                  href={`/${company.slug}/admin/servicos`}
-                  className="flex flex-col items-center gap-2 p-4 bg-background/50 rounded-lg hover:bg-primary/10 transition-colors"
-                >
-                  <Clock className="w-8 h-8 text-primary" />
-                  <span className="text-sm font-medium">Gerenciar Serviços</span>
-                </a>
-                
-                <a 
-                  href={`/${company.slug}/admin/colaboradores`}
-                  className="flex flex-col items-center gap-2 p-4 bg-background/50 rounded-lg hover:bg-primary/10 transition-colors"
-                >
-                  <Users className="w-8 h-8 text-primary" />
-                  <span className="text-sm font-medium">Colaboradores</span>
-                </a>
-                
-                <a 
-                  href={`/${company.slug}/admin/configuracoes`}
-                  className="flex flex-col items-center gap-2 p-4 bg-background/50 rounded-lg hover:bg-primary/10 transition-colors"
-                >
-                  <TrendingUp className="w-8 h-8 text-primary" />
-                  <span className="text-sm font-medium">Configurações</span>
-                </a>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { href: `/${company.slug}/admin/agendamentos`, icon: CalendarIcon, label: "Ver Agenda" },
+                  { href: `/${company.slug}/admin/servicos`, icon: Clock, label: "Gerenciar Serviços" },
+                  { href: `/${company.slug}/admin/colaboradores`, icon: Users, label: "Colaboradores" },
+                  { href: `/${company.slug}/admin/configuracoes`, icon: TrendingUp, label: "Configurações" },
+                ].map(({ href, icon: Icon, label }) => (
+                  <a
+                    key={href}
+                    href={href}
+                    className="flex flex-col items-center gap-2 p-4 bg-background/50 rounded-lg hover:bg-primary/10 transition-colors"
+                  >
+                    <Icon className="w-8 h-8 text-primary" />
+                    <span className="text-sm font-medium text-center">{label}</span>
+                  </a>
+                ))}
               </div>
             </CardContent>
           </Card>
-        </div>
+        </section>
       </div>
     </BusinessLayout>
   );
