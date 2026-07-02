@@ -253,13 +253,12 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
                         <SidebarMenuItem className={collapsed ? "flex justify-center w-full" : ""}>
                           <CollapsibleTrigger asChild>
                             <SidebarMenuButton
-                              className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
-                                collapsed ? "justify-center w-10 h-10 p-0" : "w-full"
-                              } ${
-                                childActive
-                                  ? "!bg-primary/20 !text-primary border-l-4 !border-l-primary font-semibold"
-                                  : "border-l-4 border-l-transparent hover:bg-primary/10 hover:text-primary"
-                              }`}
+                              isActive={childActive}
+                              className={cn(
+                                "relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300",
+                                collapsed ? "justify-center w-10 h-10 p-0" : "w-full",
+                                getNavCls(childActive),
+                              )}
                             >
                               <span className="relative">
                                 <item.icon className={`w-5 h-5 flex-shrink-0 ${collapsed ? "m-0" : ""}`} />
@@ -300,16 +299,20 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
                       </Collapsible>
                     );
                   }
+                  const itemActive = isActive(item.url);
                   return (
                     <SidebarMenuItem key={item.title} className={state === "collapsed" ? "flex justify-center w-full" : ""}>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={itemActive}
+                        className={cn(
+                          "relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300",
+                          state === "collapsed" ? "justify-center w-10 h-10 p-0" : "w-full",
+                          getNavCls(itemActive),
+                        )}
+                      >
                         <NavLink
                           to={`${basePath}${item.url}`}
-                          className={({ isActive: navActive }) =>
-                            `relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
-                              state === "collapsed" ? "justify-center w-10 h-10 p-0" : "w-full"
-                            } ${getNavCls(navActive || isActive(item.url))}`
-                          }
                         >
                           <span className="relative">
                             <item.icon className={`w-5 h-5 flex-shrink-0 ${state === "collapsed" ? "m-0" : ""}`} />
