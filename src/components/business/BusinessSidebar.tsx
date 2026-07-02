@@ -38,7 +38,7 @@ import {
 
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { BookingLogo } from "@/components/BookingLogo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
