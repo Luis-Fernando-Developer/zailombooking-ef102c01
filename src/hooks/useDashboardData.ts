@@ -29,14 +29,19 @@ export interface DashboardData {
   // Group 6
   topEmployeeByRevenue: { name: string; value: number } | null;
   topEmployeeByCount: { name: string; count: number } | null;
+  employeesByRevenue: { name: string; value: number }[];
+  employeesByCount: { name: string; value: number }[];
   absentEmployees: number;
   reallocations: number;
   // Group 7
   mostSoldService: { name: string; count: number } | null;
   leastSoldService: { name: string; count: number } | null;
+  servicesRanking: { name: string; value: number }[];
   // Group 8
   topSpender: { name: string; value: number } | null;
   mostFrequent: { name: string; count: number } | null;
+  clientsBySpending: { name: string; value: number }[];
+  clientsByFrequency: { name: string; value: number }[];
   inactiveClients: number;
 }
 
@@ -56,12 +61,17 @@ const empty: DashboardData = {
   statusCounts: {},
   topEmployeeByRevenue: null,
   topEmployeeByCount: null,
+  employeesByRevenue: [],
+  employeesByCount: [],
   absentEmployees: 0,
   reallocations: 0,
   mostSoldService: null,
   leastSoldService: null,
+  servicesRanking: [],
   topSpender: null,
   mostFrequent: null,
+  clientsBySpending: [],
+  clientsByFrequency: [],
   inactiveClients: 0,
 };
 
@@ -267,12 +277,12 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           if (!empCntMap[id]) empCntMap[id] = { name: emp.name, count: 0 };
           empCntMap[id].count += 1;
         }
-        const topByRevenue =
-          Object.values(empRevMap).sort((a, b) => b.value - a.value)[0] ??
-          null;
-        const topByCount =
-          Object.values(empCntMap).sort((a, b) => b.count - a.count)[0] ??
-          null;
+        const empRevSorted = Object.values(empRevMap).sort((a, b) => b.value - a.value);
+        const empCntSorted = Object.values(empCntMap).sort((a, b) => b.count - a.count);
+        const topByRevenue = empRevSorted[0] ?? null;
+        const topByCount = empCntSorted[0] ?? null;
+        const employeesByRevenue = empRevSorted.slice(0, 8).map((e) => ({ name: e.name, value: e.value }));
+        const employeesByCount = empCntSorted.slice(0, 8).map((e) => ({ name: e.name, value: e.count }));
 
         const absentEmployees = (absencesRes as any)?.data?.length ?? 0;
         const reallocations = (reallocRes as any)?.data?.length ?? 0;
@@ -289,6 +299,7 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
         const svcArr = Object.values(svcMap).sort((a, b) => b.count - a.count);
         const mostSoldService = svcArr[0] ?? null;
         const leastSoldService = svcArr[svcArr.length - 1] ?? null;
+        const servicesRanking = svcArr.slice(0, 10).map((s) => ({ name: s.name, value: s.count }));
 
         // -- Group 8: clients --
         // Top spender + most frequent: from bookings in range
@@ -318,12 +329,12 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           clientFreq[cid].count += 1;
         }
 
-        const topSpender =
-          Object.values(clientSpend).sort((a, b) => b.value - a.value)[0] ??
-          null;
-        const mostFrequent =
-          Object.values(clientFreq).sort((a, b) => b.count - a.count)[0] ??
-          null;
+        const spendSorted = Object.values(clientSpend).sort((a, b) => b.value - a.value);
+        const freqSorted = Object.values(clientFreq).sort((a, b) => b.count - a.count);
+        const topSpender = spendSorted[0] ?? null;
+        const mostFrequent = freqSorted[0] ?? null;
+        const clientsBySpending = spendSorted.slice(0, 8).map((c) => ({ name: c.name, value: c.value }));
+        const clientsByFrequency = freqSorted.slice(0, 8).map((c) => ({ name: c.name, value: c.count }));
 
         // Inactive: clients whose last booking is > INACTIVE_DAYS ago
         const cutoff = new Date();
@@ -354,12 +365,17 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
           statusCounts,
           topEmployeeByRevenue: topByRevenue,
           topEmployeeByCount: topByCount,
+          employeesByRevenue,
+          employeesByCount,
           absentEmployees,
           reallocations,
           mostSoldService,
           leastSoldService,
+          servicesRanking,
           topSpender,
           mostFrequent,
+          clientsBySpending,
+          clientsByFrequency,
           inactiveClients: inactiveClients ?? 0,
         });
       } catch (err) {
