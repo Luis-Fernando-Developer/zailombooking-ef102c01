@@ -128,7 +128,7 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   };
   const getNavCls = (active: boolean) =>
     active
-      ? "bg-primary/20 text-primary border-l-4 border-l-primary font-semibold shadow-[inset_0_0_12px_rgba(0,200,255,0.08)]"
+      ? "!bg-primary/20 !text-primary border-l-4 !border-l-primary font-semibold shadow-[inset_0_0_12px_rgba(0,200,255,0.08)]"
       : "border-l-4 border-l-transparent hover:bg-primary/10 hover:text-primary";
 
   // Badges em tempo real (vermelho = ação imediata; amarelo = atenção/aprovação)
