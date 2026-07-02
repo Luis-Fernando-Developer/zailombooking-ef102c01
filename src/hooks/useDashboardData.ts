@@ -29,14 +29,19 @@ export interface DashboardData {
   // Group 6
   topEmployeeByRevenue: { name: string; value: number } | null;
   topEmployeeByCount: { name: string; count: number } | null;
+  employeesByRevenue: { name: string; value: number }[];
+  employeesByCount: { name: string; value: number }[];
   absentEmployees: number;
   reallocations: number;
   // Group 7
   mostSoldService: { name: string; count: number } | null;
   leastSoldService: { name: string; count: number } | null;
+  servicesRanking: { name: string; value: number }[];
   // Group 8
   topSpender: { name: string; value: number } | null;
   mostFrequent: { name: string; count: number } | null;
+  clientsBySpending: { name: string; value: number }[];
+  clientsByFrequency: { name: string; value: number }[];
   inactiveClients: number;
 }
 
