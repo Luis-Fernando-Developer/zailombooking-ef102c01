@@ -299,6 +299,7 @@ export function useDashboardData(companyId: string | null, range: DateRange) {
         const svcArr = Object.values(svcMap).sort((a, b) => b.count - a.count);
         const mostSoldService = svcArr[0] ?? null;
         const leastSoldService = svcArr[svcArr.length - 1] ?? null;
+        const servicesRanking = svcArr.slice(0, 10).map((s) => ({ name: s.name, value: s.count }));
 
         // -- Group 8: clients --
         // Top spender + most frequent: from bookings in range
