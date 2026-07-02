@@ -140,7 +140,7 @@ export function PieDistribution({
           ))}
         </Pie>
         <Tooltip
-          contentStyle={tooltipStyle}
+          contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
           formatter={(v: any, n: any) => [valueFormatter ? valueFormatter(Number(v)) : v, n]}
         />
         <Legend wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }} />
@@ -199,7 +199,7 @@ export function BarRanking({
           </>
         )}
         <Tooltip
-          contentStyle={tooltipStyle}
+          contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
           cursor={{ fill: "hsl(var(--primary) / 0.05)" }}
           formatter={(v: any) => fmt(Number(v))}
         />
