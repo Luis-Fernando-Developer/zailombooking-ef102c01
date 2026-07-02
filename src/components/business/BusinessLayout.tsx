@@ -7,6 +7,7 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 import { PlanOverageBanner } from "@/components/business/PlanOverageBanner";
 import { PlatformNotificationModal } from "@/components/business/PlatformNotificationModal";
 import { NotificationsBell } from "@/components/business/NotificationsBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 
 interface BusinessLayoutProps {
