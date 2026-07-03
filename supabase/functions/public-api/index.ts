@@ -407,7 +407,7 @@ const createBooking: Handler = async (ctx, req) => {
       booking_date,
       start_time,
       duration_minutes: svc.duration_minutes,
-      total_price: b.total_price ?? svc.price,
+      price: b.price ?? svc.price,
       booking_status: b.booking_status ?? "confirmed",
       payment_status: b.payment_status ?? "pending",
       origin: b.origin ?? "public_api",
@@ -422,7 +422,7 @@ const getBooking: Handler = async (ctx, _req, { id }) => {
   const { data, error } = await ctx.sb
     .from("bookings")
     .select(`
-      id, booking_date, start_time, end_time, duration_minutes, total_price,
+      id, booking_date, start_time, end_time, duration_minutes, price,
       booking_status, payment_status, created_at,
       service:services(id, name, duration_minutes, price),
       employee:employees(id, name),
@@ -488,7 +488,7 @@ const listBookingsForClient: Handler = async (ctx, req, { clientId }) => {
   let q = ctx.sb
     .from("bookings")
     .select(`
-      id, booking_date, start_time, duration_minutes, total_price,
+      id, booking_date, start_time, duration_minutes, price,
       booking_status, payment_status,
       service:services(id, name),
       employee:employees(id, name)
