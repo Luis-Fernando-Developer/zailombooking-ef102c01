@@ -33,6 +33,7 @@ import ChatbotIntegracao from "./pages/business/chatbot/Integracao";
 import ChatbotZailomFlow from "./pages/business/chatbot/ZailomFlow";
 import IntegracaoWhatsApp from "./pages/business/integracoes/WhatsApp";
 import IntegracaoEmail from "./pages/business/integracoes/Email";
+import IntegracaoApiKeys from "./pages/business/integracoes/ApiKeys";
 import AutomacoesDisparos from "./pages/business/automacoes/Disparos";
 import AutomacoesEmailMarketing from "./pages/business/automacoes/EmailMarketing";
 import AutomacoesGatilhos from "./pages/business/automacoes/Gatilhos";
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="/:slug/admin/automacoes/chatbot/zailom-flow/*" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><ChatbotZailomFlow /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/integracoes/whatsapp" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><IntegracaoWhatsApp /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/integracoes/email" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><IntegracaoEmail /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/integracoes/api" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><IntegracaoApiKeys /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/automacoes/disparos" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><AutomacoesDisparos /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/automacoes/email-marketing" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><AutomacoesEmailMarketing /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/automacoes/gatilhos" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><AutomacoesGatilhos /></RequireRole></RequireBusinessAuth>} />

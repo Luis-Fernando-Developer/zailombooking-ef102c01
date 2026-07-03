@@ -36,6 +36,7 @@ import {
   ArrowRightLeft,
   CalendarOff,
 
+  KeyRound,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -82,6 +83,7 @@ const menuItems: MenuItem[] = [
       { title: "Chatbot", url: "/admin/integracao/chatbot", icon: Plug },
       { title: "WhatsApp", url: "/admin/integracoes/whatsapp", icon: Smartphone },
       { title: "E-mail", url: "/admin/integracoes/email", icon: Mail },
+      { title: "API REST", url: "/admin/integracoes/api", icon: KeyRound },
     ],
   },
   { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
