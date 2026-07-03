@@ -53,7 +53,7 @@ services:
             proxy_hide_header Access-Control-Allow-Headers;
             proxy_hide_header Access-Control-Allow-Methods;
             proxy_hide_header Access-Control-Allow-Credentials;
-            proxy_pass https://__SUPABASE_HOST__/functions/v1/public-api$$request_uri;
+            proxy_pass https://__SUPABASE_HOST__/functions/v1/public-api/v1/;
             proxy_http_version 1.1;
             proxy_ssl_server_name on;
             proxy_set_header Host              __SUPABASE_HOST__;
