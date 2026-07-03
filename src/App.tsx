@@ -8,6 +8,7 @@ import { RequireBusinessAuth } from "@/components/business/RequireBusinessAuth";
 import { RequireRole } from "@/components/business/RequireRole";
 import { RequireSuperAdmin } from "@/components/admin/RequireSuperAdmin";
 import LandingPage from "./pages/LandingPage";
+import ApiDocs from "./pages/ApiDocs";
 import AdminLogin from "./pages/admin/Login";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import SuperAdminInstances from "./pages/super-admin/Instances";
@@ -62,6 +63,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/api-docs" element={<ApiDocs />} />
+            <Route path="/api-reference" element={<ApiDocs />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/signup/aguardando/:companyId" element={<SignupPending />} />
             <Route path="/login" element={<BusinessLogin />} />
