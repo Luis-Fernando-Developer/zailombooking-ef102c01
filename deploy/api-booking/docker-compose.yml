@@ -8,7 +8,9 @@ version: "3.8"
 #   certificatesresolver:   leresolver   <-- (NÃO é "letsencrypt")
 #   rede compartilhada:     api-booking-net  (traefik já está anexado)
 #
-# >>>>>>> ANTES DE SUBIR: cole a ANON KEY do Supabase em SUPABASE_ANON_KEY <<<<<<
+# >>>>>>> ANTES DE SUBIR: cole a PUBLISHABLE KEY do Supabase em SUPABASE_PUBLISHABLE_KEY <<<<<<
+# Use a chave `sb_publishable_...` mostrada em Settings > API Keys > Publishable key.
+# Não use a `booking_secret_key` e não use a chave da API pública `zlm_...` aqui.
 # =============================================================================
 
 services:
@@ -20,8 +22,8 @@ services:
       - api-booking-net
     environment:
       - TZ=America/Sao_Paulo
-      # Project Settings -> API -> anon public key
-      - SUPABASE_ANON_KEY=COLE_AQUI_A_ANON_KEY_DO_SUPABASE
+      # Project Settings -> API Keys -> Publishable key (sb_publishable_...)
+      - SUPABASE_PUBLISHABLE_KEY=COLE_AQUI_A_PUBLISHABLE_KEY_DO_SUPABASE
       - SUPABASE_HOST=pmczddukpylhdeaemmyv.supabase.co
     # Escreve o nginx.conf em runtime (sem depender de `configs:` do Compose)
     command:
@@ -57,7 +59,7 @@ services:
             proxy_http_version 1.1;
             proxy_ssl_server_name on;
             proxy_set_header Host              __SUPABASE_HOST__;
-            proxy_set_header apikey            __SUPABASE_ANON_KEY__;
+            proxy_set_header apikey            __SUPABASE_PUBLISHABLE_KEY__;
             proxy_set_header Authorization     $$http_authorization;
             proxy_set_header X-Forwarded-For   $$proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto https;
@@ -74,7 +76,7 @@ services:
           }
         }
         NGINXCONF
-        sed -i "s|__SUPABASE_HOST__|$$SUPABASE_HOST|g; s|__SUPABASE_ANON_KEY__|$$SUPABASE_ANON_KEY|g" /etc/nginx/conf.d/default.conf
+        sed -i "s|__SUPABASE_HOST__|$$SUPABASE_HOST|g; s|__SUPABASE_PUBLISHABLE_KEY__|$$SUPABASE_PUBLISHABLE_KEY|g" /etc/nginx/conf.d/default.conf
         exec nginx -g 'daemon off;'
     labels:
       - "traefik.enable=true"
