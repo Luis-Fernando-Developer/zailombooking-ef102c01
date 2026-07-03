@@ -127,7 +127,7 @@ const listServices: Handler = async (ctx) => {
 const getService: Handler = async (ctx, _req, { id }) => {
   const { data, error } = await ctx.sb
     .from("services")
-    .select("id, name, description, price, duration_minutes, is_active, image_url, category")
+    .select("id, name, description, price, duration_minutes, is_active, image_url")
     .eq("company_id", ctx.companyId)
     .eq("id", id)
     .maybeSingle();
