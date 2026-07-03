@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from "react";
 import { Copy, Check, Play, Loader2, ChevronRight } from "lucide-react";
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 
 // ---------------------------------------------------------------------------
 // Base URL da API — usa o custom domain quando publicado, senão a edge function
