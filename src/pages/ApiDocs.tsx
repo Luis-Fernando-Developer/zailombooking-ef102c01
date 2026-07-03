@@ -366,7 +366,15 @@ export default function ApiDocs() {
   const [selectedId, setSelectedId] = useState(ENDPOINTS[0].id);
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem("zlm_api_key_docs") || "");
   const [baseUrl, setBaseUrl] = useState<string>(DEFAULT_BASE);
-  const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [paramsByEndpoint, setParamsByEndpoint] = useState<Record<string, Record<string, string>>>({});
+  const paramValues = paramsByEndpoint[selectedId] ?? {};
+  const setParamValues = (updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => {
+    setParamsByEndpoint((prev) => {
+      const current = prev[selectedId] ?? {};
+      const next = typeof updater === "function" ? (updater as (p: Record<string, string>) => Record<string, string>)(current) : updater;
+      return { ...prev, [selectedId]: next };
+    });
+  };
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{ status: number; body: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -461,7 +469,6 @@ export default function ApiDocs() {
                     <button
                       onClick={() => {
                         setSelectedId(e.id);
-                        setParamValues({});
                         setResult(null);
                       }}
                       className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
