@@ -1,5 +1,21 @@
 version: "3.8"
 
+# =============================================================================
+# Stack: api-booking  (Traefik + Nginx -> Supabase Edge Function `public-api`)
+# =============================================================================
+# PRÉ-REQUISITOS no Traefik da sua VPS (confirme os nomes reais no seu traefik.yml
+# ou nas flags do container do Traefik). Se forem diferentes, ajuste as labels:
+#
+#   entryPoints:
+#     web:        (porta 80)     <- usado em `entrypoints=web`
+#     websecure:  (porta 443)    <- usado em `entrypoints=websecure`
+#   certificatesResolvers:
+#     letsencrypt: ...           <- usado em `certresolver=letsencrypt`
+#
+# E o container do Traefik PRECISA estar conectado à rede `api-booking-net`
+# (você já fez isso). Confirme com:  docker network inspect api-booking-net
+# =============================================================================
+
 services:
   api-booking:
     image: nginx:1.27-alpine
@@ -16,33 +32,37 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=api-booking-net"
 
-      # ---- HTTP router (redirect -> HTTPS) ----
+      # ---- HTTP (porta 80) ----
       - "traefik.http.routers.api-booking-http.rule=Host(`api-booking.zailom.com`)"
       - "traefik.http.routers.api-booking-http.entrypoints=web"
-      - "traefik.http.routers.api-booking-http.middlewares=api-booking-redirect"
-      - "traefik.http.middlewares.api-booking-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.api-booking-http.service=api-booking"
 
-      # ---- HTTPS router ----
-      - "traefik.http.routers.api-booking.rule=Host(`api-booking.zailom.com`)"
-      - "traefik.http.routers.api-booking.entrypoints=websecure"
-      - "traefik.http.routers.api-booking.tls=true"
-      - "traefik.http.routers.api-booking.tls.certresolver=letsencrypt"
+      # ---- HTTPS (porta 443) — só ativa depois que HTTP responder ----
+      - "traefik.http.routers.api-booking-https.rule=Host(`api-booking.zailom.com`)"
+      - "traefik.http.routers.api-booking-https.entrypoints=websecure"
+      - "traefik.http.routers.api-booking-https.tls=true"
+      - "traefik.http.routers.api-booking-https.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.api-booking-https.service=api-booking"
+
+      # ---- Service (aponta pra porta 80 do nginx) ----
       - "traefik.http.services.api-booking.loadbalancer.server.port=80"
 
 configs:
   api_booking_nginx:
     content: |
-      # -----------------------------------------------------------------
+      # ------------------------------------------------------------------
       # api-booking.zailom.com  ->  Supabase Edge Function `public-api`
       # Reescreve /v1/*  =>  /functions/v1/public-api/v1/*
-      # Injeta o header `apikey` (anon/publishable) exigido pelo Supabase.
-      # A API key do cliente (Bearer zlm_...) passa intacta em Authorization.
-      # -----------------------------------------------------------------
+      # Injeta o header `apikey` (anon key) exigido pelo Supabase Gateway.
+      # A API key do cliente (Bearer zlm_...) segue intacta em Authorization.
+      # ------------------------------------------------------------------
       resolver 1.1.1.1 8.8.8.8 valid=300s ipv6=off;
       resolver_timeout 5s;
 
-      # Publishable/anon key do Supabase (pode ficar exposta, não é secret).
-      # Troque se rotacionar a anon key.
+      # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+      # OBRIGATÓRIO: substitua pela ANON/PUBLISHABLE KEY do seu Supabase
+      # (Project Settings -> API -> anon public). Sem isso o proxy falha.
+      # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
       map $host $supabase_anon {
         default "COLE_AQUI_A_ANON_KEY_DO_SUPABASE";
       }
@@ -51,26 +71,20 @@ configs:
         listen 80 default_server;
         server_name _;
 
-        # CORS básico
         add_header Access-Control-Allow-Origin  "*" always;
         add_header Access-Control-Allow-Headers "authorization, x-api-key, content-type, apikey" always;
         add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
 
-        if ($request_method = OPTIONS) {
-          return 204;
-        }
+        if ($request_method = OPTIONS) { return 204; }
 
-        # Healthcheck local
         location = /healthz {
           access_log off;
+          default_type text/plain;
           return 200 "ok\n";
         }
 
-        # /v1/... -> Supabase Edge Function
         location /v1/ {
-          set $upstream "https://pmczddukpylhdeaemmyv.supabase.co";
-
-          proxy_pass $upstream/functions/v1/public-api$request_uri;
+          proxy_pass https://pmczddukpylhdeaemmyv.supabase.co/functions/v1/public-api$request_uri;
 
           proxy_http_version 1.1;
           proxy_ssl_server_name on;
@@ -79,21 +93,19 @@ configs:
           proxy_set_header Authorization     $http_authorization;
           proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
           proxy_set_header X-Forwarded-Proto https;
-          proxy_set_header X-Real-IP         $remote_addr;
 
           proxy_connect_timeout 15s;
           proxy_read_timeout    60s;
           proxy_send_timeout    60s;
         }
 
-        # Raiz redireciona para a documentação hospedada no app principal
         location = / {
           return 302 https://booking.zailom.com/api-docs;
         }
 
         location / {
-          return 404 '{"error":"not_found","hint":"use /v1/<endpoint>"}';
           default_type application/json;
+          return 404 '{"error":"not_found","hint":"use /v1/<endpoint>"}';
         }
       }
 
