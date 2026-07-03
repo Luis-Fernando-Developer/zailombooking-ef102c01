@@ -2,6 +2,8 @@
 -- 2047 — RPCs para gerenciar API Keys pela UI (criar / revogar)
 -- ============================================================================
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 -- Cria uma API key para a empresa do usuário autenticado.
 -- Gera segredo aleatório no servidor, armazena somente o hash sha256
 -- e retorna o valor plaintext UMA ÚNICA VEZ.
@@ -24,9 +26,9 @@ BEGIN
   END IF;
 
   -- 32 bytes aleatórios em hex (64 chars) prefixados com zlm_
-  v_secret := encode(gen_random_bytes(32), 'hex');
+  v_secret := encode(extensions.gen_random_bytes(32), 'hex');
   v_full   := 'zlm_' || v_secret;
-  v_hash   := encode(digest(v_full, 'sha256'), 'hex');
+  v_hash   := encode(extensions.digest(v_full, 'sha256'), 'hex');
   v_prefix := substring(v_full FROM 1 FOR 12);
 
   INSERT INTO public.api_keys (company_id, name, key_prefix, key_hash, scopes)
