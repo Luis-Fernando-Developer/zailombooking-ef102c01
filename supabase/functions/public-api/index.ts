@@ -116,7 +116,7 @@ function match(pattern: string, path: string): Record<string, string> | null {
 const listServices: Handler = async (ctx) => {
   const { data, error } = await ctx.sb
     .from("services")
-    .select("id, name, description, price, duration_minutes, is_active, image_url, category")
+    .select("id, name, description, price, duration_minutes, is_active, image_url")
     .eq("company_id", ctx.companyId)
     .eq("is_active", true)
     .order("name");
