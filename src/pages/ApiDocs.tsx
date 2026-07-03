@@ -421,15 +421,13 @@ export default function ApiDocs() {
     }
   }
 
+  useEffect(() => {
+    document.title = "Zailom Booking — API Reference";
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Helmet>
-        <title>Zailom Booking — API Reference</title>
-        <meta
-          name="description"
-          content="Documentação oficial e playground da API REST do Zailom Booking."
-        />
-      </Helmet>
+
 
       {/* Top bar */}
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
