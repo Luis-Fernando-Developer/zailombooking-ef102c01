@@ -12,7 +12,7 @@ import { Copy, Check, Play, Loader2, ChevronRight } from "lucide-react";
 // ---------------------------------------------------------------------------
 // Base URL da API — usa o custom domain quando publicado, senão a edge function
 // ---------------------------------------------------------------------------
-// URL amigável (Cloudflare Worker faz proxy para a Edge Function do Supabase).
+// URL oficial da API (proxy Traefik + nginx -> Supabase Edge Function).
 const DEFAULT_BASE = "https://api-booking.zailom.com/v1";
 
 // ---------------------------------------------------------------------------
