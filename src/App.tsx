@@ -8,6 +8,7 @@ import { RequireBusinessAuth } from "@/components/business/RequireBusinessAuth";
 import { RequireRole } from "@/components/business/RequireRole";
 import { RequireSuperAdmin } from "@/components/admin/RequireSuperAdmin";
 import LandingPage from "./pages/LandingPage";
+import ApiDocs from "./pages/ApiDocs";
 import AdminLogin from "./pages/admin/Login";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import SuperAdminInstances from "./pages/super-admin/Instances";
