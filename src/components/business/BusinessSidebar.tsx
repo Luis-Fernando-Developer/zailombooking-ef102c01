@@ -36,6 +36,7 @@ import {
   ArrowRightLeft,
   CalendarOff,
 
+  KeyRound,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
