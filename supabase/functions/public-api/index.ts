@@ -405,12 +405,14 @@ const createBooking: Handler = async (ctx, req) => {
       service_id,
       employee_id,
       booking_date,
+      booking_time: `${start_time}:00`,
       start_time: `${booking_date}T${start_time}:00-03:00`,
       end_time: new Date(new Date(`${booking_date}T${start_time}:00-03:00`).getTime() + svc.duration_minutes * 60000).toISOString(),
       duration_minutes: svc.duration_minutes,
       price: b.price ?? svc.price,
       booking_status: b.booking_status ?? "confirmed",
       payment_status: b.payment_status ?? "pending",
+      
       
     })
     .select()
