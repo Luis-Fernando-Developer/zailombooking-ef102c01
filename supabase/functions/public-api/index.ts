@@ -410,7 +410,7 @@ const createBooking: Handler = async (ctx, req) => {
       price: b.price ?? svc.price,
       booking_status: b.booking_status ?? "confirmed",
       payment_status: b.payment_status ?? "pending",
-      origin: b.origin ?? "public_api",
+      
     })
     .select()
     .single();
