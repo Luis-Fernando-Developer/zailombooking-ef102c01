@@ -108,7 +108,7 @@ serve(async (req) => {
         booking_date,
         start_time: normalizedBookingTime,
         duration_minutes,
-        total_price: price,
+        price: price,
         booking_status: 'confirmed',
         payment_status: 'confirmed'
       })
