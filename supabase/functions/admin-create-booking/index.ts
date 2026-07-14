@@ -15,6 +15,40 @@ const normalizeTime = (value: string | null | undefined): string | null => {
   return plainTimeMatch?.[1] ?? null
 }
 
+const normalizeDate = (value: string | null | undefined): string | null => {
+  if (!value) return null
+  const rawValue = String(value).trim()
+  const dateMatch = rawValue.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/)
+  if (!dateMatch) return null
+
+  const [, year, month, day] = dateMatch
+  const parsedDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+  if (
+    parsedDate.getUTCFullYear() !== Number(year) ||
+    parsedDate.getUTCMonth() !== Number(month) - 1 ||
+    parsedDate.getUTCDate() !== Number(day)
+  ) {
+    return null
+  }
+
+  return `${year}-${month}-${day}`
+}
+
+const slotsContainTime = (
+  rows: Array<{ slot: string | null; reason: string | null }> | null | undefined,
+  time: string,
+) => {
+  const slots = (rows ?? [])
+    .filter((row) => row.slot)
+    .map((row) => String(row.slot).substring(0, 5))
+
+  return {
+    available: slots.includes(time),
+    slots,
+    reason: slots.length === 0 ? rows?.[0]?.reason ?? 'no_slots' : null,
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -82,25 +116,32 @@ serve(async (req) => {
       clientId = clientData.id
     }
 
+    const normalizedBookingDate = normalizeDate(booking_date)
+    if (!normalizedBookingDate) throw new Error('Data do agendamento inválida')
+
     const normalizedBookingTime = normalizeTime(booking_time)
     if (!normalizedBookingTime) throw new Error('Horário do agendamento inválido')
 
-    // Gate único de disponibilidade (mesma regra usada pelo cliente)
-    const { data: okSlot, error: gateErr } = await supabaseClient.rpc('is_slot_available', {
+    // Gate único de disponibilidade: mesma fonte usada pelo GET de slots.
+    const { data: availabilityRows, error: gateErr } = await supabaseClient.rpc('get_available_slots', {
       p_company: company_id,
       p_employee: employee_id,
       p_service: service_id,
-      p_date: booking_date,
-      p_start: normalizedBookingTime,
-      p_ignore_booking: null,
+      p_date: normalizedBookingDate,
     })
     if (gateErr) throw gateErr
-    if (!okSlot) throw new Error('Horário indisponível — viola escala, ausência, bloqueio ou conflita com outro agendamento.')
+    const availability = slotsContainTime(
+      availabilityRows as Array<{ slot: string | null; reason: string | null }> | null,
+      normalizedBookingTime,
+    )
+    if (!availability.available) {
+      throw new Error(`Horário indisponível (${availability.reason ?? 'slot_not_returned_by_get_available_slots'}). Slots disponíveis: ${availability.slots.join(', ') || 'nenhum'}`)
+    }
 
 
     // bookings.start_time / end_time são timestamptz — precisam ser construídos
     // a partir de booking_date + HH:MM no fuso America/Sao_Paulo (-03:00).
-    const startIso = `${booking_date}T${normalizedBookingTime}:00-03:00`
+    const startIso = `${normalizedBookingDate}T${normalizedBookingTime}:00-03:00`
     const endIso = new Date(
       new Date(startIso).getTime() + (duration_minutes ?? 30) * 60000
     ).toISOString()
@@ -112,7 +153,7 @@ serve(async (req) => {
         client_id: clientId,
         service_id,
         employee_id,
-        booking_date,
+        booking_date: normalizedBookingDate,
         booking_time: `${normalizedBookingTime}:00`,
         start_time: startIso,
         end_time: endIso,
