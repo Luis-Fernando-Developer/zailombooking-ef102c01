@@ -87,8 +87,8 @@ function normalizeTime(v: string | number | null | undefined): string | null {
 function normalizeDate(v: string | number | null | undefined): string | null {
   if (!v) return null;
   const s = String(v).trim();
-  const isoWithTime = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
-  const isoDate = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+  const isoWithTime = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})T/);
+  const isoDate = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   const brDate = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/);
   const m = isoWithTime ?? isoDate;
   const [, year, month, day] = m ?? [];
@@ -98,7 +98,7 @@ function normalizeDate(v: string | number | null | undefined): string | null {
   const normalized = brDate
     ? { year: brYear, month: brDate[2].padStart(2, "0"), day: brDate[1].padStart(2, "0") }
     : year && month && day
-      ? { year, month, day }
+      ? { year, month: month.padStart(2, "0"), day: day.padStart(2, "0") }
       : null;
   if (!normalized) return null;
   const date = new Date(Date.UTC(Number(normalized.year), Number(normalized.month) - 1, Number(normalized.day)));
@@ -148,12 +148,12 @@ function readFirst(body: Record<string, unknown>, keys: string[]): unknown {
 
 const BOOKING_DATE_KEYS = [
   "booking_date",
+  "data",
   "data_agendamento",
   "appointment_date",
   "selected_date",
   "selectedDate",
   "date",
-  "data",
 ];
 
 const BOOKING_TIME_KEYS = [
@@ -172,9 +172,10 @@ const BOOKING_TIME_KEYS = [
 function getBookingClockTime(body: Record<string, unknown>): string | null {
   // Campos literais vindos do bot são a fonte de verdade. start_time é apenas
   // compatibilidade legada para "HH:mm" e não aceita timestamp ISO silencioso.
-  const literal = readFirst(body, BOOKING_TIME_KEYS);
-  const normalizedLiteral = normalizeTime(literal as string | number | null | undefined);
-  if (normalizedLiteral) return normalizedLiteral;
+  for (const key of BOOKING_TIME_KEYS) {
+    const normalizedLiteral = normalizeTime(body[key] as string | number | null | undefined);
+    if (normalizedLiteral) return normalizedLiteral;
+  }
 
   const legacyStartTime = body.start_time;
   if (legacyStartTime && !String(legacyStartTime).includes("T")) {
@@ -184,16 +185,27 @@ function getBookingClockTime(body: Record<string, unknown>): string | null {
 }
 
 function getBookingDate(body: Record<string, unknown>): string | null {
-  const literal = readFirst(body, BOOKING_DATE_KEYS);
-  return normalizeDate(literal as string | number | null | undefined);
+  for (const key of BOOKING_DATE_KEYS) {
+    const normalizedDate = normalizeDate(body[key] as string | number | null | undefined);
+    if (normalizedDate) return normalizedDate;
+  }
+  return null;
+}
+
+function getExplicitBookingClockTime(body: Record<string, unknown>): string | null {
+  for (const key of BOOKING_TIME_KEYS) {
+    const normalizedTime = normalizeTime(body[key] as string | number | null | undefined);
+    if (normalizedTime) return normalizedTime;
+  }
+  return null;
 }
 
 function validateBookingInputConsistency(body: Record<string, unknown>): string | null {
   const startTimeRaw = body.start_time;
   if (!startTimeRaw || !String(startTimeRaw).includes("T")) return null;
 
-  const explicitDate = normalizeDate(readFirst(body, BOOKING_DATE_KEYS) as string | number | null | undefined);
-  const explicitTime = normalizeTime(readFirst(body, BOOKING_TIME_KEYS) as string | number | null | undefined);
+  const explicitDate = getBookingDate(body);
+  const explicitTime = getExplicitBookingClockTime(body);
   const startDate = normalizeDate(startTimeRaw as string | number | null | undefined);
   const startClock = normalizeTime(startTimeRaw as string | number | null | undefined);
 
