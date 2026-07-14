@@ -15,6 +15,20 @@ import { getAvailability } from "@/lib/api/availability";
 export function toHHMM(v?: string | null): string {
   if (!v) return "";
   const s = String(v);
+  // timestamptz ISO com offset (ex: 2026-07-19T12:00:00-03:00 ou ...Z):
+  // formatar sempre em America/Sao_Paulo para não depender da timezone que
+  // o PostgREST usa ao serializar (que segue a timezone da sessão do banco).
+  if (s.includes("T") && /[Zz]|[+-]\d{2}:?\d{2}$/.test(s)) {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      return new Intl.DateTimeFormat("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "America/Sao_Paulo",
+      }).format(d);
+    }
+  }
   if (s.includes("T")) {
     const m = s.match(/T(\d{2}):(\d{2})/);
     if (m) return `${m[1]}:${m[2]}`;

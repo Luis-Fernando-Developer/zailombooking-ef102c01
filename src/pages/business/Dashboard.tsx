@@ -58,8 +58,15 @@ function InconsistencyAlert({ companyId, companySlug }: { companyId: string; com
   };
   const fmtTime = (t: string) => {
     if (!t) return "";
-    if (t.includes("T")) return t.split("T")[1].slice(0, 5);
-    return t.slice(0, 5);
+    if (!t.includes("T")) return t.slice(0, 5);
+    const d = new Date(t);
+    if (isNaN(d.getTime())) return t.slice(11, 16);
+    return new Intl.DateTimeFormat("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "America/Sao_Paulo",
+    }).format(d);
   };
 
   return (
