@@ -63,6 +63,18 @@ function normalizeTime(v: string | null | undefined): string | null {
       return `${String(hour).padStart(2, "0")}:${loosePlain[2]}`;
     }
   }
+  const zonedIso = s.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/);
+  if (zonedIso) {
+    const d = new Date(s);
+    if (!Number.isNaN(d.getTime())) {
+      return new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "America/Sao_Paulo",
+      }).format(d);
+    }
+  }
   const iso = s.match(/T(\d{2}:\d{2})(?::\d{2})?/);
   if (iso?.[1]) return iso[1];
   const plain = s.match(/^(\d{2}:\d{2})(?::\d{2})?/);
@@ -72,6 +84,21 @@ function normalizeTime(v: string | null | undefined): string | null {
 function normalizeDate(v: string | null | undefined): string | null {
   if (!v) return null;
   const s = String(v).trim();
+  const zonedIso = s.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/);
+  if (zonedIso) {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return null;
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    }).formatToParts(d);
+    const year = parts.find((part) => part.type === "year")?.value;
+    const month = parts.find((part) => part.type === "month")?.value;
+    const day = parts.find((part) => part.type === "day")?.value;
+    return year && month && day ? `${year}-${month}-${day}` : null;
+  }
   const isoWithTime = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
   const isoDate = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
   const brDate = s.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
