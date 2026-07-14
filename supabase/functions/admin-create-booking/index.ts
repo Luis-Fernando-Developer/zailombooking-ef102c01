@@ -105,8 +105,19 @@ serve(async (req) => {
       client_email,
       client_phone,
       client_password,
-      is_new_client
+      is_new_client,
+      payment_status: payment_status_input,
+      booking_status: booking_status_input,
     } = body
+
+    const allowedPaymentStatuses = ['pending', 'confirmed', 'paid', 'refunded', 'failed']
+    const allowedBookingStatuses = ['pending', 'confirmed', 'cancelled', 'canceled', 'completed', 'no_show']
+    const paymentStatus = allowedPaymentStatuses.includes(String(payment_status_input))
+      ? String(payment_status_input)
+      : 'pending'
+    const bookingStatus = allowedBookingStatuses.includes(String(booking_status_input))
+      ? String(booking_status_input)
+      : 'confirmed'
 
     let clientId
 
