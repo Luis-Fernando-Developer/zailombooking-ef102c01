@@ -643,22 +643,22 @@ export default function ClientBooking() {
 
       const isCombo = selectedService.id?.startsWith?.('combo:');
       const bookingDate = format(selectedDate, 'yyyy-MM-dd');
-      // start_time / end_time são TIMESTAMPTZ no banco — montar ISO local
+      // start_time / end_time são TIMESTAMPTZ no banco: gravar sempre no fuso
+      // de negócio e manter booking_time como HH:mm literal escolhido pelo cliente.
       const [shStr, smStr] = (selectedTime || '00:00').split(':');
       const sh = Number(shStr) || 0;
       const sm = Number(smStr) || 0;
       const duration = Number(selectedService.duration_minutes) || 30;
-      const startISO = `${bookingDate}T${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}:00`;
-      const endTotal = sh * 60 + sm + duration;
-      const eh = Math.floor(endTotal / 60) % 24;
-      const em = endTotal % 60;
-      const endISO = `${bookingDate}T${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}:00`;
+      const normalizedSelectedTime = `${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`;
+      const startISO = `${bookingDate}T${normalizedSelectedTime}:00-03:00`;
+      const endISO = new Date(new Date(startISO).getTime() + duration * 60000).toISOString();
 
       const payloadBase: any = {
         company_id: company.id,
         employee_id: selectedEmployee.id,
         service_id: isCombo ? null : selectedService.id,
         combo_id: isCombo ? selectedService.id.replace('combo:', '') : null,
+        booking_time: `${normalizedSelectedTime}:00`,
         start_time: startISO,
         end_time: endISO,
         booking_date: bookingDate,

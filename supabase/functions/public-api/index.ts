@@ -446,7 +446,7 @@ const createBooking: Handler = async (ctx, req) => {
   const booking_date = getBookingDate(b);
   const start_time = getBookingClockTime(b);
   if (!client_id || !service_id || !employee_id || !booking_date || !start_time)
-    return err("client_id, service_id, employee_id, booking_date (YYYY-MM-DD), start_time (HH:mm) are required", 400);
+    return err("client_id, service_id, employee_id, booking_date (YYYY-MM-DD), booking_time/start_time (HH:mm) are required", 400);
 
   const { data: svc, error: svcErr } = await ctx.sb
     .from("services")
