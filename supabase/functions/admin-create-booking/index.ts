@@ -9,6 +9,14 @@ const corsHeaders = {
 const normalizeTime = (value: string | null | undefined): string | null => {
   if (!value) return null
   const rawValue = String(value).trim()
+  const loosePlainTimeMatch = rawValue.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+  if (loosePlainTimeMatch?.[1] && loosePlainTimeMatch?.[2]) {
+    const hour = Number(loosePlainTimeMatch[1])
+    const minute = Number(loosePlainTimeMatch[2])
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return `${String(hour).padStart(2, '0')}:${loosePlainTimeMatch[2]}`
+    }
+  }
   const isoTimeMatch = rawValue.match(/T(\d{2}:\d{2})(?::\d{2})?/)
   if (isoTimeMatch?.[1]) return isoTimeMatch[1]
   const plainTimeMatch = rawValue.match(/^(\d{2}:\d{2})(?::\d{2})?/)
@@ -18,20 +26,28 @@ const normalizeTime = (value: string | null | undefined): string | null => {
 const normalizeDate = (value: string | null | undefined): string | null => {
   if (!value) return null
   const rawValue = String(value).trim()
-  const dateMatch = rawValue.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/)
-  if (!dateMatch) return null
+  const isoWithTimeMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})T/)
+  const isoDateMatch = rawValue.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/)
+  const brDateMatch = rawValue.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/)
+  const dateMatch = isoWithTimeMatch ?? isoDateMatch
 
-  const [, year, month, day] = dateMatch
-  const parsedDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+  const normalized = brDateMatch
+    ? { year: brDateMatch[3], month: brDateMatch[2], day: brDateMatch[1] }
+    : dateMatch
+      ? { year: dateMatch[1], month: dateMatch[2], day: dateMatch[3] }
+      : null
+  if (!normalized) return null
+
+  const parsedDate = new Date(Date.UTC(Number(normalized.year), Number(normalized.month) - 1, Number(normalized.day)))
   if (
-    parsedDate.getUTCFullYear() !== Number(year) ||
-    parsedDate.getUTCMonth() !== Number(month) - 1 ||
-    parsedDate.getUTCDate() !== Number(day)
+    parsedDate.getUTCFullYear() !== Number(normalized.year) ||
+    parsedDate.getUTCMonth() !== Number(normalized.month) - 1 ||
+    parsedDate.getUTCDate() !== Number(normalized.day)
   ) {
     return null
   }
 
-  return `${year}-${month}-${day}`
+  return `${normalized.year}-${normalized.month}-${normalized.day}`
 }
 
 const slotsContainTime = (
