@@ -17,6 +17,8 @@ const normalizeTime = (value: string | null | undefined): string | null => {
       return `${String(hour).padStart(2, '0')}:${loosePlainTimeMatch[2]}`
     }
   }
+  const isoTimeMatch = rawValue.match(/T(\d{2}:\d{2})(?::\d{2})?/)
+  if (isoTimeMatch?.[1]) return isoTimeMatch[1]
   const zonedIsoTimeMatch = rawValue.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/)
   if (zonedIsoTimeMatch) {
     const parsedDate = new Date(rawValue)
@@ -29,8 +31,6 @@ const normalizeTime = (value: string | null | undefined): string | null => {
       }).format(parsedDate)
     }
   }
-  const isoTimeMatch = rawValue.match(/T(\d{2}:\d{2})(?::\d{2})?/)
-  if (isoTimeMatch?.[1]) return isoTimeMatch[1]
   const plainTimeMatch = rawValue.match(/^(\d{2}:\d{2})(?::\d{2})?/)
   return plainTimeMatch?.[1] ?? null
 }

@@ -100,10 +100,17 @@ Payload de criação:
   "client_id": "uuid",
   "service_id": "uuid",
   "employee_id": "uuid",
-  "booking_date": "2026-07-10",
-  "start_time": "14:30"
+  "booking_date": "2026-07-15",
+  "booking_time": "15:00"
 }
 ```
+
+Para integrações com bot/IA, **não envie `start_time` em ISO** (`2026-07-15T15:00:00Z`) e evite nomes genéricos como `data`, `date` e `time` quando puder. A fonte única deve ser:
+
+- `booking_date`: data literal do agendamento em `YYYY-MM-DD`.
+- `booking_time`: horário literal escolhido pelo cliente em `HH:mm`.
+
+O endpoint deriva `start_time` internamente no fuso de negócio (`America/Sao_Paulo`).
 
 ### Pagamentos
 | Método | Rota | Descrição |
