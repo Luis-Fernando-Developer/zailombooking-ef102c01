@@ -121,13 +121,6 @@ function firstObject(...values: unknown[]): Record<string, unknown> | null {
   return null;
 }
 
-function hasPresentKey(body: Record<string, unknown>, keys: string[]): boolean {
-  return keys.some((key) => {
-    const value = body[key];
-    return value !== undefined && value !== null && String(value).trim() !== "";
-  });
-}
-
 function unwrapBookingBody(body: unknown): Record<string, unknown> {
   const root = firstObject(body) ?? {};
   const nested = firstObject(root.booking, root.agendamento, root.reservation, root.payload, root.data);
