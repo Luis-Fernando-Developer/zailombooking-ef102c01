@@ -308,12 +308,18 @@ export default function BusinessBookings() {
 
   const formatTime = (time: string) => {
     if (!time) return "";
-    // Se a string contiver a data completa (ISO), extrai apenas o horário
-    if (time.includes('T')) {
-      const timePart = time.split('T')[1];
-      return timePart.slice(0, 5);
-    }
-    return time.slice(0, 5);
+    // Campo TIME (booking_time) ou string "HH:mm[:ss]" — sem fuso, uso literal.
+    if (!time.includes('T')) return time.slice(0, 5);
+    // timestamptz retornado pelo PostgREST — formatar sempre em America/Sao_Paulo
+    // para não depender da timezone da sessão do banco.
+    const d = new Date(time);
+    if (isNaN(d.getTime())) return time.slice(11, 16);
+    return new Intl.DateTimeFormat('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'America/Sao_Paulo',
+    }).format(d);
   };
 
   if (loading) {
