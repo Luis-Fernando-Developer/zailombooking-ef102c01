@@ -121,10 +121,39 @@ function firstObject(...values: unknown[]): Record<string, unknown> | null {
   return null;
 }
 
+function hasPresentKey(body: Record<string, unknown>, keys: string[]): boolean {
+  return keys.some((key) => {
+    const value = body[key];
+    return value !== undefined && value !== null && String(value).trim() !== "";
+  });
+}
+
 function unwrapBookingBody(body: unknown): Record<string, unknown> {
   const root = firstObject(body) ?? {};
-  const nested = firstObject(root.booking, root.agendamento, root.reservation, root.data, root.payload);
-  return nested ? { ...root, ...nested } : root;
+  const rootHasExplicitBookingFields = hasPresentKey(root, [
+    "client_id",
+    "service_id",
+    "employee_id",
+    "booking_date",
+    "booking_time",
+    "date",
+    "time",
+    "horario",
+    "hora",
+    "start_time",
+  ]);
+
+  // Bots/HTTP tools often forward a previous API response under `data` while
+  // also sending the intended booking fields at the root. Root fields must win;
+  // otherwise a stale `data.date/time` can silently book a different slot.
+  const nested = firstObject(
+    root.booking,
+    root.agendamento,
+    root.reservation,
+    root.payload,
+    rootHasExplicitBookingFields ? null : root.data,
+  );
+  return nested ? { ...nested, ...root } : root;
 }
 
 function readFirst(body: Record<string, unknown>, keys: string[]): unknown {
