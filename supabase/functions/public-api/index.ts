@@ -63,6 +63,11 @@ function normalizeTime(v: string | number | null | undefined): string | null {
       return `${String(hour).padStart(2, "0")}:${loosePlain[2]}`;
     }
   }
+  // Para entrada de API de agendamento, um datetime vindo de automação deve ser
+  // tratado como relógio local informado no texto, não convertido pela timezone
+  // do runtime. Ex.: "2026-07-15T08:00:00Z" representa 08:00 escolhido no bot.
+  const iso = s.match(/T(\d{2}:\d{2})(?::\d{2})?/);
+  if (iso?.[1]) return iso[1];
   const zonedIso = s.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/);
   if (zonedIso) {
     const d = new Date(s);
@@ -75,8 +80,6 @@ function normalizeTime(v: string | number | null | undefined): string | null {
       }).format(d);
     }
   }
-  const iso = s.match(/T(\d{2}:\d{2})(?::\d{2})?/);
-  if (iso?.[1]) return iso[1];
   const plain = s.match(/^(\d{2}:\d{2})(?::\d{2})?/);
   return plain?.[1] ?? null;
 }
@@ -132,37 +135,59 @@ function readFirst(body: Record<string, unknown>, keys: string[]): unknown {
   return null;
 }
 
+const BOOKING_DATE_KEYS = [
+  "booking_date",
+  "date",
+  "selected_date",
+  "selectedDate",
+  "data",
+  "data_agendamento",
+  "appointment_date",
+];
+
+const BOOKING_TIME_KEYS = [
+  "booking_time",
+  "time",
+  "slot",
+  "selected_time",
+  "selectedTime",
+  "horario",
+  "hora",
+  "horário",
+  "horario_agendamento",
+  "appointment_time",
+];
+
 function getBookingClockTime(body: Record<string, unknown>): string | null {
   // Campos literais vindos do bot são a fonte de verdade. start_time é apenas
   // compatibilidade legada e não deve sobrescrever booking_time/time/horario.
-  const literal = readFirst(body, [
-    "booking_time",
-    "time",
-    "slot",
-    "selected_time",
-    "selectedTime",
-    "horario",
-    "hora",
-    "horário",
-    "horario_agendamento",
-    "appointment_time",
-  ]);
+  const literal = readFirst(body, BOOKING_TIME_KEYS);
   return normalizeTime(literal as string | number | null | undefined)
     ?? normalizeTime(body.start_time as string | number | null | undefined);
 }
 
 function getBookingDate(body: Record<string, unknown>): string | null {
-  const literal = readFirst(body, [
-    "booking_date",
-    "date",
-    "selected_date",
-    "selectedDate",
-    "data",
-    "data_agendamento",
-    "appointment_date",
-  ]);
+  const literal = readFirst(body, BOOKING_DATE_KEYS);
   return normalizeDate(literal as string | number | null | undefined)
     ?? normalizeDate(body.start_time as string | number | null | undefined);
+}
+
+function validateBookingInputConsistency(body: Record<string, unknown>): string | null {
+  const startTimeRaw = body.start_time;
+  if (!startTimeRaw || !String(startTimeRaw).includes("T")) return null;
+
+  const explicitDate = normalizeDate(readFirst(body, BOOKING_DATE_KEYS) as string | number | null | undefined);
+  const explicitTime = normalizeTime(readFirst(body, BOOKING_TIME_KEYS) as string | number | null | undefined);
+  const startDate = normalizeDate(startTimeRaw as string | number | null | undefined);
+  const startClock = normalizeTime(startTimeRaw as string | number | null | undefined);
+
+  if (explicitDate && startDate && explicitDate !== startDate) {
+    return `booking_date (${explicitDate}) diverge de start_time (${startDate}). Envie booking_date + booking_time como fonte única, ou corrija start_time.`;
+  }
+  if (explicitTime && startClock && explicitTime !== startClock) {
+    return `booking_time (${explicitTime}) diverge de start_time (${startClock}). Envie booking_date + booking_time como fonte única, ou corrija start_time.`;
+  }
+  return null;
 }
 
 function rowsContainSlot(
@@ -495,6 +520,8 @@ const createBooking: Handler = async (ctx, req) => {
   const { client_id, service_id, employee_id } = b;
   const booking_date = getBookingDate(b);
   const booking_time = getBookingClockTime(b);
+  const consistencyError = validateBookingInputConsistency(b);
+  if (consistencyError) return err("inconsistent_booking_datetime", 400, { detail: consistencyError });
   if (!client_id || !service_id || !employee_id || !booking_date || !booking_time)
     return err("client_id, service_id, employee_id, booking_date/date (YYYY-MM-DD or DD/MM/YYYY), booking_time/time/horario (HH:mm) are required", 400);
 
