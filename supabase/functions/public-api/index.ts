@@ -61,6 +61,23 @@ function normalizeTime(v: string | null | undefined): string | null {
   return plain?.[1] ?? null;
 }
 
+function normalizeDate(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const s = String(v).trim();
+  const m = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+  if (!m) return null;
+  const [, year, month, day] = m;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  if (
+    date.getUTCFullYear() !== Number(year) ||
+    date.getUTCMonth() !== Number(month) - 1 ||
+    date.getUTCDate() !== Number(day)
+  ) {
+    return null;
+  }
+  return `${year}-${month}-${day}`;
+}
+
 // ─── auth ────────────────────────────────────────────────────────────────────
 
 interface ApiCtx {
@@ -269,7 +286,7 @@ const availabilitySlots: Handler = async (ctx, req) => {
   const url = new URL(req.url);
   const employee_id = url.searchParams.get("employee_id");
   const service_id = url.searchParams.get("service_id");
-  const date = url.searchParams.get("date");
+  const date = normalizeDate(url.searchParams.get("date"));
   if (!employee_id || !service_id || !date) return err("employee_id, service_id, date required", 400);
   const { data, error } = await ctx.sb.rpc("get_available_slots", {
     p_company: ctx.companyId,
@@ -373,10 +390,11 @@ const upsertClient: Handler = async (ctx, req) => {
 
 const createBooking: Handler = async (ctx, req) => {
   const b = await req.json().catch(() => ({}));
-  const { client_id, service_id, employee_id, booking_date } = b;
+  const { client_id, service_id, employee_id } = b;
+  const booking_date = normalizeDate(b.booking_date);
   const start_time = normalizeTime(b.start_time ?? b.booking_time);
   if (!client_id || !service_id || !employee_id || !booking_date || !start_time)
-    return err("client_id, service_id, employee_id, booking_date, start_time are required", 400);
+    return err("client_id, service_id, employee_id, booking_date (YYYY-MM-DD), start_time (HH:mm) are required", 400);
 
   const { data: svc, error: svcErr } = await ctx.sb
     .from("services")
