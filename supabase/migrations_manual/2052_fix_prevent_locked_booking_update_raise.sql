@@ -93,9 +93,33 @@ BEGIN
 END;
 $$;
 
--- Backfill seguro de total_price (evita disparar o lock em bookings finalizados,
--- mesmo com a função já corrigida — não queremos que um UPDATE de coluna
--- auxiliar seja bloqueado). Desabilitamos o trigger só nesta transação.
+-- Garante que a coluna exista (a 2051 pode ter abortado antes de criá-la).
+ALTER TABLE public.bookings
+  ADD COLUMN IF NOT EXISTS total_price NUMERIC;
+
+-- Garante o trigger de sincronização price <-> total_price (idem 2051).
+CREATE OR REPLACE FUNCTION public.sync_bookings_price_columns()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.price IS NULL AND NEW.total_price IS NOT NULL THEN
+    NEW.price := NEW.total_price;
+  END IF;
+  IF NEW.total_price IS NULL AND NEW.price IS NOT NULL THEN
+    NEW.total_price := NEW.price;
+  END IF;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS trg_sync_bookings_price_columns ON public.bookings;
+CREATE TRIGGER trg_sync_bookings_price_columns
+BEFORE INSERT OR UPDATE OF price, total_price ON public.bookings
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_bookings_price_columns();
+
+-- Backfill seguro de total_price (evita disparar o lock em bookings finalizados).
 ALTER TABLE public.bookings DISABLE TRIGGER trg_prevent_locked_booking_update;
 
 UPDATE public.bookings
