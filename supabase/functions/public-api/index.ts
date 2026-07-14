@@ -160,16 +160,21 @@ const BOOKING_TIME_KEYS = [
 
 function getBookingClockTime(body: Record<string, unknown>): string | null {
   // Campos literais vindos do bot são a fonte de verdade. start_time é apenas
-  // compatibilidade legada e não deve sobrescrever booking_time/time/horario.
+  // compatibilidade legada para "HH:mm" e não aceita timestamp ISO silencioso.
   const literal = readFirst(body, BOOKING_TIME_KEYS);
-  return normalizeTime(literal as string | number | null | undefined)
-    ?? normalizeTime(body.start_time as string | number | null | undefined);
+  const normalizedLiteral = normalizeTime(literal as string | number | null | undefined);
+  if (normalizedLiteral) return normalizedLiteral;
+
+  const legacyStartTime = body.start_time;
+  if (legacyStartTime && !String(legacyStartTime).includes("T")) {
+    return normalizeTime(legacyStartTime as string | number | null | undefined);
+  }
+  return null;
 }
 
 function getBookingDate(body: Record<string, unknown>): string | null {
   const literal = readFirst(body, BOOKING_DATE_KEYS);
-  return normalizeDate(literal as string | number | null | undefined)
-    ?? normalizeDate(body.start_time as string | number | null | undefined);
+  return normalizeDate(literal as string | number | null | undefined);
 }
 
 function validateBookingInputConsistency(body: Record<string, unknown>): string | null {
@@ -180,6 +185,10 @@ function validateBookingInputConsistency(body: Record<string, unknown>): string 
   const explicitTime = normalizeTime(readFirst(body, BOOKING_TIME_KEYS) as string | number | null | undefined);
   const startDate = normalizeDate(startTimeRaw as string | number | null | undefined);
   const startClock = normalizeTime(startTimeRaw as string | number | null | undefined);
+
+  if (!explicitDate || !explicitTime) {
+    return "timestamp ISO em start_time não é aceito como fonte do agendamento. Envie booking_date/data e booking_time/horario explicitamente.";
+  }
 
   if (explicitDate && startDate && explicitDate !== startDate) {
     return `booking_date (${explicitDate}) diverge de start_time (${startDate}). Envie booking_date + booking_time como fonte única, ou corrija start_time.`;
