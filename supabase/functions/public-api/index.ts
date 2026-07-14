@@ -138,14 +138,6 @@ function unwrapBookingBody(body: unknown): Record<string, unknown> {
   return { ...nested, ...rootScalars };
 }
 
-function readFirst(body: Record<string, unknown>, keys: string[]): unknown {
-  for (const key of keys) {
-    const value = body[key];
-    if (value !== undefined && value !== null && String(value).trim() !== "") return value;
-  }
-  return null;
-}
-
 const BOOKING_DATE_KEYS = [
   "booking_date",
   "data",
