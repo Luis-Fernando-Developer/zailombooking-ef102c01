@@ -84,21 +84,6 @@ function normalizeTime(v: string | null | undefined): string | null {
 function normalizeDate(v: string | null | undefined): string | null {
   if (!v) return null;
   const s = String(v).trim();
-  const zonedIso = s.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/);
-  if (zonedIso) {
-    const d = new Date(s);
-    if (Number.isNaN(d.getTime())) return null;
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "America/Sao_Paulo",
-    }).formatToParts(d);
-    const year = parts.find((part) => part.type === "year")?.value;
-    const month = parts.find((part) => part.type === "month")?.value;
-    const day = parts.find((part) => part.type === "day")?.value;
-    return year && month && day ? `${year}-${month}-${day}` : null;
-  }
   const isoWithTime = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
   const isoDate = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
   const brDate = s.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
@@ -128,7 +113,11 @@ function getBookingClockTime(body: Record<string, unknown>): string | null {
   return (
     normalizeTime(body.booking_time as string | null | undefined) ??
     normalizeTime(body.time as string | null | undefined) ??
+    normalizeTime(body.slot as string | null | undefined) ??
+    normalizeTime(body.selected_time as string | null | undefined) ??
+    normalizeTime(body.selectedTime as string | null | undefined) ??
     normalizeTime(body.horario as string | null | undefined) ??
+    normalizeTime(body.horario_agendamento as string | null | undefined) ??
     normalizeTime(body.start_time as string | null | undefined)
   );
 }
@@ -137,7 +126,10 @@ function getBookingDate(body: Record<string, unknown>): string | null {
   return (
     normalizeDate(body.booking_date as string | null | undefined) ??
     normalizeDate(body.date as string | null | undefined) ??
+    normalizeDate(body.selected_date as string | null | undefined) ??
+    normalizeDate(body.selectedDate as string | null | undefined) ??
     normalizeDate(body.data as string | null | undefined) ??
+    normalizeDate(body.data_agendamento as string | null | undefined) ??
     normalizeDate(body.start_time as string | null | undefined)
   );
 }

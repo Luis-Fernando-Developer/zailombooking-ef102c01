@@ -38,21 +38,6 @@ const normalizeTime = (value: string | null | undefined): string | null => {
 const normalizeDate = (value: string | null | undefined): string | null => {
   if (!value) return null
   const rawValue = String(value).trim()
-  const zonedIsoDateMatch = rawValue.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/)
-  if (zonedIsoDateMatch) {
-    const parsedDate = new Date(rawValue)
-    if (Number.isNaN(parsedDate.getTime())) return null
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      timeZone: 'America/Sao_Paulo',
-    }).formatToParts(parsedDate)
-    const year = parts.find((part) => part.type === 'year')?.value
-    const month = parts.find((part) => part.type === 'month')?.value
-    const day = parts.find((part) => part.type === 'day')?.value
-    return year && month && day ? `${year}-${month}-${day}` : null
-  }
   const isoWithTimeMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})T/)
   const isoDateMatch = rawValue.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/)
   const brDateMatch = rawValue.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/)
