@@ -98,6 +98,13 @@ serve(async (req) => {
     if (!okSlot) throw new Error('Horário indisponível — viola escala, ausência, bloqueio ou conflita com outro agendamento.')
 
 
+    // bookings.start_time / end_time são timestamptz — precisam ser construídos
+    // a partir de booking_date + HH:MM no fuso America/Sao_Paulo (-03:00).
+    const startIso = `${booking_date}T${normalizedBookingTime}:00-03:00`
+    const endIso = new Date(
+      new Date(startIso).getTime() + (duration_minutes ?? 30) * 60000
+    ).toISOString()
+
     const { data: bookingData, error: bookingError } = await supabaseClient
       .from('bookings')
       .insert({
@@ -106,7 +113,9 @@ serve(async (req) => {
         service_id,
         employee_id,
         booking_date,
-        start_time: normalizedBookingTime,
+        booking_time: `${normalizedBookingTime}:00`,
+        start_time: startIso,
+        end_time: endIso,
         duration_minutes,
         price: price,
         booking_status: 'confirmed',
