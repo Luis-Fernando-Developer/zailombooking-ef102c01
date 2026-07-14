@@ -171,7 +171,8 @@ serve(async (req) => {
     // B) Pagamento
     const billingType = method === 'PIX' ? 'PIX' : (method === 'CREDIT_CARD' ? 'CREDIT_CARD' : (method === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
     
-    const amount = Number(bodyAmount || booking.total_price || 0)
+    const bookingAmount = Number(booking.price ?? booking.total_price ?? 0)
+    const amount = Number(bodyAmount || bookingAmount || 0)
     console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType} | Amount: ${amount}`)
 
     if (!amount || amount <= 0) {
@@ -234,7 +235,7 @@ serve(async (req) => {
       booking_id: booking.id,
       gateway_payment_id: paymentResult.id,
       provider: 'asaas',
-      amount: booking.total_price,
+      amount,
       status: 'pending',
       method: billingType,
       payment_data: responseData.payment
