@@ -130,40 +130,19 @@ function hasPresentKey(body: Record<string, unknown>, keys: string[]): boolean {
 
 function unwrapBookingBody(body: unknown): Record<string, unknown> {
   const root = firstObject(body) ?? {};
-  const rootHasExplicitBookingFields = hasPresentKey(root, [
-    "client_id",
-    "service_id",
-    "employee_id",
-    "booking_date",
-    "booking_time",
-    "date",
-    "selected_date",
-    "selectedDate",
-    "data_agendamento",
-    "appointment_date",
-    "time",
-    "selected_time",
-    "selectedTime",
-    "slot",
-    "horario",
-    "hora",
-    "horário",
-    "horario_agendamento",
-    "appointment_time",
-    "start_time",
-  ]);
+  const nested = firstObject(root.booking, root.agendamento, root.reservation, root.payload, root.data);
+  if (!nested) return root;
 
-  // Bots/HTTP tools often forward a previous API response under `data` while
-  // also sending the intended booking fields at the root. Root fields must win;
-  // otherwise a stale `data.date/time` can silently book a different slot.
-  const nested = firstObject(
-    root.booking,
-    root.agendamento,
-    root.reservation,
-    root.payload,
-    rootHasExplicitBookingFields ? null : root.data,
+  // Bots/HTTP tools often wrap the intended payload in `data`/`payload`, or keep
+  // a stale previous API response there. Merge defensively: scalar root fields
+  // override nested fields, but object wrappers never overwrite a nested
+  // Portuguese `data: "YYYY-MM-DD"` field.
+  const rootScalars = Object.fromEntries(
+    Object.entries(root).filter(([, value]) => {
+      return value === null || typeof value !== "object" || Array.isArray(value);
+    }),
   );
-  return nested ? { ...nested, ...root } : root;
+  return { ...nested, ...rootScalars };
 }
 
 function readFirst(body: Record<string, unknown>, keys: string[]): unknown {
