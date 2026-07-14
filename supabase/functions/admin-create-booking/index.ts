@@ -198,8 +198,8 @@ serve(async (req) => {
         end_time: endIso,
         duration_minutes,
         price: price,
-        booking_status: 'confirmed',
-        payment_status: 'confirmed'
+        booking_status: bookingStatus,
+        payment_status: paymentStatus
       })
       .select()
       .single()
