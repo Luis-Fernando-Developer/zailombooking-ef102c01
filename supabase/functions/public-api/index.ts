@@ -78,6 +78,21 @@ function normalizeDate(v: string | null | undefined): string | null {
   return `${year}-${month}-${day}`;
 }
 
+function rowsContainSlot(
+  rows: Array<{ slot: string | null; reason: string | null }> | null | undefined,
+  startTime: string,
+): { available: boolean; slots: string[]; reason: string | null } {
+  const slots = (rows ?? [])
+    .filter((row) => row.slot)
+    .map((row) => String(row.slot).slice(0, 5));
+
+  return {
+    available: slots.includes(startTime),
+    slots,
+    reason: slots.length ? null : rows?.[0]?.reason ?? "no_slots",
+  };
+}
+
 // ─── auth ────────────────────────────────────────────────────────────────────
 
 interface ApiCtx {
@@ -404,16 +419,24 @@ const createBooking: Handler = async (ctx, req) => {
     .maybeSingle();
   if (svcErr || !svc) return err("Service not found", 404);
 
-  const { data: ok, error: gErr } = await ctx.sb.rpc("is_slot_available", {
+  const { data: availabilityRows, error: availabilityErr } = await ctx.sb.rpc("get_available_slots", {
     p_company: ctx.companyId,
     p_employee: employee_id,
     p_service: service_id,
     p_date: booking_date,
-    p_start: start_time,
-    p_ignore_booking: null,
   });
-  if (gErr) return err(gErr.message, 500);
-  if (!ok) return err("slot_unavailable", 409, { reason: "conflict_or_schedule" });
+  if (availabilityErr) return err(availabilityErr.message, 500);
+
+  const availability = rowsContainSlot(
+    availabilityRows as Array<{ slot: string | null; reason: string | null }> | null,
+    start_time,
+  );
+  if (!availability.available) {
+    return err("slot_unavailable", 409, {
+      reason: availability.reason ?? "slot_not_returned_by_get_available_slots",
+      available_slots: availability.slots,
+    });
+  }
 
   const { data, error } = await ctx.sb
     .from("bookings")
