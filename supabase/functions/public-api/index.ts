@@ -135,7 +135,35 @@ function unwrapBookingBody(body: unknown): Record<string, unknown> {
       return value === null || typeof value !== "object" || Array.isArray(value);
     }),
   );
-  return { ...nested, ...rootScalars };
+  const merged = { ...nested, ...rootScalars };
+
+  const rootDateKey = [
+    "booking_date",
+    "data",
+    "data_agendamento",
+    "appointment_date",
+    "selected_date",
+    "selectedDate",
+    "date",
+  ].find((key) => rootScalars[key] !== undefined && rootScalars[key] !== null && String(rootScalars[key]).trim() !== "");
+
+  const rootTimeKey = [
+    "booking_time",
+    "horario_agendamento",
+    "horario",
+    "horário",
+    "hora",
+    "appointment_time",
+    "selected_time",
+    "selectedTime",
+    "time",
+    "slot",
+  ].find((key) => rootScalars[key] !== undefined && rootScalars[key] !== null && String(rootScalars[key]).trim() !== "");
+
+  if (rootDateKey) merged.booking_date = rootScalars[rootDateKey];
+  if (rootTimeKey) merged.booking_time = rootScalars[rootTimeKey];
+
+  return merged;
 }
 
 const BOOKING_DATE_KEYS = [
