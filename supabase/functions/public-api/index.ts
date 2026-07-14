@@ -137,9 +137,19 @@ function unwrapBookingBody(body: unknown): Record<string, unknown> {
     "booking_date",
     "booking_time",
     "date",
+    "selected_date",
+    "selectedDate",
+    "data_agendamento",
+    "appointment_date",
     "time",
+    "selected_time",
+    "selectedTime",
+    "slot",
     "horario",
     "hora",
+    "horário",
+    "horario_agendamento",
+    "appointment_time",
     "start_time",
   ]);
 
@@ -166,25 +176,25 @@ function readFirst(body: Record<string, unknown>, keys: string[]): unknown {
 
 const BOOKING_DATE_KEYS = [
   "booking_date",
-  "date",
-  "selected_date",
-  "selectedDate",
-  "data",
   "data_agendamento",
   "appointment_date",
+  "selected_date",
+  "selectedDate",
+  "date",
+  "data",
 ];
 
 const BOOKING_TIME_KEYS = [
   "booking_time",
-  "time",
-  "slot",
+  "horario_agendamento",
+  "horario",
+  "horário",
+  "hora",
+  "appointment_time",
   "selected_time",
   "selectedTime",
-  "horario",
-  "hora",
-  "horário",
-  "horario_agendamento",
-  "appointment_time",
+  "time",
+  "slot",
 ];
 
 function getBookingClockTime(body: Record<string, unknown>): string | null {
