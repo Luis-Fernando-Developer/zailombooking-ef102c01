@@ -568,10 +568,16 @@ const upsertClient: Handler = async (ctx, req) => {
 // =============================================================================
 
 const createBooking: Handler = async (ctx, req) => {
-  const b = unwrapBookingBody(await req.json().catch(() => ({})));
+  const rawText = await req.text();
+  let parsed: unknown = {};
+  try { parsed = JSON.parse(rawText); } catch { /* ignore */ }
+  console.log("[createBooking] raw_body:", rawText);
+  const b = unwrapBookingBody(parsed);
+  console.log("[createBooking] unwrapped_body:", JSON.stringify(b));
   const { client_id, service_id, employee_id } = b;
   const booking_date = getBookingDate(b);
   const booking_time = getBookingClockTime(b);
+  console.log("[createBooking] resolved:", JSON.stringify({ client_id, service_id, employee_id, booking_date, booking_time }));
   const consistencyError = validateBookingInputConsistency(b);
   if (consistencyError) return err("inconsistent_booking_datetime", 400, { detail: consistencyError });
   if (!client_id || !service_id || !employee_id || !booking_date || !booking_time)
@@ -592,15 +598,27 @@ const createBooking: Handler = async (ctx, req) => {
     p_date: booking_date,
   });
   if (availabilityErr) return err(availabilityErr.message, 500);
+  console.log("[createBooking] rpc_rows:", JSON.stringify(availabilityRows));
 
   const availability = rowsContainSlot(
     availabilityRows as Array<{ slot: string | null; reason: string | null }> | null,
     booking_time,
   );
   if (!availability.available) {
+    console.log("[createBooking] slot_mismatch:", JSON.stringify({
+      requested: booking_time,
+      requested_len: booking_time?.length,
+      requested_codes: booking_time ? [...booking_time].map((c) => c.charCodeAt(0)) : null,
+      slots: availability.slots,
+      slot_codes: availability.slots.map((s) => [...s].map((c) => c.charCodeAt(0))),
+    }));
     return err("slot_unavailable", 409, {
       reason: availability.reason ?? "slot_not_returned_by_get_available_slots",
       available_slots: availability.slots,
+      requested_time: booking_time,
+      requested_date: booking_date,
+      employee_id,
+      service_id,
     });
   }
 
