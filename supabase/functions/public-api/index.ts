@@ -55,6 +55,26 @@ function normalizePhone(raw: string): string {
 function normalizeTime(v: string | null | undefined): string | null {
   if (!v) return null;
   const s = String(v).trim();
+  const loosePlain = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (loosePlain?.[1] && loosePlain?.[2]) {
+    const hour = Number(loosePlain[1]);
+    const minute = Number(loosePlain[2]);
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return `${String(hour).padStart(2, "0")}:${loosePlain[2]}`;
+    }
+  }
+  const zonedIso = s.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/);
+  if (zonedIso) {
+    const d = new Date(s);
+    if (!Number.isNaN(d.getTime())) {
+      return new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "America/Sao_Paulo",
+      }).format(d);
+    }
+  }
   const iso = s.match(/T(\d{2}:\d{2})(?::\d{2})?/);
   if (iso?.[1]) return iso[1];
   const plain = s.match(/^(\d{2}:\d{2})(?::\d{2})?/);
@@ -64,18 +84,54 @@ function normalizeTime(v: string | null | undefined): string | null {
 function normalizeDate(v: string | null | undefined): string | null {
   if (!v) return null;
   const s = String(v).trim();
-  const m = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
-  if (!m) return null;
-  const [, year, month, day] = m;
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const isoWithTime = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+  const isoDate = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+  const brDate = s.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  const m = isoWithTime ?? isoDate;
+  const [, year, month, day] = m ?? [];
+  const normalized = brDate
+    ? { year: brDate[3], month: brDate[2], day: brDate[1] }
+    : year && month && day
+      ? { year, month, day }
+      : null;
+  if (!normalized) return null;
+  const date = new Date(Date.UTC(Number(normalized.year), Number(normalized.month) - 1, Number(normalized.day)));
   if (
-    date.getUTCFullYear() !== Number(year) ||
-    date.getUTCMonth() !== Number(month) - 1 ||
-    date.getUTCDate() !== Number(day)
+    date.getUTCFullYear() !== Number(normalized.year) ||
+    date.getUTCMonth() !== Number(normalized.month) - 1 ||
+    date.getUTCDate() !== Number(normalized.day)
   ) {
     return null;
   }
-  return `${year}-${month}-${day}`;
+  return `${normalized.year}-${normalized.month}-${normalized.day}`;
+}
+
+function getBookingClockTime(body: Record<string, unknown>): string | null {
+  // booking_time/time representam o horário escolhido pelo cliente no bot.
+  // start_time pode chegar como datetime transformado pela ferramenta HTTP; só
+  // usamos como fallback para não deixar ele sobrescrever o HH:mm selecionado.
+  return (
+    normalizeTime(body.booking_time as string | null | undefined) ??
+    normalizeTime(body.time as string | null | undefined) ??
+    normalizeTime(body.slot as string | null | undefined) ??
+    normalizeTime(body.selected_time as string | null | undefined) ??
+    normalizeTime(body.selectedTime as string | null | undefined) ??
+    normalizeTime(body.horario as string | null | undefined) ??
+    normalizeTime(body.horario_agendamento as string | null | undefined) ??
+    normalizeTime(body.start_time as string | null | undefined)
+  );
+}
+
+function getBookingDate(body: Record<string, unknown>): string | null {
+  return (
+    normalizeDate(body.booking_date as string | null | undefined) ??
+    normalizeDate(body.date as string | null | undefined) ??
+    normalizeDate(body.selected_date as string | null | undefined) ??
+    normalizeDate(body.selectedDate as string | null | undefined) ??
+    normalizeDate(body.data as string | null | undefined) ??
+    normalizeDate(body.data_agendamento as string | null | undefined) ??
+    normalizeDate(body.start_time as string | null | undefined)
+  );
 }
 
 function rowsContainSlot(
@@ -406,10 +462,10 @@ const upsertClient: Handler = async (ctx, req) => {
 const createBooking: Handler = async (ctx, req) => {
   const b = await req.json().catch(() => ({}));
   const { client_id, service_id, employee_id } = b;
-  const booking_date = normalizeDate(b.booking_date);
-  const start_time = normalizeTime(b.start_time ?? b.booking_time);
+  const booking_date = getBookingDate(b);
+  const start_time = getBookingClockTime(b);
   if (!client_id || !service_id || !employee_id || !booking_date || !start_time)
-    return err("client_id, service_id, employee_id, booking_date (YYYY-MM-DD), start_time (HH:mm) are required", 400);
+    return err("client_id, service_id, employee_id, booking_date (YYYY-MM-DD), booking_time/start_time (HH:mm) are required", 400);
 
   const { data: svc, error: svcErr } = await ctx.sb
     .from("services")
