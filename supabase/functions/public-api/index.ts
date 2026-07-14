@@ -83,7 +83,7 @@ function normalizeDate(v: string | null | undefined): string | null {
       ? { year, month, day }
       : null;
   if (!normalized) return null;
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const date = new Date(Date.UTC(Number(normalized.year), Number(normalized.month) - 1, Number(normalized.day)));
   if (
     date.getUTCFullYear() !== Number(normalized.year) ||
     date.getUTCMonth() !== Number(normalized.month) - 1 ||
