@@ -797,34 +797,35 @@ function EditableParam({
 }
 
 // ---------------------------------------------------------------------------
-// Introduction view (English)
+// Introdução (pt-BR)
 // ---------------------------------------------------------------------------
 function IntroductionView() {
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
       <div className="text-sm font-semibold uppercase tracking-wider text-primary">
-        Introduction
+        Introdução
       </div>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">
-        Zailom Booking Public API
+        API Pública Zailom Booking
       </h1>
       <p className="mt-4 text-lg text-muted-foreground">
-        A REST/JSON interface to the Zailom Booking scheduling platform. Build
-        chatbots, mobile apps and third-party integrations on top of the same
-        engine that powers our web dashboard — with a single source of truth
-        for availability, bookings and payments.
+        Uma interface REST/JSON para a plataforma de agendamentos Zailom
+        Booking. Construa chatbots, aplicativos mobile e integrações de
+        terceiros sobre o mesmo motor que alimenta o nosso painel web — com
+        uma única fonte de verdade para disponibilidade, agendamentos e
+        pagamentos.
       </p>
 
-      <Section title="Overview">
+      <Section title="Visão geral">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          The Zailom Booking API exposes the core scheduling primitives —
-          services, employees, clients, availability, bookings, payments and
-          notifications — over stable HTTP endpoints. It is a thin transport
-          layer: every business rule (working hours, schedules, breaks,
-          absences, reallocations, concurrency, timezone handling) lives inside
-          the platform, not on the client. That guarantees that whatever the
-          web app, a mobile client or a WhatsApp bot does, the outcome is
-          identical.
+          A API expõe as primitivas centrais do sistema — serviços,
+          colaboradores, clientes, disponibilidade, agendamentos, pagamentos e
+          notificações — através de endpoints HTTP estáveis. Ela é uma camada
+          fina de transporte: toda regra de negócio (horários de funcionamento,
+          escalas, intervalos, ausências, realocações, concorrência e fuso
+          horário) vive dentro da plataforma, e não no cliente. Isso garante
+          que o resultado seja idêntico, seja o consumidor o painel web, um
+          app mobile ou um bot de WhatsApp.
         </p>
       </Section>
 
@@ -833,85 +834,85 @@ function IntroductionView() {
           https://api-booking.zailom.com/v1
         </div>
         <p className="text-sm text-muted-foreground">
-          All endpoints described in the reference are relative to this base
-          URL. HTTPS is required.
+          Todos os endpoints da referência são relativos a esta base. HTTPS é
+          obrigatório.
         </p>
       </Section>
 
-      <Section title="Authentication">
+      <Section title="Autenticação">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Every request must include an API key bound to a company. Send it in
-          the <code className="rounded bg-muted px-1 py-0.5 font-mono">Authorization</code>{" "}
-          header as a Bearer token, or in the{" "}
-          <code className="rounded bg-muted px-1 py-0.5 font-mono">x-api-key</code>{" "}
-          header.
+          Toda requisição precisa incluir uma API key vinculada a uma empresa.
+          Envie no header{" "}
+          <code className="rounded bg-muted px-1 py-0.5 font-mono">Authorization</code>{" "}
+          como Bearer token, ou no header{" "}
+          <code className="rounded bg-muted px-1 py-0.5 font-mono">x-api-key</code>.
         </p>
         <pre className="overflow-auto rounded-lg border border-border bg-background p-4 font-mono text-xs">
 {`Authorization: Bearer zlm_XXXXXXXXXXXXXXXX
-# or
+# ou
 x-api-key: zlm_XXXXXXXXXXXXXXXX`}
         </pre>
         <p className="text-sm text-muted-foreground">
-          Keys carry scopes: <code>read</code> (GET) and <code>write</code>{" "}
-          (POST/PUT/PATCH/DELETE). Keys can be rotated at any time from the
-          company admin panel.
+          As chaves possuem escopos: <code>read</code> (GET) e{" "}
+          <code>write</code> (POST/PUT/PATCH/DELETE). Podem ser rotacionadas a
+          qualquer momento no painel administrativo da empresa.
         </p>
       </Section>
 
-      <Section title="How the system works">
+      <Section title="Como o sistema funciona">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          The booking engine is organized around three concepts:
+          O motor de agendamento é organizado em três conceitos:
         </p>
         <ul className="ml-5 list-disc space-y-2 text-sm text-muted-foreground">
           <li>
-            <b className="text-foreground">Catalog</b> — services, employees
-            and the many-to-many links that describe who can perform what and
-            for how long.
+            <b className="text-foreground">Catálogo</b> — serviços,
+            colaboradores e os vínculos que descrevem quem executa o quê e por
+            quanto tempo.
           </li>
           <li>
-            <b className="text-foreground">Availability</b> — a single source
-            of truth (the <code>get_available_slots</code> engine) that
-            projects working hours, breaks, absences, blocks and existing
-            bookings into a list of free time slots. Always query this before
-            offering a time to a client.
+            <b className="text-foreground">Disponibilidade</b> — uma fonte
+            única de verdade (o motor <code>get_available_slots</code>) que
+            projeta horário de trabalho, intervalos, ausências, bloqueios e
+            agendamentos existentes em uma lista de horários livres. Sempre
+            consulte antes de oferecer um horário ao cliente.
           </li>
           <li>
-            <b className="text-foreground">Bookings</b> — the write side.
-            Creating, cancelling or rescheduling a booking always goes through
-            the same availability gate, so double-booking is prevented at the
-            database level.
+            <b className="text-foreground">Agendamentos</b> — o lado de
+            escrita. Criar, cancelar ou reagendar sempre passa pela mesma
+            validação de disponibilidade, prevenindo overbooking no nível do
+            banco de dados.
           </li>
         </ul>
       </Section>
 
-      <Section title="Recommended flow">
+      <Section title="Fluxo recomendado">
         <ol className="ml-5 list-decimal space-y-2 text-sm text-muted-foreground">
-          <li>List services and employees.</li>
+          <li>Liste serviços e colaboradores.</li>
           <li>
-            Query <code>/availability/dates</code> to show a calendar with the
-            days that have at least one free slot.
+            Consulte <code>/availability/dates</code> para exibir um calendário
+            com os dias que possuem pelo menos um horário livre.
           </li>
           <li>
-            Query <code>/availability/slots</code> for the chosen day and let
-            the user pick a time.
+            Consulte <code>/availability/slots</code> para o dia escolhido e
+            deixe o usuário selecionar o horário.
           </li>
-          <li>Upsert the client by phone with <code>POST /clients</code>.</li>
+          <li>Faça upsert do cliente pelo telefone com <code>POST /clients</code>.</li>
           <li>
-            Re-query <code>/availability/slots</code> right before confirming
-            (slots may become stale in seconds) and then call{" "}
-            <code>POST /bookings</code> with{" "}
-            <code>booking_date</code> + <code>booking_time</code>.
+            Reconsulte <code>/availability/slots</code> imediatamente antes de
+            confirmar (os slots podem ficar stale em segundos) e então chame{" "}
+            <code>POST /bookings</code> com <code>booking_date</code> +{" "}
+            <code>booking_time</code>.
           </li>
           <li>
-            Optionally create a payment via <code>POST /payments</code> and
-            listen for status changes.
+            Opcionalmente crie uma cobrança via <code>POST /payments</code> e
+            monitore as mudanças de status.
           </li>
         </ol>
       </Section>
 
-      <Section title="Date & time contract">
+      <Section title="Contrato de data e hora">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          To avoid timezone ambiguity, bookings use literal fields:
+          Para evitar ambiguidade de fuso, agendamentos usam campos literais:
         </p>
         <ul className="ml-5 list-disc space-y-2 text-sm text-muted-foreground">
           <li>
@@ -922,44 +923,43 @@ x-api-key: zlm_XXXXXXXXXXXXXXXX`}
           </li>
         </ul>
         <p className="text-sm text-muted-foreground">
-          Never send ISO <code>start_time</code> like{" "}
-          <code>2026-07-15T15:00:00Z</code>. The server interprets literals in
-          the business timezone (<code>America/Sao_Paulo</code>).
+          Nunca envie <code>start_time</code> em ISO como{" "}
+          <code>2026-07-15T15:00:00Z</code>. O servidor interpreta literais no
+          fuso da empresa (<code>America/Sao_Paulo</code>).
         </p>
       </Section>
 
-      <Section title="Errors">
+      <Section title="Erros">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          All error responses share the same shape:
+          Toda resposta de erro segue o mesmo formato:
         </p>
         <pre className="overflow-auto rounded-lg border border-border bg-background p-4 font-mono text-xs">
-{`{ "error": "message", "reason": "optional_code" }`}
+{`{ "error": "mensagem", "reason": "codigo_opcional" }`}
         </pre>
         <ul className="ml-5 list-disc space-y-1 text-sm text-muted-foreground">
-          <li><b className="text-foreground">400</b> — invalid payload</li>
-          <li><b className="text-foreground">401</b> — missing/invalid API key</li>
-          <li><b className="text-foreground">403</b> — insufficient scope</li>
-          <li><b className="text-foreground">404</b> — resource not found</li>
-          <li><b className="text-foreground">409</b> — conflict (e.g. slot unavailable)</li>
-          <li><b className="text-foreground">500</b> — internal error</li>
+          <li><b className="text-foreground">400</b> — payload inválido</li>
+          <li><b className="text-foreground">401</b> — API key ausente/ inválida</li>
+          <li><b className="text-foreground">403</b> — escopo insuficiente</li>
+          <li><b className="text-foreground">404</b> — recurso não encontrado</li>
+          <li><b className="text-foreground">409</b> — conflito (ex.: slot indisponível)</li>
+          <li><b className="text-foreground">500</b> — erro interno</li>
         </ul>
       </Section>
 
-      <Section title="Rate limits & idempotency">
+      <Section title="Rate limit e idempotência">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          The API applies per-key rate limits and validates each write against
-          the availability gate, so retrying a failed{" "}
-          <code>POST /bookings</code> will not create duplicates — the second
-          attempt returns <code>409 slot_unavailable</code> if the slot was
-          already taken.
+          A API aplica rate limits por chave e valida cada escrita contra o
+          portão de disponibilidade — retentar um <code>POST /bookings</code>{" "}
+          que falhou não cria duplicados: a segunda tentativa retorna{" "}
+          <code>409 slot_unavailable</code> caso o horário já esteja ocupado.
         </p>
       </Section>
 
-      <Section title="Next steps">
+      <Section title="Próximos passos">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Open the <b className="text-foreground">Endpoints</b> tab to browse
-          the full reference, try live requests with your API key and copy
-          ready-to-use cURL snippets.
+          Abra a aba <b className="text-foreground">Endpoints</b> para navegar
+          pela referência completa, testar requisições em tempo real com sua
+          API key e copiar snippets cURL prontos.
         </p>
       </Section>
     </main>
