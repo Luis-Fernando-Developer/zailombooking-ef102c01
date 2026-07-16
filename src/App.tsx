@@ -68,6 +68,7 @@ const App = () => (
             <Route path="/api-docs" element={<ApiDocs />} />
             <Route path="/api-docs/introduction" element={<ApiDocs />} />
             <Route path="/api-docs/endpoint/*" element={<ApiDocs />} />
+            <Route path="/api-docs/swagger" element={<ApiDocsSwagger endpoints={API_ENDPOINTS} />} />
             <Route path="/api-reference" element={<ApiDocs />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/signup/aguardando/:companyId" element={<SignupPending />} />
