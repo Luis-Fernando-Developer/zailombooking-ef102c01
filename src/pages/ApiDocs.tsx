@@ -495,6 +495,10 @@ export default function ApiDocs() {
       if (STATUS_LIST.includes(res.status as (typeof STATUS_LIST)[number])) {
         setSelectedStatus(res.status);
       }
+    } catch (err) {
+      setResult({ status: 0, body: String(err) });
+    } finally {
+      setRunning(false);
     }
   }
 
