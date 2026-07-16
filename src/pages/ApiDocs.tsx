@@ -403,6 +403,7 @@ export default function ApiDocs() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{ status: number; body: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<number>(200);
 
   const endpoint = useMemo(
     () => (selectedId ? ENDPOINTS.find((e) => e.id === selectedId) : undefined),
