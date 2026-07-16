@@ -559,7 +559,22 @@ export default function ApiDocs() {
             </NavLink>
           </nav>
 
+          <NavLink
+            to="/api-docs/swagger"
+            className={({ isActive }) =>
+              `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition ${
+                isActive
+                  ? "bg-primary/15 text-foreground"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              }`
+            }
+          >
+            <FileCode2 className="h-3.5 w-3.5" />
+            Swagger UI
+          </NavLink>
+
           <div className="ml-auto flex items-center gap-2">
+            <OpenApiExportMenu />
             <input
               type="password"
               value={apiKey}
