@@ -515,28 +515,8 @@ export default function ApiDocs() {
       {isIntro ? (
         <IntroductionView />
       ) : (
+        <>
 
-
-      {/* Top bar */}
-      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
-        <div className="flex h-14 items-center gap-4 px-4">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded bg-primary" />
-            <span className="font-semibold">Zailom Booking</span>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-sm text-muted-foreground">API Reference</span>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => saveApiKey(e.target.value)}
-              placeholder="Cole sua API key (zlm_...)"
-              className="h-8 w-64 rounded-md border border-border bg-card px-3 text-xs outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        </div>
-      </header>
 
       <div className="grid grid-cols-[260px_1fr_480px] gap-0">
         {/* Sidebar de endpoints */}
