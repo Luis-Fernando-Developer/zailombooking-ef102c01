@@ -492,10 +492,9 @@ export default function ApiDocs() {
         /* keep raw */
       }
       setResult({ status: res.status, body: pretty });
-    } catch (err) {
-      setResult({ status: 0, body: String(err) });
-    } finally {
-      setRunning(false);
+      if (STATUS_LIST.includes(res.status as (typeof STATUS_LIST)[number])) {
+        setSelectedStatus(res.status);
+      }
     }
   }
 
