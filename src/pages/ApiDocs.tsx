@@ -7,7 +7,8 @@
 // =============================================================================
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Check, Play, Loader2, ChevronRight } from "lucide-react";
+import { Copy, Check, Play, Loader2, ChevronRight, BookOpen, Code2 } from "lucide-react";
+import { NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
 
 // ---------------------------------------------------------------------------
 // Base URL da API — usa o custom domain quando publicado, senão a edge function
