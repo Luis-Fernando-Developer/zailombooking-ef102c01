@@ -305,6 +305,15 @@ const ENDPOINTS: Endpoint[] = [
 
 const GROUPS = Array.from(new Set(ENDPOINTS.map((e) => e.group)));
 
+// Slug used in the URL for an endpoint. Ex.: "/services/:id" -> "v1/services/:id"
+function endpointSlug(e: Endpoint) {
+  return `v1${e.path}`;
+}
+function findEndpointBySlug(slug: string): Endpoint | undefined {
+  const norm = slug.replace(/^\/+|\/+$/g, "");
+  return ENDPOINTS.find((e) => endpointSlug(e) === norm);
+}
+
 // ---------------------------------------------------------------------------
 // Utils
 // ---------------------------------------------------------------------------
