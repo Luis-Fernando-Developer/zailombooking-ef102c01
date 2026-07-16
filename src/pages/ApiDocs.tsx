@@ -7,7 +7,8 @@
 // =============================================================================
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Check, Play, Loader2, ChevronRight } from "lucide-react";
+import { Copy, Check, Play, Loader2, ChevronRight, BookOpen, Code2 } from "lucide-react";
+import { NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
 
 // ---------------------------------------------------------------------------
 // Base URL da API — usa o custom domain quando publicado, senão a edge function
@@ -304,6 +305,15 @@ const ENDPOINTS: Endpoint[] = [
 
 const GROUPS = Array.from(new Set(ENDPOINTS.map((e) => e.group)));
 
+// Slug used in the URL for an endpoint. Ex.: "/services/:id" -> "v1/services/:id"
+function endpointSlug(e: Endpoint) {
+  return `v1${e.path}`;
+}
+function findEndpointBySlug(slug: string): Endpoint | undefined {
+  const norm = slug.replace(/^\/+|\/+$/g, "");
+  return ENDPOINTS.find((e) => endpointSlug(e) === norm);
+}
+
 // ---------------------------------------------------------------------------
 // Utils
 // ---------------------------------------------------------------------------
@@ -363,10 +373,22 @@ function toCurl(endpoint: Endpoint, url: string, body: unknown, apiKey: string) 
 // Página
 // ---------------------------------------------------------------------------
 export default function ApiDocs() {
-  const [selectedId, setSelectedId] = useState(ENDPOINTS[0].id);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Route mode: intro | endpoint | root(redirect)
+  const path = location.pathname;
+  const isRoot = path === "/api-docs" || path === "/api-docs/" || path === "/api-reference";
+  const isIntro = path.startsWith("/api-docs/introduction");
+  const endpointSlugFromUrl = path.startsWith("/api-docs/endpoint/")
+    ? path.slice("/api-docs/endpoint/".length)
+    : "";
+  const endpointFromUrl = endpointSlugFromUrl ? findEndpointBySlug(endpointSlugFromUrl) : undefined;
+
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem("zlm_api_key_docs") || "");
   const [baseUrl, setBaseUrl] = useState<string>(DEFAULT_BASE);
   const [paramsByEndpoint, setParamsByEndpoint] = useState<Record<string, Record<string, string>>>({});
+  const selectedId = endpointFromUrl?.id ?? ENDPOINTS[0].id;
   const paramValues = paramsByEndpoint[selectedId] ?? {};
   const setParamValues = (updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => {
     setParamsByEndpoint((prev) => {
@@ -427,8 +449,13 @@ export default function ApiDocs() {
   }
 
   useEffect(() => {
-    document.title = "Zailom Booking — API Reference";
-  }, []);
+    document.title = isIntro
+      ? "Zailom Booking — API Introduction"
+      : "Zailom Booking — API Reference";
+  }, [isIntro]);
+
+  // /api-docs → /api-docs/introduction
+  if (isRoot) return <Navigate to="/api-docs/introduction" replace />;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -443,6 +470,36 @@ export default function ApiDocs() {
             <span className="text-muted-foreground">/</span>
             <span className="text-sm text-muted-foreground">API Reference</span>
           </div>
+
+          <nav className="ml-6 flex items-center gap-1 text-sm">
+            <NavLink
+              to="/api-docs/introduction"
+              className={({ isActive }) =>
+                `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
+                  isActive
+                    ? "bg-primary/15 text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }`
+              }
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Introduction
+            </NavLink>
+            <NavLink
+              to={`/api-docs/endpoint/${endpointSlug(ENDPOINTS[0])}`}
+              className={() =>
+                `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
+                  path.startsWith("/api-docs/endpoint/")
+                    ? "bg-primary/15 text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }`
+              }
+            >
+              <Code2 className="h-3.5 w-3.5" />
+              Endpoints
+            </NavLink>
+          </nav>
+
           <div className="ml-auto flex items-center gap-2">
             <input
               type="password"
@@ -455,6 +512,12 @@ export default function ApiDocs() {
         </div>
       </header>
 
+      {isIntro ? (
+        <IntroductionView />
+      ) : (
+        <>
+
+
       <div className="grid grid-cols-[260px_1fr_480px] gap-0">
         {/* Sidebar de endpoints */}
         <aside className="h-[calc(100vh-56px)] overflow-y-auto border-r border-border/60 bg-card/30 p-3">
@@ -466,20 +529,20 @@ export default function ApiDocs() {
               <ul className="space-y-0.5">
                 {ENDPOINTS.filter((e) => e.group === g).map((e) => (
                   <li key={e.id}>
-                    <button
-                      onClick={() => {
-                        setSelectedId(e.id);
-                        setResult(null);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
-                        selectedId === e.id
-                          ? "bg-primary/15 text-foreground"
-                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                      }`}
+                    <NavLink
+                      to={`/api-docs/endpoint/${endpointSlug(e)}`}
+                      onClick={() => setResult(null)}
+                      className={({ isActive }) =>
+                        `flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
+                          isActive
+                            ? "bg-primary/15 text-foreground"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        }`
+                      }
                     >
                       <MethodBadge method={e.method} />
                       <span className="truncate">{e.title}</span>
-                    </button>
+                    </NavLink>
                   </li>
                 ))}
               </ul>
@@ -632,6 +695,8 @@ export default function ApiDocs() {
           </div>
         </aside>
       </div>
+        </>
+      )}
     </div>
   );
 }
@@ -705,5 +770,175 @@ function EditableParam({
         className="mt-2 w-full rounded-md border border-border bg-background px-3 py-1.5 font-mono text-xs outline-none focus:ring-2 focus:ring-primary"
       />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Introduction view (English)
+// ---------------------------------------------------------------------------
+function IntroductionView() {
+  return (
+    <main className="mx-auto max-w-4xl px-6 py-12">
+      <div className="text-sm font-semibold uppercase tracking-wider text-primary">
+        Introduction
+      </div>
+      <h1 className="mt-2 text-4xl font-bold tracking-tight">
+        Zailom Booking Public API
+      </h1>
+      <p className="mt-4 text-lg text-muted-foreground">
+        A REST/JSON interface to the Zailom Booking scheduling platform. Build
+        chatbots, mobile apps and third-party integrations on top of the same
+        engine that powers our web dashboard — with a single source of truth
+        for availability, bookings and payments.
+      </p>
+
+      <Section title="Overview">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          The Zailom Booking API exposes the core scheduling primitives —
+          services, employees, clients, availability, bookings, payments and
+          notifications — over stable HTTP endpoints. It is a thin transport
+          layer: every business rule (working hours, schedules, breaks,
+          absences, reallocations, concurrency, timezone handling) lives inside
+          the platform, not on the client. That guarantees that whatever the
+          web app, a mobile client or a WhatsApp bot does, the outcome is
+          identical.
+        </p>
+      </Section>
+
+      <Section title="Base URL">
+        <div className="rounded-lg border border-border bg-card/50 p-4 font-mono text-sm">
+          https://api-booking.zailom.com/v1
+        </div>
+        <p className="text-sm text-muted-foreground">
+          All endpoints described in the reference are relative to this base
+          URL. HTTPS is required.
+        </p>
+      </Section>
+
+      <Section title="Authentication">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Every request must include an API key bound to a company. Send it in
+          the <code className="rounded bg-muted px-1 py-0.5 font-mono">Authorization</code>{" "}
+          header as a Bearer token, or in the{" "}
+          <code className="rounded bg-muted px-1 py-0.5 font-mono">x-api-key</code>{" "}
+          header.
+        </p>
+        <pre className="overflow-auto rounded-lg border border-border bg-background p-4 font-mono text-xs">
+{`Authorization: Bearer zlm_XXXXXXXXXXXXXXXX
+# or
+x-api-key: zlm_XXXXXXXXXXXXXXXX`}
+        </pre>
+        <p className="text-sm text-muted-foreground">
+          Keys carry scopes: <code>read</code> (GET) and <code>write</code>{" "}
+          (POST/PUT/PATCH/DELETE). Keys can be rotated at any time from the
+          company admin panel.
+        </p>
+      </Section>
+
+      <Section title="How the system works">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          The booking engine is organized around three concepts:
+        </p>
+        <ul className="ml-5 list-disc space-y-2 text-sm text-muted-foreground">
+          <li>
+            <b className="text-foreground">Catalog</b> — services, employees
+            and the many-to-many links that describe who can perform what and
+            for how long.
+          </li>
+          <li>
+            <b className="text-foreground">Availability</b> — a single source
+            of truth (the <code>get_available_slots</code> engine) that
+            projects working hours, breaks, absences, blocks and existing
+            bookings into a list of free time slots. Always query this before
+            offering a time to a client.
+          </li>
+          <li>
+            <b className="text-foreground">Bookings</b> — the write side.
+            Creating, cancelling or rescheduling a booking always goes through
+            the same availability gate, so double-booking is prevented at the
+            database level.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="Recommended flow">
+        <ol className="ml-5 list-decimal space-y-2 text-sm text-muted-foreground">
+          <li>List services and employees.</li>
+          <li>
+            Query <code>/availability/dates</code> to show a calendar with the
+            days that have at least one free slot.
+          </li>
+          <li>
+            Query <code>/availability/slots</code> for the chosen day and let
+            the user pick a time.
+          </li>
+          <li>Upsert the client by phone with <code>POST /clients</code>.</li>
+          <li>
+            Re-query <code>/availability/slots</code> right before confirming
+            (slots may become stale in seconds) and then call{" "}
+            <code>POST /bookings</code> with{" "}
+            <code>booking_date</code> + <code>booking_time</code>.
+          </li>
+          <li>
+            Optionally create a payment via <code>POST /payments</code> and
+            listen for status changes.
+          </li>
+        </ol>
+      </Section>
+
+      <Section title="Date & time contract">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          To avoid timezone ambiguity, bookings use literal fields:
+        </p>
+        <ul className="ml-5 list-disc space-y-2 text-sm text-muted-foreground">
+          <li>
+            <code>booking_date</code>: <code>YYYY-MM-DD</code>
+          </li>
+          <li>
+            <code>booking_time</code>: <code>HH:mm</code> (24h)
+          </li>
+        </ul>
+        <p className="text-sm text-muted-foreground">
+          Never send ISO <code>start_time</code> like{" "}
+          <code>2026-07-15T15:00:00Z</code>. The server interprets literals in
+          the business timezone (<code>America/Sao_Paulo</code>).
+        </p>
+      </Section>
+
+      <Section title="Errors">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          All error responses share the same shape:
+        </p>
+        <pre className="overflow-auto rounded-lg border border-border bg-background p-4 font-mono text-xs">
+{`{ "error": "message", "reason": "optional_code" }`}
+        </pre>
+        <ul className="ml-5 list-disc space-y-1 text-sm text-muted-foreground">
+          <li><b className="text-foreground">400</b> — invalid payload</li>
+          <li><b className="text-foreground">401</b> — missing/invalid API key</li>
+          <li><b className="text-foreground">403</b> — insufficient scope</li>
+          <li><b className="text-foreground">404</b> — resource not found</li>
+          <li><b className="text-foreground">409</b> — conflict (e.g. slot unavailable)</li>
+          <li><b className="text-foreground">500</b> — internal error</li>
+        </ul>
+      </Section>
+
+      <Section title="Rate limits & idempotency">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          The API applies per-key rate limits and validates each write against
+          the availability gate, so retrying a failed{" "}
+          <code>POST /bookings</code> will not create duplicates — the second
+          attempt returns <code>409 slot_unavailable</code> if the slot was
+          already taken.
+        </p>
+      </Section>
+
+      <Section title="Next steps">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Open the <b className="text-foreground">Endpoints</b> tab to browse
+          the full reference, try live requests with your API key and copy
+          ready-to-use cURL snippets.
+        </p>
+      </Section>
+    </main>
   );
 }
