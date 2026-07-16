@@ -558,6 +558,8 @@ export default function ApiDocs() {
           ))}
         </aside>
 
+        {endpoint ? (
+          <>
         {/* Painel central */}
         <main className="h-[calc(100vh-56px)] overflow-y-auto p-8">
           <div className="text-sm text-primary">{endpoint.group}</div>
@@ -702,6 +704,19 @@ export default function ApiDocs() {
             Dica: a API key fica salva localmente neste navegador.
           </div>
         </aside>
+          </>
+        ) : (
+          <main className="col-span-2 flex h-[calc(100vh-56px)] items-center justify-center p-8">
+            <div className="max-w-md text-center">
+              <Code2 className="mx-auto h-10 w-10 text-muted-foreground" />
+              <h2 className="mt-4 text-xl font-semibold">Selecione um endpoint</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Escolha um endpoint na barra lateral para ver os detalhes, os
+                parâmetros e testar chamadas em tempo real.
+              </p>
+            </div>
+          </main>
+        )}
       </div>
         </>
       )}
