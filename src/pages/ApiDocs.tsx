@@ -468,12 +468,16 @@ export default function ApiDocs() {
       {/* Top bar */}
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
         <div className="flex h-14 items-center gap-4 px-4">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded bg-primary" />
-            <span className="font-semibold">Zailom Booking</span>
+          <NavLink to="/api-docs/introduction" className="flex items-center gap-2">
+            <img src="/logo_zylo.svg" alt="Zailom" className="h-7 w-7 object-contain" />
+            <img
+              src="/brand_name_zailom_booking.svg"
+              alt="Zailom Booking"
+              className="h-5 object-contain"
+            />
             <span className="text-muted-foreground">/</span>
             <span className="text-sm text-muted-foreground">API Reference</span>
-          </div>
+          </NavLink>
 
           <nav className="ml-6 flex items-center gap-1 text-sm">
             <NavLink
@@ -490,10 +494,10 @@ export default function ApiDocs() {
               Introduction
             </NavLink>
             <NavLink
-              to={`/api-docs/endpoint/${endpointSlug(ENDPOINTS[0])}`}
+              to="/api-docs/endpoint/v1"
               className={() =>
                 `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
-                  path.startsWith("/api-docs/endpoint/")
+                  isEndpointsTab
                     ? "bg-primary/15 text-foreground"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 }`
