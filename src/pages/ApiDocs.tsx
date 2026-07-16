@@ -449,11 +449,72 @@ export default function ApiDocs() {
   }
 
   useEffect(() => {
-    document.title = "Zailom Booking — API Reference";
-  }, []);
+    document.title = isIntro
+      ? "Zailom Booking — API Introduction"
+      : "Zailom Booking — API Reference";
+  }, [isIntro]);
+
+  // /api-docs → /api-docs/introduction
+  if (isRoot) return <Navigate to="/api-docs/introduction" replace />;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+
+
+      {/* Top bar */}
+      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
+        <div className="flex h-14 items-center gap-4 px-4">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-primary" />
+            <span className="font-semibold">Zailom Booking</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-sm text-muted-foreground">API Reference</span>
+          </div>
+
+          <nav className="ml-6 flex items-center gap-1 text-sm">
+            <NavLink
+              to="/api-docs/introduction"
+              className={({ isActive }) =>
+                `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
+                  isActive
+                    ? "bg-primary/15 text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }`
+              }
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Introduction
+            </NavLink>
+            <NavLink
+              to={`/api-docs/endpoint/${endpointSlug(ENDPOINTS[0])}`}
+              className={() =>
+                `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
+                  path.startsWith("/api-docs/endpoint/")
+                    ? "bg-primary/15 text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }`
+              }
+            >
+              <Code2 className="h-3.5 w-3.5" />
+              Endpoints
+            </NavLink>
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2">
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => saveApiKey(e.target.value)}
+              placeholder="Cole sua API key (zlm_...)"
+              className="h-8 w-64 rounded-md border border-border bg-card px-3 text-xs outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        </div>
+      </header>
+
+      {isIntro ? (
+        <IntroductionView />
+      ) : (
 
 
       {/* Top bar */}
