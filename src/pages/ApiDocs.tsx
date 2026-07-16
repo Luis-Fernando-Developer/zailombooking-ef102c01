@@ -694,59 +694,138 @@ export default function ApiDocs() {
           </Section>
         </main>
 
-        {/* Painel direito — cURL + resposta */}
-        <aside className="h-[calc(100vh-56px)] overflow-y-auto border-l border-border/60 bg-card/30 p-4">
+        {/* Painel direito — cURL + Request + Response */}
+        <aside className="h-[calc(100vh-56px)] overflow-y-auto border-l border-border/60 bg-card/30 p-4 space-y-4">
+          {/* cURL */}
           <div className="rounded-lg border border-border bg-background">
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
-              <span className="text-xs font-semibold text-muted-foreground">{endpoint.title}</span>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground">cURL</span>
-                <button
-                  onClick={() => copy(curl, "curl")}
-                  className="rounded p-1 hover:bg-muted"
-                  aria-label="Copiar cURL"
-                >
-                  {copied === "curl" ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                </button>
+              <div className="flex items-center gap-2">
+                <MethodBadge method={endpoint.method} />
+                <span className="text-xs font-semibold text-muted-foreground">cURL</span>
               </div>
+              <button
+                onClick={() => copy(curl, "curl")}
+                className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Copiar cURL"
+              >
+                {copied === "curl" ? (
+                  <><Check className="h-3 w-3 text-emerald-400" /> copiado</>
+                ) : (
+                  <><Copy className="h-3 w-3" /> copiar</>
+                )}
+              </button>
             </div>
-            <pre className="max-h-64 overflow-auto p-3 font-mono text-[11px] leading-relaxed">
+            <pre className="max-h-56 overflow-auto p-3 font-mono text-[11px] leading-relaxed">
               <code>{curl}</code>
             </pre>
           </div>
 
-          <div className="mt-4 rounded-lg border border-border bg-background">
-            <div className="flex items-center gap-3 border-b border-border px-3 py-2 text-xs">
-              {[200, 400, 401, 403, 404, 500].map((s) => (
-                <span
-                  key={s}
-                  className={`${
-                    result?.status === s
-                      ? s < 300
-                        ? "text-emerald-400"
-                        : "text-rose-400"
-                      : "text-muted-foreground"
-                  }`}
+          {/* Request body */}
+          {endpoint.bodyExample && (
+            <div className="rounded-lg border border-border bg-background">
+              <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold">Corpo da requisição</span>
+                  <span className="text-[10px] text-muted-foreground">application/json — exemplo enviado no body</span>
+                </div>
+                <button
+                  onClick={() => copy(JSON.stringify(endpoint.bodyExample, null, 2), "req")}
+                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Copiar corpo"
                 >
-                  {s}
-                </span>
-              ))}
-              {result && (
-                <span className="ml-auto text-muted-foreground">
-                  status: <b className={result.status < 300 ? "text-emerald-400" : "text-rose-400"}>{result.status}</b>
-                </span>
-              )}
+                  {copied === "req" ? (
+                    <><Check className="h-3 w-3 text-emerald-400" /> copiado</>
+                  ) : (
+                    <><Copy className="h-3 w-3" /> copiar</>
+                  )}
+                </button>
+              </div>
+              <pre className="max-h-56 overflow-auto p-3 font-mono text-[11px] leading-relaxed">
+                <code>{JSON.stringify(endpoint.bodyExample, null, 2)}</code>
+              </pre>
             </div>
-            <pre className="max-h-[50vh] overflow-auto p-3 font-mono text-[11px] leading-relaxed">
+          )}
+
+          {/* Response */}
+          <div className="rounded-lg border border-border bg-background">
+            <div className="border-b border-border px-3 py-2">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold">Resposta</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Selecione um status para ver o corpo de exemplo retornado pela API
+                  </span>
+                </div>
+                {result && (
+                  <span className="text-[11px] text-muted-foreground">
+                    último teste:{" "}
+                    <b className={result.status < 300 ? "text-emerald-400" : "text-rose-400"}>
+                      {result.status}
+                    </b>
+                  </span>
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {STATUS_LIST.map((s) => {
+                  const meta = STATUS_META[s];
+                  const isActive = selectedStatus === s;
+                  const tone = meta.tone === "success";
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setSelectedStatus(s)}
+                      title={meta.label}
+                      className={`rounded-md border px-2 py-0.5 text-[11px] font-mono transition ${
+                        isActive
+                          ? tone
+                            ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
+                            : "border-rose-500/40 bg-rose-500/15 text-rose-400"
+                          : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-2 text-[11px] text-muted-foreground">
+                <b className={STATUS_META[selectedStatus].tone === "success" ? "text-emerald-400" : "text-rose-400"}>
+                  {selectedStatus}
+                </b>{" "}
+                — {STATUS_META[selectedStatus].label}
+              </div>
+            </div>
+            <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {result && result.status === selectedStatus ? "resposta real (testada)" : "exemplo"}
+              </span>
+              <button
+                onClick={() => {
+                  const useReal = result && result.status === selectedStatus;
+                  const txt = useReal
+                    ? result!.body
+                    : JSON.stringify(exampleForStatus(endpoint, selectedStatus), null, 2);
+                  copy(txt, "res");
+                }}
+                className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                {copied === "res" ? (
+                  <><Check className="h-3 w-3 text-emerald-400" /> copiado</>
+                ) : (
+                  <><Copy className="h-3 w-3" /> copiar</>
+                )}
+              </button>
+            </div>
+            <pre className="max-h-[45vh] overflow-auto p-3 font-mono text-[11px] leading-relaxed">
               <code>
-                {result
+                {result && result.status === selectedStatus
                   ? result.body
-                  : JSON.stringify(endpoint.responseExample, null, 2)}
+                  : JSON.stringify(exampleForStatus(endpoint, selectedStatus), null, 2)}
               </code>
             </pre>
           </div>
 
-          <div className="mt-4 text-[11px] text-muted-foreground">
+          <div className="text-[11px] text-muted-foreground">
             <ChevronRight className="mr-1 inline h-3 w-3" />
             Dica: a API key fica salva localmente neste navegador.
           </div>
