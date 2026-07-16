@@ -529,20 +529,20 @@ export default function ApiDocs() {
               <ul className="space-y-0.5">
                 {ENDPOINTS.filter((e) => e.group === g).map((e) => (
                   <li key={e.id}>
-                    <button
-                      onClick={() => {
-                        setSelectedId(e.id);
-                        setResult(null);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
-                        selectedId === e.id
-                          ? "bg-primary/15 text-foreground"
-                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                      }`}
+                    <NavLink
+                      to={`/api-docs/endpoint/${endpointSlug(e)}`}
+                      onClick={() => setResult(null)}
+                      className={({ isActive }) =>
+                        `flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
+                          isActive
+                            ? "bg-primary/15 text-foreground"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        }`
+                      }
                     >
                       <MethodBadge method={e.method} />
                       <span className="truncate">{e.title}</span>
-                    </button>
+                    </NavLink>
                   </li>
                 ))}
               </ul>
