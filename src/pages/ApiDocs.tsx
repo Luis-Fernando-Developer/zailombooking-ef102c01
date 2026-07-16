@@ -41,7 +41,7 @@ type Endpoint = {
   responseExample: unknown;
 };
 
-const ENDPOINTS: Endpoint[] = [
+export const ENDPOINTS: Endpoint[] = [
   // -------------------- Serviços --------------------
   {
     id: "list-services",
