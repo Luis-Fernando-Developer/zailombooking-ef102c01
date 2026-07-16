@@ -7,8 +7,9 @@
 // =============================================================================
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Check, Play, Loader2, ChevronRight, BookOpen, Code2 } from "lucide-react";
+import { Copy, Check, Play, Loader2, ChevronRight, BookOpen, Code2, Download, FileJson, FileCode2, ExternalLink } from "lucide-react";
 import { NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
+import { buildOpenApiSpec, specToJson, specToYaml, downloadBlob } from "@/lib/openapi-spec";
 
 // ---------------------------------------------------------------------------
 // Base URL da API — usa o custom domain quando publicado, senão a edge function
@@ -40,7 +41,7 @@ type Endpoint = {
   responseExample: unknown;
 };
 
-const ENDPOINTS: Endpoint[] = [
+export const ENDPOINTS: Endpoint[] = [
   // -------------------- Serviços --------------------
   {
     id: "list-services",
@@ -558,7 +559,22 @@ export default function ApiDocs() {
             </NavLink>
           </nav>
 
+          <NavLink
+            to="/api-docs/swagger"
+            className={({ isActive }) =>
+              `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition ${
+                isActive
+                  ? "bg-primary/15 text-foreground"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              }`
+            }
+          >
+            <FileCode2 className="h-3.5 w-3.5" />
+            Swagger UI
+          </NavLink>
+
           <div className="ml-auto flex items-center gap-2">
+            <OpenApiExportMenu />
             <input
               type="password"
               value={apiKey}
@@ -1091,6 +1107,108 @@ x-api-key: zlm_XXXXXXXXXXXXXXXX`}
           API key e copiar snippets cURL prontos.
         </p>
       </Section>
+
+      <Section title="Especificação OpenAPI">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Esta documentação também é publicada como um documento{" "}
+          <b className="text-foreground">OpenAPI 3.1</b> gerado automaticamente
+          a partir do mesmo catálogo de endpoints. Baixe o arquivo para importar
+          no Postman, Insomnia ou usar como entrada de um gerador de SDK, ou
+          abra a visualização em Swagger UI.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <OpenApiExportMenu variant="inline" />
+          <a
+            href="/api-docs/swagger"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
+          >
+            <FileCode2 className="h-3.5 w-3.5" />
+            Abrir Swagger UI
+          </a>
+        </div>
+      </Section>
     </main>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// OpenAPI export menu — baixa JSON/YAML gerado a partir do catálogo ENDPOINTS
+// ---------------------------------------------------------------------------
+function OpenApiExportMenu({ variant = "header" }: { variant?: "header" | "inline" }) {
+  const [open, setOpen] = useState(false);
+
+  const spec = useMemo(() => buildOpenApiSpec(ENDPOINTS), []);
+
+  const downloadJson = () => {
+    downloadBlob("zailom-booking-openapi.json", specToJson(spec), "application/json");
+    setOpen(false);
+  };
+  const downloadYaml = () => {
+    downloadBlob("zailom-booking-openapi.yaml", specToYaml(spec), "application/yaml");
+    setOpen(false);
+  };
+  const openInSwaggerEditor = () => {
+    // Copy the spec to clipboard and open the online editor — the user can
+    // paste directly. Avoids depending on the spec being publicly hosted.
+    navigator.clipboard.writeText(specToYaml(spec)).catch(() => undefined);
+    window.open("https://editor.swagger.io/", "_blank", "noopener");
+    setOpen(false);
+  };
+
+  const trigger = (
+    <button
+      onClick={() => setOpen((v) => !v)}
+      className={
+        variant === "header"
+          ? "inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium hover:bg-muted"
+          : "inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
+      }
+    >
+      <Download className="h-3.5 w-3.5" />
+      OpenAPI
+    </button>
+  );
+
+  return (
+    <div className="relative">
+      {trigger}
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 z-40 mt-1 w-64 overflow-hidden rounded-md border border-border bg-popover shadow-lg">
+            <button
+              onClick={downloadJson}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
+            >
+              <FileJson className="h-3.5 w-3.5 text-primary" />
+              <div>
+                <div className="font-medium">Baixar openapi.json</div>
+                <div className="text-[10px] text-muted-foreground">Postman / Insomnia / SDKs</div>
+              </div>
+            </button>
+            <button
+              onClick={downloadYaml}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
+            >
+              <FileCode2 className="h-3.5 w-3.5 text-primary" />
+              <div>
+                <div className="font-medium">Baixar openapi.yaml</div>
+                <div className="text-[10px] text-muted-foreground">Formato canônico</div>
+              </div>
+            </button>
+            <button
+              onClick={openInSwaggerEditor}
+              className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-xs hover:bg-muted"
+            >
+              <ExternalLink className="h-3.5 w-3.5 text-primary" />
+              <div>
+                <div className="font-medium">Abrir no Swagger Editor</div>
+                <div className="text-[10px] text-muted-foreground">Copia o YAML e abre o editor online</div>
+              </div>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

@@ -8,7 +8,8 @@ import { RequireBusinessAuth } from "@/components/business/RequireBusinessAuth";
 import { RequireRole } from "@/components/business/RequireRole";
 import { RequireSuperAdmin } from "@/components/admin/RequireSuperAdmin";
 import LandingPage from "./pages/LandingPage";
-import ApiDocs from "./pages/ApiDocs";
+import ApiDocs, { ENDPOINTS as API_ENDPOINTS } from "./pages/ApiDocs";
+import ApiDocsSwagger from "./pages/ApiDocsSwagger";
 import AdminLogin from "./pages/admin/Login";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import SuperAdminInstances from "./pages/super-admin/Instances";
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/api-docs" element={<ApiDocs />} />
             <Route path="/api-docs/introduction" element={<ApiDocs />} />
             <Route path="/api-docs/endpoint/*" element={<ApiDocs />} />
+            <Route path="/api-docs/swagger" element={<ApiDocsSwagger endpoints={API_ENDPOINTS} />} />
             <Route path="/api-reference" element={<ApiDocs />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/signup/aguardando/:companyId" element={<SignupPending />} />
