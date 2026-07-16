@@ -373,10 +373,22 @@ function toCurl(endpoint: Endpoint, url: string, body: unknown, apiKey: string) 
 // Página
 // ---------------------------------------------------------------------------
 export default function ApiDocs() {
-  const [selectedId, setSelectedId] = useState(ENDPOINTS[0].id);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Route mode: intro | endpoint | root(redirect)
+  const path = location.pathname;
+  const isRoot = path === "/api-docs" || path === "/api-docs/" || path === "/api-reference";
+  const isIntro = path.startsWith("/api-docs/introduction");
+  const endpointSlugFromUrl = path.startsWith("/api-docs/endpoint/")
+    ? path.slice("/api-docs/endpoint/".length)
+    : "";
+  const endpointFromUrl = endpointSlugFromUrl ? findEndpointBySlug(endpointSlugFromUrl) : undefined;
+
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem("zlm_api_key_docs") || "");
   const [baseUrl, setBaseUrl] = useState<string>(DEFAULT_BASE);
   const [paramsByEndpoint, setParamsByEndpoint] = useState<Record<string, Record<string, string>>>({});
+  const selectedId = endpointFromUrl?.id ?? ENDPOINTS[0].id;
   const paramValues = paramsByEndpoint[selectedId] ?? {};
   const setParamValues = (updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => {
     setParamsByEndpoint((prev) => {
