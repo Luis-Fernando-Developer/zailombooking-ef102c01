@@ -425,6 +425,7 @@ export default function ApiDocs() {
   }
 
   async function runRequest() {
+    if (!endpoint) return;
     setRunning(true);
     setResult(null);
     try {
