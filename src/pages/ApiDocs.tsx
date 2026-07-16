@@ -376,21 +376,24 @@ export default function ApiDocs() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Route mode: intro | endpoint | root(redirect)
+  // Route mode: intro | endpoint list (no selection) | endpoint detail | root(redirect)
   const path = location.pathname;
   const isRoot = path === "/api-docs" || path === "/api-docs/" || path === "/api-reference";
   const isIntro = path.startsWith("/api-docs/introduction");
-  const endpointSlugFromUrl = path.startsWith("/api-docs/endpoint/")
-    ? path.slice("/api-docs/endpoint/".length)
+  const isEndpointsTab = path.startsWith("/api-docs/endpoint");
+  const rawEndpointPart = path.startsWith("/api-docs/endpoint/")
+    ? path.slice("/api-docs/endpoint/".length).replace(/\/+$/, "")
     : "";
-  const endpointFromUrl = endpointSlugFromUrl ? findEndpointBySlug(endpointSlugFromUrl) : undefined;
+  const hasEndpointSelected = rawEndpointPart !== "" && rawEndpointPart !== "v1";
+  const endpointFromUrl = hasEndpointSelected ? findEndpointBySlug(rawEndpointPart) : undefined;
 
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem("zlm_api_key_docs") || "");
   const [baseUrl, setBaseUrl] = useState<string>(DEFAULT_BASE);
   const [paramsByEndpoint, setParamsByEndpoint] = useState<Record<string, Record<string, string>>>({});
-  const selectedId = endpointFromUrl?.id ?? ENDPOINTS[0].id;
-  const paramValues = paramsByEndpoint[selectedId] ?? {};
+  const selectedId = endpointFromUrl?.id ?? null;
+  const paramValues = (selectedId && paramsByEndpoint[selectedId]) || {};
   const setParamValues = (updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => {
+    if (!selectedId) return;
     setParamsByEndpoint((prev) => {
       const current = prev[selectedId] ?? {};
       const next = typeof updater === "function" ? (updater as (p: Record<string, string>) => Record<string, string>)(current) : updater;
@@ -402,13 +405,13 @@ export default function ApiDocs() {
   const [copied, setCopied] = useState<string | null>(null);
 
   const endpoint = useMemo(
-    () => ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0],
+    () => (selectedId ? ENDPOINTS.find((e) => e.id === selectedId) : undefined),
     [selectedId],
   );
 
-  const url = useMemo(() => buildUrl(endpoint, paramValues, baseUrl), [endpoint, paramValues, baseUrl]);
-  const body = useMemo(() => buildBody(endpoint, paramValues), [endpoint, paramValues]);
-  const curl = useMemo(() => toCurl(endpoint, url, body, apiKey), [endpoint, url, body, apiKey]);
+  const url = useMemo(() => (endpoint ? buildUrl(endpoint, paramValues, baseUrl) : ""), [endpoint, paramValues, baseUrl]);
+  const body = useMemo(() => (endpoint ? buildBody(endpoint, paramValues) : undefined), [endpoint, paramValues]);
+  const curl = useMemo(() => (endpoint ? toCurl(endpoint, url, body, apiKey) : ""), [endpoint, url, body, apiKey]);
 
   function saveApiKey(v: string) {
     setApiKey(v);
