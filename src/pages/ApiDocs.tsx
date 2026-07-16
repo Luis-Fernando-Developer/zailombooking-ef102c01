@@ -370,6 +370,52 @@ function toCurl(endpoint: Endpoint, url: string, body: unknown, apiKey: string) 
 }
 
 // ---------------------------------------------------------------------------
+// Response example generator — provides realistic per-status payloads
+// ---------------------------------------------------------------------------
+const STATUS_META: Record<number, { label: string; tone: "success" | "error" }> = {
+  200: { label: "Sucesso", tone: "success" },
+  400: { label: "Requisição inválida", tone: "error" },
+  401: { label: "Não autenticado", tone: "error" },
+  403: { label: "Sem permissão", tone: "error" },
+  404: { label: "Não encontrado", tone: "error" },
+  409: { label: "Conflito", tone: "error" },
+  500: { label: "Erro do servidor", tone: "error" },
+};
+
+const STATUS_LIST = [200, 400, 401, 403, 404, 409, 500] as const;
+
+function exampleForStatus(endpoint: Endpoint, status: number): unknown {
+  if (status === 200) return endpoint.responseExample;
+  switch (status) {
+    case 400:
+      return {
+        error: "invalid_request",
+        message: "Payload inválido ou parâmetros faltando.",
+        details: { field: "booking_time", reason: "formato esperado HH:mm" },
+      };
+    case 401:
+      return { error: "unauthorized", message: "API key ausente ou inválida." };
+    case 403:
+      return {
+        error: "forbidden",
+        message: "API key não possui o escopo necessário para esta operação.",
+      };
+    case 404:
+      return { error: "not_found", message: "Recurso não encontrado." };
+    case 409:
+      return {
+        error: "slot_unavailable",
+        message: "O horário selecionado não está mais disponível.",
+        reason: "slot_not_returned_by_get_available_slots",
+      };
+    case 500:
+      return { error: "internal_error", message: "Erro inesperado. Tente novamente." };
+    default:
+      return { error: "unknown" };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Página
 // ---------------------------------------------------------------------------
 export default function ApiDocs() {
