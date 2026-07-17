@@ -1,2 +1,5 @@
 [functions.public-api]
 verify_jwt = false
+
+[functions.openapi-spec]
+verify_jwt = false
