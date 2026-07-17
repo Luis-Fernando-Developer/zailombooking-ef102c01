@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
+    "prebuild": "bun run openapi:generate",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "openapi:generate": "bun run scripts/generate-openapi.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
