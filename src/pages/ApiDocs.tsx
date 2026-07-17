@@ -836,6 +836,7 @@ x-api-key: zlm_XXXXXXXXXXXXXXXX`}
           no Postman, Insomnia ou usar como entrada de um gerador de SDK, ou
           abra a visualização em Swagger UI.
         </p>
+        <OpenApiDiscoveryCard />
         <div className="flex flex-wrap gap-2">
           <OpenApiExportMenu variant="inline" />
           <a
@@ -848,6 +849,84 @@ x-api-key: zlm_XXXXXXXXXXXXXXXX`}
         </div>
       </Section>
     </main>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Discovery card — URLs públicas do spec (static + live) com copy-to-clipboard
+// ---------------------------------------------------------------------------
+function OpenApiDiscoveryCard() {
+  const [copied, setCopied] = useState<string | null>(null);
+  const rows: Array<{ label: string; url: string; hint: string }> = [
+    {
+      label: "Static (source of truth)",
+      url: "https://booking.zailom.com/openapi.json",
+      hint: "Cacheado, atualiza a cada deploy. Use no Postman / Insomnia / geradores de SDK.",
+    },
+    {
+      label: "Static — YAML",
+      url: "https://booking.zailom.com/openapi.yaml",
+      hint: "Formato canônico da OpenAPI. Ideal para versionar em git.",
+    },
+    {
+      label: "Well-known (RFC 8615)",
+      url: "https://booking.zailom.com/.well-known/openapi.json",
+      hint: "Convenção de descoberta automática por crawlers e agentes.",
+    },
+    {
+      label: "Live (edge function)",
+      url: "https://api-booking.zailom.com/openapi/live",
+      hint: "Mesmo doc servido dinamicamente pela edge. Header Link: rel=service-desc.",
+    },
+  ];
+  const copy = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(url);
+      setTimeout(() => setCopied(null), 1400);
+    } catch {
+      /* noop */
+    }
+  };
+  return (
+    <div className="rounded-lg border border-border bg-card">
+      <div className="border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        URLs públicas do spec
+      </div>
+      <ul className="divide-y divide-border">
+        {rows.map((r) => (
+          <li key={r.url} className="flex items-center gap-3 px-3 py-2">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium text-foreground">{r.label}</div>
+              <div className="truncate font-mono text-[11px] text-muted-foreground">{r.url}</div>
+              <div className="text-[10px] text-muted-foreground/80">{r.hint}</div>
+            </div>
+            <button
+              onClick={() => copy(r.url)}
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background px-2 text-[11px] font-medium hover:bg-muted"
+            >
+              {copied === r.url ? (
+                <>
+                  <Check className="h-3 w-3 text-primary" /> Copiado
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3 w-3" /> Copiar
+                </>
+              )}
+            </button>
+            <a
+              href={r.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background px-2 text-[11px] font-medium hover:bg-muted"
+            >
+              <ExternalLink className="h-3 w-3" /> Abrir
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
