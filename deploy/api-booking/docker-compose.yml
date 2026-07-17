@@ -34,15 +34,20 @@ services:
         resolver 1.1.1.1 8.8.8.8 valid=300s ipv6=off;
         resolver_timeout 5s;
 
+        # CORS injetado em TODO response (incluindo 4xx/5xx e proxied).
+        # Usamos `map` porque `add_header` no server-level não é herdado quando
+        # o location tem seus proprios add_header/proxy_hide_header.
+        map $$request_method $$cors_method_ok { default 1; }
+
         server {
           listen 80 default_server;
           server_name _;
 
+          # --- CORS global (aplicado em todos os locations via `always`) ------
           add_header Access-Control-Allow-Origin  "*" always;
-          add_header Access-Control-Allow-Headers "authorization, x-api-key, content-type, apikey" always;
+          add_header Access-Control-Allow-Headers "authorization, x-api-key, content-type, apikey, x-client-info" always;
           add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
-
-          if ($$request_method = OPTIONS) { return 204; }
+          add_header Access-Control-Max-Age       "86400" always;
 
           location = /healthz {
             access_log off;
@@ -51,6 +56,24 @@ services:
           }
 
           location /v1/ {
+            # Repete os add_header aqui — nginx NAO herda quando o location
+            # define seus proprios add_header/proxy_hide_header.
+            add_header Access-Control-Allow-Origin  "*" always;
+            add_header Access-Control-Allow-Headers "authorization, x-api-key, content-type, apikey, x-client-info" always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+            add_header Access-Control-Max-Age       "86400" always;
+
+            # Preflight: responde direto sem tocar no upstream.
+            if ($$request_method = OPTIONS) {
+              add_header Access-Control-Allow-Origin  "*" always;
+              add_header Access-Control-Allow-Headers "authorization, x-api-key, content-type, apikey, x-client-info" always;
+              add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+              add_header Access-Control-Max-Age       "86400" always;
+              add_header Content-Length 0;
+              add_header Content-Type   "text/plain";
+              return 204;
+            }
+
             proxy_hide_header Access-Control-Allow-Origin;
             proxy_hide_header Access-Control-Allow-Headers;
             proxy_hide_header Access-Control-Allow-Methods;
@@ -70,6 +93,17 @@ services:
 
           # OpenAPI live spec -> edge function `openapi-spec`
           location = /openapi/live {
+            add_header Access-Control-Allow-Origin  "*" always;
+            add_header Access-Control-Allow-Headers "authorization, x-api-key, content-type, apikey, x-client-info" always;
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+
+            if ($$request_method = OPTIONS) {
+              add_header Access-Control-Allow-Origin  "*" always;
+              add_header Access-Control-Allow-Headers "authorization, x-api-key, content-type, apikey, x-client-info" always;
+              add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+              return 204;
+            }
+
             proxy_hide_header Access-Control-Allow-Origin;
             proxy_hide_header Access-Control-Allow-Headers;
             proxy_hide_header Access-Control-Allow-Methods;
