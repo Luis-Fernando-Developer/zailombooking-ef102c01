@@ -22,11 +22,19 @@ const spec = buildOpenApiSpec(ENDPOINTS);
 const json = specToJson(spec);
 const yaml = specToYaml(spec);
 
+const specTs = `// AUTO-GERADO por scripts/generate-openapi.ts — não edite à mão.
+// Fonte de verdade: src/lib/endpoints-catalog.ts
+// eslint-disable
+// deno-lint-ignore-file
+export const spec = ${json} as const;
+`;
+
 const targets: Array<{ path: string; content: string }> = [
   { path: "public/openapi.json", content: json },
   { path: "public/openapi.yaml", content: yaml },
   { path: "public/.well-known/openapi.json", content: json },
   { path: "supabase/functions/openapi-spec/spec.json", content: json },
+  { path: "supabase/functions/openapi-spec/spec.ts", content: specTs },
 ];
 
 for (const t of targets) {

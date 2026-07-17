@@ -8,7 +8,10 @@
 // =============================================================================
 
 // deno-lint-ignore-file no-explicit-any
-import spec from "./spec.json" with { type: "json" };
+// Spec embarcado como TypeScript (não JSON) para que o deploy via
+// dashboard do Supabase (que envia apenas o index.ts) continue funcionando
+// e para evitar "import attributes" (exige tsconfig module=esnext/nodenext).
+import { spec } from "./spec.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
