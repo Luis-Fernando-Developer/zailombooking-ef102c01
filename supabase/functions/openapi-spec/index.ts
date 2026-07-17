@@ -8,12 +8,10 @@
 // =============================================================================
 
 // deno-lint-ignore-file no-explicit-any
-// Lê o spec.json em runtime (evita depender de "import attributes",
-// que exigem tsconfig module=esnext/nodenext/preserve — não suportado
-// pelo editor de Edge Functions do Supabase).
-const specUrl = new URL("./spec.json", import.meta.url);
-const specText = await Deno.readTextFile(specUrl);
-const spec: Record<string, any> = JSON.parse(specText);
+// Spec embarcado como TypeScript (não JSON) para que o deploy via
+// dashboard do Supabase (que envia apenas o index.ts) continue funcionando
+// e para evitar "import attributes" (exige tsconfig module=esnext/nodenext).
+import { spec } from "./spec.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
