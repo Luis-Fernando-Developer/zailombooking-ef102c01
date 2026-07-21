@@ -73,9 +73,8 @@ serve(async (req) => {
 
     // Verifica que o usuário pertence à empresa
     const { data: perm } = await supabase.rpc("user_belongs_to_company", {
-      p_user: user.id, p_company: company_id,
+      _user_id: user.id, _company_id: company_id,
     });
-    // Se a função não existir com esses parâmetros ainda, fallback: cheque via query
     if (perm === false) return json({ error: "Forbidden" }, 403);
 
     // ---------- SAVE: registra base_url + (opcional) global key -----------
