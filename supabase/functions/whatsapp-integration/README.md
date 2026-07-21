@@ -15,6 +15,7 @@ Edge function para gerenciar a integração WhatsApp (Evolution API) por empresa
 | ------------------------ | --------------------------------------------------------- |
 | `save`                   | salva Base URL + (opcional) Global API Key                |
 | `disconnect`             | zera credenciais e remove instâncias                      |
+| `set-channel-preference` | define rota de envio: auto, flow_only, direct_only, disabled |
 | `list-instances-remote`  | consulta `/instance/fetchInstances` na Evolution          |
 | `create-instance`        | cria instância nova via Global API Key                    |
 | `register-instance`      | registra instância existente com apikey própria           |

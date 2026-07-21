@@ -6,14 +6,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
-import { Plus, RefreshCw, Trash2, QrCode, Send, Star, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, RefreshCw, Trash2, QrCode, Send, Star, Loader2, CheckCircle2, XCircle, Route, Bot, Smartphone, Ban, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
+
+type Pref = "auto" | "flow_only" | "direct_only" | "disabled";
+type ActiveChannel = "flow" | "direct" | "none";
+type InstanceMode = "create" | "register";
+
+interface CompanyChannelRow {
+  whatsapp_channel_preference: Pref | null;
+}
+
+interface QrPayload {
+  base64?: string;
+  qrcode?: { base64?: string };
+  code?: string;
+}
+
+interface ActionResult {
+  ok: boolean;
+  status: number;
+  body: Record<string, unknown>;
+}
 
 interface InstanceRow {
   id: string; instance_name: string; api_key_prefix: string | null;
@@ -21,31 +42,55 @@ interface InstanceRow {
   last_synced_at: string | null; has_instance_key: boolean;
 }
 
+const preferenceLabels: Record<Pref, string> = {
+  auto: "Automático",
+  flow_only: "Via Flow",
+  direct_only: "Evolution direta",
+  disabled: "Pausado",
+};
+
+const routeLabels: Record<ActiveChannel, string> = {
+  flow: "Booking → Flow ↔ Evolution → WhatsApp",
+  direct: "Booking ↔ Evolution → WhatsApp",
+  none: "Nenhuma rota ativa",
+};
+
+function isPref(value: unknown): value is Pref {
+  return value === "auto" || value === "flow_only" || value === "direct_only" || value === "disabled";
+}
+
+function isActiveChannel(value: unknown): value is ActiveChannel {
+  return value === "flow" || value === "direct" || value === "none";
+}
+
 const statusBadge = (s: string) => {
-  if (s === "connected")   return <Badge className="bg-emerald-600"><CheckCircle2 className="h-3 w-3 mr-1" />Conectada</Badge>;
-  if (s === "qrcode")      return <Badge className="bg-amber-500"><QrCode className="h-3 w-3 mr-1" />Aguardando QR</Badge>;
-  if (s === "connecting")  return <Badge className="bg-blue-500"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Conectando</Badge>;
+  if (s === "connected")   return <Badge><CheckCircle2 className="h-3 w-3 mr-1" />Conectada</Badge>;
+  if (s === "qrcode")      return <Badge variant="secondary"><QrCode className="h-3 w-3 mr-1" />Aguardando QR</Badge>;
+  if (s === "connecting")  return <Badge variant="secondary"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Conectando</Badge>;
   if (s === "disconnected")return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Desconectada</Badge>;
   return <Badge variant="secondary">Desconhecida</Badge>;
 };
 
 export function InstancesList({ companyId }: { companyId: string }) {
   const [rows, setRows] = useState<InstanceRow[]>([]);
+  const [preference, setPreference] = useState<Pref>("auto");
+  const [activeChannel, setActiveChannel] = useState<ActiveChannel>("none");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [routingSaving, setRoutingSaving] = useState(false);
   const [qrOpen, setQrOpen] = useState<{ id: string; name: string } | null>(null);
-  const [qrData, setQrData] = useState<any>(null);
+  const [qrData, setQrData] = useState<QrPayload | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [testOpen, setTestOpen] = useState<InstanceRow | null>(null);
   const [testTo, setTestTo] = useState("");
 
   // create dialog state
   const [newOpen, setNewOpen] = useState(false);
-  const [mode, setMode] = useState<"create" | "register">("create");
+  const [mode, setMode] = useState<InstanceMode>("create");
   const [newName, setNewName] = useState("");
   const [newKey, setNewKey] = useState("");
 
-  const call = async (body: any) => {
+  const call = async (body: Record<string, unknown>): Promise<ActionResult> => {
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(getEdgeFunctionUrl("whatsapp-integration"), {
       method: "POST",
@@ -55,23 +100,41 @@ export function InstancesList({ companyId }: { companyId: string }) {
       },
       body: JSON.stringify({ company_id: companyId, ...body }),
     });
-    return { ok: res.ok, status: res.status, body: await res.json().catch(() => ({})) };
+    const parsed = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, body: parsed as Record<string, unknown> };
   };
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("whatsapp_instances_public")
-      .select("*").eq("company_id", companyId).order("created_at", { ascending: false });
-    setRows((data as any) ?? []);
+    const [{ data: instances }, { data: company }, { data: channel }] = await Promise.all([
+      supabase.from("whatsapp_instances_public")
+        .select("*").eq("company_id", companyId).order("created_at", { ascending: false }),
+      supabase.from("companies").select("whatsapp_channel_preference").eq("id", companyId).maybeSingle(),
+      supabase.rpc("resolve_whatsapp_channel", { p_company: companyId }),
+    ]);
+    const companyRow = company as CompanyChannelRow | null;
+    setRows((instances as InstanceRow[] | null) ?? []);
+    setPreference(isPref(companyRow?.whatsapp_channel_preference) ? companyRow.whatsapp_channel_preference : "auto");
+    setActiveChannel(isActiveChannel(channel) ? channel : "none");
     setLoading(false);
   };
   useEffect(() => { load(); }, [companyId]);
+
+  const saveRouting = async (value: Pref) => {
+    setRoutingSaving(true);
+    const r = await call({ action: "set-channel-preference", preference: value });
+    setRoutingSaving(false);
+    if (!r.ok) return toast.error(String(r.body.message ?? r.body.error ?? "Erro ao salvar rota"));
+    setPreference(value);
+    toast.success("Rota WhatsApp atualizada");
+    load();
+  };
 
   const refresh = async (id?: string) => {
     setBusy(true);
     const r = await call({ action: "refresh-status", instance_id: id });
     setBusy(false);
-    if (!r.ok) return toast.error(r.body?.error || "Falha ao sincronizar");
+    if (!r.ok) return toast.error(String(r.body.error ?? "Falha ao sincronizar"));
     toast.success(`Sincronizadas ${r.body?.updated ?? 0} instância(s)`);
     load();
   };
@@ -98,8 +161,8 @@ export function InstancesList({ companyId }: { companyId: string }) {
     setQrData(null); setQrLoading(true);
     const r = await call({ action: "get-qrcode", instance_id: row.id });
     setQrLoading(false);
-    if (!r.ok) return toast.error(r.body?.error || "Falha ao obter QR");
-    setQrData(r.body?.qrcode);
+    if (!r.ok) return toast.error(String(r.body.error ?? "Falha ao obter QR"));
+    setQrData((r.body.qrcode as QrPayload | undefined) ?? null);
   };
 
   const submitCreate = async () => {
@@ -109,7 +172,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
       ? await call({ action: "create-instance", instance_name: newName.trim() })
       : await call({ action: "register-instance", instance_name: newName.trim(), instance_api_key: newKey.trim() });
     setBusy(false);
-    if (!r.ok) return toast.error(r.body?.error || r.body?.message || "Falha");
+    if (!r.ok) return toast.error(String(r.body.error ?? r.body.message ?? "Falha"));
     toast.success(mode === "create" ? "Instância criada!" : "Instância registrada!");
     setNewOpen(false); setNewName(""); setNewKey("");
     load();
@@ -120,7 +183,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
     setBusy(true);
     const r = await call({ action: "send-test", instance_id: testOpen.id, to: testTo.trim() });
     setBusy(false);
-    if (!r.ok) return toast.error(r.body?.error || "Falha ao enviar");
+    if (!r.ok) return toast.error(String(r.body.error ?? "Falha ao enviar"));
     toast.success("Mensagem de teste enviada!");
     setTestOpen(null); setTestTo("");
   };
@@ -129,6 +192,42 @@ export function InstancesList({ companyId }: { companyId: string }) {
     qrData?.base64 ??
     qrData?.qrcode?.base64 ??
     (typeof qrData?.code === "string" && qrData.code.startsWith("data:") ? qrData.code : null);
+
+  const hasConnectedInstance = rows.some((row) => row.status === "connected");
+  const routingOptions: Array<{
+    value: Pref;
+    title: string;
+    description: string;
+    icon: LucideIcon;
+    disabled?: boolean;
+  }> = [
+    {
+      value: "auto",
+      title: "Automático",
+      description: "Booking usa Flow quando ele estiver ativo; se não estiver, usa a Evolution direta.",
+      icon: Route,
+      disabled: rows.length === 0,
+    },
+    {
+      value: "flow_only",
+      title: "Booking → Flow ↔ Evo",
+      description: "As mensagens saem pelo Zailom Flow conectado à Evolution/WhatsApp.",
+      icon: Bot,
+    },
+    {
+      value: "direct_only",
+      title: "Booking ↔ Evo",
+      description: "As mensagens saem diretamente pela instância Evolution padrão conectada.",
+      icon: Smartphone,
+      disabled: !hasConnectedInstance,
+    },
+    {
+      value: "disabled",
+      title: "Pausar WhatsApp",
+      description: "Nenhuma notificação WhatsApp será enviada pelo Booking.",
+      icon: Ban,
+    },
+  ];
 
   return (
     <Card>
@@ -150,7 +249,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
                 <DialogTitle>Adicionar instância</DialogTitle>
                 <DialogDescription>Crie uma nova ou registre uma existente via apikey específica.</DialogDescription>
               </DialogHeader>
-              <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
+              <Tabs value={mode} onValueChange={(v) => setMode(v as InstanceMode)}>
                 <TabsList className="grid grid-cols-2">
                   <TabsTrigger value="create">Criar nova</TabsTrigger>
                   <TabsTrigger value="register">Registrar existente</TabsTrigger>
@@ -183,7 +282,42 @@ export function InstancesList({ companyId }: { companyId: string }) {
           </Dialog>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-5">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold">Rota de comunicação</h3>
+              <p className="text-xs text-muted-foreground">Canal ativo: {routeLabels[activeChannel]}</p>
+            </div>
+            <Badge variant="outline">{preferenceLabels[preference]}</Badge>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+            {routingOptions.map((option) => {
+              const Icon = option.icon;
+              const selected = preference === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  disabled={routingSaving || option.disabled}
+                  onClick={() => saveRouting(option.value)}
+                  className={cn(
+                    "min-h-28 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                    selected ? "border-primary bg-primary/10" : "border-border hover:border-primary/60 hover:bg-muted/40",
+                  )}
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold">
+                    <Icon className="h-4 w-4" />{option.title}
+                  </span>
+                  <span className="mt-2 block text-xs text-muted-foreground">{option.description}</span>
+                  {selected && <span className="mt-3 block text-xs font-medium text-primary">Selecionado</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="border-t pt-5">
         {loading ? (
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : rows.length === 0 ? (
@@ -226,6 +360,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
             ))}
           </div>
         )}
+        </div>
       </CardContent>
 
       {/* QR Dialog */}
