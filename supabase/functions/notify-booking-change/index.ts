@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       .select(`
         id, company_id, client_id, employee_id, service_id,
         booking_date, start_time,
-        client:clients(id, name, user_id),
+        client:clients(id, name, phone, user_id),
         employee:employees(id, name),
         service:services(id, name),
         company:companies(id, name, slug)
