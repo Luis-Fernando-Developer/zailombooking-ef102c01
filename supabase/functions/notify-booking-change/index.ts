@@ -2,6 +2,7 @@
 // Notifica o cliente (e a equipe) quando um agendamento é realocado/reagendado.
 // verify_jwt = false (validamos manualmente; aceita chamadas autenticadas do app)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { sendWhatsApp, renderTemplate, loadWhatsAppTemplate } from "../_shared/notify-whatsapp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
       .select(`
         id, company_id, client_id, employee_id, service_id,
         booking_date, start_time,
-        client:clients(id, name, user_id),
+        client:clients(id, name, phone, user_id),
         employee:employees(id, name),
         service:services(id, name),
         company:companies(id, name, slug)
@@ -172,6 +173,32 @@ Deno.serve(async (req) => {
         content: `🔔 ${title.replace("Um agendamento", "Seu agendamento")}\n${message}`,
         metadata: { booking_id: c.id, system: true, change_type: body.change_type },
       }).then(({ error }) => error && console.error("chat insert error:", error));
+    }
+
+    // 3) Notificação WhatsApp (Flow ou Evolution direta) — best-effort
+    try {
+      const clientPhone: string | null = c.client?.phone ?? null;
+      if (clientPhone) {
+        const eventKey = `booking_${body.change_type}`; // reallocation | reschedule | cancellation
+        const tpl = await loadWhatsAppTemplate(admin, c.company_id, eventKey);
+        const vars = {
+          client_name: c.client?.name ?? "",
+          company_name: c.company?.name ?? "",
+          service_name: serviceName,
+          employee_name: currentEmployeeName,
+          previous_employee_name: previousEmployeeName,
+          previous_date: previousDate,
+          previous_time: previousTime,
+          date: currentDate,
+          time: currentTime,
+          reason: body.reason ?? "",
+        };
+        const text = tpl ? renderTemplate(tpl, vars) : `${title}\n${message}`;
+        const wa = await sendWhatsApp(admin, c.company_id, clientPhone, text);
+        console.log("[notify-booking-change] whatsapp:", wa);
+      }
+    } catch (waErr) {
+      console.error("[notify-booking-change] whatsapp error (ignored):", waErr);
     }
 
     return json({ ok: true });
