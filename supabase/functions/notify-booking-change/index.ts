@@ -2,6 +2,7 @@
 // Notifica o cliente (e a equipe) quando um agendamento é realocado/reagendado.
 // verify_jwt = false (validamos manualmente; aceita chamadas autenticadas do app)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { sendWhatsApp, renderTemplate, loadWhatsAppTemplate } from "../_shared/notify-whatsapp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
