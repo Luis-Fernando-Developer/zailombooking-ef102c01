@@ -9,6 +9,7 @@ type ActiveChannel = "flow" | "direct" | "none";
 
 interface Props {
   companyId: string;
+  onChanged?: () => void;
 }
 
 interface CompanyChannelRow {
