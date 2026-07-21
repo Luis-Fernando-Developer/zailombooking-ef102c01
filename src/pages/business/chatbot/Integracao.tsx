@@ -179,8 +179,8 @@ export default function ChatbotIntegracao() {
         // supabase-js embrulha status != 2xx aqui — pegar body detalhado
         let details = error.message;
         try {
-          // @ts-expect-error - context existe em FunctionsHttpError
-          if (error.context?.text) details = await error.context.text();
+          const ctx = (error as unknown as { context?: { text?: () => Promise<string> } }).context;
+          if (ctx?.text) details = await ctx.text();
         } catch { /* noop */ }
         throw new Error(details);
       }
