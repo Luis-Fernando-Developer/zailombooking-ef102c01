@@ -13,7 +13,7 @@ import {
 import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
-import { Plus, RefreshCw, Trash2, QrCode, Send, Star, Loader2, CheckCircle2, XCircle, Route, Bot, Smartphone, Ban } from "lucide-react";
+import { Plus, RefreshCw, Trash2, QrCode, Send, Star, Loader2, CheckCircle2, XCircle, Route, Bot, Smartphone, Ban, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 type Pref = "auto" | "flow_only" | "direct_only" | "disabled";
@@ -198,7 +198,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
     value: Pref;
     title: string;
     description: string;
-    icon: typeof Route;
+    icon: LucideIcon;
     disabled?: boolean;
   }> = [
     {
