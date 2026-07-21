@@ -49,6 +49,8 @@ async function evoFetch(
 
 function prefixOf(k: string) { return k ? k.substring(0, 8) : null; }
 
+const channelPreferences = new Set(["auto", "flow_only", "direct_only", "disabled"]);
+
 // ─── Handler ────────────────────────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -76,6 +78,22 @@ serve(async (req) => {
       _user_id: user.id, _company_id: company_id,
     });
     if (perm === false) return json({ error: "Forbidden" }, 403);
+
+    // ---------- CHANNEL PREFERENCE ----------------------------------------
+    // Salva via service_role para evitar falha de RLS no update direto em companies.
+    if (action === "set-channel-preference") {
+      const { preference } = body;
+      if (typeof preference !== "string" || !channelPreferences.has(preference)) {
+        return json({ error: "invalid_channel_preference" }, 400);
+      }
+
+      const { error } = await supabase
+        .from("companies")
+        .update({ whatsapp_channel_preference: preference })
+        .eq("id", company_id);
+      if (error) throw error;
+      return json({ success: true, preference });
+    }
 
     // ---------- SAVE: registra base_url + (opcional) global key -----------
     if (action === "save") {
