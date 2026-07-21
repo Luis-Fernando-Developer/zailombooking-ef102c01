@@ -175,6 +175,32 @@ Deno.serve(async (req) => {
       }).then(({ error }) => error && console.error("chat insert error:", error));
     }
 
+    // 3) Notificação WhatsApp (Flow ou Evolution direta) — best-effort
+    try {
+      const clientPhone: string | null = c.client?.phone ?? null;
+      if (clientPhone) {
+        const eventKey = `booking_${body.change_type}`; // reallocation | reschedule | cancellation
+        const tpl = await loadWhatsAppTemplate(admin, c.company_id, eventKey);
+        const vars = {
+          client_name: c.client?.name ?? "",
+          company_name: c.company?.name ?? "",
+          service_name: serviceName,
+          employee_name: currentEmployeeName,
+          previous_employee_name: previousEmployeeName,
+          previous_date: previousDate,
+          previous_time: previousTime,
+          date: currentDate,
+          time: currentTime,
+          reason: body.reason ?? "",
+        };
+        const text = tpl ? renderTemplate(tpl, vars) : `${title}\n${message}`;
+        const wa = await sendWhatsApp(admin, c.company_id, clientPhone, text);
+        console.log("[notify-booking-change] whatsapp:", wa);
+      }
+    } catch (waErr) {
+      console.error("[notify-booking-change] whatsapp error (ignored):", waErr);
+    }
+
     return json({ ok: true });
 
   } catch (e: any) {
