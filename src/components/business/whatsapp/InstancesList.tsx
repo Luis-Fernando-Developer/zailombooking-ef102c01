@@ -15,9 +15,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, RefreshCw, Trash2, QrCode, Send, Star, Loader2, CheckCircle2, XCircle, Route, Bot, Smartphone, Ban, type LucideIcon } from "lucide-react";
+import { Plus, RefreshCw, Trash2, QrCode, Send, Star, Loader2, CheckCircle2, XCircle, Route, Bot, Smartphone, Ban, Settings, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { WHATSAPP_PROVIDERS, providerLabel, type WhatsappProviderId } from "./providers";
+import { InstanceConfigDialog } from "./InstanceConfigDialog";
 
 type Pref = "auto" | "flow_only" | "direct_only" | "disabled";
 type ActiveChannel = "flow" | "direct" | "none";
