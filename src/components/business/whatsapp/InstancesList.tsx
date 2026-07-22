@@ -13,8 +13,12 @@ import {
 import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Plus, RefreshCw, Trash2, QrCode, Send, Star, Loader2, CheckCircle2, XCircle, Route, Bot, Smartphone, Ban, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
+import { WHATSAPP_PROVIDERS, providerLabel, type WhatsappProviderId } from "./providers";
 
 type Pref = "auto" | "flow_only" | "direct_only" | "disabled";
 type ActiveChannel = "flow" | "direct" | "none";
@@ -37,21 +41,40 @@ interface ActionResult {
 }
 
 interface InstanceRow {
-  id: string; instance_name: string; api_key_prefix: string | null;
-  connected_number: string | null; status: string; is_default: boolean;
-  last_synced_at: string | null; has_instance_key: boolean;
+  id: string;
+  instance_name: string;
+  friendly_name: string | null;
+  provider: WhatsappProviderId;
+  display_index: number | null;
+  api_key_prefix: string | null;
+  connected_number: string | null;
+  status: string;
+  is_default: boolean;
+  channel_preference: Pref;
+  last_synced_at: string | null;
+  has_instance_key: boolean;
+}
+
+interface PlanLimits {
+  plan_tier: string;
+  max_connections: number | null;
+  max_messages_month: number | null;
+  current_connections: number;
+  current_messages_month: number;
+  connections_allowed: boolean;
+  messages_allowed: boolean;
 }
 
 const preferenceLabels: Record<Pref, string> = {
   auto: "Automático",
-  flow_only: "Via Flow",
-  direct_only: "Evolution direta",
+  flow_only: "Via Chatbot Zailom",
+  direct_only: "API WhatsApp direta",
   disabled: "Pausado",
 };
 
 const routeLabels: Record<ActiveChannel, string> = {
-  flow: "Booking → Flow ↔ Evolution → WhatsApp",
-  direct: "Booking ↔ Evolution → WhatsApp",
+  flow: "Booking → Chatbot Zailom → WhatsApp",
+  direct: "Booking → API WhatsApp → WhatsApp",
   none: "Nenhuma rota ativa",
 };
 
@@ -71,10 +94,14 @@ const statusBadge = (s: string) => {
   return <Badge variant="secondary">Desconhecida</Badge>;
 };
 
+const fmtLimit = (max: number | null, current: number) =>
+  max === null ? `${current} / ilimitado` : `${current} / ${max}`;
+
 export function InstancesList({ companyId }: { companyId: string }) {
   const [rows, setRows] = useState<InstanceRow[]>([]);
   const [preference, setPreference] = useState<Pref>("auto");
   const [activeChannel, setActiveChannel] = useState<ActiveChannel>("none");
+  const [limits, setLimits] = useState<PlanLimits | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [routingSaving, setRoutingSaving] = useState(false);
@@ -87,7 +114,9 @@ export function InstancesList({ companyId }: { companyId: string }) {
   // create dialog state
   const [newOpen, setNewOpen] = useState(false);
   const [mode, setMode] = useState<InstanceMode>("create");
-  const [newName, setNewName] = useState("");
+  const [newProvider, setNewProvider] = useState<WhatsappProviderId>("evolution");
+  const [newFriendly, setNewFriendly] = useState("");
+  const [newInstanceName, setNewInstanceName] = useState("");
   const [newKey, setNewKey] = useState("");
 
   const call = async (body: Record<string, unknown>): Promise<ActionResult> => {
@@ -106,16 +135,18 @@ export function InstancesList({ companyId }: { companyId: string }) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: instances }, { data: company }, { data: channel }] = await Promise.all([
+    const [{ data: instances }, { data: company }, { data: channel }, limitsRes] = await Promise.all([
       supabase.from("whatsapp_instances_public")
         .select("*").eq("company_id", companyId).order("created_at", { ascending: false }),
       supabase.from("companies").select("whatsapp_channel_preference").eq("id", companyId).maybeSingle(),
       supabase.rpc("resolve_whatsapp_channel", { p_company: companyId }),
+      supabase.rpc("whatsapp_get_plan_limits", { p_company: companyId }),
     ]);
     const companyRow = company as CompanyChannelRow | null;
     setRows((instances as InstanceRow[] | null) ?? []);
     setPreference(isPref(companyRow?.whatsapp_channel_preference) ? companyRow.whatsapp_channel_preference : "auto");
     setActiveChannel(isActiveChannel(channel) ? channel : "none");
+    setLimits((limitsRes.data as PlanLimits | null) ?? null);
     setLoading(false);
   };
   useEffect(() => { load(); }, [companyId]);
@@ -130,22 +161,29 @@ export function InstancesList({ companyId }: { companyId: string }) {
     load();
   };
 
+  const setInstancePref = async (id: string, value: Pref) => {
+    const r = await call({ action: "set-instance-channel-preference", instance_id: id, preference: value });
+    if (!r.ok) return toast.error(String(r.body.message ?? r.body.error ?? "Erro ao salvar"));
+    toast.success("Rota da conexão atualizada");
+    load();
+  };
+
   const refresh = async (id?: string) => {
     setBusy(true);
     const r = await call({ action: "refresh-status", instance_id: id });
     setBusy(false);
     if (!r.ok) return toast.error(String(r.body.error ?? "Falha ao sincronizar"));
-    toast.success(`Sincronizadas ${r.body?.updated ?? 0} instância(s)`);
+    toast.success(`Sincronizadas ${r.body?.updated ?? 0} conexão(ões)`);
     load();
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Excluir esta instância? Isso também remove da Evolution.")) return;
+    if (!confirm("Excluir esta conexão? Isso também remove do painel da API WhatsApp.")) return;
     setBusy(true);
     const r = await call({ action: "delete-instance", instance_id: id });
     setBusy(false);
     if (!r.ok) return toast.error("Falha ao excluir");
-    toast.success("Instância excluída");
+    toast.success("Conexão excluída");
     load();
   };
 
@@ -157,7 +195,8 @@ export function InstancesList({ companyId }: { companyId: string }) {
   };
 
   const openQr = async (row: InstanceRow) => {
-    setQrOpen({ id: row.id, name: row.instance_name });
+    const displayName = row.friendly_name ?? row.instance_name;
+    setQrOpen({ id: row.id, name: displayName });
     setQrData(null); setQrLoading(true);
     const r = await call({ action: "get-qrcode", instance_id: row.id });
     setQrLoading(false);
@@ -166,15 +205,25 @@ export function InstancesList({ companyId }: { companyId: string }) {
   };
 
   const submitCreate = async () => {
-    if (!newName.trim()) return toast.error("Nome da instância é obrigatório");
+    if (!newFriendly.trim()) return toast.error("Informe o nome desta conexão");
     setBusy(true);
     const r = mode === "create"
-      ? await call({ action: "create-instance", instance_name: newName.trim() })
-      : await call({ action: "register-instance", instance_name: newName.trim(), instance_api_key: newKey.trim() });
+      ? await call({
+          action: "create-instance",
+          provider: newProvider,
+          friendly_name: newFriendly.trim(),
+        })
+      : await call({
+          action: "register-instance",
+          provider: newProvider,
+          friendly_name: newFriendly.trim(),
+          instance_name: newInstanceName.trim(),
+          instance_api_key: newKey.trim(),
+        });
     setBusy(false);
-    if (!r.ok) return toast.error(String(r.body.error ?? r.body.message ?? "Falha"));
-    toast.success(mode === "create" ? "Instância criada!" : "Instância registrada!");
-    setNewOpen(false); setNewName(""); setNewKey("");
+    if (!r.ok) return toast.error(String(r.body.message ?? r.body.error ?? "Falha"));
+    toast.success(mode === "create" ? "Conexão criada!" : "Conexão registrada!");
+    setNewOpen(false); setNewFriendly(""); setNewInstanceName(""); setNewKey("");
     load();
   };
 
@@ -194,6 +243,8 @@ export function InstancesList({ companyId }: { companyId: string }) {
     (typeof qrData?.code === "string" && qrData.code.startsWith("data:") ? qrData.code : null);
 
   const hasConnectedInstance = rows.some((row) => row.status === "connected");
+  const canCreateMore = limits ? limits.connections_allowed : true;
+
   const routingOptions: Array<{
     value: Pref;
     title: string;
@@ -204,20 +255,20 @@ export function InstancesList({ companyId }: { companyId: string }) {
     {
       value: "auto",
       title: "Automático",
-      description: "Booking usa Flow quando ele estiver ativo; se não estiver, usa a Evolution direta.",
+      description: "Usa o Chatbot Zailom quando ativo; se não estiver, usa a API WhatsApp direta.",
       icon: Route,
       disabled: rows.length === 0,
     },
     {
       value: "flow_only",
-      title: "Booking → Flow ↔ Evo",
-      description: "As mensagens saem pelo Zailom Flow conectado à Evolution/WhatsApp.",
+      title: "Somente Chatbot Zailom",
+      description: "As mensagens saem exclusivamente pelo Chatbot Zailom.",
       icon: Bot,
     },
     {
       value: "direct_only",
-      title: "Booking ↔ Evo",
-      description: "As mensagens saem diretamente pela instância Evolution padrão conectada.",
+      title: "Somente API WhatsApp",
+      description: "As mensagens saem diretamente pela conexão padrão da API WhatsApp.",
       icon: Smartphone,
       disabled: !hasConnectedInstance,
     },
@@ -233,8 +284,15 @@ export function InstancesList({ companyId }: { companyId: string }) {
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div>
-          <CardTitle>Instâncias</CardTitle>
-          <CardDescription>Todas as instâncias Evolution vinculadas a esta empresa.</CardDescription>
+          <CardTitle>Conexões</CardTitle>
+          <CardDescription>
+            Todas as conexões de API WhatsApp vinculadas a esta empresa.
+            {limits && (
+              <span className="ml-1">
+                Plano <span className="font-medium capitalize">{limits.plan_tier}</span> — conexões: {fmtLimit(limits.max_connections, limits.current_connections)} · mensagens/mês: {fmtLimit(limits.max_messages_month, limits.current_messages_month)}.
+              </span>
+            )}
+          </CardDescription>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => refresh()} disabled={busy}>
@@ -242,29 +300,54 @@ export function InstancesList({ companyId }: { companyId: string }) {
           </Button>
           <Dialog open={newOpen} onOpenChange={setNewOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-2" />Nova instância</Button>
+              <Button size="sm" disabled={!canCreateMore}>
+                <Plus className="h-4 w-4 mr-2" />Nova conexão
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Adicionar instância</DialogTitle>
-                <DialogDescription>Crie uma nova ou registre uma existente via apikey específica.</DialogDescription>
+                <DialogTitle>Adicionar conexão</DialogTitle>
+                <DialogDescription>Escolha o tipo de API e crie uma nova conexão, ou registre uma existente com apikey própria.</DialogDescription>
               </DialogHeader>
+
+              <div className="space-y-2">
+                <Label>Tipo de API</Label>
+                <Select value={newProvider} onValueChange={(v) => setNewProvider(v as WhatsappProviderId)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {WHATSAPP_PROVIDERS.map((p) => (
+                      <SelectItem key={p.id} value={p.id} disabled={!p.enabled}>
+                        <span className="flex items-center gap-2">
+                          {p.label}
+                          {!p.enabled && <Badge variant="secondary" className="text-[10px]">Em breve</Badge>}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Tabs value={mode} onValueChange={(v) => setMode(v as InstanceMode)}>
                 <TabsList className="grid grid-cols-2">
                   <TabsTrigger value="create">Criar nova</TabsTrigger>
                   <TabsTrigger value="register">Registrar existente</TabsTrigger>
                 </TabsList>
                 <TabsContent value="create" className="space-y-3 pt-3">
-                  <p className="text-xs text-muted-foreground">Requer Global API Key configurada.</p>
+                  <p className="text-xs text-muted-foreground">Requer chave global da API configurada.</p>
                   <div className="space-y-2">
-                    <Label>Nome da instância</Label>
-                    <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="ex: minha-empresa" />
+                    <Label>Nome desta conexão</Label>
+                    <Input value={newFriendly} onChange={(e) => setNewFriendly(e.target.value)} placeholder="ex: recepcao, whatsapp-principal" />
+                    <p className="text-[11px] text-muted-foreground">Só você vê esse nome. Escolha algo curto e único.</p>
                   </div>
                 </TabsContent>
                 <TabsContent value="register" className="space-y-3 pt-3">
                   <div className="space-y-2">
-                    <Label>Nome da instância (na Evolution)</Label>
-                    <Input value={newName} onChange={(e) => setNewName(e.target.value)} />
+                    <Label>Nome desta conexão</Label>
+                    <Input value={newFriendly} onChange={(e) => setNewFriendly(e.target.value)} placeholder="ex: recepcao" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nome técnico (no provider)</Label>
+                    <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label>apikey da instância</Label>
@@ -286,7 +369,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm font-semibold">Rota de comunicação</h3>
+              <h3 className="text-sm font-semibold">Rota de comunicação (empresa)</h3>
               <p className="text-xs text-muted-foreground">Canal ativo: {routeLabels[activeChannel]}</p>
             </div>
             <Badge variant="outline">{preferenceLabels[preference]}</Badge>
@@ -321,43 +404,58 @@ export function InstancesList({ companyId }: { companyId: string }) {
         {loading ? (
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma instância cadastrada.</p>
+          <p className="text-sm text-muted-foreground">Nenhuma conexão cadastrada.</p>
         ) : (
           <div className="space-y-2">
-            {rows.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">{r.instance_name}</span>
-                    {r.is_default && <Badge variant="outline"><Star className="h-3 w-3 mr-1" />Padrão</Badge>}
-                    {statusBadge(r.status)}
+            {rows.map((r) => {
+              const displayName = r.friendly_name ?? r.instance_name;
+              return (
+                <div key={r.id} className="flex flex-col gap-3 rounded-md border p-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{displayName}</span>
+                      <Badge variant="outline" className="text-[11px]">{providerLabel(r.provider)}</Badge>
+                      {r.is_default && <Badge variant="outline"><Star className="h-3 w-3 mr-1" />Padrão</Badge>}
+                      {statusBadge(r.status)}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {r.connected_number ? `📱 ${r.connected_number}` : "Sem número conectado"}
+                      {r.api_key_prefix && ` · key ${r.api_key_prefix}…`}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {r.connected_number ? `📱 ${r.connected_number}` : "Sem número conectado"}
-                    {r.api_key_prefix && ` · key ${r.api_key_prefix}…`}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select value={r.channel_preference} onValueChange={(v) => setInstancePref(r.id, v as Pref)}>
+                      <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Rota: Automática</SelectItem>
+                        <SelectItem value="flow_only">Rota: Chatbot Zailom</SelectItem>
+                        <SelectItem value="direct_only">Rota: API WhatsApp</SelectItem>
+                        <SelectItem value="disabled">Rota: Pausada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" title="QR Code" onClick={() => openQr(r)}>
+                        <QrCode className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" title="Sincronizar" onClick={() => refresh(r.id)} disabled={busy}>
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" title="Teste" onClick={() => setTestOpen(r)}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                      {!r.is_default && (
+                        <Button size="icon" variant="ghost" title="Definir padrão" onClick={() => setDefault(r.id)}>
+                          <Star className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button size="icon" variant="ghost" title="Excluir" onClick={() => remove(r.id)} disabled={busy}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button size="icon" variant="ghost" title="QR Code" onClick={() => openQr(r)}>
-                    <QrCode className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" title="Sincronizar" onClick={() => refresh(r.id)} disabled={busy}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" title="Teste" onClick={() => setTestOpen(r)}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                  {!r.is_default && (
-                    <Button size="icon" variant="ghost" title="Definir padrão" onClick={() => setDefault(r.id)}>
-                      <Star className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button size="icon" variant="ghost" title="Excluir" onClick={() => remove(r.id)} disabled={busy}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         </div>
@@ -387,7 +485,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
       <Dialog open={!!testOpen} onOpenChange={(o) => !o && setTestOpen(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enviar teste — {testOpen?.instance_name}</DialogTitle>
+            <DialogTitle>Enviar teste — {testOpen?.friendly_name ?? testOpen?.instance_name}</DialogTitle>
             <DialogDescription>Envia "Teste de conexão…" para o número informado.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
