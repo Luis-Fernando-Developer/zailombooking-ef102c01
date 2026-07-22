@@ -68,9 +68,14 @@ export async function sendWhatsApp(
   }
 
   // 3. DIRECT (API WhatsApp / Evolution) -------------------------------------
-  const { data: integ } = await supabase.from("whatsapp_integration")
+  const { data: integRow } = await supabase.from("whatsapp_integration")
     .select("evolution_base_url, evolution_global_api_key").eq("company_id", companyId).maybeSingle();
-  if (!integ?.evolution_base_url) return { via: "direct", ok: false, error: "not_configured" };
+  const integ = {
+    evolution_base_url: integRow?.evolution_base_url || Deno.env.get("EVOLUTION_GLOBAL_BASE_URL") || "",
+    evolution_global_api_key: integRow?.evolution_global_api_key || Deno.env.get("EVOLUTION_GLOBAL_API_KEY") || "",
+  };
+  if (!integ.evolution_base_url) return { via: "direct", ok: false, error: "not_configured" };
+
 
   // Prefere instância marcada como default e conectada
   const { data: inst } = await supabase.from("whatsapp_instances")
