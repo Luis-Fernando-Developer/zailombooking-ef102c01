@@ -17,15 +17,15 @@ interface CompanyChannelRow {
 }
 
 const prefLabel: Record<Pref, string> = {
-  auto: "Automático — Flow primeiro, Evolution como fallback",
-  flow_only: "Somente Flow",
-  direct_only: "Somente Evolution direta",
+  auto: "Automático — Chatbot Zailom primeiro, API WhatsApp como fallback",
+  flow_only: "Somente Chatbot Zailom",
+  direct_only: "Somente API WhatsApp direta",
   disabled: "Envio WhatsApp desativado",
 };
 
 const routeLabel: Record<ActiveChannel, string> = {
-  flow: "Booking → Flow ↔ Evolution → WhatsApp",
-  direct: "Booking ↔ Evolution → WhatsApp",
+  flow: "Booking → Chatbot Zailom → WhatsApp",
+  direct: "Booking → API WhatsApp → WhatsApp",
   none: "Nenhum envio ativo",
 };
 
@@ -57,9 +57,9 @@ export function ChannelStatusCard({ companyId }: Props) {
   useEffect(() => { load(); }, [companyId]);
 
   const badge = active === "flow"
-    ? <Badge><Bot className="mr-1 h-3 w-3" />Via Zailom Flow</Badge>
+    ? <Badge><Bot className="mr-1 h-3 w-3" />Via Chatbot Zailom</Badge>
     : active === "direct"
-      ? <Badge><Smartphone className="mr-1 h-3 w-3" />Evolution direta</Badge>
+      ? <Badge><Smartphone className="mr-1 h-3 w-3" />API WhatsApp direta</Badge>
       : <Badge variant="secondary"><XCircle className="mr-1 h-3 w-3" />Desativado</Badge>;
 
   return (

@@ -6,7 +6,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Smartphone } from "lucide-react";
 import { ChannelStatusCard } from "@/components/business/whatsapp/ChannelStatusCard";
-import { EvolutionConfigCard } from "@/components/business/whatsapp/EvolutionConfigCard";
+import { ApiWhatsappConfigCard } from "@/components/business/whatsapp/ApiWhatsappConfigCard";
 import { InstancesList } from "@/components/business/whatsapp/InstancesList";
 import { TemplatesEditor } from "@/components/business/whatsapp/TemplatesEditor";
 
@@ -34,20 +34,20 @@ export default function IntegracaoWhatsApp() {
             <Smartphone className="h-6 w-6" /> Integração WhatsApp
           </h1>
           <p className="text-muted-foreground">
-            Conecte sua Evolution API e defina como o Booking envia notificações via WhatsApp.
+            Conecte sua API WhatsApp e defina como o Booking envia notificações.
           </p>
         </div>
 
         <Tabs defaultValue="channel" className="space-y-4">
           <TabsList>
             <TabsTrigger value="channel">Canal</TabsTrigger>
-            <TabsTrigger value="instances">Instâncias</TabsTrigger>
+            <TabsTrigger value="instances">Conexões</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
           </TabsList>
 
           <TabsContent value="channel" className="space-y-4">
             <ChannelStatusCard companyId={companyId} onChanged={() => setReloadKey((k) => k + 1)} />
-            <EvolutionConfigCard companyId={companyId} onChanged={() => setReloadKey((k) => k + 1)} />
+            <ApiWhatsappConfigCard companyId={companyId} onChanged={() => setReloadKey((k) => k + 1)} />
           </TabsContent>
 
           <TabsContent value="instances">
