@@ -39,6 +39,8 @@ const PROVIDERS = [
 
 type ProviderId = typeof PROVIDERS[number]["id"];
 
+type UnknownRecord = Record<string, unknown>;
+
 // ─── Evolution API helpers ──────────────────────────────────────────────────
 type EvoResp<T = any> = { ok: boolean; status: number; body: T | null; raw: string };
 
@@ -64,6 +66,105 @@ async function evoFetch(
 }
 
 function prefixOf(k: string) { return k ? k.substring(0, 8) : null; }
+
+function asRecord(value: unknown): UnknownRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as UnknownRecord
+    : null;
+}
+
+function getByPath(source: unknown, path: string[]): unknown {
+  let cursor: unknown = source;
+  for (const key of path) {
+    const record = asRecord(cursor);
+    if (!record || !(key in record)) return null;
+    cursor = record[key];
+  }
+  return cursor;
+}
+
+function normalizeWhatsappNumber(value: unknown): string | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const text = String(value).trim();
+  if (!text || /^\d{4}-\d{2}-\d{2}T/.test(text)) return null;
+
+  const beforeAt = text.split("@")[0] ?? text;
+  const digits = beforeAt.replace(/\D/g, "");
+  if (digits.length < 10 || digits.length > 15) return null;
+  return digits;
+}
+
+function extractConnectedNumber(source: unknown): string | null {
+  const preferredPaths = [
+    ["instance", "owner"],
+    ["instance", "ownerJid"],
+    ["instance", "ownerJID"],
+    ["instance", "wuid"],
+    ["instance", "number"],
+    ["instance", "profile", "id"],
+    ["owner"],
+    ["ownerJid"],
+    ["ownerJID"],
+    ["wuid"],
+    ["number"],
+    ["phone"],
+    ["jid"],
+  ];
+
+  for (const path of preferredPaths) {
+    const normalized = normalizeWhatsappNumber(getByPath(source, path));
+    if (normalized) return normalized;
+  }
+
+  const visit = (value: unknown): string | null => {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = visit(item);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    const record = asRecord(value);
+    if (!record) return null;
+
+    for (const [key, nested] of Object.entries(record)) {
+      if (/owner|jid|wuid|phone|number/i.test(key)) {
+        const normalized = normalizeWhatsappNumber(nested);
+        if (normalized) return normalized;
+      }
+    }
+
+    for (const nested of Object.values(record)) {
+      const found = visit(nested);
+      if (found) return found;
+    }
+
+    return null;
+  };
+
+  return visit(source);
+}
+
+function pickRemoteInstance(fetchInstancesBody: unknown, instanceName: string): unknown {
+  if (!Array.isArray(fetchInstancesBody)) return fetchInstancesBody;
+  const match = fetchInstancesBody.find((item) => {
+    const remoteName = getByPath(item, ["instance", "instanceName"])
+      ?? getByPath(item, ["instanceName"])
+      ?? getByPath(item, ["name"]);
+    return remoteName === instanceName;
+  });
+  return match ?? fetchInstancesBody[0] ?? null;
+}
+
+function mapEvolutionState(value: unknown): "connected" | "disconnected" | "qrcode" | "connecting" | "unknown" {
+  const state = String(value ?? "unknown").toLowerCase();
+  if (["open", "connected", "online"].includes(state)) return "connected";
+  if (["close", "closed", "disconnected", "offline"].includes(state)) return "disconnected";
+  if (["connecting", "pairing"].includes(state)) return "connecting";
+  if (["qrcode", "qr", "qr_code"].includes(state)) return "qrcode";
+  return "unknown";
+}
 
 function slugify(s: string): string {
   return String(s || "")
@@ -149,7 +250,7 @@ serve(async (req) => {
     }
 
     // ---------- SAVE global config ---------------------------------------
-    if (action === "save") {
+    if (action === "save" || action === "setup-integration") {
       const { base_url, global_api_key } = body;
       if (!base_url) return json({ error: "Missing base_url" }, 400);
 
