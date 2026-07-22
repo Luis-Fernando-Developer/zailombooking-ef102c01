@@ -251,7 +251,21 @@ serve(async (req) => {
 
     // ---------- SAVE global config ---------------------------------------
     if (action === "save" || action === "setup-integration") {
-      const { base_url, global_api_key } = body;
+      const base_url = String(
+        body.base_url
+          ?? body.baseUrl
+          ?? body.evolution_base_url
+          ?? Deno.env.get("EVOLUTION_GLOBAL_BASE_URL")
+          ?? "",
+      ).trim();
+      const global_api_key = String(
+        body.global_api_key
+          ?? body.globalApiKey
+          ?? body.api_key
+          ?? body.apikey
+          ?? Deno.env.get("EVOLUTION_GLOBAL_API_KEY")
+          ?? "",
+      ).trim();
       if (!base_url) return json({ error: "Missing base_url" }, 400);
 
       if (global_api_key) {
