@@ -366,41 +366,8 @@ export function InstancesList({ companyId }: { companyId: string }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-semibold">Rota de comunicação (empresa)</h3>
-              <p className="text-xs text-muted-foreground">Canal ativo: {routeLabels[activeChannel]}</p>
-            </div>
-            <Badge variant="outline">{preferenceLabels[preference]}</Badge>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-            {routingOptions.map((option) => {
-              const Icon = option.icon;
-              const selected = preference === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  disabled={routingSaving || option.disabled}
-                  onClick={() => saveRouting(option.value)}
-                  className={cn(
-                    "min-h-28 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                    selected ? "border-primary bg-primary/10" : "border-border hover:border-primary/60 hover:bg-muted/40",
-                  )}
-                >
-                  <span className="flex items-center gap-2 text-sm font-semibold">
-                    <Icon className="h-4 w-4" />{option.title}
-                  </span>
-                  <span className="mt-2 block text-xs text-muted-foreground">{option.description}</span>
-                  {selected && <span className="mt-3 block text-xs font-medium text-primary">Selecionado</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <div>
 
-        <div className="border-t pt-5">
         {loading ? (
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : rows.length === 0 ? (
