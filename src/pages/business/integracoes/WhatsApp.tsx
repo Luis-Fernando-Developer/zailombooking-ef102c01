@@ -47,7 +47,6 @@ export default function IntegracaoWhatsApp() {
 
           <TabsContent value="channel" className="space-y-4">
             <ChannelStatusCard companyId={companyId} onChanged={() => setReloadKey((k) => k + 1)} />
-            <ApiWhatsappConfigCard companyId={companyId} onChanged={() => setReloadKey((k) => k + 1)} />
           </TabsContent>
 
           <TabsContent value="instances">
