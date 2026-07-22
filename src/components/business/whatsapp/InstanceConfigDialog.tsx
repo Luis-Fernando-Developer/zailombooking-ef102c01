@@ -45,8 +45,14 @@ const DEFAULT_SETTINGS: SettingsState = {
   alwaysOnline: false, readMessages: false, readStatus: false, syncFullHistory: false,
 };
 
+const ZAILOM_FLOW_WEBHOOK_URL = "https://api-flowbuilder.zailom.com/webhook/whatsapp";
+
 const DEFAULT_WEBHOOK: WebhookState = {
-  enabled: false, url: "", byEvents: false, base64: false, events: [],
+  enabled: true,
+  url: ZAILOM_FLOW_WEBHOOK_URL,
+  byEvents: false,
+  base64: true,
+  events: ["MESSAGES_UPSERT"],
 };
 
 const AVAILABLE_EVENTS = [
@@ -101,13 +107,16 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
     if (w.ok) {
       const raw = ((w.body.webhook as Record<string, unknown> | undefined)?.webhook
         ?? w.body.webhook ?? {}) as Record<string, unknown>;
-      setWebhook({
+      const loadedUrl = typeof raw.url === "string" ? raw.url : "";
+      const loadedEvents = Array.isArray(raw.events) ? raw.events.filter((e): e is string => typeof e === "string") : [];
+      const hasConfig = !!loadedUrl || loadedEvents.length > 0 || !!raw.enabled;
+      setWebhook(hasConfig ? {
         enabled: !!raw.enabled,
-        url: typeof raw.url === "string" ? raw.url : "",
+        url: loadedUrl,
         byEvents: !!raw.byEvents,
         base64: !!raw.base64,
-        events: Array.isArray(raw.events) ? raw.events.filter((e): e is string => typeof e === "string") : [],
-      });
+        events: loadedEvents,
+      } : DEFAULT_WEBHOOK);
     } else setWebhook(DEFAULT_WEBHOOK);
     setLoading(false);
   };
