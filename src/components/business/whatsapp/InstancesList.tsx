@@ -208,31 +208,23 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const submitCreate = async () => {
     if (!newFriendly.trim()) return toast.error("Informe o nome desta conexão");
     setBusy(true);
-    const r = mode === "create"
-      ? await call({
-          action: "create-instance",
-          provider: newProvider,
-          friendly_name: newFriendly.trim(),
-          channel_preference: newPref,
-        })
-      : await call({
-          action: "register-instance",
-          provider: newProvider,
-          friendly_name: newFriendly.trim(),
-          instance_name: newInstanceName.trim(),
-          instance_api_key: newKey.trim(),
-          channel_preference: newPref,
-        });
+    const r = await call({
+      action: "create-instance",
+      provider: newProvider,
+      friendly_name: newFriendly.trim(),
+      channel_preference: newPref,
+    });
     setBusy(false);
     if (!r.ok) return toast.error(String(r.body.message ?? r.body.error ?? "Falha"));
     const createdId = typeof r.body.instance_id === "string" ? r.body.instance_id : null;
     if (createdId && newPref !== "auto") {
       await call({ action: "set-instance-channel-preference", instance_id: createdId, preference: newPref });
     }
-    toast.success(mode === "create" ? "Conexão criada!" : "Conexão registrada!");
-    setNewOpen(false); setNewFriendly(""); setNewInstanceName(""); setNewKey(""); setNewPref("auto");
+    toast.success("Conexão criada!");
+    setNewOpen(false); setNewFriendly(""); setNewPref("auto");
     load();
   };
+
 
 
   const submitTest = async () => {
