@@ -10,9 +10,8 @@ import { cn } from "@/lib/utils";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Tabs, TabsContent, TabsList, TabsTrigger,
-} from "@/components/ui/tabs";
+
+
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -22,7 +21,7 @@ import { WHATSAPP_PROVIDERS, providerLabel, type WhatsappProviderId } from "./pr
 
 type Pref = "auto" | "flow_only" | "direct_only" | "disabled";
 type ActiveChannel = "flow" | "direct" | "none";
-type InstanceMode = "create" | "register";
+
 
 interface CompanyChannelRow {
   whatsapp_channel_preference: Pref | null;
@@ -113,12 +112,10 @@ export function InstancesList({ companyId }: { companyId: string }) {
 
   // create dialog state
   const [newOpen, setNewOpen] = useState(false);
-  const [mode, setMode] = useState<InstanceMode>("create");
   const [newProvider, setNewProvider] = useState<WhatsappProviderId>("evolution");
   const [newFriendly, setNewFriendly] = useState("");
-  const [newInstanceName, setNewInstanceName] = useState("");
-  const [newKey, setNewKey] = useState("");
   const [newPref, setNewPref] = useState<Pref>("auto");
+
 
   const call = async (body: Record<string, unknown>): Promise<ActionResult> => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -208,31 +205,23 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const submitCreate = async () => {
     if (!newFriendly.trim()) return toast.error("Informe o nome desta conexão");
     setBusy(true);
-    const r = mode === "create"
-      ? await call({
-          action: "create-instance",
-          provider: newProvider,
-          friendly_name: newFriendly.trim(),
-          channel_preference: newPref,
-        })
-      : await call({
-          action: "register-instance",
-          provider: newProvider,
-          friendly_name: newFriendly.trim(),
-          instance_name: newInstanceName.trim(),
-          instance_api_key: newKey.trim(),
-          channel_preference: newPref,
-        });
+    const r = await call({
+      action: "create-instance",
+      provider: newProvider,
+      friendly_name: newFriendly.trim(),
+      channel_preference: newPref,
+    });
     setBusy(false);
     if (!r.ok) return toast.error(String(r.body.message ?? r.body.error ?? "Falha"));
     const createdId = typeof r.body.instance_id === "string" ? r.body.instance_id : null;
     if (createdId && newPref !== "auto") {
       await call({ action: "set-instance-channel-preference", instance_id: createdId, preference: newPref });
     }
-    toast.success(mode === "create" ? "Conexão criada!" : "Conexão registrada!");
-    setNewOpen(false); setNewFriendly(""); setNewInstanceName(""); setNewKey(""); setNewPref("auto");
+    toast.success("Conexão criada!");
+    setNewOpen(false); setNewFriendly(""); setNewPref("auto");
     load();
   };
+
 
 
   const submitTest = async () => {
@@ -315,7 +304,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Adicionar conexão</DialogTitle>
-                <DialogDescription>Escolha o tipo de API e crie uma nova conexão, ou registre uma existente com apikey própria.</DialogDescription>
+                <DialogDescription>Escolha o tipo de API e crie uma nova conexão.</DialogDescription>
               </DialogHeader>
 
               <div className="space-y-2">
@@ -335,34 +324,15 @@ export function InstancesList({ companyId }: { companyId: string }) {
                 </Select>
               </div>
 
-              <Tabs value={mode} onValueChange={(v) => setMode(v as InstanceMode)}>
-                <TabsList className="grid grid-cols-2">
-                  <TabsTrigger value="create">Criar nova</TabsTrigger>
-                  <TabsTrigger value="register">Registrar existente</TabsTrigger>
-                </TabsList>
-                <TabsContent value="create" className="space-y-3 pt-3">
-                  <p className="text-xs text-muted-foreground">Requer chave global da API configurada.</p>
-                  <div className="space-y-2">
-                    <Label>Nome desta conexão</Label>
-                    <Input value={newFriendly} onChange={(e) => setNewFriendly(e.target.value)} placeholder="ex: recepcao, whatsapp-principal" />
-                    <p className="text-[11px] text-muted-foreground">Só você vê esse nome. Escolha algo curto e único.</p>
-                  </div>
-                </TabsContent>
-                <TabsContent value="register" className="space-y-3 pt-3">
-                  <div className="space-y-2">
-                    <Label>Nome desta conexão</Label>
-                    <Input value={newFriendly} onChange={(e) => setNewFriendly(e.target.value)} placeholder="ex: recepcao" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Nome técnico (no provider)</Label>
-                    <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>apikey da instância</Label>
-                    <Input type="password" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">A conexão será criada automaticamente no painel global da API WhatsApp.</p>
+                <div className="space-y-2">
+                  <Label>Nome desta conexão</Label>
+                  <Input value={newFriendly} onChange={(e) => setNewFriendly(e.target.value)} placeholder="ex: recepcao, whatsapp-principal" />
+                  <p className="text-[11px] text-muted-foreground">Só você vê esse nome. Escolha algo curto e único.</p>
+                </div>
+              </div>
+
 
               <div className="space-y-2">
                 <Label>Rota de comunicação</Label>
