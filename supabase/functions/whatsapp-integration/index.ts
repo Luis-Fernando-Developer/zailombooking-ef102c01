@@ -384,6 +384,7 @@ serve(async (req) => {
         provider: providerId,
         instance_name: placeholder,
         friendly_name: friendlyName,
+        channel_preference: channelPreferences.has(String(body.channel_preference)) ? String(body.channel_preference) : "auto",
         status: "connecting",
         is_default: !!body.set_default,
       }).select("id, display_index").single();
@@ -424,7 +425,7 @@ serve(async (req) => {
       }).eq("id", reserved.id).select("id, instance_name, friendly_name, provider, display_index, api_key_prefix, status, is_default").single();
       if (updErr) throw updErr;
 
-      return json({ success: true, instance: updated });
+      return json({ success: true, instance: updated, instance_id: updated.id });
     }
 
     // ---------- REGISTER existing ---------------------------------------
@@ -517,7 +518,7 @@ serve(async (req) => {
       if (!integ?.evolution_base_url) return json({ error: "not_connected" }, 400);
 
       const q = supabase.from("whatsapp_instances")
-        .select("id, instance_name, instance_api_key").eq("company_id", company_id);
+        .select("id, instance_name, instance_api_key, metadata").eq("company_id", company_id);
       const { data: rows } = instance_id ? await q.eq("id", instance_id) : await q;
       if (!rows?.length) return json({ success: true, updated: 0 });
 
@@ -550,6 +551,7 @@ serve(async (req) => {
           status: mapped,
           connected_number: number,
           metadata: {
+            ...(asRecord(r.metadata) ?? {}),
             last_refresh: {
               at: new Date().toISOString(),
               connection_state_status: st.status,
