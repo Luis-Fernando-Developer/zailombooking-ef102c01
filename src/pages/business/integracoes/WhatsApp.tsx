@@ -6,7 +6,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Smartphone } from "lucide-react";
 import { ChannelStatusCard } from "@/components/business/whatsapp/ChannelStatusCard";
-import { ApiWhatsappConfigCard } from "@/components/business/whatsapp/ApiWhatsappConfigCard";
+
 import { InstancesList } from "@/components/business/whatsapp/InstancesList";
 import { TemplatesEditor } from "@/components/business/whatsapp/TemplatesEditor";
 
@@ -47,7 +47,6 @@ export default function IntegracaoWhatsApp() {
 
           <TabsContent value="channel" className="space-y-4">
             <ChannelStatusCard companyId={companyId} onChanged={() => setReloadKey((k) => k + 1)} />
-            <ApiWhatsappConfigCard companyId={companyId} onChanged={() => setReloadKey((k) => k + 1)} />
           </TabsContent>
 
           <TabsContent value="instances">

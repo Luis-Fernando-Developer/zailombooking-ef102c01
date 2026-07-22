@@ -118,6 +118,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const [newFriendly, setNewFriendly] = useState("");
   const [newInstanceName, setNewInstanceName] = useState("");
   const [newKey, setNewKey] = useState("");
+  const [newPref, setNewPref] = useState<Pref>("auto");
 
   const call = async (body: Record<string, unknown>): Promise<ActionResult> => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -212,6 +213,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
           action: "create-instance",
           provider: newProvider,
           friendly_name: newFriendly.trim(),
+          channel_preference: newPref,
         })
       : await call({
           action: "register-instance",
@@ -219,13 +221,19 @@ export function InstancesList({ companyId }: { companyId: string }) {
           friendly_name: newFriendly.trim(),
           instance_name: newInstanceName.trim(),
           instance_api_key: newKey.trim(),
+          channel_preference: newPref,
         });
     setBusy(false);
     if (!r.ok) return toast.error(String(r.body.message ?? r.body.error ?? "Falha"));
+    const createdId = typeof r.body.instance_id === "string" ? r.body.instance_id : null;
+    if (createdId && newPref !== "auto") {
+      await call({ action: "set-instance-channel-preference", instance_id: createdId, preference: newPref });
+    }
     toast.success(mode === "create" ? "Conexão criada!" : "Conexão registrada!");
-    setNewOpen(false); setNewFriendly(""); setNewInstanceName(""); setNewKey("");
+    setNewOpen(false); setNewFriendly(""); setNewInstanceName(""); setNewKey(""); setNewPref("auto");
     load();
   };
+
 
   const submitTest = async () => {
     if (!testOpen || !testTo.trim()) return;
@@ -355,6 +363,21 @@ export function InstancesList({ companyId }: { companyId: string }) {
                   </div>
                 </TabsContent>
               </Tabs>
+
+              <div className="space-y-2">
+                <Label>Rota de comunicação</Label>
+                <Select value={newPref} onValueChange={(v) => setNewPref(v as Pref)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automática — usa Chatbot Zailom se ativo, senão API WhatsApp</SelectItem>
+                    <SelectItem value="flow_only">Somente Chatbot Zailom</SelectItem>
+                    <SelectItem value="direct_only">Somente API WhatsApp (direto)</SelectItem>
+                    <SelectItem value="disabled">Pausada — não envia por esta conexão</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">Define como esta conexão específica envia mensagens. Você pode alterar depois.</p>
+              </div>
+
               <DialogFooter>
                 <Button onClick={submitCreate} disabled={busy}>
                   {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -366,41 +389,8 @@ export function InstancesList({ companyId }: { companyId: string }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-semibold">Rota de comunicação (empresa)</h3>
-              <p className="text-xs text-muted-foreground">Canal ativo: {routeLabels[activeChannel]}</p>
-            </div>
-            <Badge variant="outline">{preferenceLabels[preference]}</Badge>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-            {routingOptions.map((option) => {
-              const Icon = option.icon;
-              const selected = preference === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  disabled={routingSaving || option.disabled}
-                  onClick={() => saveRouting(option.value)}
-                  className={cn(
-                    "min-h-28 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                    selected ? "border-primary bg-primary/10" : "border-border hover:border-primary/60 hover:bg-muted/40",
-                  )}
-                >
-                  <span className="flex items-center gap-2 text-sm font-semibold">
-                    <Icon className="h-4 w-4" />{option.title}
-                  </span>
-                  <span className="mt-2 block text-xs text-muted-foreground">{option.description}</span>
-                  {selected && <span className="mt-3 block text-xs font-medium text-primary">Selecionado</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <div>
 
-        <div className="border-t pt-5">
         {loading ? (
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : rows.length === 0 ? (
