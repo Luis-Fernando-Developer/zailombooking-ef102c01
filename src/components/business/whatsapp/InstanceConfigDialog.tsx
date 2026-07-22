@@ -107,13 +107,16 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
     if (w.ok) {
       const raw = ((w.body.webhook as Record<string, unknown> | undefined)?.webhook
         ?? w.body.webhook ?? {}) as Record<string, unknown>;
-      setWebhook({
+      const loadedUrl = typeof raw.url === "string" ? raw.url : "";
+      const loadedEvents = Array.isArray(raw.events) ? raw.events.filter((e): e is string => typeof e === "string") : [];
+      const hasConfig = !!loadedUrl || loadedEvents.length > 0 || !!raw.enabled;
+      setWebhook(hasConfig ? {
         enabled: !!raw.enabled,
-        url: typeof raw.url === "string" ? raw.url : "",
+        url: loadedUrl,
         byEvents: !!raw.byEvents,
         base64: !!raw.base64,
-        events: Array.isArray(raw.events) ? raw.events.filter((e): e is string => typeof e === "string") : [],
-      });
+        events: loadedEvents,
+      } : DEFAULT_WEBHOOK);
     } else setWebhook(DEFAULT_WEBHOOK);
     setLoading(false);
   };
