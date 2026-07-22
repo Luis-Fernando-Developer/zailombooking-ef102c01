@@ -6,7 +6,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Smartphone } from "lucide-react";
 import { ChannelStatusCard } from "@/components/business/whatsapp/ChannelStatusCard";
-import { ApiWhatsappConfigCard } from "@/components/business/whatsapp/ApiWhatsappConfigCard";
+
 import { InstancesList } from "@/components/business/whatsapp/InstancesList";
 import { TemplatesEditor } from "@/components/business/whatsapp/TemplatesEditor";
 
