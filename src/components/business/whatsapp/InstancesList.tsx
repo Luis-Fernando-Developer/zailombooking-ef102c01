@@ -21,7 +21,7 @@ import { WHATSAPP_PROVIDERS, providerLabel, type WhatsappProviderId } from "./pr
 
 type Pref = "auto" | "flow_only" | "direct_only" | "disabled";
 type ActiveChannel = "flow" | "direct" | "none";
-type InstanceMode = "create" | "register";
+
 
 interface CompanyChannelRow {
   whatsapp_channel_preference: Pref | null;
