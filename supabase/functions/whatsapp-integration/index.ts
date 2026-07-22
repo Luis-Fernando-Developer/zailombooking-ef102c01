@@ -39,6 +39,8 @@ const PROVIDERS = [
 
 type ProviderId = typeof PROVIDERS[number]["id"];
 
+type UnknownRecord = Record<string, unknown>;
+
 // ─── Evolution API helpers ──────────────────────────────────────────────────
 type EvoResp<T = any> = { ok: boolean; status: number; body: T | null; raw: string };
 
@@ -64,6 +66,105 @@ async function evoFetch(
 }
 
 function prefixOf(k: string) { return k ? k.substring(0, 8) : null; }
+
+function asRecord(value: unknown): UnknownRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as UnknownRecord
+    : null;
+}
+
+function getByPath(source: unknown, path: string[]): unknown {
+  let cursor: unknown = source;
+  for (const key of path) {
+    const record = asRecord(cursor);
+    if (!record || !(key in record)) return null;
+    cursor = record[key];
+  }
+  return cursor;
+}
+
+function normalizeWhatsappNumber(value: unknown): string | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const text = String(value).trim();
+  if (!text || /^\d{4}-\d{2}-\d{2}T/.test(text)) return null;
+
+  const beforeAt = text.split("@")[0] ?? text;
+  const digits = beforeAt.replace(/\D/g, "");
+  if (digits.length < 10 || digits.length > 15) return null;
+  return digits;
+}
+
+function extractConnectedNumber(source: unknown): string | null {
+  const preferredPaths = [
+    ["instance", "owner"],
+    ["instance", "ownerJid"],
+    ["instance", "ownerJID"],
+    ["instance", "wuid"],
+    ["instance", "number"],
+    ["instance", "profile", "id"],
+    ["owner"],
+    ["ownerJid"],
+    ["ownerJID"],
+    ["wuid"],
+    ["number"],
+    ["phone"],
+    ["jid"],
+  ];
+
+  for (const path of preferredPaths) {
+    const normalized = normalizeWhatsappNumber(getByPath(source, path));
+    if (normalized) return normalized;
+  }
+
+  const visit = (value: unknown): string | null => {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = visit(item);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    const record = asRecord(value);
+    if (!record) return null;
+
+    for (const [key, nested] of Object.entries(record)) {
+      if (/owner|jid|wuid|phone|number/i.test(key)) {
+        const normalized = normalizeWhatsappNumber(nested);
+        if (normalized) return normalized;
+      }
+    }
+
+    for (const nested of Object.values(record)) {
+      const found = visit(nested);
+      if (found) return found;
+    }
+
+    return null;
+  };
+
+  return visit(source);
+}
+
+function pickRemoteInstance(fetchInstancesBody: unknown, instanceName: string): unknown {
+  if (!Array.isArray(fetchInstancesBody)) return fetchInstancesBody;
+  const match = fetchInstancesBody.find((item) => {
+    const remoteName = getByPath(item, ["instance", "instanceName"])
+      ?? getByPath(item, ["instanceName"])
+      ?? getByPath(item, ["name"]);
+    return remoteName === instanceName;
+  });
+  return match ?? fetchInstancesBody[0] ?? null;
+}
+
+function mapEvolutionState(value: unknown): "connected" | "disconnected" | "qrcode" | "connecting" | "unknown" {
+  const state = String(value ?? "unknown").toLowerCase();
+  if (["open", "connected", "online"].includes(state)) return "connected";
+  if (["close", "closed", "disconnected", "offline"].includes(state)) return "disconnected";
+  if (["connecting", "pairing"].includes(state)) return "connecting";
+  if (["qrcode", "qr", "qr_code"].includes(state)) return "qrcode";
+  return "unknown";
+}
 
 function slugify(s: string): string {
   return String(s || "")
@@ -149,8 +250,22 @@ serve(async (req) => {
     }
 
     // ---------- SAVE global config ---------------------------------------
-    if (action === "save") {
-      const { base_url, global_api_key } = body;
+    if (action === "save" || action === "setup-integration") {
+      const base_url = String(
+        body.base_url
+          ?? body.baseUrl
+          ?? body.evolution_base_url
+          ?? Deno.env.get("EVOLUTION_GLOBAL_BASE_URL")
+          ?? "",
+      ).trim();
+      const global_api_key = String(
+        body.global_api_key
+          ?? body.globalApiKey
+          ?? body.api_key
+          ?? body.apikey
+          ?? Deno.env.get("EVOLUTION_GLOBAL_API_KEY")
+          ?? "",
+      ).trim();
       if (!base_url) return json({ error: "Missing base_url" }, 400);
 
       if (global_api_key) {
@@ -283,6 +398,7 @@ serve(async (req) => {
         provider: providerId,
         instance_name: placeholder,
         friendly_name: friendlyName,
+        channel_preference: channelPreferences.has(String(body.channel_preference)) ? String(body.channel_preference) : "auto",
         status: "connecting",
         is_default: !!body.set_default,
       }).select("id, display_index").single();
@@ -323,7 +439,7 @@ serve(async (req) => {
       }).eq("id", reserved.id).select("id, instance_name, friendly_name, provider, display_index, api_key_prefix, status, is_default").single();
       if (updErr) throw updErr;
 
-      return json({ success: true, instance: updated });
+      return json({ success: true, instance: updated, instance_id: updated.id });
     }
 
     // ---------- REGISTER existing ---------------------------------------
@@ -352,11 +468,8 @@ serve(async (req) => {
       if (!test.ok) {
         return json({ error: "instance_validation_failed", provider_response: test.body }, test.status);
       }
-      const state = test.body?.instance?.state ?? test.body?.state ?? "unknown";
-      const mapped = state === "open" ? "connected"
-                   : state === "close" ? "disconnected"
-                   : state === "connecting" ? "connecting"
-                   : "unknown";
+      const mapped = mapEvolutionState(getByPath(test.body, ["instance", "state"]) ?? getByPath(test.body, ["state"]));
+      const connectedNumber = extractConnectedNumber(test.body);
 
       const { data, error } = await supabase.from("whatsapp_instances").upsert({
         company_id,
@@ -366,6 +479,7 @@ serve(async (req) => {
         instance_api_key,
         api_key_prefix: prefixOf(instance_api_key),
         status: mapped,
+        connected_number: connectedNumber,
         is_default: !!set_default,
         last_synced_at: new Date().toISOString(),
       }, { onConflict: "company_id,instance_name" }).select().single();
@@ -418,7 +532,7 @@ serve(async (req) => {
       if (!integ?.evolution_base_url) return json({ error: "not_connected" }, 400);
 
       const q = supabase.from("whatsapp_instances")
-        .select("id, instance_name, instance_api_key").eq("company_id", company_id);
+        .select("id, instance_name, instance_api_key, metadata").eq("company_id", company_id);
       const { data: rows } = instance_id ? await q.eq("id", instance_id) : await q;
       if (!rows?.length) return json({ success: true, updated: 0 });
 
@@ -428,22 +542,37 @@ serve(async (req) => {
         if (!key) continue;
         const st = await evoFetch(integ.evolution_base_url, key,
           `/instance/connectionState/${encodeURIComponent(r.instance_name)}`);
-        const state = st.body?.instance?.state ?? st.body?.state ?? "unknown";
-        const mapped = state === "open" ? "connected"
-                     : state === "close" ? "disconnected"
-                     : state === "connecting" ? "connecting"
-                     : "unknown";
-        let number: string | null = null;
+        let mapped = mapEvolutionState(getByPath(st.body, ["instance", "state"]) ?? getByPath(st.body, ["state"]));
+        let number = extractConnectedNumber(st.body);
+        let providerStatus: number | null = st.status;
         if (integ.evolution_global_api_key) {
           const fi = await evoFetch(integ.evolution_base_url, integ.evolution_global_api_key,
-            `/instance/fetchInstances?instanceName=${encodeURIComponent(r.instance_name)}`);
-          const first = Array.isArray(fi.body) ? fi.body[0] : fi.body;
-          number = first?.instance?.owner ?? first?.owner ?? first?.instance?.wuid ?? null;
-          if (typeof number === "string") number = number.replace(/@.+$/, "");
+            "/instance/fetchInstances");
+          providerStatus = fi.status;
+          if (fi.ok) {
+            const remote = pickRemoteInstance(fi.body, r.instance_name);
+            const remoteState = getByPath(remote, ["instance", "state"])
+              ?? getByPath(remote, ["instance", "status"])
+              ?? getByPath(remote, ["instance", "connectionStatus", "state"])
+              ?? getByPath(remote, ["connectionStatus", "state"])
+              ?? getByPath(remote, ["status"]);
+            const remoteMapped = mapEvolutionState(remoteState);
+            if (remoteMapped !== "unknown") mapped = remoteMapped;
+            number = extractConnectedNumber(remote) ?? number;
+          }
         }
         await supabase.from("whatsapp_instances").update({
           status: mapped,
           connected_number: number,
+          metadata: {
+            ...(asRecord(r.metadata) ?? {}),
+            last_refresh: {
+              at: new Date().toISOString(),
+              connection_state_status: st.status,
+              fetch_instances_status: providerStatus,
+              number_found: Boolean(number),
+            },
+          },
           last_synced_at: new Date().toISOString(),
         }).eq("id", r.id);
         updated++;
