@@ -191,8 +191,16 @@ serve(async (req) => {
         .eq("company_id", company_id)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      // Fallback para credenciais globais do sistema (Evo centralizada)
+      const envBase = Deno.env.get("EVOLUTION_GLOBAL_BASE_URL") ?? "";
+      const envKey  = Deno.env.get("EVOLUTION_GLOBAL_API_KEY") ?? "";
+      return {
+        evolution_base_url: data?.evolution_base_url || envBase || null,
+        evolution_global_api_key: data?.evolution_global_api_key || envKey || null,
+        is_active: data?.is_active ?? true,
+      };
     }
+
 
     async function loadCompanySlug(): Promise<string> {
       const { data } = await supabase.from("companies")
