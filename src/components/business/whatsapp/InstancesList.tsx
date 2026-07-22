@@ -464,6 +464,17 @@ export function InstancesList({ companyId }: { companyId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {configOpen && (
+        <InstanceConfigDialog
+          open={!!configOpen}
+          onOpenChange={(o) => !o && setConfigOpen(null)}
+          companyId={companyId}
+          instanceId={configOpen.id}
+          instanceName={configOpen.friendly_name ?? configOpen.instance_name}
+          onChanged={load}
+        />
+      )}
     </Card>
   );
 }
