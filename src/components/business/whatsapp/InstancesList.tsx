@@ -363,6 +363,21 @@ export function InstancesList({ companyId }: { companyId: string }) {
                   </div>
                 </TabsContent>
               </Tabs>
+
+              <div className="space-y-2">
+                <Label>Rota de comunicação</Label>
+                <Select value={newPref} onValueChange={(v) => setNewPref(v as Pref)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automática — usa Chatbot Zailom se ativo, senão API WhatsApp</SelectItem>
+                    <SelectItem value="flow_only">Somente Chatbot Zailom</SelectItem>
+                    <SelectItem value="direct_only">Somente API WhatsApp (direto)</SelectItem>
+                    <SelectItem value="disabled">Pausada — não envia por esta conexão</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">Define como esta conexão específica envia mensagens. Você pode alterar depois.</p>
+              </div>
+
               <DialogFooter>
                 <Button onClick={submitCreate} disabled={busy}>
                   {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
