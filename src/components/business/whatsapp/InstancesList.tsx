@@ -15,9 +15,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, RefreshCw, Trash2, QrCode, Send, Star, Loader2, CheckCircle2, XCircle, Route, Bot, Smartphone, Ban, type LucideIcon } from "lucide-react";
+import { Plus, RefreshCw, Trash2, QrCode, Send, Star, Loader2, CheckCircle2, XCircle, Route, Bot, Smartphone, Ban, Settings, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { WHATSAPP_PROVIDERS, providerLabel, type WhatsappProviderId } from "./providers";
+import { InstanceConfigDialog } from "./InstanceConfigDialog";
 
 type Pref = "auto" | "flow_only" | "direct_only" | "disabled";
 type ActiveChannel = "flow" | "direct" | "none";
@@ -109,6 +110,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const [qrLoading, setQrLoading] = useState(false);
   const [testOpen, setTestOpen] = useState<InstanceRow | null>(null);
   const [testTo, setTestTo] = useState("");
+  const [configOpen, setConfigOpen] = useState<InstanceRow | null>(null);
 
   // create dialog state
   const [newOpen, setNewOpen] = useState(false);
@@ -403,6 +405,9 @@ export function InstancesList({ companyId }: { companyId: string }) {
                       <Button size="icon" variant="ghost" title="Teste" onClick={() => setTestOpen(r)}>
                         <Send className="h-4 w-4" />
                       </Button>
+                      <Button size="icon" variant="ghost" title="Configurações" onClick={() => setConfigOpen(r)}>
+                        <Settings className="h-4 w-4" />
+                      </Button>
                       {!r.is_default && (
                         <Button size="icon" variant="ghost" title="Definir padrão" onClick={() => setDefault(r.id)}>
                           <Star className="h-4 w-4" />
@@ -459,6 +464,17 @@ export function InstancesList({ companyId }: { companyId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {configOpen && (
+        <InstanceConfigDialog
+          open={!!configOpen}
+          onOpenChange={(o) => !o && setConfigOpen(null)}
+          companyId={companyId}
+          instanceId={configOpen.id}
+          instanceName={configOpen.friendly_name ?? configOpen.instance_name}
+          onChanged={load}
+        />
+      )}
     </Card>
   );
 }

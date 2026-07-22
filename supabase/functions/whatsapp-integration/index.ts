@@ -640,6 +640,115 @@ serve(async (req) => {
       return json({ success: true });
     }
 
+    // ---------- INSTANCE OPS (settings / webhook / presence / lifecycle) ----
+    async function loadInstanceAndCreds(instance_id: unknown) {
+      if (!instance_id || typeof instance_id !== "string") {
+        return { error: json({ error: "Missing instance_id" }, 400) } as const;
+      }
+      const { data: inst } = await supabase.from("whatsapp_instances")
+        .select("instance_name, instance_api_key")
+        .eq("id", instance_id).eq("company_id", company_id).maybeSingle();
+      if (!inst) return { error: json({ error: "not_found" }, 404) } as const;
+      const integ = await loadIntegration();
+      const key = inst.instance_api_key ?? integ?.evolution_global_api_key;
+      if (!integ?.evolution_base_url || !key) {
+        return { error: json({ error: "no_credentials" }, 400) } as const;
+      }
+      return { inst, integ, key } as const;
+    }
+
+    if (action === "get-settings") {
+      const r = await loadInstanceAndCreds(body.instance_id);
+      if ("error" in r) return r.error;
+      const res = await evoFetch(r.integ.evolution_base_url, r.key,
+        `/settings/find/${encodeURIComponent(r.inst.instance_name)}`);
+      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      return json({ success: true, settings: res.body });
+    }
+
+    if (action === "set-settings") {
+      const r = await loadInstanceAndCreds(body.instance_id);
+      if ("error" in r) return r.error;
+      const s = asRecord(body.settings) ?? {};
+      const payload = {
+        rejectCall: !!s.rejectCall,
+        msgCall: typeof s.msgCall === "string" ? s.msgCall : "",
+        groupsIgnore: !!s.groupsIgnore,
+        alwaysOnline: !!s.alwaysOnline,
+        readMessages: !!s.readMessages,
+        readStatus: !!s.readStatus,
+        syncFullHistory: !!s.syncFullHistory,
+      };
+      const res = await evoFetch(r.integ.evolution_base_url, r.key,
+        `/settings/set/${encodeURIComponent(r.inst.instance_name)}`,
+        { method: "POST", body: JSON.stringify(payload) });
+      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      return json({ success: true, settings: res.body });
+    }
+
+    if (action === "get-webhook") {
+      const r = await loadInstanceAndCreds(body.instance_id);
+      if ("error" in r) return r.error;
+      const res = await evoFetch(r.integ.evolution_base_url, r.key,
+        `/webhook/find/${encodeURIComponent(r.inst.instance_name)}`);
+      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      return json({ success: true, webhook: res.body });
+    }
+
+    if (action === "set-webhook") {
+      const r = await loadInstanceAndCreds(body.instance_id);
+      if ("error" in r) return r.error;
+      const w = asRecord(body.webhook) ?? {};
+      const events = Array.isArray(w.events) ? w.events.filter((e) => typeof e === "string") : [];
+      const payload = {
+        webhook: {
+          enabled: !!w.enabled,
+          url: typeof w.url === "string" ? w.url : "",
+          byEvents: !!w.byEvents,
+          base64: !!w.base64,
+          events,
+        },
+      };
+      const res = await evoFetch(r.integ.evolution_base_url, r.key,
+        `/webhook/set/${encodeURIComponent(r.inst.instance_name)}`,
+        { method: "POST", body: JSON.stringify(payload) });
+      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      return json({ success: true, webhook: res.body });
+    }
+
+    if (action === "set-presence") {
+      const r = await loadInstanceAndCreds(body.instance_id);
+      if ("error" in r) return r.error;
+      const presence = String(body.presence ?? "available");
+      const res = await evoFetch(r.integ.evolution_base_url, r.key,
+        `/instance/setPresence/${encodeURIComponent(r.inst.instance_name)}`,
+        { method: "POST", body: JSON.stringify({ presence }) });
+      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      return json({ success: true });
+    }
+
+    if (action === "logout-instance") {
+      const r = await loadInstanceAndCreds(body.instance_id);
+      if ("error" in r) return r.error;
+      const res = await evoFetch(r.integ.evolution_base_url, r.key,
+        `/instance/logout/${encodeURIComponent(r.inst.instance_name)}`, { method: "DELETE" });
+      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      await supabase.from("whatsapp_instances")
+        .update({ status: "disconnected", connected_number: null, last_synced_at: new Date().toISOString() })
+        .eq("company_id", company_id)
+        .eq("instance_name", r.inst.instance_name);
+      return json({ success: true });
+    }
+
+    if (action === "restart-instance") {
+      const r = await loadInstanceAndCreds(body.instance_id);
+      if ("error" in r) return r.error;
+      const res = await evoFetch(r.integ.evolution_base_url, r.key,
+        `/instance/restart/${encodeURIComponent(r.inst.instance_name)}`, { method: "POST" });
+      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      return json({ success: true });
+    }
+
     return json({ error: "Invalid action" }, 400);
   } catch (e) {
     console.error("[whatsapp-integration] error:", e);
