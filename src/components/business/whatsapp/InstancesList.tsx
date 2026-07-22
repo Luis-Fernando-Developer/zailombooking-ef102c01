@@ -112,12 +112,10 @@ export function InstancesList({ companyId }: { companyId: string }) {
 
   // create dialog state
   const [newOpen, setNewOpen] = useState(false);
-  const [mode, setMode] = useState<InstanceMode>("create");
   const [newProvider, setNewProvider] = useState<WhatsappProviderId>("evolution");
   const [newFriendly, setNewFriendly] = useState("");
-  const [newInstanceName, setNewInstanceName] = useState("");
-  const [newKey, setNewKey] = useState("");
   const [newPref, setNewPref] = useState<Pref>("auto");
+
 
   const call = async (body: Record<string, unknown>): Promise<ActionResult> => {
     const { data: { session } } = await supabase.auth.getSession();
