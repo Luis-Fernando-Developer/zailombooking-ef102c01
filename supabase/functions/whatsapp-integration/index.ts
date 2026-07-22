@@ -453,11 +453,8 @@ serve(async (req) => {
       if (!test.ok) {
         return json({ error: "instance_validation_failed", provider_response: test.body }, test.status);
       }
-      const state = test.body?.instance?.state ?? test.body?.state ?? "unknown";
-      const mapped = state === "open" ? "connected"
-                   : state === "close" ? "disconnected"
-                   : state === "connecting" ? "connecting"
-                   : "unknown";
+      const mapped = mapEvolutionState(getByPath(test.body, ["instance", "state"]) ?? getByPath(test.body, ["state"]));
+      const connectedNumber = extractConnectedNumber(test.body);
 
       const { data, error } = await supabase.from("whatsapp_instances").upsert({
         company_id,
@@ -467,6 +464,7 @@ serve(async (req) => {
         instance_api_key,
         api_key_prefix: prefixOf(instance_api_key),
         status: mapped,
+        connected_number: connectedNumber,
         is_default: !!set_default,
         last_synced_at: new Date().toISOString(),
       }, { onConflict: "company_id,instance_name" }).select().single();
@@ -529,22 +527,36 @@ serve(async (req) => {
         if (!key) continue;
         const st = await evoFetch(integ.evolution_base_url, key,
           `/instance/connectionState/${encodeURIComponent(r.instance_name)}`);
-        const state = st.body?.instance?.state ?? st.body?.state ?? "unknown";
-        const mapped = state === "open" ? "connected"
-                     : state === "close" ? "disconnected"
-                     : state === "connecting" ? "connecting"
-                     : "unknown";
-        let number: string | null = null;
+        let mapped = mapEvolutionState(getByPath(st.body, ["instance", "state"]) ?? getByPath(st.body, ["state"]));
+        let number = extractConnectedNumber(st.body);
+        let providerStatus: number | null = st.status;
         if (integ.evolution_global_api_key) {
           const fi = await evoFetch(integ.evolution_base_url, integ.evolution_global_api_key,
-            `/instance/fetchInstances?instanceName=${encodeURIComponent(r.instance_name)}`);
-          const first = Array.isArray(fi.body) ? fi.body[0] : fi.body;
-          number = first?.instance?.owner ?? first?.owner ?? first?.instance?.wuid ?? null;
-          if (typeof number === "string") number = number.replace(/@.+$/, "");
+            "/instance/fetchInstances");
+          providerStatus = fi.status;
+          if (fi.ok) {
+            const remote = pickRemoteInstance(fi.body, r.instance_name);
+            const remoteState = getByPath(remote, ["instance", "state"])
+              ?? getByPath(remote, ["instance", "status"])
+              ?? getByPath(remote, ["instance", "connectionStatus", "state"])
+              ?? getByPath(remote, ["connectionStatus", "state"])
+              ?? getByPath(remote, ["status"]);
+            const remoteMapped = mapEvolutionState(remoteState);
+            if (remoteMapped !== "unknown") mapped = remoteMapped;
+            number = extractConnectedNumber(remote) ?? number;
+          }
         }
         await supabase.from("whatsapp_instances").update({
           status: mapped,
           connected_number: number,
+          metadata: {
+            last_refresh: {
+              at: new Date().toISOString(),
+              connection_state_status: st.status,
+              fetch_instances_status: providerStatus,
+              number_found: Boolean(number),
+            },
+          },
           last_synced_at: new Date().toISOString(),
         }).eq("id", r.id);
         updated++;
