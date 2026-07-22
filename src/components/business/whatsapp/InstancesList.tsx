@@ -335,34 +335,15 @@ export function InstancesList({ companyId }: { companyId: string }) {
                 </Select>
               </div>
 
-              <Tabs value={mode} onValueChange={(v) => setMode(v as InstanceMode)}>
-                <TabsList className="grid grid-cols-2">
-                  <TabsTrigger value="create">Criar nova</TabsTrigger>
-                  <TabsTrigger value="register">Registrar existente</TabsTrigger>
-                </TabsList>
-                <TabsContent value="create" className="space-y-3 pt-3">
-                  <p className="text-xs text-muted-foreground">Requer chave global da API configurada.</p>
-                  <div className="space-y-2">
-                    <Label>Nome desta conexão</Label>
-                    <Input value={newFriendly} onChange={(e) => setNewFriendly(e.target.value)} placeholder="ex: recepcao, whatsapp-principal" />
-                    <p className="text-[11px] text-muted-foreground">Só você vê esse nome. Escolha algo curto e único.</p>
-                  </div>
-                </TabsContent>
-                <TabsContent value="register" className="space-y-3 pt-3">
-                  <div className="space-y-2">
-                    <Label>Nome desta conexão</Label>
-                    <Input value={newFriendly} onChange={(e) => setNewFriendly(e.target.value)} placeholder="ex: recepcao" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Nome técnico (no provider)</Label>
-                    <Input value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>apikey da instância</Label>
-                    <Input type="password" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">A conexão será criada automaticamente no painel global da API WhatsApp.</p>
+                <div className="space-y-2">
+                  <Label>Nome desta conexão</Label>
+                  <Input value={newFriendly} onChange={(e) => setNewFriendly(e.target.value)} placeholder="ex: recepcao, whatsapp-principal" />
+                  <p className="text-[11px] text-muted-foreground">Só você vê esse nome. Escolha algo curto e único.</p>
+                </div>
+              </div>
+
 
               <div className="space-y-2">
                 <Label>Rota de comunicação</Label>
