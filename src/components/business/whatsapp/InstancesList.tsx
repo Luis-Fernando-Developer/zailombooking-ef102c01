@@ -304,7 +304,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Adicionar conexão</DialogTitle>
-                <DialogDescription>Escolha o tipo de API e crie uma nova conexão, ou registre uma existente com apikey própria.</DialogDescription>
+                <DialogDescription>Escolha o tipo de API e crie uma nova conexão.</DialogDescription>
               </DialogHeader>
 
               <div className="space-y-2">
