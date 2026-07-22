@@ -110,6 +110,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const [qrLoading, setQrLoading] = useState(false);
   const [testOpen, setTestOpen] = useState<InstanceRow | null>(null);
   const [testTo, setTestTo] = useState("");
+  const [configOpen, setConfigOpen] = useState<InstanceRow | null>(null);
 
   // create dialog state
   const [newOpen, setNewOpen] = useState(false);
