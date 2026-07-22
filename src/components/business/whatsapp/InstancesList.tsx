@@ -118,6 +118,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const [newFriendly, setNewFriendly] = useState("");
   const [newInstanceName, setNewInstanceName] = useState("");
   const [newKey, setNewKey] = useState("");
+  const [newPref, setNewPref] = useState<Pref>("auto");
 
   const call = async (body: Record<string, unknown>): Promise<ActionResult> => {
     const { data: { session } } = await supabase.auth.getSession();
