@@ -405,6 +405,9 @@ export function InstancesList({ companyId }: { companyId: string }) {
                       <Button size="icon" variant="ghost" title="Teste" onClick={() => setTestOpen(r)}>
                         <Send className="h-4 w-4" />
                       </Button>
+                      <Button size="icon" variant="ghost" title="Configurações" onClick={() => setConfigOpen(r)}>
+                        <Settings className="h-4 w-4" />
+                      </Button>
                       {!r.is_default && (
                         <Button size="icon" variant="ghost" title="Definir padrão" onClick={() => setDefault(r.id)}>
                           <Star className="h-4 w-4" />
