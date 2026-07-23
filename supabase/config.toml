@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.openapi-spec]
 verify_jwt = false
+
+[functions.wa-webhook]
+verify_jwt = false
