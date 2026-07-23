@@ -45,15 +45,14 @@ const DEFAULT_SETTINGS: SettingsState = {
   alwaysOnline: false, readMessages: false, readStatus: false, syncFullHistory: false,
 };
 
-const ZAILOM_FLOW_WEBHOOK_URL = "https://api-flowbuilder.zailom.com/webhook/whatsapp";
-
 const DEFAULT_WEBHOOK: WebhookState = {
   enabled: true,
-  url: ZAILOM_FLOW_WEBHOOK_URL,
+  url: "",
   byEvents: false,
   base64: true,
   events: ["MESSAGES_UPSERT"],
 };
+
 
 const AVAILABLE_EVENTS = [
   "APPLICATION_STARTUP", "CALL", "CHATS_DELETE", "CHATS_SET", "CHATS_UPDATE", "CHATS_UPSERT",
