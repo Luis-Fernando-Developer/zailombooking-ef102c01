@@ -1,18 +1,21 @@
 // ============================================================================
-// whatsapp-integration — configuração de API WhatsApp por empresa
-// Ações:
-//   list-providers, save, sync, disconnect, list-instances-remote,
-//   create-instance, register-instance, delete-instance, get-qrcode,
-//   send-test, refresh-status, list-templates, save-template, delete-template,
-//   set-default-instance, set-channel-preference,
-//   set-instance-channel-preference, get-plan-limits
+// whatsapp-integration — proxy fino do Booking → wa-service (wa.zailom.com)
+// ----------------------------------------------------------------------------
+// Toda comunicação com o WhatsApp acontece via `wa-service`. Esta função:
+//   • Provisiona tenant + API key JIT no wa-service para cada company
+//   • Guarda `wa_tenant_id` + `wa_api_key` em `whatsapp_integration`
+//   • Guarda `wa_instance_id` em `whatsapp_instances`
+//   • Traduz as ações usadas pela UI para chamadas REST do wa-service
 //
-// Só o provider `evolution` está funcional; os demais retornam
-// `provider_unavailable` em create/register.
-// Chaves de API NUNCA são retornadas — apenas prefixos.
+// Ações: list-providers, save, disconnect, create-instance, delete-instance,
+// get-qrcode, refresh-status, send-test, list-templates, save-template,
+// delete-template, set-default-instance, set-channel-preference,
+// set-instance-channel-preference, get-plan-limits, get-settings,
+// set-settings, get-webhook, set-webhook, set-presence, logout-instance,
+// restart-instance.
 // ============================================================================
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,154 +31,116 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// ─── Providers (espelha src/components/business/whatsapp/providers.ts) ──────
+// ─── Providers (mantidos por compat com a UI) ───────────────────────────────
 const PROVIDERS = [
-  { id: "evolution",        label: "API WhatsApp - 1", enabled: true  },
-  { id: "wppconnect",       label: "API WhatsApp - 2", enabled: false },
-  { id: "baileys",          label: "API WhatsApp - 3", enabled: false },
-  { id: "whatsapp-web-js",  label: "API WhatsApp - 4", enabled: false },
-  { id: "gowa",             label: "API WhatsApp - 5", enabled: false },
+  { id: "evolution",       label: "API WhatsApp - 1", enabled: true  },
+  { id: "wppconnect",      label: "API WhatsApp - 2", enabled: false },
+  { id: "baileys",         label: "API WhatsApp - 3", enabled: false },
+  { id: "whatsapp-web-js", label: "API WhatsApp - 4", enabled: false },
+  { id: "gowa",            label: "API WhatsApp - 5", enabled: false },
 ] as const;
 
-type ProviderId = typeof PROVIDERS[number]["id"];
+// ─── Env do wa-service ──────────────────────────────────────────────────────
+const WA_BASE = (Deno.env.get("WA_SERVICE_BASE_URL") ?? "https://wa.zailom.com").replace(/\/$/, "");
+const WA_ADMIN_TOKEN = Deno.env.get("WA_SERVICE_ADMIN_TOKEN") ?? "";
+// Webhook público para o wa-service devolver eventos (via api-booking.zailom.com)
+const WA_WEBHOOK_URL = Deno.env.get("WA_WEBHOOK_PUBLIC_URL")
+  ?? "https://api-booking.zailom.com/wa/webhook";
 
-type UnknownRecord = Record<string, unknown>;
+const channelPreferences = new Set(["auto", "flow_only", "direct_only", "disabled"]);
 
-// ─── Evolution API helpers ──────────────────────────────────────────────────
-type EvoResp<T = any> = { ok: boolean; status: number; body: T | null; raw: string };
+// ─── HTTP helpers ───────────────────────────────────────────────────────────
+type WaResp = { ok: boolean; status: number; body: unknown; raw: string };
 
-async function evoFetch(
-  baseUrl: string,
-  apiKey: string,
-  path: string,
-  init: RequestInit = {},
-): Promise<EvoResp> {
-  const url = `${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
-  const res = await fetch(url, {
+async function waAdminFetch(path: string, init: RequestInit = {}): Promise<WaResp> {
+  const res = await fetch(`${WA_BASE}${path}`, {
     ...init,
     headers: {
-      "apikey": apiKey,
+      "X-Admin-Token": WA_ADMIN_TOKEN,
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },
   });
   const raw = await res.text();
-  let body: any = null;
+  let body: unknown = null;
   try { body = raw ? JSON.parse(raw) : null; } catch { body = { raw }; }
   return { ok: res.ok, status: res.status, body, raw };
 }
 
-function prefixOf(k: string) { return k ? k.substring(0, 8) : null; }
-
-function asRecord(value: unknown): UnknownRecord | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? value as UnknownRecord
-    : null;
-}
-
-function getByPath(source: unknown, path: string[]): unknown {
-  let cursor: unknown = source;
-  for (const key of path) {
-    const record = asRecord(cursor);
-    if (!record || !(key in record)) return null;
-    cursor = record[key];
-  }
-  return cursor;
-}
-
-function normalizeWhatsappNumber(value: unknown): string | null {
-  if (typeof value !== "string" && typeof value !== "number") return null;
-  const text = String(value).trim();
-  if (!text || /^\d{4}-\d{2}-\d{2}T/.test(text)) return null;
-
-  const beforeAt = text.split("@")[0] ?? text;
-  const digits = beforeAt.replace(/\D/g, "");
-  if (digits.length < 10 || digits.length > 15) return null;
-  return digits;
-}
-
-function extractConnectedNumber(source: unknown): string | null {
-  const preferredPaths = [
-    ["instance", "owner"],
-    ["instance", "ownerJid"],
-    ["instance", "ownerJID"],
-    ["instance", "wuid"],
-    ["instance", "number"],
-    ["instance", "profile", "id"],
-    ["owner"],
-    ["ownerJid"],
-    ["ownerJID"],
-    ["wuid"],
-    ["number"],
-    ["phone"],
-    ["jid"],
-  ];
-
-  for (const path of preferredPaths) {
-    const normalized = normalizeWhatsappNumber(getByPath(source, path));
-    if (normalized) return normalized;
-  }
-
-  const visit = (value: unknown): string | null => {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        const found = visit(item);
-        if (found) return found;
-      }
-      return null;
-    }
-
-    const record = asRecord(value);
-    if (!record) return null;
-
-    for (const [key, nested] of Object.entries(record)) {
-      if (/owner|jid|wuid|phone|number/i.test(key)) {
-        const normalized = normalizeWhatsappNumber(nested);
-        if (normalized) return normalized;
-      }
-    }
-
-    for (const nested of Object.values(record)) {
-      const found = visit(nested);
-      if (found) return found;
-    }
-
-    return null;
-  };
-
-  return visit(source);
-}
-
-function pickRemoteInstance(fetchInstancesBody: unknown, instanceName: string): unknown {
-  if (!Array.isArray(fetchInstancesBody)) return fetchInstancesBody;
-  const match = fetchInstancesBody.find((item) => {
-    const remoteName = getByPath(item, ["instance", "instanceName"])
-      ?? getByPath(item, ["instanceName"])
-      ?? getByPath(item, ["name"]);
-    return remoteName === instanceName;
+async function waFetch(apiKey: string, path: string, init: RequestInit = {}): Promise<WaResp> {
+  const res = await fetch(`${WA_BASE}${path}`, {
+    ...init,
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
   });
-  return match ?? fetchInstancesBody[0] ?? null;
+  const raw = await res.text();
+  let body: unknown = null;
+  try { body = raw ? JSON.parse(raw) : null; } catch { body = { raw }; }
+  return { ok: res.ok, status: res.status, body, raw };
 }
 
-function mapEvolutionState(value: unknown): "connected" | "disconnected" | "qrcode" | "connecting" | "unknown" {
-  const state = String(value ?? "unknown").toLowerCase();
-  if (["open", "connected", "online"].includes(state)) return "connected";
-  if (["close", "closed", "disconnected", "offline"].includes(state)) return "disconnected";
-  if (["connecting", "pairing"].includes(state)) return "connecting";
-  if (["qrcode", "qr", "qr_code"].includes(state)) return "qrcode";
-  return "unknown";
-}
+function prefixOf(k: string) { return k ? k.substring(0, 12) : null; }
 
-function slugify(s: string): string {
-  return String(s || "")
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .substring(0, 40);
-}
+// ─── Provisioning ───────────────────────────────────────────────────────────
+async function ensureTenantAndKey(
+  supabase: SupabaseClient,
+  companyId: string,
+): Promise<{ tenantId: string; apiKey: string } | { error: unknown; status: number }> {
+  if (!WA_ADMIN_TOKEN) return { error: "wa_service_admin_token_missing", status: 500 };
 
-const channelPreferences = new Set(["auto", "flow_only", "direct_only", "disabled"]);
+  const { data: integ } = await supabase.from("whatsapp_integration")
+    .select("wa_tenant_id, wa_api_key")
+    .eq("company_id", companyId).maybeSingle();
+
+  if (integ?.wa_tenant_id && integ?.wa_api_key) {
+    return { tenantId: integ.wa_tenant_id, apiKey: integ.wa_api_key };
+  }
+
+  // 1. tenant (idempotente por (product, product_tenant_id))
+  const { data: company } = await supabase.from("companies")
+    .select("name").eq("id", companyId).maybeSingle();
+  const tenantRes = await waAdminFetch("/v1/admin/tenants", {
+    method: "POST",
+    body: JSON.stringify({
+      product: "booking",
+      product_tenant_id: companyId,
+      name: (company as { name?: string } | null)?.name ?? `company_${companyId}`,
+    }),
+  });
+  if (!tenantRes.ok) {
+    return { error: { code: "tenant_create_failed", provider: tenantRes.body }, status: tenantRes.status };
+  }
+  const tenantId = (tenantRes.body as { id?: string } | null)?.id;
+  if (!tenantId) return { error: "tenant_id_missing", status: 500 };
+
+  // 2. api key
+  const keyRes = await waAdminFetch("/v1/admin/api-keys", {
+    method: "POST",
+    body: JSON.stringify({ tenant_id: tenantId, name: `booking-${companyId}` }),
+  });
+  if (!keyRes.ok) {
+    return { error: { code: "api_key_create_failed", provider: keyRes.body }, status: keyRes.status };
+  }
+  const apiKey = (keyRes.body as { api_key?: string } | null)?.api_key;
+  if (!apiKey) return { error: "api_key_missing_in_response", status: 500 };
+
+  // 3. persiste
+  await supabase.from("whatsapp_integration").upsert({
+    company_id: companyId,
+    evolution_base_url: WA_BASE, // legacy col: reaproveita
+    is_active: true,
+    wa_tenant_id: tenantId,
+    wa_api_key: apiKey,
+    wa_api_key_prefix: prefixOf(apiKey),
+    last_synced_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "company_id" });
+
+  return { tenantId, apiKey };
+}
 
 // ─── Handler ────────────────────────────────────────────────────────────────
 serve(async (req) => {
@@ -197,12 +162,8 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { action, company_id } = body ?? {};
     if (!action)     return json({ error: "Missing action" }, 400);
-
-    // list-providers e get-plan-limits podem ser chamados sem company_id?
-    // Mantemos company_id obrigatório para consistência (get-plan-limits precisa).
     if (!company_id) return json({ error: "Missing company_id" }, 400);
 
-    // Verifica que o usuário pertence à empresa
     const { data: perm } = await supabase.rpc("user_belongs_to_company", {
       _user_id: user.id, _company_id: company_id,
     });
@@ -213,114 +174,78 @@ serve(async (req) => {
       return json({ success: true, providers: PROVIDERS });
     }
 
-    // ---------- GET PLAN LIMITS ------------------------------------------
+    // ---------- PLAN LIMITS ----------------------------------------------
     if (action === "get-plan-limits") {
       const { data, error } = await supabase.rpc("whatsapp_get_plan_limits", { p_company: company_id });
       if (error) throw error;
       return json({ success: true, limits: data });
     }
 
-    // ---------- CHANNEL PREFERENCE (empresa) -----------------------------
+    // ---------- CHANNEL PREFERENCE ---------------------------------------
     if (action === "set-channel-preference") {
       const { preference } = body;
       if (typeof preference !== "string" || !channelPreferences.has(preference)) {
         return json({ error: "invalid_channel_preference" }, 400);
       }
-      const { error } = await supabase
-        .from("companies")
-        .update({ whatsapp_channel_preference: preference })
-        .eq("id", company_id);
+      const { error } = await supabase.from("companies")
+        .update({ whatsapp_channel_preference: preference }).eq("id", company_id);
       if (error) throw error;
       return json({ success: true, preference });
     }
-
-    // ---------- CHANNEL PREFERENCE (por instância) -----------------------
     if (action === "set-instance-channel-preference") {
       const { instance_id, preference } = body;
       if (!instance_id) return json({ error: "Missing instance_id" }, 400);
       if (typeof preference !== "string" || !channelPreferences.has(preference)) {
         return json({ error: "invalid_channel_preference" }, 400);
       }
-      const { error } = await supabase
-        .from("whatsapp_instances")
+      const { error } = await supabase.from("whatsapp_instances")
         .update({ channel_preference: preference, updated_at: new Date().toISOString() })
         .eq("id", instance_id).eq("company_id", company_id);
       if (error) throw error;
       return json({ success: true, preference });
     }
 
-    // ---------- SAVE global config ---------------------------------------
+    // ---------- SAVE (provisiona tenant + key) ---------------------------
     if (action === "save" || action === "setup-integration") {
-      const base_url = String(
-        body.base_url
-          ?? body.baseUrl
-          ?? body.evolution_base_url
-          ?? Deno.env.get("EVOLUTION_GLOBAL_BASE_URL")
-          ?? "",
-      ).trim();
-      const global_api_key = String(
-        body.global_api_key
-          ?? body.globalApiKey
-          ?? body.api_key
-          ?? body.apikey
-          ?? Deno.env.get("EVOLUTION_GLOBAL_API_KEY")
-          ?? "",
-      ).trim();
-      if (!base_url) return json({ error: "Missing base_url" }, 400);
+      const r = await ensureTenantAndKey(supabase, company_id);
+      if ("error" in r) return json({ error: r.error }, r.status);
+      return json({ success: true, tenant_id: r.tenantId, key_prefix: prefixOf(r.apiKey) });
+    }
 
-      if (global_api_key) {
-        const test = await evoFetch(base_url, global_api_key, "/instance/fetchInstances");
-        if (!test.ok) {
-          return json({
-            error: "provider_validation_failed",
-            message: "Não foi possível validar a Base URL / chave global.",
-            status: test.status,
-            provider_response: test.body,
-          }, 400);
+    // ---------- Loader que garante credencial pronta ---------------------
+    async function ensure(): Promise<
+      | { tenantId: string; apiKey: string }
+      | { errorResp: Response }
+    > {
+      const r = await ensureTenantAndKey(supabase, company_id);
+      if ("error" in r) return { errorResp: json({ error: r.error }, r.status) };
+      return r;
+    }
+
+    // ---------- DISCONNECT global ----------------------------------------
+    if (action === "disconnect") {
+      const { data: rows } = await supabase.from("whatsapp_instances")
+        .select("wa_instance_id").eq("company_id", company_id);
+      const cur = await ensureTenantAndKey(supabase, company_id);
+      if (!("error" in cur)) {
+        for (const row of (rows ?? []) as { wa_instance_id: string | null }[]) {
+          if (row.wa_instance_id) {
+            await waFetch(cur.apiKey, `/v1/instances/${row.wa_instance_id}/delete`, { method: "DELETE" });
+          }
         }
       }
-
-      const patch: Record<string, unknown> = {
-        company_id,
-        evolution_base_url: base_url,
-        is_active: true,
-        last_synced_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      if (global_api_key) {
-        patch.evolution_global_api_key = global_api_key;
-        patch.api_key_prefix = prefixOf(global_api_key);
-      }
-
-      const { error } = await supabase
-        .from("whatsapp_integration")
-        .upsert(patch, { onConflict: "company_id" });
-      if (error) throw error;
+      await supabase.from("whatsapp_instances").delete().eq("company_id", company_id);
+      await supabase.from("whatsapp_integration")
+        .update({
+          is_active: false,
+          wa_api_key: null,
+          wa_api_key_prefix: null,
+          wa_tenant_id: null,
+          evolution_global_api_key: null,
+          api_key_prefix: null,
+          updated_at: new Date().toISOString(),
+        }).eq("company_id", company_id);
       return json({ success: true });
-    }
-
-    async function loadIntegration() {
-      const { data, error } = await supabase
-        .from("whatsapp_integration")
-        .select("evolution_base_url, evolution_global_api_key, is_active")
-        .eq("company_id", company_id)
-        .maybeSingle();
-      if (error) throw error;
-      // Fallback para credenciais globais do sistema (Evo centralizada)
-      const envBase = Deno.env.get("EVOLUTION_GLOBAL_BASE_URL") ?? "";
-      const envKey  = Deno.env.get("EVOLUTION_GLOBAL_API_KEY") ?? "";
-      return {
-        evolution_base_url: data?.evolution_base_url || envBase || null,
-        evolution_global_api_key: data?.evolution_global_api_key || envKey || null,
-        is_active: data?.is_active ?? true,
-      };
-    }
-
-
-    async function loadCompanySlug(): Promise<string> {
-      const { data } = await supabase.from("companies")
-        .select("slug").eq("id", company_id).maybeSingle();
-      return String((data as { slug?: string } | null)?.slug ?? "empresa");
     }
 
     async function guardConnectionLimit() {
@@ -331,7 +256,7 @@ serve(async (req) => {
       } | null;
       if (limits && limits.connections_allowed === false) {
         return {
-          blocked: true,
+          blocked: true as const,
           payload: {
             error: "connection_limit_reached",
             message: `Limite de conexões WhatsApp do plano ${limits.plan_tier} atingido (${limits.current_connections}/${limits.max_connections}).`,
@@ -342,41 +267,28 @@ serve(async (req) => {
       return { blocked: false as const };
     }
 
-    // ---------- DISCONNECT global ----------------------------------------
-    if (action === "disconnect") {
-      await supabase.from("whatsapp_instances").delete().eq("company_id", company_id);
-      const { error } = await supabase.from("whatsapp_integration")
-        .update({
-          is_active: false,
-          evolution_global_api_key: null,
-          api_key_prefix: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("company_id", company_id);
-      if (error) throw error;
-      return json({ success: true });
-    }
-
-    // ---------- LIST REMOTE ---------------------------------------------
-    if (action === "list-instances-remote") {
-      const integ = await loadIntegration();
-      if (!integ?.evolution_base_url || !integ.evolution_global_api_key) {
-        return json({ error: "not_connected" }, 400);
+    // Loader para ações por-instância
+    async function loadInstance(instance_id: unknown) {
+      if (!instance_id || typeof instance_id !== "string") {
+        return { error: json({ error: "Missing instance_id" }, 400) } as const;
       }
-      const res = await evoFetch(integ.evolution_base_url, integ.evolution_global_api_key,
-        "/instance/fetchInstances");
-      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
-      return json({ success: true, data: res.body });
+      const { data: inst } = await supabase.from("whatsapp_instances")
+        .select("id, wa_instance_id, instance_name")
+        .eq("id", instance_id).eq("company_id", company_id).maybeSingle();
+      if (!inst || !inst.wa_instance_id) {
+        return { error: json({ error: "instance_not_paired" }, 404) } as const;
+      }
+      const cred = await ensure();
+      if ("errorResp" in cred) return { error: cred.errorResp } as const;
+      return { inst, apiKey: cred.apiKey } as const;
     }
 
-    // ---------- CREATE instance -----------------------------------------
+    // ---------- CREATE instance ------------------------------------------
     if (action === "create-instance") {
-      const providerId = (body.provider as ProviderId) ?? "evolution";
+      const providerId = String(body.provider ?? "evolution");
       const providerConf = PROVIDERS.find((p) => p.id === providerId);
       if (!providerConf) return json({ error: "invalid_provider" }, 400);
-      if (!providerConf.enabled) {
-        return json({ error: "provider_unavailable", message: "Provider indisponível no momento." }, 400);
-      }
+      if (!providerConf.enabled) return json({ error: "provider_unavailable" }, 400);
 
       const friendlyName = String(body.friendly_name ?? "").trim();
       if (!friendlyName) return json({ error: "Missing friendly_name" }, 400);
@@ -384,195 +296,111 @@ serve(async (req) => {
       const guard = await guardConnectionLimit();
       if (guard.blocked) return json(guard.payload, 402);
 
-      const integ = await loadIntegration();
-      if (!integ?.evolution_base_url || !integ.evolution_global_api_key) {
-        return json({ error: "global_key_required" }, 400);
-      }
+      const cred = await ensure();
+      if ("errorResp" in cred) return cred.errorResp;
 
-      const slug = await loadCompanySlug();
-
-      // Insere primeiro para reservar display_index (trigger atribui)
+      // Reserva linha local para pegar display_index
       const placeholder = `pending-${crypto.randomUUID()}`;
       const { data: reserved, error: reserveErr } = await supabase.from("whatsapp_instances").insert({
         company_id,
         provider: providerId,
         instance_name: placeholder,
         friendly_name: friendlyName,
-        channel_preference: channelPreferences.has(String(body.channel_preference)) ? String(body.channel_preference) : "auto",
+        channel_preference: channelPreferences.has(String(body.channel_preference))
+          ? String(body.channel_preference) : "auto",
         status: "connecting",
         is_default: !!body.set_default,
       }).select("id, display_index").single();
       if (reserveErr) {
         if (String(reserveErr.message).includes("uq_whatsapp_instances_friendly_name")) {
-          return json({ error: "friendly_name_taken", message: "Já existe uma conexão com esse nome." }, 409);
+          return json({ error: "friendly_name_taken" }, 409);
         }
         throw reserveErr;
       }
 
-      const techName = `zb-${slugify(slug)}-${reserved.display_index}-${slugify(friendlyName)}`;
-
-      const res = await evoFetch(integ.evolution_base_url, integ.evolution_global_api_key,
-        "/instance/create", {
-          method: "POST",
-          body: JSON.stringify({
-            instanceName: techName,
-            integration: "WHATSAPP-BAILEYS",
-            qrcode: true,
-          }),
-        });
-      if (!res.ok) {
-        // rollback
+      const waRes = await waFetch(cred.apiKey, "/v1/instances/create", {
+        method: "POST",
+        body: JSON.stringify({
+          name: `booking-${company_id.slice(0, 8)}-${reserved.display_index}-${friendlyName.slice(0, 20)}`
+            .toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/-+/g, "-").slice(0, 60),
+          webhook_url: WA_WEBHOOK_URL,
+          webhook_events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+        }),
+      });
+      if (!waRes.ok) {
         await supabase.from("whatsapp_instances").delete().eq("id", reserved.id);
-        return json({ error: "provider_create_failed", provider_response: res.body }, res.status);
+        return json({ error: "wa_service_error", provider_response: waRes.body }, waRes.status);
       }
 
-      const instanceApiKey =
-        res.body?.hash?.apikey ?? res.body?.hash ?? res.body?.instance?.apikey ?? null;
-
+      const rb = waRes.body as { id?: string; qr_code?: string; status?: string } | null;
       const { data: updated, error: updErr } = await supabase.from("whatsapp_instances").update({
-        instance_name: techName,
-        instance_api_key: instanceApiKey,
-        api_key_prefix: instanceApiKey ? prefixOf(instanceApiKey) : null,
+        wa_instance_id: rb?.id ?? null,
+        instance_name: rb?.id ?? placeholder,
         status: "qrcode",
-        metadata: { created_via: "booking", provider: providerId, created_response: res.body },
+        metadata: { created_via: "booking", provider: providerId, wa_service_response: waRes.body },
         last_synced_at: new Date().toISOString(),
-      }).eq("id", reserved.id).select("id, instance_name, friendly_name, provider, display_index, api_key_prefix, status, is_default").single();
+      }).eq("id", reserved.id)
+        .select("id, wa_instance_id, instance_name, friendly_name, provider, display_index, status, is_default")
+        .single();
       if (updErr) throw updErr;
 
-      return json({ success: true, instance: updated, instance_id: updated.id });
+      return json({
+        success: true,
+        instance: updated,
+        instance_id: updated.id,
+        qrcode: rb?.qr_code ?? null,
+      });
     }
 
-    // ---------- REGISTER existing ---------------------------------------
-    if (action === "register-instance") {
-      const providerId = (body.provider as ProviderId) ?? "evolution";
-      const providerConf = PROVIDERS.find((p) => p.id === providerId);
-      if (!providerConf) return json({ error: "invalid_provider" }, 400);
-      if (!providerConf.enabled) {
-        return json({ error: "provider_unavailable", message: "Provider indisponível no momento." }, 400);
-      }
-
-      const { instance_name, instance_api_key, set_default } = body;
-      const friendlyName = String(body.friendly_name ?? "").trim() || String(instance_name ?? "").trim();
-      if (!instance_name || !instance_api_key) {
-        return json({ error: "Missing instance_name/instance_api_key" }, 400);
-      }
-
-      const guard = await guardConnectionLimit();
-      if (guard.blocked) return json(guard.payload, 402);
-
-      const integ = await loadIntegration();
-      if (!integ?.evolution_base_url) return json({ error: "base_url_required" }, 400);
-
-      const test = await evoFetch(integ.evolution_base_url, instance_api_key,
-        `/instance/connectionState/${encodeURIComponent(instance_name)}`);
-      if (!test.ok) {
-        return json({ error: "instance_validation_failed", provider_response: test.body }, test.status);
-      }
-      const mapped = mapEvolutionState(getByPath(test.body, ["instance", "state"]) ?? getByPath(test.body, ["state"]));
-      const connectedNumber = extractConnectedNumber(test.body);
-
-      const { data, error } = await supabase.from("whatsapp_instances").upsert({
-        company_id,
-        provider: providerId,
-        instance_name,
-        friendly_name: friendlyName,
-        instance_api_key,
-        api_key_prefix: prefixOf(instance_api_key),
-        status: mapped,
-        connected_number: connectedNumber,
-        is_default: !!set_default,
-        last_synced_at: new Date().toISOString(),
-      }, { onConflict: "company_id,instance_name" }).select().single();
-      if (error) {
-        if (String(error.message).includes("uq_whatsapp_instances_friendly_name")) {
-          return json({ error: "friendly_name_taken", message: "Já existe uma conexão com esse nome." }, 409);
-        }
-        throw error;
-      }
-      return json({ success: true, instance: data });
-    }
-
-    // ---------- DELETE instance -----------------------------------------
+    // ---------- DELETE instance ------------------------------------------
     if (action === "delete-instance") {
-      const { instance_id } = body;
-      if (!instance_id) return json({ error: "Missing instance_id" }, 400);
-      const { data: inst } = await supabase.from("whatsapp_instances")
-        .select("instance_name, instance_api_key").eq("id", instance_id).eq("company_id", company_id).maybeSingle();
-      if (!inst) return json({ error: "not_found" }, 404);
-      const integ = await loadIntegration();
-      const key = integ?.evolution_global_api_key ?? inst.instance_api_key;
-      if (integ?.evolution_base_url && key) {
-        await evoFetch(integ.evolution_base_url, key,
-          `/instance/delete/${encodeURIComponent(inst.instance_name)}`, { method: "DELETE" });
+      const r = await loadInstance(body.instance_id);
+      if ("error" in r) {
+        // remove local mesmo se não pareada
+        await supabase.from("whatsapp_instances")
+          .delete().eq("id", body.instance_id).eq("company_id", company_id);
+        return json({ success: true });
       }
-      await supabase.from("whatsapp_instances").delete().eq("id", instance_id).eq("company_id", company_id);
+      await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/delete`, { method: "DELETE" });
+      await supabase.from("whatsapp_instances")
+        .delete().eq("id", r.inst.id).eq("company_id", company_id);
       return json({ success: true });
     }
 
-    // ---------- GET QRCODE ----------------------------------------------
+    // ---------- GET QRCODE (aka connect) ---------------------------------
     if (action === "get-qrcode") {
-      const { instance_id } = body;
-      if (!instance_id) return json({ error: "Missing instance_id" }, 400);
-      const { data: inst } = await supabase.from("whatsapp_instances")
-        .select("instance_name, instance_api_key").eq("id", instance_id).eq("company_id", company_id).maybeSingle();
-      if (!inst) return json({ error: "not_found" }, 404);
-      const integ = await loadIntegration();
-      const key = inst.instance_api_key ?? integ?.evolution_global_api_key;
-      if (!integ?.evolution_base_url || !key) return json({ error: "no_credentials" }, 400);
-      const res = await evoFetch(integ.evolution_base_url, key,
-        `/instance/connect/${encodeURIComponent(inst.instance_name)}`);
-      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      const r = await loadInstance(body.instance_id);
+      if ("error" in r) return r.error;
+      const res = await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/connect`, { method: "POST" });
+      if (!res.ok) return json({ error: "wa_service_error", provider_response: res.body }, res.status);
       return json({ success: true, qrcode: res.body });
     }
 
-    // ---------- REFRESH STATUS ------------------------------------------
+    // ---------- REFRESH STATUS -------------------------------------------
     if (action === "refresh-status") {
-      const { instance_id } = body;
-      const integ = await loadIntegration();
-      if (!integ?.evolution_base_url) return json({ error: "not_connected" }, 400);
+      const cred = await ensure();
+      if ("errorResp" in cred) return cred.errorResp;
 
       const q = supabase.from("whatsapp_instances")
-        .select("id, instance_name, instance_api_key, metadata").eq("company_id", company_id);
-      const { data: rows } = instance_id ? await q.eq("id", instance_id) : await q;
-      if (!rows?.length) return json({ success: true, updated: 0 });
+        .select("id, wa_instance_id").eq("company_id", company_id);
+      const { data: rows } = body.instance_id ? await q.eq("id", body.instance_id) : await q;
 
       let updated = 0;
-      for (const r of rows) {
-        const key = r.instance_api_key ?? integ.evolution_global_api_key;
-        if (!key) continue;
-        const st = await evoFetch(integ.evolution_base_url, key,
-          `/instance/connectionState/${encodeURIComponent(r.instance_name)}`);
-        let mapped = mapEvolutionState(getByPath(st.body, ["instance", "state"]) ?? getByPath(st.body, ["state"]));
-        let number = extractConnectedNumber(st.body);
-        let providerStatus: number | null = st.status;
-        if (integ.evolution_global_api_key) {
-          const fi = await evoFetch(integ.evolution_base_url, integ.evolution_global_api_key,
-            "/instance/fetchInstances");
-          providerStatus = fi.status;
-          if (fi.ok) {
-            const remote = pickRemoteInstance(fi.body, r.instance_name);
-            const remoteState = getByPath(remote, ["instance", "state"])
-              ?? getByPath(remote, ["instance", "status"])
-              ?? getByPath(remote, ["instance", "connectionStatus", "state"])
-              ?? getByPath(remote, ["connectionStatus", "state"])
-              ?? getByPath(remote, ["status"]);
-            const remoteMapped = mapEvolutionState(remoteState);
-            if (remoteMapped !== "unknown") mapped = remoteMapped;
-            number = extractConnectedNumber(remote) ?? number;
-          }
-        }
+      for (const r of (rows ?? []) as { id: string; wa_instance_id: string | null }[]) {
+        if (!r.wa_instance_id) continue;
+        const res = await waFetch(cred.apiKey, `/v1/instances/${r.wa_instance_id}/refresh-status`, { method: "POST" });
+        if (!res.ok) continue;
+        const b = res.body as { status?: string; connected_number?: string | null } | null;
+        const state = String(b?.status ?? "unknown").toLowerCase();
+        const mapped =
+          ["open", "connected", "online"].includes(state)         ? "connected"
+          : ["close", "disconnected", "offline"].includes(state)  ? "disconnected"
+          : ["connecting", "pairing"].includes(state)             ? "connecting"
+          : ["qrcode", "qr"].includes(state)                      ? "qrcode"
+          : "unknown";
         await supabase.from("whatsapp_instances").update({
           status: mapped,
-          connected_number: number,
-          metadata: {
-            ...(asRecord(r.metadata) ?? {}),
-            last_refresh: {
-              at: new Date().toISOString(),
-              connection_state_status: st.status,
-              fetch_instances_status: providerStatus,
-              number_found: Boolean(number),
-            },
-          },
+          connected_number: b?.connected_number ?? null,
           last_synced_at: new Date().toISOString(),
         }).eq("id", r.id);
         updated++;
@@ -580,31 +408,26 @@ serve(async (req) => {
       return json({ success: true, updated });
     }
 
-    // ---------- SEND TEST -----------------------------------------------
+    // ---------- SEND TEST ------------------------------------------------
     if (action === "send-test") {
-      const { instance_id, to, message } = body;
-      if (!instance_id || !to) return json({ error: "Missing instance_id/to" }, 400);
-      const { data: inst } = await supabase.from("whatsapp_instances")
-        .select("instance_name, instance_api_key").eq("id", instance_id).eq("company_id", company_id).maybeSingle();
-      if (!inst) return json({ error: "not_found" }, 404);
-      const integ = await loadIntegration();
-      const key = inst.instance_api_key ?? integ?.evolution_global_api_key;
-      if (!integ?.evolution_base_url || !key) return json({ error: "no_credentials" }, 400);
-      const res = await evoFetch(integ.evolution_base_url, key,
-        `/message/sendText/${encodeURIComponent(inst.instance_name)}`, {
+      const r = await loadInstance(body.instance_id);
+      if ("error" in r) return r.error;
+      const to = String(body.to ?? "").replace(/\D/g, "");
+      if (!to) return json({ error: "Missing to" }, 400);
+      const res = await waFetch(r.apiKey,
+        `/v1/instances/${r.inst.wa_instance_id}/message/sendText`, {
           method: "POST",
           body: JSON.stringify({
-            number: String(to).replace(/\D/g, ""),
-            text: message || "Teste de conexão WhatsApp — Zailom Booking ✅",
+            number: to,
+            text: body.message || "Teste de conexão WhatsApp — Zailom Booking ✅",
           }),
         });
       if (!res.ok) return json({ error: "send_failed", provider_response: res.body }, res.status);
-      // Conta uso apenas quando sucesso
       await supabase.rpc("whatsapp_bump_usage", { p_company: company_id });
       return json({ success: true, provider_response: res.body });
     }
 
-    // ---------- TEMPLATES -----------------------------------------------
+    // ---------- TEMPLATES (locais no Booking) ----------------------------
     if (action === "list-templates") {
       const { data, error } = await supabase.from("whatsapp_templates")
         .select("*").eq("company_id", company_id).order("event_key");
@@ -630,7 +453,7 @@ serve(async (req) => {
       return json({ success: true });
     }
 
-    // ---------- SET DEFAULT INSTANCE ------------------------------------
+    // ---------- SET DEFAULT ----------------------------------------------
     if (action === "set-default-instance") {
       const { instance_id } = body;
       if (!instance_id) return json({ error: "Missing instance_id" }, 400);
@@ -640,36 +463,18 @@ serve(async (req) => {
       return json({ success: true });
     }
 
-    // ---------- INSTANCE OPS (settings / webhook / presence / lifecycle) ----
-    async function loadInstanceAndCreds(instance_id: unknown) {
-      if (!instance_id || typeof instance_id !== "string") {
-        return { error: json({ error: "Missing instance_id" }, 400) } as const;
-      }
-      const { data: inst } = await supabase.from("whatsapp_instances")
-        .select("instance_name, instance_api_key")
-        .eq("id", instance_id).eq("company_id", company_id).maybeSingle();
-      if (!inst) return { error: json({ error: "not_found" }, 404) } as const;
-      const integ = await loadIntegration();
-      const key = inst.instance_api_key ?? integ?.evolution_global_api_key;
-      if (!integ?.evolution_base_url || !key) {
-        return { error: json({ error: "no_credentials" }, 400) } as const;
-      }
-      return { inst, integ, key } as const;
-    }
-
+    // ---------- SETTINGS -------------------------------------------------
     if (action === "get-settings") {
-      const r = await loadInstanceAndCreds(body.instance_id);
+      const r = await loadInstance(body.instance_id);
       if ("error" in r) return r.error;
-      const res = await evoFetch(r.integ.evolution_base_url, r.key,
-        `/settings/find/${encodeURIComponent(r.inst.instance_name)}`);
-      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      const res = await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/settings/find`);
+      if (!res.ok) return json({ error: "wa_service_error", provider_response: res.body }, res.status);
       return json({ success: true, settings: res.body });
     }
-
     if (action === "set-settings") {
-      const r = await loadInstanceAndCreds(body.instance_id);
+      const r = await loadInstance(body.instance_id);
       if ("error" in r) return r.error;
-      const s = asRecord(body.settings) ?? {};
+      const s = (body.settings ?? {}) as Record<string, unknown>;
       const payload = {
         rejectCall: !!s.rejectCall,
         msgCall: typeof s.msgCall === "string" ? s.msgCall : "",
@@ -679,73 +484,69 @@ serve(async (req) => {
         readStatus: !!s.readStatus,
         syncFullHistory: !!s.syncFullHistory,
       };
-      const res = await evoFetch(r.integ.evolution_base_url, r.key,
-        `/settings/set/${encodeURIComponent(r.inst.instance_name)}`,
-        { method: "POST", body: JSON.stringify(payload) });
-      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      const res = await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/settings/set`, {
+        method: "POST", body: JSON.stringify(payload),
+      });
+      if (!res.ok) return json({ error: "wa_service_error", provider_response: res.body }, res.status);
       return json({ success: true, settings: res.body });
     }
 
+    // ---------- WEBHOOK --------------------------------------------------
     if (action === "get-webhook") {
-      const r = await loadInstanceAndCreds(body.instance_id);
+      const r = await loadInstance(body.instance_id);
       if ("error" in r) return r.error;
-      const res = await evoFetch(r.integ.evolution_base_url, r.key,
-        `/webhook/find/${encodeURIComponent(r.inst.instance_name)}`);
-      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      const res = await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/webhook/find`);
+      if (!res.ok) return json({ error: "wa_service_error", provider_response: res.body }, res.status);
       return json({ success: true, webhook: res.body });
     }
-
     if (action === "set-webhook") {
-      const r = await loadInstanceAndCreds(body.instance_id);
+      const r = await loadInstance(body.instance_id);
       if ("error" in r) return r.error;
-      const w = asRecord(body.webhook) ?? {};
+      const w = (body.webhook ?? {}) as Record<string, unknown>;
       const events = Array.isArray(w.events) ? w.events.filter((e) => typeof e === "string") : [];
       const payload = {
         webhook: {
           enabled: !!w.enabled,
-          url: typeof w.url === "string" ? w.url : "",
+          url: typeof w.url === "string" ? w.url : WA_WEBHOOK_URL,
           byEvents: !!w.byEvents,
           base64: !!w.base64,
           events,
         },
       };
-      const res = await evoFetch(r.integ.evolution_base_url, r.key,
-        `/webhook/set/${encodeURIComponent(r.inst.instance_name)}`,
-        { method: "POST", body: JSON.stringify(payload) });
-      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      const res = await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/webhook/set`, {
+        method: "POST", body: JSON.stringify(payload),
+      });
+      if (!res.ok) return json({ error: "wa_service_error", provider_response: res.body }, res.status);
       return json({ success: true, webhook: res.body });
     }
 
+    // ---------- PRESENCE / LIFECYCLE -------------------------------------
     if (action === "set-presence") {
-      const r = await loadInstanceAndCreds(body.instance_id);
+      const r = await loadInstance(body.instance_id);
       if ("error" in r) return r.error;
       const presence = String(body.presence ?? "available");
-      const res = await evoFetch(r.integ.evolution_base_url, r.key,
-        `/instance/setPresence/${encodeURIComponent(r.inst.instance_name)}`,
-        { method: "POST", body: JSON.stringify({ presence }) });
-      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      const res = await waFetch(r.apiKey,
+        `/v1/instances/${r.inst.wa_instance_id}/chat/updatePresence`, {
+          method: "POST", body: JSON.stringify({ presence }),
+        });
+      if (!res.ok) return json({ error: "wa_service_error", provider_response: res.body }, res.status);
       return json({ success: true });
     }
-
     if (action === "logout-instance") {
-      const r = await loadInstanceAndCreds(body.instance_id);
+      const r = await loadInstance(body.instance_id);
       if ("error" in r) return r.error;
-      const res = await evoFetch(r.integ.evolution_base_url, r.key,
-        `/instance/logout/${encodeURIComponent(r.inst.instance_name)}`, { method: "DELETE" });
-      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      const res = await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/logout`, { method: "POST" });
+      if (!res.ok) return json({ error: "wa_service_error", provider_response: res.body }, res.status);
       await supabase.from("whatsapp_instances")
         .update({ status: "disconnected", connected_number: null, last_synced_at: new Date().toISOString() })
-        .eq("company_id", company_id)
-        .eq("instance_name", r.inst.instance_name);
+        .eq("id", r.inst.id);
       return json({ success: true });
     }
-
     if (action === "restart-instance") {
-      const r = await loadInstanceAndCreds(body.instance_id);
+      const r = await loadInstance(body.instance_id);
       if ("error" in r) return r.error;
-      const res = await evoFetch(r.integ.evolution_base_url, r.key,
-        `/instance/restart/${encodeURIComponent(r.inst.instance_name)}`, { method: "POST" });
-      if (!res.ok) return json({ error: "provider_error", provider_response: res.body }, res.status);
+      const res = await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/restart`, { method: "POST" });
+      if (!res.ok) return json({ error: "wa_service_error", provider_response: res.body }, res.status);
       return json({ success: true });
     }
 
