@@ -131,6 +131,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const [qrOpen, setQrOpen] = useState<{ id: string; name: string } | null>(null);
   const [qrData, setQrData] = useState<QrPayload | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const [qrConnected, setQrConnected] = useState(false);
   const [testOpen, setTestOpen] = useState<InstanceRow | null>(null);
   const [testTo, setTestTo] = useState("");
   const [configOpen, setConfigOpen] = useState<InstanceRow | null>(null);
