@@ -29,9 +29,12 @@ interface CompanyChannelRow {
 }
 
 interface QrPayload {
+  qr_code?: string;
   base64?: string;
-  qrcode?: { base64?: string };
+  qrcode?: QrPayload;
   code?: string;
+  data?: QrPayload;
+  image?: string;
 }
 
 interface ActionResult {
@@ -96,6 +99,26 @@ const statusBadge = (s: string) => {
 
 const fmtLimit = (max: number | null, current: number) =>
   max === null ? `${current} / ilimitado` : `${current} / ${max}`;
+
+function toQrImageSrc(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed.startsWith("data:image/") ? trimmed : `data:image/png;base64,${trimmed}`;
+  }
+
+  if (!value || typeof value !== "object") return null;
+
+  const payload = value as QrPayload;
+  return (
+    toQrImageSrc(payload.code) ??
+    toQrImageSrc(payload.qr_code) ??
+    toQrImageSrc(payload.base64) ??
+    toQrImageSrc(payload.image) ??
+    toQrImageSrc(payload.qrcode) ??
+    toQrImageSrc(payload.data)
+  );
+}
 
 export function InstancesList({ companyId }: { companyId: string }) {
   const [rows, setRows] = useState<InstanceRow[]>([]);
@@ -201,7 +224,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
     const r = await call({ action: "get-qrcode", instance_id: row.id });
     setQrLoading(false);
     if (!r.ok) return toast.error(String(r.body.error ?? "Falha ao obter QR"));
-    setQrData((r.body.qrcode as QrPayload | undefined) ?? null);
+    setQrData((r.body.qrcode as QrPayload | undefined) ?? (r.body as QrPayload));
   };
 
   const submitCreate = async () => {
@@ -236,10 +259,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
     setTestOpen(null); setTestTo("");
   };
 
-  const qrBase64 =
-    qrData?.base64 ??
-    qrData?.qrcode?.base64 ??
-    (typeof qrData?.code === "string" && qrData.code.startsWith("data:") ? qrData.code : null);
+  const qrBase64 = toQrImageSrc(qrData);
 
   const hasConnectedInstance = rows.some((row) => row.status === "connected");
   const canCreateMore = limits ? limits.connections_allowed : true;
