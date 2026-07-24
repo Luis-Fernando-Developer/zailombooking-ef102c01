@@ -297,6 +297,7 @@ serve(async (req) => {
     }
 
     // WhatsApp notification (best-effort) --------------------------------
+    let waDebug: any = { attempted: false }
     try {
       const [{ data: clientRow }, { data: companyRow }, { data: serviceRow }, { data: employeeRow }] = await Promise.all([
         supabaseClient.from('clients').select('name, phone').eq('id', clientId).maybeSingle(),
@@ -304,12 +305,18 @@ serve(async (req) => {
         supabaseClient.from('services').select('name').eq('id', service_id).maybeSingle(),
         supabaseClient.from('employees').select('name').eq('id', employee_id).maybeSingle(),
       ])
-      const phone = (clientRow as any)?.phone as string | undefined
+      // Fallback: se o cliente já existia mas não tinha telefone salvo, usa o do payload
+      let phone = ((clientRow as any)?.phone as string | undefined) || (client_phone as string | undefined)
+      if (phone && !((clientRow as any)?.phone) && clientId) {
+        // persiste pra próximas notificações
+        await supabaseClient.from('clients').update({ phone }).eq('id', clientId)
+      }
+      waDebug = { attempted: true, phone_found: !!phone, phone_source: (clientRow as any)?.phone ? 'clients_table' : (phone ? 'payload' : 'none') }
       if (phone) {
         const [y, m, d] = normalizedBookingDate.split('-')
         const dateBR = `${d}/${m}/${y}`
         const vars = {
-          client_name: (clientRow as any)?.name ?? '',
+          client_name: (clientRow as any)?.name ?? client_name ?? '',
           company_name: (companyRow as any)?.name ?? '',
           service_name: (serviceRow as any)?.name ?? '',
           employee_name: (employeeRow as any)?.name ?? '',
@@ -320,14 +327,18 @@ serve(async (req) => {
         const defaultMsg = `✅ Olá ${vars.client_name}! Seu agendamento em *${vars.company_name}* foi confirmado.\n\n📋 Serviço: ${vars.service_name}\n👤 Profissional: ${vars.employee_name}\n📅 Data: ${dateBR}\n⏰ Horário: ${normalizedBookingTime}`
         const text = tpl ? renderTemplate(tpl, vars) : defaultMsg
         const wa = await sendWhatsApp(supabaseClient as any, company_id, phone, text)
-        console.log('[admin-create-booking] whatsapp:', wa)
+        console.log('[admin-create-booking] whatsapp:', JSON.stringify(wa))
+        waDebug = { ...waDebug, template_used: !!tpl, result: wa }
+      } else {
+        console.warn('[admin-create-booking] cliente sem telefone; whatsapp não enviado. clientId=', clientId)
       }
-    } catch (waErr) {
-      console.error('[admin-create-booking] whatsapp error (ignored):', waErr)
+    } catch (waErr: any) {
+      console.error('[admin-create-booking] whatsapp error (ignored):', waErr?.message ?? waErr)
+      waDebug = { ...waDebug, error: waErr?.message ?? String(waErr) }
     }
 
 
-    return new Response(JSON.stringify({ success: true, booking: bookingData }), {
+    return new Response(JSON.stringify({ success: true, booking: bookingData, whatsapp: waDebug }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
