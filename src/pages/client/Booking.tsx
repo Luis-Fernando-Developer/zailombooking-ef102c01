@@ -699,6 +699,15 @@ export default function ClientBooking() {
         newBookingId = bookingData.id;
       }
 
+      // Notificação WhatsApp (best-effort) — status inicial é "pending"
+      if (newBookingId) {
+        supabase.functions
+          .invoke('notify-booking-event', {
+            body: { booking_id: newBookingId, event_key: 'booking_pending' },
+          })
+          .catch((err) => console.warn('[notify-booking-event] pending failed:', err));
+      }
+
       const isComboFlow = isCombo;
 
       // Decide se abre o diálogo de pagamento
