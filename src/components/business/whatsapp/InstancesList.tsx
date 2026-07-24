@@ -221,12 +221,34 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const openQr = async (row: InstanceRow) => {
     const displayName = row.friendly_name ?? row.instance_name;
     setQrOpen({ id: row.id, name: displayName });
-    setQrData(null); setQrLoading(true);
+    setQrData(null); setQrLoading(true); setQrConnected(false);
     const r = await call({ action: "get-qrcode", instance_id: row.id });
     setQrLoading(false);
     if (!r.ok) return toast.error(String(r.body.error ?? "Falha ao obter QR"));
     setQrData((r.body.qrcode as QrPayload | undefined) ?? (r.body as QrPayload));
   };
+
+  // Poll status while QR modal is open — detects connection and auto-closes.
+  useEffect(() => {
+    if (!qrOpen || qrConnected) return;
+    const id = qrOpen.id;
+    const interval = window.setInterval(async () => {
+      const r = await call({ action: "refresh-status", instance_id: id });
+      if (!r.ok) return;
+      const { data } = await supabase
+        .from("whatsapp_instances_public")
+        .select("status,connected_number")
+        .eq("id", id)
+        .maybeSingle();
+      const row = data as { status?: string; connected_number?: string | null } | null;
+      if (row?.status === "connected") {
+        setQrConnected(true);
+        load();
+        window.setTimeout(() => setQrOpen(null), 2000);
+      }
+    }, 3000);
+    return () => window.clearInterval(interval);
+  }, [qrOpen, qrConnected]);
 
   const submitCreate = async () => {
     if (!newFriendly.trim()) return toast.error("Informe o nome desta conexão");
