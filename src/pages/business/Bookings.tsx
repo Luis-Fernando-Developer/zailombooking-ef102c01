@@ -273,6 +273,23 @@ export default function BusinessBookings() {
 
       setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, booking_status: status } : b));
 
+      // Notificação WhatsApp (best-effort) conforme novo status
+      const eventMap: Record<string, string> = {
+        confirmed: 'booking_confirmed',
+        cancelled: 'booking_cancelled',
+        completed: 'booking_completed',
+        no_show: 'booking_no_show',
+        pending: 'booking_pending',
+      };
+      const eventKey = eventMap[status];
+      if (eventKey) {
+        supabase.functions
+          .invoke('notify-booking-event', {
+            body: { booking_id: bookingId, event_key: eventKey },
+          })
+          .catch((err) => console.warn('[notify-booking-event] status failed:', err));
+      }
+
       toast({
         title: "Status atualizado",
         description: "O status do agendamento foi atualizado com sucesso.",
