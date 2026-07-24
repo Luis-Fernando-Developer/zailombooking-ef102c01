@@ -396,20 +396,49 @@ serve(async (req) => {
         if (!r.wa_instance_id) continue;
         const res = await waFetch(cred.apiKey, `/v1/instances/${r.wa_instance_id}/refresh-status`, { method: "POST" });
         if (!res.ok) continue;
-        const b = res.body as { status?: string; connected_number?: string | null; number?: string | null; owner?: string | null; phone?: string | null } | null;
-        const state = String(b?.status ?? "unknown").toLowerCase();
+        const b = res.body as Record<string, unknown> | null;
+        console.log("[refresh-status] raw body:", JSON.stringify(b));
+        const rawState =
+          (b?.status as string | undefined) ??
+          (b?.state as string | undefined) ??
+          ((b?.instance as Record<string, unknown> | undefined)?.status as string | undefined) ??
+          ((b?.instance as Record<string, unknown> | undefined)?.state as string | undefined) ??
+          "unknown";
+        const state = String(rawState).toLowerCase();
         const mapped =
           ["open", "connected", "online"].includes(state)         ? "connected"
           : ["close", "disconnected", "offline"].includes(state)  ? "disconnected"
           : ["connecting", "pairing"].includes(state)             ? "connecting"
           : ["qrcode", "qr"].includes(state)                      ? "qrcode"
           : "unknown";
+
+        // Deep-scan any string field that looks like a phone / jid.
+        const phoneKeyRx = /(number|phone|owner|jid|wid|msisdn|remotejid)/i;
         const digitsOnly = (v: unknown) => {
           if (v == null) return null;
-          const d = String(v).split("@")[0].replace(/\D/g, "");
+          const d = String(v).split("@")[0].split(":")[0].replace(/\D/g, "");
           return d.length >= 10 && d.length <= 15 ? d : null;
         };
-        const num = digitsOnly(b?.connected_number) ?? digitsOnly(b?.number) ?? digitsOnly(b?.owner) ?? digitsOnly(b?.phone);
+        const findPhone = (val: unknown, keyHint = ""): string | null => {
+          if (val == null) return null;
+          if (typeof val === "string" || typeof val === "number") {
+            if (phoneKeyRx.test(keyHint)) return digitsOnly(val);
+            return null;
+          }
+          if (Array.isArray(val)) {
+            for (const item of val) { const f = findPhone(item, keyHint); if (f) return f; }
+            return null;
+          }
+          if (typeof val === "object") {
+            for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+              const f = findPhone(v, k);
+              if (f) return f;
+            }
+          }
+          return null;
+        };
+        const num = findPhone(b);
+
         const patch: Record<string, unknown> = {
           status: mapped,
           last_synced_at: new Date().toISOString(),
@@ -419,6 +448,7 @@ serve(async (req) => {
         await supabase.from("whatsapp_instances").update(patch).eq("id", r.id);
         updated++;
       }
+
       return json({ success: true, updated });
     }
 
