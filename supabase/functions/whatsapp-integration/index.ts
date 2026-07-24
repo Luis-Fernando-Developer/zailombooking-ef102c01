@@ -68,8 +68,14 @@ async function waAdminFetch(path: string, init: RequestInit = {}): Promise<WaRes
 }
 
 async function waFetch(apiKey: string, path: string, init: RequestInit = {}): Promise<WaResp> {
+  const method = (init.method ?? "GET").toUpperCase();
+  // Fastify rejects POST/PUT/PATCH with Content-Type: application/json and empty body
+  // (FST_ERR_CTP_EMPTY_JSON_BODY). Ensure body-carrying methods always send at least "{}".
+  const needsBody = method !== "GET" && method !== "HEAD" && method !== "DELETE";
+  const finalBody = init.body ?? (needsBody ? "{}" : undefined);
   const res = await fetch(`${WA_BASE}${path}`, {
     ...init,
+    body: finalBody,
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
