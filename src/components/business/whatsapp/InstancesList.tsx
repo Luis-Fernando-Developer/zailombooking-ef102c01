@@ -476,10 +476,28 @@ export function InstancesList({ companyId }: { companyId: string }) {
             <DialogTitle>QR Code — {qrOpen?.name}</DialogTitle>
             <DialogDescription>Abra o WhatsApp &gt; Aparelhos conectados &gt; Conectar aparelho.</DialogDescription>
           </DialogHeader>
-          <div className="flex justify-center py-4">
-            {qrLoading ? <Loader2 className="h-8 w-8 animate-spin" /> :
-              qrBase64 ? <img src={qrBase64} alt="QR Code" className="w-64 h-64" /> :
-              <p className="text-sm text-muted-foreground">QR não disponível — clique em Sincronizar após conectar.</p>}
+          <div className="flex flex-col items-center justify-center gap-3 py-4">
+            {qrConnected ? (
+              <>
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-green-500/10">
+                  <CheckCircle2 className="h-16 w-16 text-green-500" />
+                </div>
+                <p className="text-sm font-medium text-green-600">Conectado com sucesso!</p>
+                <p className="text-xs text-muted-foreground">Fechando…</p>
+              </>
+            ) : qrLoading ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : qrBase64 ? (
+              <>
+                <img src={qrBase64} alt="QR Code" className="w-64 h-64" />
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Aguardando leitura…
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">QR não disponível — clique em Sincronizar após conectar.</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => qrOpen && refresh(qrOpen.id)}>
