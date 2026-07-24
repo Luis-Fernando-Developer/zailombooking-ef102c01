@@ -396,7 +396,7 @@ serve(async (req) => {
         if (!r.wa_instance_id) continue;
         const res = await waFetch(cred.apiKey, `/v1/instances/${r.wa_instance_id}/refresh-status`, { method: "POST" });
         if (!res.ok) continue;
-        const b = res.body as { status?: string; connected_number?: string | null } | null;
+        const b = res.body as { status?: string; connected_number?: string | null; number?: string | null; owner?: string | null; phone?: string | null } | null;
         const state = String(b?.status ?? "unknown").toLowerCase();
         const mapped =
           ["open", "connected", "online"].includes(state)         ? "connected"
@@ -404,11 +404,19 @@ serve(async (req) => {
           : ["connecting", "pairing"].includes(state)             ? "connecting"
           : ["qrcode", "qr"].includes(state)                      ? "qrcode"
           : "unknown";
-        await supabase.from("whatsapp_instances").update({
+        const digitsOnly = (v: unknown) => {
+          if (v == null) return null;
+          const d = String(v).split("@")[0].replace(/\D/g, "");
+          return d.length >= 10 && d.length <= 15 ? d : null;
+        };
+        const num = digitsOnly(b?.connected_number) ?? digitsOnly(b?.number) ?? digitsOnly(b?.owner) ?? digitsOnly(b?.phone);
+        const patch: Record<string, unknown> = {
           status: mapped,
-          connected_number: b?.connected_number ?? null,
           last_synced_at: new Date().toISOString(),
-        }).eq("id", r.id);
+        };
+        if (num) patch.connected_number = num;
+        if (mapped === "disconnected") patch.connected_number = null;
+        await supabase.from("whatsapp_instances").update(patch).eq("id", r.id);
         updated++;
       }
       return json({ success: true, updated });

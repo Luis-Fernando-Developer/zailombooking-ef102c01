@@ -131,6 +131,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const [qrOpen, setQrOpen] = useState<{ id: string; name: string } | null>(null);
   const [qrData, setQrData] = useState<QrPayload | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const [qrConnected, setQrConnected] = useState(false);
   const [testOpen, setTestOpen] = useState<InstanceRow | null>(null);
   const [testTo, setTestTo] = useState("");
   const [configOpen, setConfigOpen] = useState<InstanceRow | null>(null);
@@ -220,12 +221,34 @@ export function InstancesList({ companyId }: { companyId: string }) {
   const openQr = async (row: InstanceRow) => {
     const displayName = row.friendly_name ?? row.instance_name;
     setQrOpen({ id: row.id, name: displayName });
-    setQrData(null); setQrLoading(true);
+    setQrData(null); setQrLoading(true); setQrConnected(false);
     const r = await call({ action: "get-qrcode", instance_id: row.id });
     setQrLoading(false);
     if (!r.ok) return toast.error(String(r.body.error ?? "Falha ao obter QR"));
     setQrData((r.body.qrcode as QrPayload | undefined) ?? (r.body as QrPayload));
   };
+
+  // Poll status while QR modal is open — detects connection and auto-closes.
+  useEffect(() => {
+    if (!qrOpen || qrConnected) return;
+    const id = qrOpen.id;
+    const interval = window.setInterval(async () => {
+      const r = await call({ action: "refresh-status", instance_id: id });
+      if (!r.ok) return;
+      const { data } = await supabase
+        .from("whatsapp_instances_public")
+        .select("status,connected_number")
+        .eq("id", id)
+        .maybeSingle();
+      const row = data as { status?: string; connected_number?: string | null } | null;
+      if (row?.status === "connected") {
+        setQrConnected(true);
+        load();
+        window.setTimeout(() => setQrOpen(null), 2000);
+      }
+    }, 3000);
+    return () => window.clearInterval(interval);
+  }, [qrOpen, qrConnected]);
 
   const submitCreate = async () => {
     if (!newFriendly.trim()) return toast.error("Informe o nome desta conexão");
@@ -453,10 +476,28 @@ export function InstancesList({ companyId }: { companyId: string }) {
             <DialogTitle>QR Code — {qrOpen?.name}</DialogTitle>
             <DialogDescription>Abra o WhatsApp &gt; Aparelhos conectados &gt; Conectar aparelho.</DialogDescription>
           </DialogHeader>
-          <div className="flex justify-center py-4">
-            {qrLoading ? <Loader2 className="h-8 w-8 animate-spin" /> :
-              qrBase64 ? <img src={qrBase64} alt="QR Code" className="w-64 h-64" /> :
-              <p className="text-sm text-muted-foreground">QR não disponível — clique em Sincronizar após conectar.</p>}
+          <div className="flex flex-col items-center justify-center gap-3 py-4">
+            {qrConnected ? (
+              <>
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-green-500/10">
+                  <CheckCircle2 className="h-16 w-16 text-green-500" />
+                </div>
+                <p className="text-sm font-medium text-green-600">Conectado com sucesso!</p>
+                <p className="text-xs text-muted-foreground">Fechando…</p>
+              </>
+            ) : qrLoading ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : qrBase64 ? (
+              <>
+                <img src={qrBase64} alt="QR Code" className="w-64 h-64" />
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Aguardando leitura…
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">QR não disponível — clique em Sincronizar após conectar.</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => qrOpen && refresh(qrOpen.id)}>
