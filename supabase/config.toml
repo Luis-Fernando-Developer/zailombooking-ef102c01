@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.wa-webhook]
 verify_jwt = false
+
+[functions.notify-booking-event]
+verify_jwt = false
