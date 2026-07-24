@@ -214,6 +214,37 @@ serve(async (req) => {
         .eq('id', bookingData.id)
     }
 
+    // WhatsApp notification (best-effort) --------------------------------
+    try {
+      const [{ data: clientRow }, { data: companyRow }, { data: serviceRow }, { data: employeeRow }] = await Promise.all([
+        supabaseClient.from('clients').select('name, phone').eq('id', clientId).maybeSingle(),
+        supabaseClient.from('companies').select('name').eq('id', company_id).maybeSingle(),
+        supabaseClient.from('services').select('name').eq('id', service_id).maybeSingle(),
+        supabaseClient.from('employees').select('name').eq('id', employee_id).maybeSingle(),
+      ])
+      const phone = (clientRow as any)?.phone as string | undefined
+      if (phone) {
+        const [y, m, d] = normalizedBookingDate.split('-')
+        const dateBR = `${d}/${m}/${y}`
+        const vars = {
+          client_name: (clientRow as any)?.name ?? '',
+          company_name: (companyRow as any)?.name ?? '',
+          service_name: (serviceRow as any)?.name ?? '',
+          employee_name: (employeeRow as any)?.name ?? '',
+          date: dateBR,
+          time: normalizedBookingTime,
+        }
+        const tpl = await loadWhatsAppTemplate(supabaseClient as any, company_id, 'booking_created')
+        const defaultMsg = `✅ Olá ${vars.client_name}! Seu agendamento em *${vars.company_name}* foi confirmado.\n\n📋 Serviço: ${vars.service_name}\n👤 Profissional: ${vars.employee_name}\n📅 Data: ${dateBR}\n⏰ Horário: ${normalizedBookingTime}`
+        const text = tpl ? renderTemplate(tpl, vars) : defaultMsg
+        const wa = await sendWhatsApp(supabaseClient as any, company_id, phone, text)
+        console.log('[admin-create-booking] whatsapp:', wa)
+      }
+    } catch (waErr) {
+      console.error('[admin-create-booking] whatsapp error (ignored):', waErr)
+    }
+
+
     return new Response(JSON.stringify({ success: true, booking: bookingData }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
