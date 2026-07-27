@@ -235,8 +235,14 @@ serve(async (req) => {
       const cur = await ensureTenantAndKey(supabase, company_id);
       if (!("error" in cur)) {
         for (const row of (rows ?? []) as { wa_instance_id: string | null }[]) {
-          if (row.wa_instance_id) {
-            await waFetch(cur.apiKey, `/v1/instances/${row.wa_instance_id}/delete`, { method: "DELETE" });
+          if (!row.wa_instance_id) continue;
+          for (const p of [
+            `/v1/instances/${row.wa_instance_id}`,
+            `/v1/instances/${row.wa_instance_id}/delete`,
+          ]) {
+            const res = await waFetch(cur.apiKey, p, { method: "DELETE" });
+            console.log(`[disconnect] ${p} -> ${res.status}`);
+            if (res.ok || res.status === 404) break;
           }
         }
       }
