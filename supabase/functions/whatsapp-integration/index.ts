@@ -235,8 +235,14 @@ serve(async (req) => {
       const cur = await ensureTenantAndKey(supabase, company_id);
       if (!("error" in cur)) {
         for (const row of (rows ?? []) as { wa_instance_id: string | null }[]) {
-          if (row.wa_instance_id) {
-            await waFetch(cur.apiKey, `/v1/instances/${row.wa_instance_id}/delete`, { method: "DELETE" });
+          if (!row.wa_instance_id) continue;
+          for (const p of [
+            `/v1/instances/${row.wa_instance_id}`,
+            `/v1/instances/${row.wa_instance_id}/delete`,
+          ]) {
+            const res = await waFetch(cur.apiKey, p, { method: "DELETE" });
+            console.log(`[disconnect] ${p} -> ${res.status}`);
+            if (res.ok || res.status === 404) break;
           }
         }
       }
@@ -361,16 +367,24 @@ serve(async (req) => {
     // ---------- DELETE instance ------------------------------------------
     if (action === "delete-instance") {
       const r = await loadInstance(body.instance_id);
-      if ("error" in r) {
-        // remove local mesmo se não pareada
-        await supabase.from("whatsapp_instances")
-          .delete().eq("id", body.instance_id).eq("company_id", company_id);
-        return json({ success: true });
+      const remote: { attempts: Array<{ path: string; status: number; ok: boolean; body?: unknown }> } = { attempts: [] };
+      if (!("error" in r) && r.inst.wa_instance_id) {
+        // Try the canonical REST DELETE first, then fall back to legacy /delete suffix.
+        const paths = [
+          `/v1/instances/${r.inst.wa_instance_id}`,
+          `/v1/instances/${r.inst.wa_instance_id}/delete`,
+        ];
+        for (const p of paths) {
+          const res = await waFetch(r.apiKey, p, { method: "DELETE" });
+          remote.attempts.push({ path: p, status: res.status, ok: res.ok, body: res.ok ? undefined : res.body });
+          console.log(`[delete-instance] ${p} -> ${res.status}`, res.ok ? "ok" : JSON.stringify(res.body));
+          if (res.ok || res.status === 404) break; // 404 = already gone upstream
+        }
       }
-      await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/delete`, { method: "DELETE" });
-      await supabase.from("whatsapp_instances")
-        .delete().eq("id", r.inst.id).eq("company_id", company_id);
-      return json({ success: true });
+      const { error: delErr } = await supabase.from("whatsapp_instances")
+        .delete().eq("id", body.instance_id).eq("company_id", company_id);
+      if (delErr) return json({ error: "db_delete_failed", details: delErr.message, remote }, 500);
+      return json({ success: true, remote });
     }
 
     // ---------- GET QRCODE (aka connect) ---------------------------------
