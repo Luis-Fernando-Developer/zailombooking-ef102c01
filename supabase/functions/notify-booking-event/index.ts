@@ -106,6 +106,11 @@ const ALLOWED_EVENTS = new Set([
   "booking_cancelled",
   "booking_completed",
   "booking_no_show",
+  "booking_rescheduled",
+  "booking_reallocated",
+  "booking_reminder",
+  "payment_confirmed",
+  "payment_pending",
 ]);
 
 function defaultMessage(eventKey: string, vars: Record<string, string>): string {
@@ -121,6 +126,16 @@ function defaultMessage(eventKey: string, vars: Record<string, string>): string 
       return `🎉 Olá ${vars.client_name}! Seu atendimento em *${vars.company_name}* foi concluído. Obrigado pela preferência!\n\n${line}`;
     case "booking_no_show":
       return `⚠️ Olá ${vars.client_name}, registramos que você não compareceu ao agendamento em *${vars.company_name}*.\n\n${line}`;
+    case "booking_rescheduled":
+      return `🔄 Olá ${vars.client_name}! Seu agendamento em *${vars.company_name}* foi *reagendado*.\n\n${line}`;
+    case "booking_reallocated":
+      return `🔀 Olá ${vars.client_name}! Houve uma realocação no seu agendamento em *${vars.company_name}*.\n\n${line}`;
+    case "booking_reminder":
+      return `⏰ Olá ${vars.client_name}! Lembrete do seu agendamento em *${vars.company_name}*.\n\n${line}`;
+    case "payment_confirmed":
+      return `💳 Olá ${vars.client_name}! Recebemos o pagamento do seu agendamento em *${vars.company_name}*.\n\n${line}`;
+    case "payment_pending":
+      return `⏳ Olá ${vars.client_name}! Aguardamos o pagamento do seu agendamento em *${vars.company_name}*.\n\n${line}`;
     case "booking_created":
     default:
       return `✅ Olá ${vars.client_name}! Seu agendamento em *${vars.company_name}* foi registrado.\n\n${line}`;

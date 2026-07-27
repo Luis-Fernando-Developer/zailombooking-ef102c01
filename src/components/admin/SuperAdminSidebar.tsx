@@ -18,6 +18,7 @@ import {
   LogOut,
   Sparkles,
   Megaphone,
+  Wallet,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { BookingLogo } from "@/components/BookingLogo";
@@ -30,6 +31,7 @@ const menuItems = [
   { title: "Instâncias", url: "/super-admin/instancias", icon: Layers },
   { title: "Empresas", url: "/super-admin/empresas", icon: Building2 },
   { title: "Planos", url: "/super-admin/planos", icon: CreditCard },
+  { title: "Gateways", url: "/super-admin/gateways", icon: Wallet },
   { title: "Features", url: "/super-admin/features", icon: Sparkles },
   { title: "Release Notes", url: "/super-admin/release-notes", icon: Megaphone },
   { title: "Configurações", url: "/super-admin/configuracoes", icon: Settings },

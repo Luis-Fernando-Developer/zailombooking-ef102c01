@@ -17,6 +17,7 @@ import SuperAdminPlans from "./pages/super-admin/Plans";
 import SuperAdminSettings from "./pages/super-admin/Settings";
 import SuperAdminFeatureRegistry from "./pages/super-admin/FeatureRegistry";
 import SuperAdminReleaseNotes from "./pages/super-admin/ReleaseNotes";
+import SuperAdminGateways from "./pages/super-admin/Gateways";
 import CreateCompany from "./pages/admin/CreateCompany";
 import SignUp from "./pages/SignUp";
 import SignupPending from "./pages/SignupPending";
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/super-admin/configuracoes" element={<RequireSuperAdmin><SuperAdminSettings /></RequireSuperAdmin>} />
             <Route path="/super-admin/features" element={<RequireSuperAdmin><SuperAdminFeatureRegistry /></RequireSuperAdmin>} />
             <Route path="/super-admin/release-notes" element={<RequireSuperAdmin><SuperAdminReleaseNotes /></RequireSuperAdmin>} />
+            <Route path="/super-admin/gateways" element={<RequireSuperAdmin><SuperAdminGateways /></RequireSuperAdmin>} />
             <Route path="/super-admin/add-company" element={<RequireSuperAdmin><CreateCompany /></RequireSuperAdmin>} />
             <Route path="/:slug/admin/dashboard" element={<RequireBusinessAuth><BusinessDashboard /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/agendamentos" element={<RequireBusinessAuth><BusinessBookings /></RequireBusinessAuth>} />

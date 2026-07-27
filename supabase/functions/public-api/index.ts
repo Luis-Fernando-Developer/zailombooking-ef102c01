@@ -30,6 +30,20 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
 
+// Fire-and-forget dispatch para notify-booking-event (WhatsApp).
+function fireBookingNotification(bookingId: string, eventKey: string) {
+  try {
+    const base = Deno.env.get("SUPABASE_URL") ?? "";
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!base || !key || !bookingId) return;
+    fetch(`${base}/functions/v1/notify-booking-event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+      body: JSON.stringify({ booking_id: bookingId, event_key: eventKey }),
+    }).catch((e) => console.error("[fireBookingNotification]", e?.message ?? e));
+  } catch (e) { console.error("[fireBookingNotification]", e); }
+}
+
 // ─── util ────────────────────────────────────────────────────────────────────
 
 const json = (body: unknown, status = 200) =>
@@ -643,6 +657,7 @@ const createBooking: Handler = async (ctx, req) => {
     .select("*, service:services(id, name), employee:employees(id, name), client:clients(id, name, phone, email)")
     .single();
   if (error) return err(error.message, 500);
+  fireBookingNotification(data.id, data.booking_status === "confirmed" ? "booking_confirmed" : "booking_pending");
   return json({ data }, 201);
 };
 
@@ -677,6 +692,7 @@ const cancelBooking: Handler = async (ctx, req, { id }) => {
     .select()
     .single();
   if (error) return err(error.message, 500);
+  fireBookingNotification(id, "booking_cancelled");
   return json({ data });
 };
 
@@ -689,6 +705,7 @@ const confirmBooking: Handler = async (ctx, _req, { id }) => {
     .select()
     .single();
   if (error) return err(error.message, 500);
+  fireBookingNotification(id, "booking_confirmed");
   return json({ data });
 };
 
@@ -707,6 +724,7 @@ const rescheduleBooking: Handler = async (ctx, req, { id }) => {
     p_new_service: b.new_service_id ?? null,
   });
   if (error) return err(error.message, 409, { reason: "reschedule_failed" });
+  fireBookingNotification(id, "booking_rescheduled");
   return json({ data });
 };
 

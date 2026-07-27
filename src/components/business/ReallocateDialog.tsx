@@ -259,6 +259,11 @@ export function ReallocateDialog({
     supabase.functions.invoke("notify-booking-change", {
       body: { booking_id: booking.id, change_type: "reallocation", previous: old, current: updated },
     }).catch((err) => console.error("notify failed", err));
+
+    // WhatsApp: dispara template booking_reallocated
+    supabase.functions.invoke("notify-booking-event", {
+      body: { booking_id: booking.id, event_key: "booking_reallocated" },
+    }).catch((err) => console.error("notify-whatsapp failed", err));
   }
 
   async function checkSlotViaAvailability(params: {
@@ -385,6 +390,11 @@ export function ReallocateDialog({
       supabase.functions.invoke("notify-booking-change", {
         body: { booking_id: booking.id, change_type: "cancellation", previous: old, current: updated },
       }).catch((err) => console.error("notify failed", err));
+
+      supabase.functions.invoke("notify-booking-event", {
+        body: { booking_id: booking.id, event_key: "booking_cancelled" },
+      }).catch((err) => console.error("notify-whatsapp failed", err));
+
 
       toast({ title: "Agendamento cancelado" });
       onDone();

@@ -193,6 +193,12 @@ export function ClientRescheduleDialog({
         console.error('notify-booking-change threw:', err);
       }
 
+      supabase.functions.invoke('notify-booking-event', {
+        body: { booking_id: booking.id, event_key: 'booking_rescheduled' },
+      }).catch((err) => console.error('notify-whatsapp reschedule failed', err));
+
+
+
 
       toast({
         title: "Agendamento reagendado!",
