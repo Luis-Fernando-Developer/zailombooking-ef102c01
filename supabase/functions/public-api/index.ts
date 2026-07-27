@@ -678,6 +678,7 @@ const cancelBooking: Handler = async (ctx, req, { id }) => {
     .select()
     .single();
   if (error) return err(error.message, 500);
+  fireBookingNotification(id, "booking_cancelled");
   return json({ data });
 };
 
@@ -690,6 +691,7 @@ const confirmBooking: Handler = async (ctx, _req, { id }) => {
     .select()
     .single();
   if (error) return err(error.message, 500);
+  fireBookingNotification(id, "booking_confirmed");
   return json({ data });
 };
 
@@ -708,6 +710,7 @@ const rescheduleBooking: Handler = async (ctx, req, { id }) => {
     p_new_service: b.new_service_id ?? null,
   });
   if (error) return err(error.message, 409, { reason: "reschedule_failed" });
+  fireBookingNotification(id, "booking_rescheduled");
   return json({ data });
 };
 
