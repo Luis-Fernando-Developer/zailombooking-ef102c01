@@ -104,14 +104,29 @@ export function TemplatesEditor({ companyId }: { companyId: string }) {
         }),
       });
       const payload = await r.json().catch(() => null) as { error?: string; detail?: string; template?: TemplateRecord } | null;
-      if (!r.ok) throw new Error(payload?.detail ?? payload?.error ?? "Falha ao salvar");
-      if (payload?.template) {
+      let savedTemplate = payload?.template;
+      if (!r.ok) {
+        const { data, error } = await supabase
+          .from("whatsapp_templates")
+          .upsert({
+            company_id: companyId,
+            event_key: key,
+            template: row.template,
+            enabled: row.enabled,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "company_id,event_key" })
+          .select("event_key, template, enabled")
+          .single();
+        if (error) throw new Error(error.message || payload?.detail || payload?.error || "Falha ao salvar");
+        savedTemplate = data as TemplateRecord;
+      }
+      if (savedTemplate) {
         setRows((prev) => ({
           ...prev,
           [key]: {
-            event_key: payload.template?.event_key ?? key,
-            template: payload.template?.template ?? row.template,
-            enabled: payload.template?.enabled ?? row.enabled,
+            event_key: savedTemplate.event_key ?? key,
+            template: savedTemplate.template ?? row.template,
+            enabled: savedTemplate.enabled ?? row.enabled,
           },
         }));
       }
