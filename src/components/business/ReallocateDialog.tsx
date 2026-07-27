@@ -391,6 +391,11 @@ export function ReallocateDialog({
         body: { booking_id: booking.id, change_type: "cancellation", previous: old, current: updated },
       }).catch((err) => console.error("notify failed", err));
 
+      supabase.functions.invoke("notify-booking-event", {
+        body: { booking_id: booking.id, event_key: "booking_cancelled" },
+      }).catch((err) => console.error("notify-whatsapp failed", err));
+
+
       toast({ title: "Agendamento cancelado" });
       onDone();
     } catch (e: any) {
