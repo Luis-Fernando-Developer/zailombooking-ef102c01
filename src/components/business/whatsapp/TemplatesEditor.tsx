@@ -12,38 +12,48 @@ import { Loader2, Save } from "lucide-react";
 
 const EVENTS: { key: string; label: string; description: string; defaultTpl: string }[] = [
   {
-    key: "booking.created", label: "Agendamento criado",
-    description: "Enviado ao cliente logo após o agendamento ser criado.",
-    defaultTpl: "Olá {{client_name}}! Seu agendamento de {{service_name}} está registrado para {{booking_date}} às {{booking_time}}.",
+    key: "booking_pending", label: "Agendamento pendente",
+    description: "Enviado ao cliente quando o agendamento é criado e aguarda confirmação.",
+    defaultTpl: "⏳ Olá {{client_name}}! Recebemos sua solicitação em *{{company_name}}*. Está *pendente* de confirmação.\n📋 {{service_name}} — {{employee_name}}\n📅 {{date}} às {{time}}",
   },
   {
-    key: "booking.confirmed", label: "Agendamento confirmado",
-    description: "Enviado quando o estabelecimento confirma o agendamento.",
-    defaultTpl: "✅ Seu agendamento de {{service_name}} em {{booking_date}} às {{booking_time}} foi confirmado.",
+    key: "booking_confirmed", label: "Agendamento confirmado",
+    description: "Enviado quando o estabelecimento (ou pagamento) confirma o agendamento.",
+    defaultTpl: "✅ Olá {{client_name}}! Seu agendamento em *{{company_name}}* foi *confirmado*.\n📋 {{service_name}} — {{employee_name}}\n📅 {{date}} às {{time}}",
   },
   {
-    key: "booking.cancelled", label: "Agendamento cancelado",
+    key: "booking_reallocated", label: "Agendamento realocado",
+    description: "Enviado quando o profissional/horário é realocado por decisão do estabelecimento.",
+    defaultTpl: "🔀 Olá {{client_name}}! Houve uma realocação no seu agendamento em *{{company_name}}*.\n📋 {{service_name}} — {{employee_name}}\n📅 {{date}} às {{time}}",
+  },
+  {
+    key: "booking_cancelled", label: "Agendamento cancelado",
     description: "Enviado quando o agendamento é cancelado.",
-    defaultTpl: "Seu agendamento de {{service_name}} em {{booking_date}} foi cancelado. Motivo: {{reason}}",
+    defaultTpl: "❌ Olá {{client_name}}, seu agendamento em *{{company_name}}* foi *cancelado*.\n📋 {{service_name}} — {{employee_name}}\n📅 {{date}} às {{time}}",
   },
   {
-    key: "booking.rescheduled", label: "Agendamento reagendado",
-    description: "Enviado quando a data/horário mudam.",
-    defaultTpl: "Seu agendamento foi remarcado para {{booking_date}} às {{booking_time}}.",
+    key: "booking_rescheduled", label: "Agendamento reagendado",
+    description: "Enviado quando o cliente ou o estabelecimento reagenda a data/hora.",
+    defaultTpl: "🔄 Olá {{client_name}}! Seu agendamento em *{{company_name}}* foi *reagendado*.\n📋 {{service_name}} — {{employee_name}}\n📅 {{date}} às {{time}}",
   },
   {
-    key: "booking.reminder", label: "Lembrete",
-    description: "Lembrete disparado antes do horário.",
-    defaultTpl: "⏰ Lembrete: você tem {{service_name}} amanhã ({{booking_date}}) às {{booking_time}}.",
+    key: "booking_reminder", label: "Lembrete de agendamento",
+    description: "Lembrete disparado antes do horário marcado.",
+    defaultTpl: "⏰ Olá {{client_name}}! Lembrete do seu agendamento em *{{company_name}}*.\n📋 {{service_name}} — {{employee_name}}\n📅 {{date}} às {{time}}",
   },
   {
-    key: "marketing.custom", label: "Marketing (custom)",
-    description: "Texto genérico para campanhas.",
-    defaultTpl: "Olá {{client_name}}! {{message}}",
+    key: "payment_confirmed", label: "Pagamento confirmado",
+    description: "Enviado quando o gateway (Asaas) confirma o pagamento do agendamento.",
+    defaultTpl: "💳 Olá {{client_name}}! Recebemos o pagamento do seu agendamento em *{{company_name}}*.\n📋 {{service_name}} — {{employee_name}}\n📅 {{date}} às {{time}}",
+  },
+  {
+    key: "payment_pending", label: "Pagamento pendente",
+    description: "Enviado enquanto o pagamento ainda não foi identificado.",
+    defaultTpl: "⏳ Olá {{client_name}}! Estamos aguardando o pagamento do seu agendamento em *{{company_name}}*.\n📋 {{service_name}} — {{employee_name}}\n📅 {{date}} às {{time}}",
   },
 ];
 
-const VARS = ["client_name", "service_name", "employee_name", "booking_date", "booking_time", "company_name", "reason", "message"];
+const VARS = ["client_name", "service_name", "employee_name", "date", "time", "company_name"];
 
 type Row = { event_key: string; template: string; enabled: boolean };
 
