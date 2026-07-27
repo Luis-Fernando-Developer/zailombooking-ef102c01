@@ -48,6 +48,19 @@ const WA_WEBHOOK_URL = Deno.env.get("WA_WEBHOOK_PUBLIC_URL")
   ?? "https://api-booking.zailom.com/wa/webhook";
 
 const channelPreferences = new Set(["auto", "flow_only", "direct_only", "disabled"]);
+const templateEvents = new Set([
+  "booking_created",
+  "booking_pending",
+  "booking_confirmed",
+  "booking_cancelled",
+  "booking_completed",
+  "booking_no_show",
+  "booking_rescheduled",
+  "booking_reallocated",
+  "booking_reminder",
+  "payment_confirmed",
+  "payment_pending",
+]);
 
 // ─── HTTP helpers ───────────────────────────────────────────────────────────
 type WaResp = { ok: boolean; status: number; body: unknown; raw: string };
@@ -550,12 +563,23 @@ serve(async (req) => {
     if (action === "save-template") {
       const { event_key, template, enabled } = body;
       if (!event_key || !template) return json({ error: "Missing event_key/template" }, 400);
+      if (typeof event_key !== "string" || !templateEvents.has(event_key)) {
+        return json({ error: "invalid_template_event_key", event_key }, 400);
+      }
       const { data, error } = await supabase.from("whatsapp_templates").upsert({
         company_id, event_key, template,
         enabled: enabled !== false,
         updated_at: new Date().toISOString(),
       }, { onConflict: "company_id,event_key" }).select().single();
-      if (error) throw error;
+      if (error) {
+        console.error("[save-template] db error:", error);
+        return json({
+          error: "template_save_failed",
+          code: error.code,
+          detail: error.message,
+          hint: error.hint,
+        }, 500);
+      }
       return json({ success: true, template: data });
     }
     if (action === "delete-template") {
