@@ -18,6 +18,14 @@ export type WhatsAppSendResult = {
 
 const WA_BASE = (Deno.env.get("WA_SERVICE_BASE_URL") ?? "https://wa.zailom.com").replace(/\/$/, "");
 
+const legacyTemplateEventKeys: Record<string, string[]> = {
+  booking_pending: ["booking.created"],
+  booking_confirmed: ["booking.confirmed", "booking.created"],
+  booking_cancelled: ["booking.cancelled"],
+  booking_rescheduled: ["booking.rescheduled"],
+  booking_reminder: ["booking.reminder"],
+};
+
 export async function sendWhatsApp(
   supabase: SupabaseClient,
   companyId: string,
@@ -107,9 +115,13 @@ export async function loadWhatsAppTemplate(
   companyId: string,
   eventKey: string,
 ): Promise<string | null> {
+  const keys = [eventKey, ...(legacyTemplateEventKeys[eventKey] ?? [])];
   const { data } = await supabase.from("whatsapp_templates")
-    .select("template, enabled")
-    .eq("company_id", companyId).eq("event_key", eventKey).maybeSingle();
-  if (!data || data.enabled === false) return null;
-  return data.template as string;
+    .select("event_key, template, enabled")
+    .eq("company_id", companyId).in("event_key", keys);
+  const rows = (data ?? []) as Array<{ event_key: string; template: string; enabled: boolean }>;
+  const exact = rows.find((row) => row.event_key === eventKey);
+  if (exact) return exact.enabled === false ? null : exact.template;
+  const fallback = rows.find((row) => row.enabled !== false);
+  return fallback?.template ?? null;
 }

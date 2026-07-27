@@ -56,6 +56,7 @@ const EVENTS: { key: string; label: string; description: string; defaultTpl: str
 const VARS = ["client_name", "service_name", "employee_name", "date", "time", "company_name"];
 
 type Row = { event_key: string; template: string; enabled: boolean };
+type TemplateRecord = Row & { id?: string; company_id?: string };
 
 export function TemplatesEditor({ companyId }: { companyId: string }) {
   const [rows, setRows] = useState<Record<string, Row>>({});
@@ -64,9 +65,19 @@ export function TemplatesEditor({ companyId }: { companyId: string }) {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("whatsapp_templates").select("*").eq("company_id", companyId);
+    const { data, error } = await supabase
+      .from("whatsapp_templates")
+      .select("event_key, template, enabled")
+      .eq("company_id", companyId);
+    if (error) {
+      toast.error(`Falha ao carregar templates: ${error.message}`);
+      setLoading(false);
+      return;
+    }
     const map: Record<string, Row> = {};
-    (data ?? []).forEach((r: any) => { map[r.event_key] = { event_key: r.event_key, template: r.template, enabled: r.enabled }; });
+    ((data ?? []) as TemplateRecord[]).forEach((r) => {
+      map[r.event_key] = { event_key: r.event_key, template: r.template, enabled: r.enabled };
+    });
     // preenche default para os que faltam
     EVENTS.forEach((e) => { if (!map[e.key]) map[e.key] = { event_key: e.key, template: e.defaultTpl, enabled: true }; });
     setRows(map);
@@ -75,19 +86,42 @@ export function TemplatesEditor({ companyId }: { companyId: string }) {
   useEffect(() => { load(); }, [companyId]);
 
   const save = async (key: string) => {
+    const row = rows[key];
+    if (!row) return;
     setSaving(key);
-    const { data: { session } } = await supabase.auth.getSession();
-    const r = await fetch(getEdgeFunctionUrl("whatsapp-integration"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
-      body: JSON.stringify({
-        company_id: companyId, action: "save-template",
-        event_key: key, template: rows[key].template, enabled: rows[key].enabled,
-      }),
-    });
-    setSaving(null);
-    if (!r.ok) return toast.error("Falha ao salvar");
-    toast.success("Template salvo");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada. Entre novamente.");
+      const r = await fetch(getEdgeFunctionUrl("whatsapp-integration"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          company_id: companyId,
+          action: "save-template",
+          event_key: key,
+          template: row.template,
+          enabled: row.enabled,
+        }),
+      });
+      const payload = await r.json().catch(() => null) as { error?: string; detail?: string; template?: TemplateRecord } | null;
+      if (!r.ok) throw new Error(payload?.detail ?? payload?.error ?? "Falha ao salvar");
+      if (payload?.template) {
+        setRows((prev) => ({
+          ...prev,
+          [key]: {
+            event_key: payload.template?.event_key ?? key,
+            template: payload.template?.template ?? row.template,
+            enabled: payload.template?.enabled ?? row.enabled,
+          },
+        }));
+      }
+      toast.success("Template salvo");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao salvar";
+      toast.error(message);
+    } finally {
+      setSaving(null);
+    }
   };
 
   const update = (key: string, patch: Partial<Row>) =>

@@ -12,6 +12,14 @@ const corsHeaders = {
 // ============================================================================
 const WA_BASE = (Deno.env.get("WA_SERVICE_BASE_URL") ?? "https://wa.zailom.com").replace(/\/$/, "");
 
+const legacyTemplateEventKeys: Record<string, string[]> = {
+  booking_pending: ['booking.created'],
+  booking_confirmed: ['booking.confirmed', 'booking.created'],
+  booking_cancelled: ['booking.cancelled'],
+  booking_rescheduled: ['booking.rescheduled'],
+  booking_reminder: ['booking.reminder'],
+};
+
 function renderTemplate(template: string, vars: Record<string, string | number | null | undefined>): string {
   return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, key) => {
     const v = vars[key];
@@ -20,11 +28,40 @@ function renderTemplate(template: string, vars: Record<string, string | number |
 }
 
 async function loadWhatsAppTemplate(supabase: any, companyId: string, eventKey: string): Promise<string | null> {
+  const keys = [eventKey, ...(legacyTemplateEventKeys[eventKey] ?? [])];
   const { data } = await supabase.from("whatsapp_templates")
-    .select("template, enabled")
-    .eq("company_id", companyId).eq("event_key", eventKey).maybeSingle();
-  if (!data || data.enabled === false) return null;
-  return data.template as string;
+    .select("event_key, template, enabled")
+    .eq("company_id", companyId).in("event_key", keys);
+  const rows = (data ?? []) as Array<{ event_key: string; template: string; enabled: boolean }>;
+  const exact = rows.find((row) => row.event_key === eventKey);
+  if (exact) return exact.enabled === false ? null : exact.template;
+  const fallback = rows.find((row) => row.enabled !== false);
+  return fallback?.template ?? null;
+}
+
+function eventKeyForCreatedBooking(status: string): string {
+  if (status === 'pending') return 'booking_pending';
+  if (status === 'cancelled' || status === 'canceled') return 'booking_cancelled';
+  if (status === 'completed') return 'booking_completed';
+  if (status === 'no_show') return 'booking_no_show';
+  return 'booking_confirmed';
+}
+
+function defaultBookingMessage(eventKey: string, vars: Record<string, string>): string {
+  const line = `📋 Serviço: ${vars.service_name}\n👤 Profissional: ${vars.employee_name}\n📅 Data: ${vars.date}\n⏰ Horário: ${vars.time}`;
+  if (eventKey === 'booking_pending') {
+    return `⏳ Olá ${vars.client_name}! Recebemos sua solicitação em *${vars.company_name}*. O agendamento está *pendente* de confirmação.\n\n${line}`;
+  }
+  if (eventKey === 'booking_cancelled') {
+    return `❌ Olá ${vars.client_name}, seu agendamento em *${vars.company_name}* foi *cancelado*.\n\n${line}`;
+  }
+  if (eventKey === 'booking_completed') {
+    return `🎉 Olá ${vars.client_name}! Seu atendimento em *${vars.company_name}* foi concluído. Obrigado pela preferência!\n\n${line}`;
+  }
+  if (eventKey === 'booking_no_show') {
+    return `⚠️ Olá ${vars.client_name}, registramos que você não compareceu ao agendamento em *${vars.company_name}*.\n\n${line}`;
+  }
+  return `✅ Olá ${vars.client_name}! Seu agendamento em *${vars.company_name}* foi *confirmado*.\n\n${line}`;
 }
 
 async function sendWhatsApp(supabase: any, companyId: string, to: string, message: string) {
@@ -323,12 +360,13 @@ serve(async (req) => {
           date: dateBR,
           time: normalizedBookingTime,
         }
-        const tpl = await loadWhatsAppTemplate(supabaseClient as any, company_id, 'booking_created')
-        const defaultMsg = `✅ Olá ${vars.client_name}! Seu agendamento em *${vars.company_name}* foi confirmado.\n\n📋 Serviço: ${vars.service_name}\n👤 Profissional: ${vars.employee_name}\n📅 Data: ${dateBR}\n⏰ Horário: ${normalizedBookingTime}`
+        const eventKey = eventKeyForCreatedBooking(bookingStatus)
+        const tpl = await loadWhatsAppTemplate(supabaseClient as any, company_id, eventKey)
+        const defaultMsg = defaultBookingMessage(eventKey, vars)
         const text = tpl ? renderTemplate(tpl, vars) : defaultMsg
         const wa = await sendWhatsApp(supabaseClient as any, company_id, phone, text)
         console.log('[admin-create-booking] whatsapp:', JSON.stringify(wa))
-        waDebug = { ...waDebug, template_used: !!tpl, result: wa }
+        waDebug = { ...waDebug, event_key: eventKey, template_used: !!tpl, result: wa }
       } else {
         console.warn('[admin-create-booking] cliente sem telefone; whatsapp não enviado. clientId=', clientId)
       }

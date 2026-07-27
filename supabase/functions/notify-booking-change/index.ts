@@ -18,6 +18,12 @@ interface Payload {
   current?: Record<string, unknown>;
 }
 
+const whatsappEventByChangeType: Record<Payload["change_type"], string> = {
+  reallocation: "booking_reallocated",
+  reschedule: "booking_rescheduled",
+  cancellation: "booking_cancelled",
+};
+
 function toDateBR(value: unknown): string {
   const raw = String(value ?? "");
   if (!raw) return "—";
@@ -179,7 +185,7 @@ Deno.serve(async (req) => {
     try {
       const clientPhone: string | null = c.client?.phone ?? null;
       if (clientPhone) {
-        const eventKey = `booking_${body.change_type}`; // reallocation | reschedule | cancellation
+        const eventKey = whatsappEventByChangeType[body.change_type];
         const tpl = await loadWhatsAppTemplate(admin, c.company_id, eventKey);
         const vars = {
           client_name: c.client?.name ?? "",
