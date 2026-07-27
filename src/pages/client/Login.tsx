@@ -8,6 +8,7 @@ import { CompanyLogo } from "@/components/CompanyLogo";
 import { Lock, Mail, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { ForgotPasswordDialog } from "@/components/business/ForgotPasswordDialog";
 
 // ...imports...
 
@@ -137,6 +138,17 @@ export default function ClientLogin() {
                   required
                 />
               </div>
+            </div>
+
+            <div className="flex justify-end -mt-2">
+              <ForgotPasswordDialog
+                defaultEmail={email}
+                trigger={
+                  <button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">
+                    Esqueci minha senha
+                  </button>
+                }
+              />
             </div>
 
             <Button 

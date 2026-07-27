@@ -240,7 +240,7 @@ export default function ApiDocs() {
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
         <div className="flex h-14 items-center gap-4 px-4">
           <NavLink to="/api-docs/introduction" className="flex items-center gap-2">
-            <img src="/logo_zylo.svg" alt="Zailom" className="h-7 w-7 object-contain" />
+            <img src="/logo_zailom.svg" alt="Zailom" className="h-7 w-7 object-contain" />
             <img
               src="/brand_name_zailom_booking.svg"
               alt="Zailom Booking"
