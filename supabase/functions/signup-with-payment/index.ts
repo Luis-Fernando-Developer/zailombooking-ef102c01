@@ -30,19 +30,19 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     if (!SUPABASE_URL || !SERVICE_ROLE) {
-      return json({ ok: false, error: "Configuração do servidor ausente." }, 500);
+      return json({ ok: false, error: "Configuração do servidor ausente." }, 200);
     }
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     const body = await req.json().catch(() => null);
     if (!body?.company || !body?.password) {
-      return json({ ok: false, error: "Payload inválido." }, 400);
+      return json({ ok: false, error: "Payload inválido." }, 200);
     }
 
     const c = body.company;
     const required = ["name", "slug", "owner_name", "owner_email", "cpf_cnpj"];
     for (const k of required) {
-      if (!c[k]) return json({ ok: false, error: `Campo ${k} é obrigatório.` }, 400);
+      if (!c[k]) return json({ ok: false, error: `Campo ${k} é obrigatório.` }, 200);
     }
 
     // 1) Verifica slug livre
@@ -52,7 +52,7 @@ serve(async (req) => {
       .eq("slug", c.slug)
       .maybeSingle();
     if (slugExists) {
-      return json({ ok: false, error: "Esse link personalizado já está em uso." }, 409);
+      return json({ ok: false, error: "Esse link personalizado já está em uso.", code: "slug_taken" }, 200);
     }
 
     // 2) Cria usuário no Auth
@@ -72,10 +72,10 @@ serve(async (req) => {
       if (msg.includes("already") || createErr?.status === 422) {
         return json(
           { ok: false, error: "Este e-mail já está em uso.", code: "user_already_exists" },
-          409,
+          200,
         );
       }
-      return json({ ok: false, error: createErr?.message || "Falha ao criar usuário." }, 400);
+      return json({ ok: false, error: createErr?.message || "Falha ao criar usuário." }, 200);
     }
 
     const userId = created.user.id;
@@ -136,7 +136,7 @@ serve(async (req) => {
 
     if (!companyRow) {
       await admin.auth.admin.deleteUser(userId).catch(() => {});
-      return json({ ok: false, error: `Falha ao criar empresa: ${lastErr}` }, 400);
+      return json({ ok: false, error: `Falha ao criar empresa: ${lastErr}` }, 200);
     }
 
     const companyId = companyRow.id;
@@ -182,7 +182,7 @@ serve(async (req) => {
       await admin.auth.admin.deleteUser(userId).catch(() => {});
       return json(
         { ok: false, error: `Falha ao vincular usuário à empresa: ${empLastErr}` },
-        400,
+        200,
       );
     }
 
@@ -194,6 +194,6 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("[signup-with-payment] erro fatal:", err);
-    return json({ ok: false, error: (err as Error).message || "Erro inesperado." }, 500);
+    return json({ ok: false, error: (err as Error).message || "Erro inesperado." }, 200);
   }
 });
