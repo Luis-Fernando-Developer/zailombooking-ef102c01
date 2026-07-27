@@ -643,6 +643,7 @@ const createBooking: Handler = async (ctx, req) => {
     .select("*, service:services(id, name), employee:employees(id, name), client:clients(id, name, phone, email)")
     .single();
   if (error) return err(error.message, 500);
+  fireBookingNotification(data.id, data.booking_status === "confirmed" ? "booking_confirmed" : "booking_pending");
   return json({ data }, 201);
 };
 
