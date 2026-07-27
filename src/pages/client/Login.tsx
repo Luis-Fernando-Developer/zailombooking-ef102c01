@@ -8,6 +8,7 @@ import { CompanyLogo } from "@/components/CompanyLogo";
 import { Lock, Mail, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { ForgotPasswordDialog } from "@/components/business/ForgotPasswordDialog";
 
 // ...imports...
 
