@@ -118,6 +118,15 @@ serve(async (req) => {
       if (pErr) console.error('[ASAAS_WEBHOOK] Booking_payments update error:', pErr);
       
       console.info(`[ASAAS_WEBHOOK] DB updates completed for ${bookingId}`);
+
+      // Notifica WhatsApp (best-effort)
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/notify-booking-event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
+          body: JSON.stringify({ booking_id: bookingId, event_key: 'booking_confirmed' }),
+        });
+      } catch (e) { console.error('[ASAAS_WEBHOOK] notify error:', (e as any)?.message); }
     } else if (bookingId && (event === 'PAYMENT_CREATED' || currentStatus === 'PENDING')) {
       console.info(`[ASAAS_WEBHOOK] Ensuring booking is pending for ${bookingId}`);
       await supabaseClient
