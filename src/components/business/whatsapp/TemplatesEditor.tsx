@@ -55,6 +55,18 @@ const EVENTS: { key: string; label: string; description: string; defaultTpl: str
 
 const VARS = ["client_name", "service_name", "employee_name", "date", "time", "company_name"];
 
+const LEGACY_EVENT_KEYS: Record<string, string> = {
+  booking_pending: "booking.created",
+  booking_confirmed: "booking.confirmed",
+  booking_cancelled: "booking.cancelled",
+  booking_rescheduled: "booking.rescheduled",
+  booking_reminder: "booking.reminder",
+};
+
+const MODERN_EVENT_KEYS = Object.fromEntries(
+  Object.entries(LEGACY_EVENT_KEYS).map(([modern, legacy]) => [legacy, modern]),
+) as Record<string, string>;
+
 type Row = { event_key: string; template: string; enabled: boolean };
 type TemplateRecord = Row & { id?: string; company_id?: string };
 
@@ -76,7 +88,8 @@ export function TemplatesEditor({ companyId }: { companyId: string }) {
     }
     const map: Record<string, Row> = {};
     ((data ?? []) as TemplateRecord[]).forEach((r) => {
-      map[r.event_key] = { event_key: r.event_key, template: r.template, enabled: r.enabled };
+      const key = MODERN_EVENT_KEYS[r.event_key] ?? r.event_key;
+      map[key] = { event_key: key, template: r.template, enabled: r.enabled };
     });
     // preenche default para os que faltam
     EVENTS.forEach((e) => { if (!map[e.key]) map[e.key] = { event_key: e.key, template: e.defaultTpl, enabled: true }; });
@@ -106,7 +119,7 @@ export function TemplatesEditor({ companyId }: { companyId: string }) {
       const payload = await r.json().catch(() => null) as { error?: string; detail?: string; template?: TemplateRecord } | null;
       let savedTemplate = payload?.template;
       if (!r.ok) {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from("whatsapp_templates")
           .upsert({
             company_id: companyId,
@@ -117,14 +130,30 @@ export function TemplatesEditor({ companyId }: { companyId: string }) {
           }, { onConflict: "company_id,event_key" })
           .select("event_key, template, enabled")
           .single();
+        if (error && LEGACY_EVENT_KEYS[key]) {
+          const legacyResult = await supabase
+            .from("whatsapp_templates")
+            .upsert({
+              company_id: companyId,
+              event_key: LEGACY_EVENT_KEYS[key],
+              template: row.template,
+              enabled: row.enabled,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "company_id,event_key" })
+            .select("event_key, template, enabled")
+            .single();
+          data = legacyResult.data;
+          error = legacyResult.error;
+        }
         if (error) throw new Error(error.message || payload?.detail || payload?.error || "Falha ao salvar");
         savedTemplate = data as TemplateRecord;
       }
       if (savedTemplate) {
+        const savedKey = MODERN_EVENT_KEYS[savedTemplate.event_key] ?? savedTemplate.event_key ?? key;
         setRows((prev) => ({
           ...prev,
           [key]: {
-            event_key: savedTemplate.event_key ?? key,
+            event_key: savedKey,
             template: savedTemplate.template ?? row.template,
             enabled: savedTemplate.enabled ?? row.enabled,
           },
