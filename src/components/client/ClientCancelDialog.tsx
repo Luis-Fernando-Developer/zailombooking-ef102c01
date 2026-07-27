@@ -34,6 +34,12 @@ export function ClientCancelDialog({
 
       if (error) throw error;
 
+      supabase.functions.invoke('notify-booking-event', {
+        body: { booking_id: booking.id, event_key: 'booking_cancelled' },
+      }).catch((err) => console.error('notify-whatsapp cancel failed', err));
+
+
+
       toast({
         title: "Agendamento cancelado",
         description: "Seu agendamento foi cancelado com sucesso."
