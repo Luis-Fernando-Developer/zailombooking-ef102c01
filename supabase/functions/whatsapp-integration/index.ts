@@ -485,6 +485,61 @@ serve(async (req) => {
       return json({ success: true, provider_response: res.body });
     }
 
+    // ---------- BROADCAST (Disparos em massa) --------------------------------
+    if (action === "broadcast") {
+      const message = String(body.message ?? "").trim();
+      const recipients: string[] = Array.isArray(body.recipients) ? body.recipients : [];
+      if (!message) return json({ error: "message_required" }, 400);
+      if (recipients.length === 0) return json({ error: "no_recipients" }, 400);
+
+      // Resolve via RPC (respeita canal do painel)
+      const { data: channel } = await supabase.rpc("resolve_whatsapp_channel", { p_company: company_id });
+      if (!channel || channel === "none") return json({ error: "channel_disabled" }, 400);
+
+      const results: Array<{ to: string; ok: boolean; error?: string }> = [];
+      for (const raw of recipients) {
+        const to = String(raw ?? "").replace(/\D/g, "");
+        if (!to) { results.push({ to: String(raw), ok: false, error: "invalid_number" }); continue; }
+        try {
+          const personalized = message.replace(/\{\{\s*phone\s*\}\}/g, to);
+          if (channel === "direct") {
+            const { data: inst } = await supabase.from("whatsapp_instances")
+              .select("wa_instance_id").eq("company_id", company_id).eq("status", "connected")
+              .order("is_default", { ascending: false }).limit(1).maybeSingle();
+            const { data: integRow } = await supabase.from("whatsapp_integration")
+              .select("wa_api_key").eq("company_id", company_id).maybeSingle();
+            if (!inst?.wa_instance_id || !integRow?.wa_api_key) {
+              results.push({ to, ok: false, error: "no_connected_instance" }); continue;
+            }
+            const res = await waFetch(integRow.wa_api_key,
+              `/v1/instances/${inst.wa_instance_id}/message/sendText`,
+              { method: "POST", body: JSON.stringify({ number: to, text: personalized }) });
+            results.push({ to, ok: res.ok, error: res.ok ? undefined : String(res.status) });
+          } else {
+            const { data: cb } = await supabase.from("chatbot_integration")
+              .select("flow_api_key, flow_api_base_url, flow_selected_instance_name, flow_default_bot_id")
+              .eq("company_id", company_id).maybeSingle();
+            if (!cb?.flow_api_key) { results.push({ to, ok: false, error: "flow_not_configured" }); continue; }
+            const base = (cb.flow_api_base_url || "https://api-flowbuilder.zailom.com/functions/v1/flow-api").replace(/\/$/, "");
+            const res = await fetch(`${base}/v1/messages/send`, {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${cb.flow_api_key}`, "x-flow-api-key": cb.flow_api_key, "Content-Type": "application/json" },
+              body: JSON.stringify({ instance: cb.flow_selected_instance_name, bot_id: cb.flow_default_bot_id, to, text: personalized }),
+            });
+            results.push({ to, ok: res.ok, error: res.ok ? undefined : String(res.status) });
+          }
+          if (results[results.length - 1].ok) {
+            await supabase.rpc("whatsapp_bump_usage", { p_company: company_id });
+          }
+        } catch (e: any) {
+          results.push({ to, ok: false, error: e?.message ?? "send_failed" });
+        }
+      }
+      const okCount = results.filter((r) => r.ok).length;
+      return json({ success: true, sent: okCount, failed: results.length - okCount, via: channel, results });
+    }
+
+
     // ---------- TEMPLATES (locais no Booking) ----------------------------
     if (action === "list-templates") {
       const { data, error } = await supabase.from("whatsapp_templates")
