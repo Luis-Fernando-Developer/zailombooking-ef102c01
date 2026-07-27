@@ -30,6 +30,20 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
 
+// Fire-and-forget dispatch para notify-booking-event (WhatsApp).
+function fireBookingNotification(bookingId: string, eventKey: string) {
+  try {
+    const base = Deno.env.get("SUPABASE_URL") ?? "";
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!base || !key || !bookingId) return;
+    fetch(`${base}/functions/v1/notify-booking-event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+      body: JSON.stringify({ booking_id: bookingId, event_key: eventKey }),
+    }).catch((e) => console.error("[fireBookingNotification]", e?.message ?? e));
+  } catch (e) { console.error("[fireBookingNotification]", e); }
+}
+
 // ─── util ────────────────────────────────────────────────────────────────────
 
 const json = (body: unknown, status = 200) =>
