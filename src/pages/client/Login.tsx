@@ -140,6 +140,17 @@ export default function ClientLogin() {
               </div>
             </div>
 
+            <div className="flex justify-end -mt-2">
+              <ForgotPasswordDialog
+                defaultEmail={email}
+                trigger={
+                  <button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">
+                    Esqueci minha senha
+                  </button>
+                }
+              />
+            </div>
+
             <Button 
               type="submit" 
               variant="neon" 
