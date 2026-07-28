@@ -214,7 +214,7 @@ serve(async (req) => {
 
     const tpl = await loadWhatsAppTemplate(supabase, c.company_id, event_key);
     const text = tpl ? renderTemplate(tpl, vars) : defaultMessage(event_key, vars);
-    const wa = await sendWhatsApp(supabase, c.company_id, phone, text);
+    const wa = await sendWhatsApp(supabase, c.company_id, phone, text, event_key);
 
     return new Response(JSON.stringify({ ok: true, event_key, whatsapp: wa }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
