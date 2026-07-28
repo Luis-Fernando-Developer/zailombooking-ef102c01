@@ -359,7 +359,7 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 2 — Operação ══ */}
         <section>
-          <SectionTitle>⚙️ Operação</SectionTitle>
+          <SectionTitle icon={Settings2}>Operação</SectionTitle>
           {loading ? <SkeletonCards n={4} /> : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard title="Cancelamentos" value={d.cancellations} description="no período" icon={XCircle} iconColor="text-destructive" />
