@@ -98,8 +98,23 @@ interface IntegrationRow {
   flow_selected_instance_name?: string | null;
   flow_default_bot_id?: string | null;
   flow_default_bot_name?: string | null;
+  flow_event_bots?: Record<string, string> | null;
   flow_last_synced_at?: string | null;
 }
+
+const BOT_EVENTS: { key: string; label: string; description: string }[] = [
+  { key: "booking_created",     label: "Agendamento criado",     description: "Enviado logo após um novo agendamento ser registrado." },
+  { key: "booking_pending",     label: "Aguardando confirmação", description: "Quando o agendamento fica pendente de confirmação." },
+  { key: "booking_confirmed",   label: "Agendamento confirmado", description: "Quando o agendamento é confirmado pela empresa." },
+  { key: "booking_rescheduled", label: "Reagendado",             description: "Quando data/horário do agendamento mudam." },
+  { key: "booking_reallocated", label: "Realocado",              description: "Quando o cliente é realocado para outro profissional/horário." },
+  { key: "booking_cancelled",   label: "Cancelado",              description: "Quando o agendamento é cancelado." },
+  { key: "booking_completed",   label: "Concluído",              description: "Quando o atendimento é marcado como realizado." },
+  { key: "booking_no_show",     label: "Não compareceu",         description: "Quando o cliente falta ao horário." },
+  { key: "booking_reminder",    label: "Lembrete",               description: "Lembretes automáticos antes do horário." },
+  { key: "payment_confirmed",   label: "Pagamento confirmado",   description: "Quando o pagamento do agendamento é aprovado." },
+  { key: "payment_pending",     label: "Pagamento pendente",     description: "Quando há cobrança aguardando pagamento." },
+];
 
 const DEFAULT_BASE = "https://api-flowbuilder.zailom.com/functions/v1/flow-api";
 
