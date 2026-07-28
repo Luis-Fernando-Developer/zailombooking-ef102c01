@@ -62,7 +62,13 @@ export const getAvailability = async (params: { data: GetAvailabilityParams }) =
   const { company_id, service_id, employee_id, date, ignore_min_advance } = params.data;
 
   try {
-    const rpcResult = await callAvailabilityRpc({ company_id, service_id, employee_id, date });
+    const rpcResult = await callAvailabilityRpc({
+      company_id,
+      service_id,
+      employee_id,
+      date,
+      ignore_min_advance,
+    });
     if (!rpcResult.error) return rpcResult;
 
     const { data, error } = await supabase.functions.invoke('get-availability', {
