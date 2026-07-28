@@ -9,7 +9,8 @@ export type PlanResource =
   | "bookings_month"
   | "chatbots"
   | "chatbot_messages"
-  | "integrations";
+  | "integrations"
+  | "whatsapp_instances";
 
 export interface PlanLimitCheck {
   resource: PlanResource;
@@ -20,16 +21,29 @@ export interface PlanLimitCheck {
   in_grace: boolean;
   grace_until: string | null;
   allowed: boolean;
+  subscription_status?: string | null;
 }
 
 const RESOURCE_LABEL: Record<PlanResource, string> = {
   employees: "profissionais ativos",
-  services: "serviços ativos",
+  services: "servicos ativos",
   combos: "combos ativos",
-  bookings_month: "agendamentos confirmados no mês",
+  bookings_month: "agendamentos no mes",
   chatbots: "bots",
   chatbot_messages: "mensagens",
-  integrations: "integrações",
+  integrations: "integracoes",
+  whatsapp_instances: "instancias de WhatsApp",
+};
+
+const COLUMN_MAP: Record<PlanResource, string> = {
+  employees:          "max_employees",
+  services:           "max_services",
+  combos:             "max_services",
+  bookings_month:     "max_bookings_month",
+  chatbots:           "max_chatbots",
+  chatbot_messages:   "max_chatbot_messages",
+  integrations:       "max_integrations",
+  whatsapp_instances: "max_whatsapp_instances",
 };
 
 export function usePlanLimits(companyId?: string) {
@@ -38,77 +52,102 @@ export function usePlanLimits(companyId?: string) {
   const check = useCallback(
     async (resource: PlanResource): Promise<PlanLimitCheck | null> => {
       if (!companyId) return null;
-      
-      // First, get the company's current plan
-      const { data: sub } = await supabase
-        .from("company_subscriptions")
-        .select("plan_id")
-        .eq("company_id", companyId)
-        .maybeSingle();
-      
-      const planId = sub?.plan_id || 'starter';
 
-      // Then get limits from plan_limits table (the new source of truth)
-      const { data: limitData } = await supabase
-        .from("plan_limits")
-        .select("*")
-        .eq("plan_id", planId)
-        .maybeSingle();
-
-      if (!limitData) return null;
-
-      // Map resource to database column
-      const columnMap: Record<PlanResource, string> = {
-        employees: "max_employees",
-        services: "max_services",
-        combos: "max_services", // Usually tied to services or separate
-        bookings_month: "max_bookings_month",
-        chatbots: "max_chatbots",
-        chatbot_messages: "max_chatbot_messages",
-        integrations: "max_integrations"
-      };
-
-      const limit = limitData[columnMap[resource]] ?? -1;
-      
-      // Perform local check or RPC for current usage
-      // For now, we still rely on the RPC for the usage calculation logic
-      const { data, error } = await supabase.rpc("check_plan_limit", {
+      // 1) v2 rpc: retorna limites + subscription_status
+      const { data, error } = await supabase.rpc("check_plan_limit_v2", {
         _company_id: companyId,
         _resource: resource,
       });
 
       if (error) {
-        console.error("[usePlanLimits] erro:", error);
-        return null;
+        console.error("[usePlanLimits] rpc error:", error);
       }
-      
-      // Override the limit with the one from our new table if needed
-      const result = data as unknown as PlanLimitCheck;
-      return {
-        ...result,
-        limit: limit === -1 ? null : limit,
-        unlimited: limit === -1,
-        allowed: limit === -1 || result.current < limit
+
+      // 2) fonte da verdade: plan_limits
+      const { data: sub } = await supabase
+        .from("company_subscriptions")
+        .select("plan_id, subscription_plans(name), billing_status")
+        .eq("company_id", companyId)
+        .maybeSingle();
+
+      const planKey =
+        ((sub as any)?.subscription_plans?.name ?? "starter")
+          .toString()
+          .toLowerCase();
+
+      const { data: limitRow } = await supabase
+        .from("plan_limits")
+        .select("*")
+        .eq("plan_id", planKey)
+        .maybeSingle();
+
+      const col = COLUMN_MAP[resource];
+      const rawLimit = limitRow ? (limitRow as any)[col] : -1;
+      const unlimited = rawLimit === -1 || rawLimit === null;
+      const limit = unlimited ? null : Number(rawLimit);
+
+      const base = (data as unknown as PlanLimitCheck) ?? {
+        resource,
+        current: 0,
+        limit,
+        plan_name: planKey,
+        unlimited,
+        in_grace: false,
+        grace_until: null,
+        allowed: true,
       };
+
+      const subStatus =
+        (base as any).subscription_status ??
+        (sub as any)?.billing_status ??
+        "active";
+      const inactive =
+        subStatus === "suspended" || subStatus === "blocked" || subStatus === "paused";
+
+      const result: PlanLimitCheck = {
+        ...base,
+        limit,
+        unlimited,
+        plan_name: planKey,
+        subscription_status: subStatus,
+        allowed:
+          !inactive && (unlimited || (limit !== null && base.current < limit)),
+      };
+      return result;
     },
-    [companyId]
+    [companyId],
   );
 
-
-  /** Returns true if allowed; otherwise shows a toast and returns false. */
   const guard = useCallback(
     async (resource: PlanResource): Promise<boolean> => {
       const r = await check(resource);
-      if (!r) return true; // fail-open if check itself errors
+      if (!r) return true; // fail-open se rpc falhou
       if (r.allowed) return true;
+
+      if (
+        r.subscription_status === "suspended" ||
+        r.subscription_status === "blocked" ||
+        r.subscription_status === "paused"
+      ) {
+        toast({
+          title: "Assinatura inativa",
+          description:
+            "Sua assinatura esta " +
+            r.subscription_status +
+            ". Regularize o pagamento para continuar usando o sistema.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
       toast({
         title: "Limite do plano atingido",
-        description: `Seu plano ${r.plan_name ?? ""} permite ${r.limit} ${RESOURCE_LABEL[resource]} (uso atual: ${r.current}). Faça upgrade ou desative algum item para continuar.`,
+        description: `Seu plano ${r.plan_name ?? ""} permite ${r.limit} ${RESOURCE_LABEL[resource]} (uso atual: ${r.current}). Faca upgrade ou desative algum item para continuar.`,
         variant: "destructive",
       });
       return false;
     },
-    [check, toast]
+    [check, toast],
   );
 
   return { check, guard };
