@@ -551,7 +551,7 @@ export default function ChatbotIntegracao() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Bot className="h-5 w-5" /> Bot padrão</CardTitle>
-                <CardDescription>Bot que será usado por padrão. Suporte a bots por evento chegará em breve.</CardDescription>
+                <CardDescription>Bot usado como padrão para todos os eventos. Você pode sobrescrever por evento no card abaixo.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {loadingLists ? (
