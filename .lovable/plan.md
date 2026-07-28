@@ -1,204 +1,98 @@
-## Escopo
+# Plano: Limites de plano corretos + Ciclo de faturamento em 4 camadas + Extras
 
-Refatorar a área do cliente do portal de agendamentos (booking.zailom.com/:slug) para resolver os 6 pontos visuais + os 6 cenários de negócio descritos. Trabalho extenso, por isso peço aprovação antes de tocar no código.
+Escopo grande. Vou dividir em blocos com dependências claras. Confirme para eu implementar tudo em sequência.
 
-## O que será corrigido
+## Bloco 1 — Corrigir tabela `plan_limits` (fonte da verdade)
 
-### Bloco A — Header / Sessão (imagens 1 e 2)
+Migração `2071_plan_limits_correct_values.sql`:
 
-1. No header público da empresa (página `/:slug`), o botão "voltar/X" hoje chama `signOut` ou navega para uma rota que invalida a sessão. Corrigir para apenas navegar para a home da empresa SEM deslogar, e exibir o nome/avatar do cliente logado no canto onde hoje aparecem "Entrar / Cadastrar".
-2. Quando `client` (sessão) existir → mostrar avatar + nome + menu (Painel do Cliente / Sair). Quando não existir → manter "Entrar / Cadastrar".
+- Adicionar coluna `white_label BOOLEAN DEFAULT false` em `plan_limits`.
+- `UPSERT` dos 3 planos com os valores corretos abaixo (`-1` = ilimitado):
 
-### Bloco B — Layout do painel do cliente (imagem 3)
+| Recurso | starter | professional | enterprise |
+|---|---|---|---|
+| max_employees | 1 | 5 | -1 |
+| max_services | 5 | 12 | -1 |
+| max_bookings_month | 200 | 700 | -1 |
+| max_chatbots | 1 | 3 | -1 |
+| max_whatsapp_instances | 1 | 3 | -1 |
+| max_integrations | 2 | 10 | -1 |
+| max_chatbot_messages | 700 | 5000 | -1 |
+| white_label | false | true | true |
 
-1. Reestruturar `ClientLayout` para:
-  ```text
-   ┌──────────────────────────────┐
-   │ Side   │ Header              │        
-   ├         ─────────────────────┤
-   │ Side   │ Main                │
-   └────────┴─────────────────────┘
-  ```
-   Header e main fica  ao lado da sidebar.
-2. Sidebar passa a exibir a logo da empresa (`company.logo_url`) no topo.
-3. Botão "adicionar foto" no Perfil: ligar input file ao Supabase Storage (bucket `client-avatars`), atualizar `clients.avatar_url`, refletir no header/sidebar/dashboard.
+- Corrigir o `combos` no `usePlanLimits` para usar `max_services` (já está) — ok.
 
-### Bloco C — Dashboard (imagem 4)
+## Bloco 2 — Ciclo de faturamento em 4 camadas
 
-1. Card de boas-vindas: substituir o círculo verde vazio pelo avatar do cliente (`avatar_url`), com fallback nas iniciais.
+Migração `2072_billing_cycle_enforcement.sql`:
 
-### Bloco D — Cards de "Próximos Agendamentos" (imagem 5)
+**Campos adicionados em `company_subscriptions`:**
+- `cycle_start_at TIMESTAMPTZ` — momento da adesão/último renovamento efetivo.
+- `next_renewal_at TIMESTAMPTZ` — cycle_start_at + intervalo do ciclo (monthly/quarterly/annual).
+- `next_invoice_at TIMESTAMPTZ` — `next_renewal_at - 5 dias`.
+- `grace_until TIMESTAMPTZ` — `next_renewal_at + 24h` (suspensão se não pago).
+- `status TEXT CHECK IN ('active','past_due','suspended','paused','blocked')`.
+- `is_free_override BOOLEAN` + `free_cycles_remaining INT` — para 100% desconto do super-admin.
+- `manual_admin_created BOOLEAN` — flag da camada 4.
 
-1. Formato da data: `01 de julho de 2026 às 08:00` (date-fns + ptBR, `"dd 'de' MMMM 'de' yyyy 'às' HH:mm"`).
-2. Adicionar linha "Profissional: João" (carregar `employees.name` via join).
-3. Mesmo formato aplicado para `/agendamentos` (lista completa).
+**Função `enforce_subscription_status(company_id)`** roda as 4 camadas:
+1. Se `status IN ('paused','blocked')` → bloqueado, sai.
+2. Se `now() > grace_until` E fatura mais recente não paga → `status='suspended'`.
+3. Se `is_free_override=true` E `free_cycles_remaining <= 0` E fatura não paga → aplica camada 2.
+4. Se `manual_admin_created=true` → mesma lógica da camada 2 (libera só após pagamento confirmado).
 
-### Bloco E — Regra de edição/reagendamento (imagem 6 + cenários)
+Ao pagar (`asaas-webhook`): move `cycle_start_at = now()`, recalcula `next_renewal_at`, decrementa `free_cycles_remaining`, zera contadores mensais (via reset function abaixo).
 
-Hoje a regra que exibe "Alteração não permitida" considera status financeiro. Nova regra:
+**Reset mensal (pg_cron):** worker roda 1x/hora, chama `enforce_subscription_status` para todas empresas cujo `next_renewal_at <= now()`. Reseta `bookings_month` e `chatbot_messages` counters somente quando o ciclo renova (não em data fixa do mês).
 
-```ts
-canEdit = bookingDateTime > now
-       && !['completed','cancelled','no_show','in_progress'].includes(status)
-       && !companyBlocksEdit(booking)  // regra da empresa (janela mínima)
-```
+**Guard universal:** função `is_company_active(company_id) RETURNS BOOLEAN` — chamada por todos os `check_plan_limit` e pelas Edge Functions críticas. Empresa suspensa retorna `allowed=false, reason='subscription_suspended'`.
 
-- Permitir Reagendar (data/hora/profissional), Trocar serviço, Adicionar serviços extras, Cancelar — desde que o procedimento ainda não tenha ocorrido, independente de pagamento.
-- Ao reagendar: liberar slot antigo + reservar novo via função RPC transacional `client_reschedule_booking(...)`.
-- Ao trocar profissional: validar `employee_services` + disponibilidade.
-- Ao trocar/adicionar serviço: recalcular duração, slot, preço; criar registro de diferença em `payment_adjustments` quando o valor mudar.
+## Bloco 3 — Frontend: aplicar bloqueio real
 
-### Bloco F — Cenários adicionais detectados (vou implementar também)
+- `usePlanLimits.guard()` já bloqueia; adicionar retorno de `subscription_status` e mostrar toast específico "Sua assinatura está suspensa. Regularize o pagamento."
+- Novo componente `<SubscriptionSuspendedBanner>` global no `BusinessLayout`, ocultando funcionalidades quando `status='suspended'`.
+- Aplicar `guard()` nos formulários que ainda não têm: Employees, Services, WhatsApp instances, Chatbots, Integrations.
 
-- **Cenário 7 — Janela mínima de alteração**: respeitar `companies.min_reschedule_hours` (se a empresa define que precisa de X horas de antecedência, bloquear abaixo disso, com mensagem clara).
-- **Cenário 8 — Conflito de concorrência**: dois clientes tentando o mesmo slot → tratar erro de unique constraint e mostrar "Horário acabou de ser reservado".
-- **Cenário 9 — Realocação automática (ausência do profissional)**: notificação in-app + tela `/client/realocacao/:id` com 4 ações (aceitar / outro profissional / nova data / cancelar).
-- **Cenário 10 — Reembolso parcial**: quando reagendamento reduz valor ou cancelamento gera estorno parcial conforme política.
-- **Cenário 11 — Histórico de alterações**: tabela `booking_history` para auditoria.
+## Bloco 4 — Super Admin: Instâncias WhatsApp (globais)
 
-## Banco de dados — SQL para execução manual no Supabase externo
+Refatorar `src/pages/super-admin/Instances.tsx`:
 
-```sql
--- 1. Storage bucket de avatares de clientes
-insert into storage.buckets (id, name, public)
-values ('client-avatars', 'client-avatars', true)
-on conflict (id) do nothing;
+- Nova Edge Function `super-admin-list-instances`: chama Evolution Manager API com a key global `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (endpoint `GET /instance/fetchInstances`) e enriquece cada instância com o `company_id` correspondente (join em `whatsapp_instances`).
+- UI lista todas as instâncias com: nome, status, número, empresa dona, última conexão, botão de desconectar/deletar (opcional).
+- **Segurança:** a key global é salva via `secrets--set_secret` como `EVOLUTION_MANAGER_KEY` — nunca vai pro frontend.
 
-create policy "client avatars are publicly readable"
-  on storage.objects for select
-  using (bucket_id = 'client-avatars');
+## Bloco 5 — Super Admin: Editor de Planos
 
-create policy "clients upload own avatar"
-  on storage.objects for insert to authenticated
-  with check (bucket_id = 'client-avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+Refatorar `src/pages/super-admin/Plans.tsx`:
 
-create policy "clients update own avatar"
-  on storage.objects for update to authenticated
-  using (bucket_id = 'client-avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+- Ler valores de `plan_limits` via query (não hardcoded).
+- Card de cada plano com botão "Editar" que abre `<PlanEditDialog>`:
+  - Campos numéricos para todos os `max_*` (com toggle "ilimitado" que grava `-1`).
+  - Toggle `white_label`.
+  - Campos de preço (`monthly`, `quarterly`, `annual`) — nova tabela `plan_prices` ou colunas em `subscription_plans`.
+- Persiste via update em `plan_limits` (nova policy: super-admin only).
 
--- 2. Coluna avatar em clients (se não existir)
-alter table public.clients add column if not exists avatar_url text;
+## Bloco 6 — Card de agendamento com método de pagamento
 
--- 3. Política de reagendamento por empresa
-alter table public.companies
-  add column if not exists min_reschedule_hours integer not null default 2,
-  add column if not exists allow_client_reschedule boolean not null default true,
-  add column if not exists allow_client_cancel boolean not null default true;
+Em `src/pages/business/Bookings.tsx` (e `Dashboard.tsx`):
 
--- 4. Histórico de alterações
-create table if not exists public.booking_history (
-  id uuid primary key default gen_random_uuid(),
-  booking_id uuid not null references public.bookings(id) on delete cascade,
-  changed_by uuid,
-  change_type text not null check (change_type in ('reschedule','service_change','employee_change','cancel','reallocation')),
-  old_data jsonb,
-  new_data jsonb,
-  created_at timestamptz not null default now()
-);
-grant select, insert on public.booking_history to authenticated;
-grant all on public.booking_history to service_role;
-alter table public.booking_history enable row level security;
-create policy "clients read own history"
-  on public.booking_history for select to authenticated
-  using (exists (select 1 from public.bookings b
-                 where b.id = booking_id and b.client_id = auth.uid()));
+- Ler `payment_method` (`online` | `local` | `pending`) do booking.
+- Badge no card: 🟢 "Pago online", 🟡 "Pagar no local", ⚪ "Pendente".
+- Se não existir a coluna, migração `2073_bookings_payment_method.sql` adiciona: `payment_method TEXT CHECK IN ('online','local','pending') DEFAULT 'local'`.
 
--- 5. Diferenças de pagamento
-create table if not exists public.payment_adjustments (
-  id uuid primary key default gen_random_uuid(),
-  booking_id uuid not null references public.bookings(id) on delete cascade,
-  amount_diff numeric(10,2) not null,
-  reason text,
-  status text not null default 'pending' check (status in ('pending','charged','refunded','waived')),
-  created_at timestamptz not null default now()
-);
-grant select, insert, update on public.payment_adjustments to authenticated;
-grant all on public.payment_adjustments to service_role;
-alter table public.payment_adjustments enable row level security;
-create policy "clients read own adjustments"
-  on public.payment_adjustments for select to authenticated
-  using (exists (select 1 from public.bookings b
-                 where b.id = booking_id and b.client_id = auth.uid()));
+## Detalhes técnicos
 
--- 6. RPC transacional de reagendamento (libera slot antigo + reserva novo)
-create or replace function public.client_reschedule_booking(
-  p_booking_id uuid,
-  p_new_date date,
-  p_new_start time,
-  p_new_employee uuid,
-  p_new_service uuid
-) returns public.bookings
-language plpgsql security definer set search_path = public as $$
-declare v_old public.bookings; v_new public.bookings;
-begin
-  select * into v_old from bookings where id = p_booking_id and client_id = auth.uid() for update;
-  if not found then raise exception 'booking_not_found'; end if;
-  if v_old.booking_status in ('completed','cancelled','no_show','in_progress') then
-    raise exception 'booking_locked';
-  end if;
-  -- validar conflito
-  if exists (
-    select 1 from bookings
-    where company_id = v_old.company_id
-      and employee_id = coalesce(p_new_employee, v_old.employee_id)
-      and booking_date = p_new_date
-      and booking_status not in ('cancelled','no_show')
-      and id <> p_booking_id
-      and tstzrange((p_new_date + p_new_start)::timestamptz,
-                    (p_new_date + p_new_start + interval '1 minute' * (
-                      select coalesce(duration_minutes,30) from services
-                       where id = coalesce(p_new_service, v_old.service_id)))::timestamptz, '[)')
-        && tstzrange((booking_date + start_time)::timestamptz,
-                     (booking_date + end_time)::timestamptz, '[)')
-  ) then raise exception 'slot_taken'; end if;
+- **Segurança**: `EVOLUTION_MANAGER_KEY` só em Edge Function. RLS em `plan_limits` (SELECT público / UPDATE só super-admin via `has_role`). RLS em `subscription_changes` restritiva.
+- **Backwards compat**: campos novos em `company_subscriptions` são nullable/têm defaults; assinaturas antigas migram via UPDATE inicial que popula `cycle_start_at = COALESCE(current_period_start, created_at)`.
+- **pg_cron**: worker roda hourly. Sem pg_cron disponível, cair para Edge Function agendada externamente.
 
-  update bookings set
-    booking_date = p_new_date,
-    start_time   = p_new_start,
-    end_time     = p_new_start + interval '1 minute' * (
-                     select coalesce(duration_minutes,30) from services
-                      where id = coalesce(p_new_service, v_old.service_id)),
-    employee_id  = coalesce(p_new_employee, employee_id),
-    service_id   = coalesce(p_new_service,  service_id),
-    updated_at   = now()
-  where id = p_booking_id
-  returning * into v_new;
+## Ordem de execução sugerida
 
-  insert into booking_history(booking_id, changed_by, change_type, old_data, new_data)
-    values (p_booking_id, auth.uid(), 'reschedule', to_jsonb(v_old), to_jsonb(v_new));
-  return v_new;
-end $$;
-grant execute on function public.client_reschedule_booking(uuid,date,time,uuid,uuid) to authenticated;
-```
+1. Bloco 1 (rápido, base para tudo)
+2. Bloco 2 (crítico, arruma sua empresa Testando-01)
+3. Bloco 3 (fecha o loop no frontend)
+4. Bloco 6 (independente, rápido)
+5. Bloco 5 (editor de planos)
+6. Bloco 4 (instâncias globais)
 
-Sem Edge Functions novas — toda a lógica vive em RPC do Postgres + cliente.
-
-## Arquivos a alterar/criar (frontend)
-
-- `src/components/public/PublicHeader.tsx` (ou equivalente) — manter sessão, mostrar nome do cliente.
-- `src/components/client/ClientLayout.tsx` — reestrutura grid, regra `canEdit`, formato data, profissional, avatar.
-- `src/components/client/ClientSidebar.tsx` — logo da empresa, avatar.
-- `src/pages/client/Profile.tsx` — upload de avatar funcional.
-- `src/pages/client/Dashboard.tsx` — avatar no card de boas-vindas + formato de data nos cards.
-- `src/pages/client/Bookings.tsx` — formato de data + profissional + nova regra `canEdit`.
-- `src/components/client/ClientRescheduleDialog.tsx` — usar RPC `client_reschedule_booking`, suportar troca de profissional/serviço.
-- `src/components/client/ClientCancelDialog.tsx` — respeitar `min_reschedule_hours` e política.
-- `src/pages/client/Realocacao.tsx` (novo) — fluxo do Cenário 4.
-- `src/lib/bookingRules.ts` (novo) — função pura `canEditBooking(booking, company, now)`.
-
-## Validação
-
-1. `npm run build` limpo.
-2. Playwright: login do cliente, abrir `/client/perfil`, fazer upload de avatar, verificar que aparece no header/sidebar/dashboard.
-3. Playwright: abrir `/agendamentos`, verificar que agendamento futuro mostra "Reagendar/Cancelar" habilitado e formato `01 de julho de 2026 às 08:00 — Profissional: João`.
-
-## Confirmações que preciso de você antes de começar
-
-1. **Bucket `client-avatars**`: posso criar como público (leitura pública), com upload restrito ao dono? (recomendo sim)
-2. **Janela mínima de reagendamento padrão**: 2h ok? (você ajusta depois por empresa)
-3. **Reembolso parcial**: implemento só o registro em `payment_adjustments` como `pending` (sem integrar gateway agora) — confirma?
-4. **Header público com cliente logado**: mostrar avatar+nome com dropdown "Painel / Sair", ok?
-
-Responda 1-2-3-4 (ou "tudo ok") e eu executo o plano completo de uma vez.  
-  
-resposta final: tudo ok, pode implementar
+Aprove pra eu tocar do 1 ao 6, ou diga se quer começar por outro.
