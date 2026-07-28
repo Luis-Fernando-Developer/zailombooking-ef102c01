@@ -39,7 +39,7 @@ export function MetricGroup({
   return (
     <section>
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <h2 className="text-xl font-semibold text-gradient">{title}</h2>
+        <div className="text-xl font-semibold text-gradient">{title}</div>
         {chart && (
           <ToggleGroup
             type="single"
