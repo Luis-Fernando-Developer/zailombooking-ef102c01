@@ -3,9 +3,21 @@
 -- Convenção: -1 = ilimitado.
 -- =====================================================================
 
--- 1) coluna white_label
+-- 1) colunas que podem não existir em instalações antigas
 ALTER TABLE public.plan_limits
-  ADD COLUMN IF NOT EXISTS white_label BOOLEAN NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS white_label BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS plan_name TEXT,
+  ADD COLUMN IF NOT EXISTS max_employees          INTEGER,
+  ADD COLUMN IF NOT EXISTS max_services           INTEGER,
+  ADD COLUMN IF NOT EXISTS max_bookings_month     INTEGER,
+  ADD COLUMN IF NOT EXISTS max_chatbots           INTEGER,
+  ADD COLUMN IF NOT EXISTS max_whatsapp_instances INTEGER,
+  ADD COLUMN IF NOT EXISTS max_integrations       INTEGER,
+  ADD COLUMN IF NOT EXISTS max_chatbot_messages   INTEGER,
+  ADD COLUMN IF NOT EXISTS features               JSONB NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS updated_at             TIMESTAMPTZ NOT NULL DEFAULT now();
+
+UPDATE public.plan_limits SET plan_name = COALESCE(plan_name, initcap(plan_id));
 
 -- 2) upsert dos 3 planos com os valores canônicos
 INSERT INTO public.plan_limits
