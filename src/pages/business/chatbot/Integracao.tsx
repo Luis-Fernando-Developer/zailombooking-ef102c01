@@ -317,6 +317,14 @@ export default function ChatbotIntegracao() {
     toast.success(`Bot padrão: ${bot?.name ?? id}`);
   }
 
+  function onSelectEventBot(eventKey: string, botId: string | null) {
+    const current = { ...(integration?.flow_event_bots ?? {}) };
+    if (!botId || botId === "__default__") delete current[eventKey];
+    else current[eventKey] = botId;
+    saveConfig({ event_bots: current });
+    toast.success("Mapeamento atualizado");
+  }
+
   if (loading) {
     return (
       <BusinessLayout companySlug={slug!} companyName={companyName} companyId={companyId ?? undefined} userRole="owner" currentUser={user}>
