@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import {
   Plug, CheckCircle2, AlertCircle, Loader2, Trash2, ExternalLink,
-  UserCheck, UserX, RefreshCw, Building2, Bot, Smartphone,
+  UserCheck, UserX, RefreshCw, Building2, Bot, Smartphone, Workflow,
 } from "lucide-react";
 import { toast } from "sonner";
 
