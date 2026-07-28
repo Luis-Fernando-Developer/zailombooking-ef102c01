@@ -372,10 +372,10 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 3 — Financeiro ══ */}
         {loading ? (
-          <section><SectionTitle>💳 Financeiro — Formas de Pagamento</SectionTitle><SkeletonCards n={3} /></section>
+          <section><SectionTitle icon={CreditCard}>Financeiro — Formas de Pagamento</SectionTitle><SkeletonCards n={3} /></section>
         ) : (
           <MetricGroup
-            title="💳 Financeiro — Formas de Pagamento"
+            title={<SectionTitle icon={CreditCard}>Financeiro — Formas de Pagamento</SectionTitle>}
             storageKey="financeiro"
             numbers={
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
