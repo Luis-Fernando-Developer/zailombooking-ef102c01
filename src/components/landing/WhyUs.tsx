@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { MessageSquareOff, Clock, TrendingUp, UserCheck } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { LaptopMockup } from "@/components/landing/LaptopMockup";
+import calendarShot from "@/assets/booking-calendar.png.asset.json";
 
 gsap.registerPlugin(ScrollTrigger);
 
