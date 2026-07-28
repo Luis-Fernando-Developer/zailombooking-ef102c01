@@ -40,7 +40,7 @@ interface Service {
 interface Employee {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   avatar_url?: string;
 }
 
@@ -155,20 +155,25 @@ export default function ClientBooking() {
       if (savedState) {
         try {
           const state = JSON.parse(savedState);
-          
-          // Find service or combo
-          const service = services.find(s => s.id === state.serviceId);
-          const combo = combos.find(c => c.id === state.serviceId);
+
+          // Handle combo prefix ("combo:UUID") vs plain service UUID
+          const savedId: string = state.serviceId || '';
+          const isComboId = savedId.startsWith('combo:');
+          const rawId = isComboId ? savedId.replace('combo:', '') : savedId;
+
+          const service = !isComboId ? services.find(s => s.id === rawId) : null;
+          const combo = isComboId ? combos.find(c => c.id === rawId) : null;
+
           if (service) {
             setSelectedService(service);
           } else if (combo) {
             const comboAsService: Service = {
-              id: combo.id,
+              id: `combo:${combo.id}`,
               name: combo.name,
               description: combo.description || '',
               price: combo.price || combo.combo_price || 0,
-              duration_minutes: combo.total_duration_minutes,
-              image_url: combo.image_url
+              duration_minutes: combo.total_duration_minutes ?? (combo.items?.reduce((s: number, it: any) => s + (it.service?.duration_minutes || 0), 0) || 0),
+              image_url: combo.image_url || combo.items?.[0]?.service?.image_url,
             };
             setSelectedService(comboAsService);
           }
@@ -405,7 +410,7 @@ export default function ClientBooking() {
          // buscar dados dos employees elegíveis (apenas do mesmo company)
         const { data: employeesData } = await supabase
           .from('employees')
-          .select('id, name, email, avatar_url')
+          .select('id, name, avatar_url')
           .in('id', eligibleEmployeeIds)
           .eq('company_id', company.id)
           .eq('is_active', true);
@@ -420,7 +425,6 @@ export default function ClientBooking() {
         .select(`
           id, 
           name, 
-          email,
           avatar_url,
           employee_services!inner(
             service_id
@@ -919,7 +923,6 @@ export default function ClientBooking() {
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">{employee.name}</h3>
-                            <p className="text-muted-foreground text-sm">{employee.email}</p>
                           </div>
                         </div>
                         {selectedEmployee?.id === employee.id && (
@@ -976,20 +979,22 @@ export default function ClientBooking() {
                     {AVAILABILITY_REASON_LABELS[availabilityReason ?? 'no_slots'] ?? 'Nenhuma data disponível nos próximos 30 dias.'}
                   </p>
                 ) : (
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    locale={ptBR}
-                    disabled={(date) => {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      return date < today || !availableDates.some(availableDate => 
-                        availableDate.toDateString() === date.toDateString()
-                      );
-                    }}
-                    className="rounded-md border border-primary/20 bg-background/50"
-                  />
+                  <div className="flex justify-center py-4">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      locale={ptBR}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return date < today || !availableDates.some(availableDate =>
+                          availableDate.toDateString() === date.toDateString()
+                        );
+                      }}
+                      className="rounded-xl border-2 border-primary/30 bg-background/50 p-4 md:p-6 shadow-lg [&_.rdp-months]:justify-center [&_table]:w-full [&_.rdp-cell]:h-12 [&_.rdp-cell]:w-12 md:[&_.rdp-cell]:h-14 md:[&_.rdp-cell]:w-14 [&_.rdp-head_cell]:w-12 md:[&_.rdp-head_cell]:w-14 [&_button]:h-11 [&_button]:w-11 md:[&_button]:h-12 md:[&_button]:w-12 [&_button]:text-base [&_.rdp-caption_label]:text-lg [&_.rdp-nav_button]:h-9 [&_.rdp-nav_button]:w-9"
+                    />
+                  </div>
                 )}
               </div>
 
