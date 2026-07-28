@@ -342,7 +342,7 @@ export default function BusinessSettings() {
               <div className="space-y-0.5">
                 <Label>Enviar Lembretes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Envia lembretes automáticos por email/SMS
+                  Envia lembretes automáticos via WhatsApp (usa o template “Lembrete de agendamento”).
                 </p>
               </div>
               <Switch
@@ -353,6 +353,40 @@ export default function BusinessSettings() {
                 disabled={!canEditSettings}
               />
             </div>
+
+            {businessSettings.sendReminders && (
+              <div className="space-y-2 rounded-md border border-border p-4">
+                <Label>Quando enviar os lembretes</Label>
+                <p className="text-sm text-muted-foreground">
+                  Selecione um ou mais momentos antes do horário do agendamento.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
+                  {REMINDER_OFFSET_OPTIONS.map((opt) => {
+                    const active = businessSettings.reminderOffsetsMinutes.includes(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => canEditSettings && toggleReminderOffset(opt.value)}
+                        disabled={!canEditSettings}
+                        className={`text-sm rounded-md border px-3 py-2 transition-colors ${
+                          active
+                            ? "border-primary bg-primary/10 text-foreground"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/50"
+                        } ${!canEditSettings ? "opacity-60 cursor-not-allowed" : ""}`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {businessSettings.reminderOffsetsMinutes.length === 0 && (
+                  <p className="text-xs text-destructive pt-1">
+                    Selecione ao menos um horário ou desative os lembretes.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="advanceDays">Antecedência Máxima (dias)</Label>
