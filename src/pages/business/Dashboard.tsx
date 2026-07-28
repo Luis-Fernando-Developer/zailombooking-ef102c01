@@ -16,7 +16,8 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import {
   CalendarIcon, Users, DollarSign, TrendingUp, Clock, CheckCircle,
   XCircle, AlertCircle, Activity, UserMinus, Repeat2, Star, Scissors,
-  Wallet, CreditCard, Banknote, UserX,
+  Wallet, CreditCard, Banknote, UserX, BarChart3, Settings2, Handshake,
+  ListChecks, UsersRound, Trophy,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { Link } from "react-router-dom";
@@ -133,8 +134,25 @@ function StatCard({
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-xl font-semibold text-gradient mb-4">{children}</h2>;
+function SectionTitle({
+  children,
+  icon: Icon,
+  iconClassName,
+}: {
+  children: React.ReactNode;
+  icon?: React.ComponentType<{ className?: string }>;
+  iconClassName?: string;
+}) {
+  return (
+    <h2 className="text-xl font-semibold mb-4 flex items-center gap-3">
+      {Icon && (
+        <span className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 shadow-sm">
+          <Icon className={`h-5 w-5 text-primary ${iconClassName ?? ""}`} />
+        </span>
+      )}
+      <span className="text-gradient">{children}</span>
+    </h2>
+  );
 }
 
 function SkeletonCards({ n = 4 }: { n?: number }) {
@@ -328,7 +346,7 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 1 — Indicadores Principais ══ */}
         <section>
-          <SectionTitle>📊 Indicadores Principais</SectionTitle>
+          <SectionTitle icon={BarChart3}>Indicadores Principais</SectionTitle>
           {loading ? <SkeletonCards n={4} /> : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard title="Agendamentos" value={d.bookingsCount} description="no período" icon={CalendarIcon} />
@@ -341,7 +359,7 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 2 — Operação ══ */}
         <section>
-          <SectionTitle>⚙️ Operação</SectionTitle>
+          <SectionTitle icon={Settings2}>Operação</SectionTitle>
           {loading ? <SkeletonCards n={4} /> : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard title="Cancelamentos" value={d.cancellations} description="no período" icon={XCircle} iconColor="text-destructive" />
@@ -354,10 +372,10 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 3 — Financeiro ══ */}
         {loading ? (
-          <section><SectionTitle>💳 Financeiro — Formas de Pagamento</SectionTitle><SkeletonCards n={3} /></section>
+          <section><SectionTitle icon={CreditCard}>Financeiro — Formas de Pagamento</SectionTitle><SkeletonCards n={3} /></section>
         ) : (
           <MetricGroup
-            title="💳 Financeiro — Formas de Pagamento"
+            title={<SectionTitle icon={CreditCard}>Financeiro — Formas de Pagamento</SectionTitle>}
             storageKey="financeiro"
             numbers={
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -383,7 +401,7 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 4 — Repasses de Autônomos ══ */}
         <section>
-          <SectionTitle>🤝 Repasses de Autônomos</SectionTitle>
+          <SectionTitle icon={Handshake}>Repasses de Autônomos</SectionTitle>
           {loading ? <SkeletonCards n={3} /> : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <StatCard title="A repassar para Autônomos" value={BRL(d.toRepayAutonomous)} description="comissão devida no período" icon={DollarSign} iconColor="text-orange-400" />
@@ -408,7 +426,7 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 5 — Status dos Agendamentos ══ */}
         {loading ? (
-          <section><SectionTitle>📅 Status dos Agendamentos</SectionTitle><SkeletonCards n={6} /></section>
+          <section><SectionTitle icon={ListChecks}>Status dos Agendamentos</SectionTitle><SkeletonCards n={6} /></section>
         ) : (() => {
           const statusMeta = [
             { key: "pending", label: "Pendentes", icon: AlertCircle, color: "text-yellow-400" },
@@ -423,7 +441,7 @@ export default function BusinessDashboard() {
             .filter((x) => x.value > 0);
           return (
             <MetricGroup
-              title="📅 Status dos Agendamentos"
+              title={<SectionTitle icon={ListChecks}>Status dos Agendamentos</SectionTitle>}
               storageKey="status"
               numbers={
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -445,10 +463,10 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 6 — Equipe ══ */}
         {loading ? (
-          <section><SectionTitle>👥 Equipe</SectionTitle><SkeletonCards n={4} /></section>
+          <section><SectionTitle icon={UsersRound}>Equipe</SectionTitle><SkeletonCards n={4} /></section>
         ) : (
           <MetricGroup
-            title="👥 Equipe"
+            title={<SectionTitle icon={UsersRound}>Equipe</SectionTitle>}
             storageKey="equipe"
             numbers={
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -498,10 +516,10 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 7 — Serviços ══ */}
         {loading ? (
-          <section><SectionTitle>✂️ Serviços</SectionTitle><SkeletonCards n={2} /></section>
+          <section><SectionTitle icon={Scissors}>Serviços</SectionTitle><SkeletonCards n={2} /></section>
         ) : (
           <MetricGroup
-            title="✂️ Serviços"
+            title={<SectionTitle icon={Scissors}>Serviços</SectionTitle>}
             storageKey="servicos"
             numbers={
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -531,10 +549,10 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 8 — Clientes ══ */}
         {loading ? (
-          <section><SectionTitle>🏆 Clientes</SectionTitle><SkeletonCards n={3} /></section>
+          <section><SectionTitle icon={Trophy}>Clientes</SectionTitle><SkeletonCards n={3} /></section>
         ) : (
           <MetricGroup
-            title="🏆 Clientes"
+            title={<SectionTitle icon={Trophy}>Clientes</SectionTitle>}
             storageKey="clientes"
             numbers={
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import {
   Plug, CheckCircle2, AlertCircle, Loader2, Trash2, ExternalLink,
-  UserCheck, UserX, RefreshCw, Building2, Bot, Smartphone,
+  UserCheck, UserX, RefreshCw, Building2, Bot, Smartphone, Workflow,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,8 +98,23 @@ interface IntegrationRow {
   flow_selected_instance_name?: string | null;
   flow_default_bot_id?: string | null;
   flow_default_bot_name?: string | null;
+  flow_event_bots?: Record<string, string> | null;
   flow_last_synced_at?: string | null;
 }
+
+const BOT_EVENTS: { key: string; label: string; description: string }[] = [
+  { key: "booking_created",     label: "Agendamento criado",     description: "Enviado logo após um novo agendamento ser registrado." },
+  { key: "booking_pending",     label: "Aguardando confirmação", description: "Quando o agendamento fica pendente de confirmação." },
+  { key: "booking_confirmed",   label: "Agendamento confirmado", description: "Quando o agendamento é confirmado pela empresa." },
+  { key: "booking_rescheduled", label: "Reagendado",             description: "Quando data/horário do agendamento mudam." },
+  { key: "booking_reallocated", label: "Realocado",              description: "Quando o cliente é realocado para outro profissional/horário." },
+  { key: "booking_cancelled",   label: "Cancelado",              description: "Quando o agendamento é cancelado." },
+  { key: "booking_completed",   label: "Concluído",              description: "Quando o atendimento é marcado como realizado." },
+  { key: "booking_no_show",     label: "Não compareceu",         description: "Quando o cliente falta ao horário." },
+  { key: "booking_reminder",    label: "Lembrete",               description: "Lembretes automáticos antes do horário." },
+  { key: "payment_confirmed",   label: "Pagamento confirmado",   description: "Quando o pagamento do agendamento é aprovado." },
+  { key: "payment_pending",     label: "Pagamento pendente",     description: "Quando há cobrança aguardando pagamento." },
+];
 
 const DEFAULT_BASE = "https://api-flowbuilder.zailom.com/functions/v1/flow-api";
 
@@ -129,7 +144,7 @@ export default function ChatbotIntegracao() {
   const refreshIntegration = useCallback(async (cid: string) => {
     const { data } = await supabase
       .from("chatbot_integration")
-      .select("api_key_prefix, flow_api_base_url, connected_at, is_active, talkmap_provisioned, talkmap_provisioned_at, flow_workspace_data, flow_scopes, flow_selected_instance_id, flow_selected_instance_name, flow_default_bot_id, flow_default_bot_name, flow_last_synced_at")
+      .select("api_key_prefix, flow_api_base_url, connected_at, is_active, talkmap_provisioned, talkmap_provisioned_at, flow_workspace_data, flow_scopes, flow_selected_instance_id, flow_selected_instance_name, flow_default_bot_id, flow_default_bot_name, flow_event_bots, flow_last_synced_at")
       .eq("company_id", cid)
       .maybeSingle();
     setIntegration((data as IntegrationRow) ?? null);
@@ -300,6 +315,14 @@ export default function ChatbotIntegracao() {
     const bot = bots?.find((b) => b.id === id);
     saveConfig({ default_bot_id: id, default_bot_name: bot?.name ?? null });
     toast.success(`Bot padrão: ${bot?.name ?? id}`);
+  }
+
+  function onSelectEventBot(eventKey: string, botId: string | null) {
+    const current = { ...(integration?.flow_event_bots ?? {}) };
+    if (!botId || botId === "__default__") delete current[eventKey];
+    else current[eventKey] = botId;
+    saveConfig({ event_bots: current });
+    toast.success("Mapeamento atualizado");
   }
 
   if (loading) {
@@ -528,7 +551,7 @@ export default function ChatbotIntegracao() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Bot className="h-5 w-5" /> Bot padrão</CardTitle>
-                <CardDescription>Bot que será usado por padrão. Suporte a bots por evento chegará em breve.</CardDescription>
+                <CardDescription>Bot usado como padrão para todos os eventos. Você pode sobrescrever por evento no card abaixo.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {loadingLists ? (
@@ -549,6 +572,55 @@ export default function ChatbotIntegracao() {
                   <p className="text-sm text-muted-foreground">
                     Nenhum bot publicado. Publique um bot no Zailom Flow e clique em Sincronizar.
                   </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Bots por evento */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Workflow className="h-5 w-5" /> Bots por evento</CardTitle>
+                <CardDescription>
+                  Selecione um bot específico para cada evento do agendamento. Eventos sem bot definido usam o <strong>Bot padrão</strong>.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loadingLists ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando…</div>
+                ) : publishedBots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Publique bots no Zailom Flow para poder mapeá-los por evento.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {BOT_EVENTS.map((ev) => {
+                      const current = integration?.flow_event_bots?.[ev.key] ?? "__default__";
+                      return (
+                        <div key={ev.key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 rounded-md border border-primary/10 bg-card/40">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium">{ev.label}</div>
+                            <div className="text-xs text-muted-foreground">{ev.description}</div>
+                          </div>
+                          <div className="sm:w-64 shrink-0">
+                            <Select
+                              value={current}
+                              onValueChange={(v) => onSelectEventBot(ev.key, v)}
+                            >
+                              <SelectTrigger><SelectValue placeholder="Bot padrão" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__default__">
+                                  Bot padrão {integration?.flow_default_bot_name ? `(${integration.flow_default_bot_name})` : ""}
+                                </SelectItem>
+                                {publishedBots.map((b) => (
+                                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </CardContent>
             </Card>
