@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { BookingLogo } from "@/components/BookingLogo";
-import { LaptopMockup } from "@/components/landing/LaptopMockup";
-import heroDashboard from "@/assets/hero-dashboard-v2.png.asset.json";
+import heroDashboard from "@/assets/hero-mockup-dashboard.png.asset.json";
 
 export function Hero() {
   return (
