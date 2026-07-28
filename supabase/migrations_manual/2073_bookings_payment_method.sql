@@ -7,10 +7,30 @@ ALTER TABLE public.bookings
   ADD COLUMN IF NOT EXISTS payment_method TEXT;
 
 -- 2) normalizar valores existentes antes de aplicar CHECK
-UPDATE public.bookings
-   SET payment_method = 'online'
- WHERE payment_method IS DISTINCT FROM 'online'
-   AND (asaas_payment_id IS NOT NULL OR payment_status = 'confirmed');
+DO $$
+DECLARE
+  has_asaas   boolean := EXISTS (SELECT 1 FROM information_schema.columns
+                                  WHERE table_schema='public' AND table_name='bookings'
+                                    AND column_name='asaas_payment_id');
+  has_pstatus boolean := EXISTS (SELECT 1 FROM information_schema.columns
+                                  WHERE table_schema='public' AND table_name='bookings'
+                                    AND column_name='payment_status');
+  cond text := 'FALSE';
+BEGIN
+  IF has_asaas AND has_pstatus THEN
+    cond := 'asaas_payment_id IS NOT NULL OR payment_status = ''confirmed''';
+  ELSIF has_asaas THEN
+    cond := 'asaas_payment_id IS NOT NULL';
+  ELSIF has_pstatus THEN
+    cond := 'payment_status = ''confirmed''';
+  END IF;
+
+  EXECUTE format(
+    'UPDATE public.bookings SET payment_method = ''online''
+       WHERE payment_method IS DISTINCT FROM ''online'' AND (%s)',
+    cond
+  );
+END $$;
 
 UPDATE public.bookings
    SET payment_method = 'local'

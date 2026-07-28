@@ -17,7 +17,7 @@ ALTER TABLE public.plan_limits
   ADD COLUMN IF NOT EXISTS features               JSONB NOT NULL DEFAULT '[]'::jsonb,
   ADD COLUMN IF NOT EXISTS updated_at             TIMESTAMPTZ NOT NULL DEFAULT now();
 
-UPDATE public.plan_limits SET plan_name = COALESCE(plan_name, initcap(plan_id));
+UPDATE public.plan_limits SET plan_name = COALESCE(plan_name, initcap(plan_id::text));
 
 -- 2) upsert dos 3 planos com os valores canônicos
 INSERT INTO public.plan_limits
