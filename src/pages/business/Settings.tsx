@@ -112,6 +112,9 @@ export default function BusinessSettings() {
         sendReminders: bs.send_reminders ?? true,
         advanceBookingDays: bs.advance_booking_days ?? 30,
         cancellationPolicy: bs.cancellation_policy ?? "",
+        reminderOffsetsMinutes: Array.isArray(bs.reminder_offsets_minutes)
+          ? bs.reminder_offsets_minutes.filter((v: unknown): v is number => typeof v === "number")
+          : [1440],
       });
 
       // Buscar dados do funcionário
