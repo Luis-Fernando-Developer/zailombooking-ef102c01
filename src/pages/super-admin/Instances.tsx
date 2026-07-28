@@ -176,6 +176,28 @@ export default function SuperAdminInstances() {
                             <td className="py-2 px-2 text-xs text-muted-foreground">
                               {i.updated_at ? new Date(i.updated_at).toLocaleString("pt-BR") : "-"}
                             </td>
+                            <td className="py-2 px-2">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!i.name || busy === `${i.name}:logout`}
+                                  onClick={() => i.name && runAction(i.name, "logout")}
+                                >
+                                  <LogOut className="w-3 h-3 mr-1" />
+                                  Desconectar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  disabled={!i.name || busy === `${i.name}:delete`}
+                                  onClick={() => i.name && setConfirm({ name: i.name, action: "delete" })}
+                                >
+                                  <Trash2 className="w-3 h-3 mr-1" />
+                                  Excluir
+                                </Button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
