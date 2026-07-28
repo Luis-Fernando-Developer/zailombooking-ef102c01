@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyPlan } from "@/hooks/useCompanyPlan";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,37 @@ import {
   UserCheck, UserX, RefreshCw, Building2, Bot, Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
+
+// Booking plan name -> Flow plan label (per business rule)
+function bookingPlanToFlowLabel(planName?: string): string {
+  const p = (planName || "starter").toLowerCase();
+  if (p.includes("enterprise") || p.includes("business")) return "business";
+  if (p.includes("professional") || p === "pro") return "pro";
+  return "starter";
+}
+
+// Extract a phone number from arbitrary instance object shapes
+function pickInstanceNumber(inst: Record<string, unknown> | null | undefined): string | null {
+  if (!inst) return null;
+  const direct = ["phone_number", "number", "wa_number", "msisdn", "phoneNumber", "waNumber"];
+  for (const k of direct) {
+    const v = inst[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  const jid = (inst.owner_jid || inst.ownerJid || inst.jid) as string | undefined;
+  if (typeof jid === "string" && jid.includes("@")) return jid.split("@")[0];
+  return null;
+}
+
+function pickLastConnected(inst: Record<string, unknown> | null | undefined): string | null {
+  if (!inst) return null;
+  const keys = ["last_connected_at", "connected_at", "lastConnectedAt", "updated_at", "updatedAt"];
+  for (const k of keys) {
+    const v = inst[k];
+    if (typeof v === "string" && v) return v;
+  }
+  return null;
+}
 
 // ─── Tipos vindos do painel do Booking (o que persistimos) ────────────────
 interface FlowWorkspace {
