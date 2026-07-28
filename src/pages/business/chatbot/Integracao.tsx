@@ -108,6 +108,8 @@ export default function ChatbotIntegracao() {
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("");
+  const { planId: bookingPlanName } = useCompanyPlan(companyId ?? undefined);
+  const flowPlanLabel = bookingPlanToFlowLabel(bookingPlanName);
   const [integration, setIntegration] = useState<IntegrationRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
