@@ -7,9 +7,11 @@
 // =============================================================================
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Check, Play, Loader2, ChevronRight, BookOpen, Code2, Download, FileJson, FileCode2, ExternalLink } from "lucide-react";
+import { Copy, Check, Play, Loader2, ChevronRight, BookOpen, Code2, Download, FileJson, FileCode2, ExternalLink, Menu, PanelRight } from "lucide-react";
 import { NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { buildOpenApiSpec, specToJson, specToYaml, downloadBlob } from "@/lib/openapi-spec";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 // ---------------------------------------------------------------------------
 // Base URL da API — usa o custom domain quando publicado, senão a edge function
