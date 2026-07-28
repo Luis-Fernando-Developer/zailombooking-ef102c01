@@ -61,7 +61,7 @@ export function Hero() {
               <img
                 src={heroDashboard.url}
                 alt="Painel Zailom Booking em notebook"
-                className="w-full h-auto"
+                className="w-full h-auto drop-shadow-2xl"
                 loading="eager"
               />
             </div>
