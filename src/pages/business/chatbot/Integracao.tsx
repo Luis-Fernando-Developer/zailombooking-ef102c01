@@ -34,8 +34,16 @@ interface FlowInstance {
   instance_name?: string;
   status?: string;
   connection_state?: string;
+  state?: string;
   phone_number?: string;
+  number?: string;
+  wa_number?: string;
+  msisdn?: string;
+  owner_jid?: string;
   last_connected_at?: string | null;
+  connected_at?: string | null;
+  updated_at?: string | null;
+  [key: string]: unknown;
 }
 interface FlowBot {
   id: string;
