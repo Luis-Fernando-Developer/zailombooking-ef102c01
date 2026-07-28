@@ -1,14 +1,15 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { BusinessSidebar } from "@/components/business/BusinessSidebar";
 import { Button } from "../ui/button";
-import { Copy } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { PlanOverageBanner } from "@/components/business/PlanOverageBanner";
 import { SubscriptionSuspendedBanner } from "@/components/business/SubscriptionSuspendedBanner";
 import { PlatformNotificationModal } from "@/components/business/PlatformNotificationModal";
 import { NotificationsBell } from "@/components/business/NotificationsBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useToast } from "@/hooks/use-toast";
 
 
 interface BusinessLayoutProps {
