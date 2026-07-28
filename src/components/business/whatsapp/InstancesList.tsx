@@ -336,7 +336,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
             )}
           </CardDescription>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={() => refresh()} disabled={busy}>
             <RefreshCw className={`h-4 w-4 mr-2 ${busy ? "animate-spin" : ""}`} />Sincronizar
           </Button>
