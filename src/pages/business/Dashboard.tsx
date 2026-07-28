@@ -401,7 +401,7 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 4 — Repasses de Autônomos ══ */}
         <section>
-          <SectionTitle>🤝 Repasses de Autônomos</SectionTitle>
+          <SectionTitle icon={Handshake}>Repasses de Autônomos</SectionTitle>
           {loading ? <SkeletonCards n={3} /> : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <StatCard title="A repassar para Autônomos" value={BRL(d.toRepayAutonomous)} description="comissão devida no período" icon={DollarSign} iconColor="text-orange-400" />
