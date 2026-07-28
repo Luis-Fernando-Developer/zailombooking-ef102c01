@@ -70,19 +70,42 @@ export function usePlanLimits(companyId?: string) {
         .eq("company_id", companyId)
         .maybeSingle();
 
+      const subscriptionPlanId = (sub as any)?.plan_id?.toString() ?? null;
       const planKey =
         ((sub as any)?.subscription_plans?.name ?? "starter")
           .toString()
           .toLowerCase();
 
-      const { data: limitRow } = await supabase
+      const { data: limitRowById } = subscriptionPlanId
+        ? await supabase
+            .from("plan_limits")
+            .select("*")
+            .eq("plan_id", subscriptionPlanId)
+            .maybeSingle()
+        : { data: null };
+
+      const { data: limitRowByName } = limitRowById
+        ? { data: null }
+        : await supabase
+            .from("plan_limits")
+            .select("*")
+            .ilike("plan_name", planKey)
+            .maybeSingle();
+
+      const limitRow = limitRowById ?? limitRowByName;
+
+      const { data: legacyLimitRow } = limitRow
+        ? { data: null }
+        : await supabase
         .from("plan_limits")
         .select("*")
         .eq("plan_id", planKey)
         .maybeSingle();
 
+      const resolvedLimitRow = limitRow ?? legacyLimitRow;
+
       const col = COLUMN_MAP[resource];
-      const rawLimit = limitRow ? (limitRow as any)[col] : -1;
+      const rawLimit = resolvedLimitRow ? (resolvedLimitRow as any)[col] : -1;
       const unlimited = rawLimit === -1 || rawLimit === null;
       const limit = unlimited ? null : Number(rawLimit);
 
