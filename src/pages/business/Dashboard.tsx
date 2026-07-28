@@ -549,10 +549,10 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 8 — Clientes ══ */}
         {loading ? (
-          <section><SectionTitle>🏆 Clientes</SectionTitle><SkeletonCards n={3} /></section>
+          <section><SectionTitle icon={Trophy}>Clientes</SectionTitle><SkeletonCards n={3} /></section>
         ) : (
           <MetricGroup
-            title="🏆 Clientes"
+            title={<SectionTitle icon={Trophy}>Clientes</SectionTitle>}
             storageKey="clientes"
             numbers={
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
