@@ -50,6 +50,12 @@ const paymentConfig = {
   free: { label: "Isento", color: "bg-blue-500" }
 };
 
+const paymentMethodConfig: Record<string, { label: string; color: string }> = {
+  online:  { label: "Pago online",     color: "bg-green-500" },
+  local:   { label: "Pagar no local",  color: "bg-yellow-500" },
+  pending: { label: "Método pendente", color: "bg-gray-500" },
+};
+
 const FINAL_LOCKED_STATUSES = new Set(["cancelled", "completed"]);
 
 function isFinalLockedStatus(status?: string) {
@@ -511,6 +517,16 @@ export default function BusinessBookings() {
                           <div className={`w-2 h-2 rounded-full ${paymentConfig[booking.payment_status as keyof typeof paymentConfig].color} mr-1`}></div>
                           {paymentConfig[booking.payment_status as keyof typeof paymentConfig].label}
                         </Badge>
+                        {(() => {
+                          const pm = (booking as any).payment_method ?? "local";
+                          const cfg = paymentMethodConfig[pm] ?? paymentMethodConfig.local;
+                          return (
+                            <Badge variant="outline">
+                              <div className={`w-2 h-2 rounded-full ${cfg.color} mr-1`}></div>
+                              {cfg.label}
+                            </Badge>
+                          );
+                        })()}
                       </div>
 
                       {/* Service & Price */}
