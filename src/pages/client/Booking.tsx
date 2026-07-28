@@ -40,7 +40,7 @@ interface Service {
 interface Employee {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   avatar_url?: string;
 }
 
