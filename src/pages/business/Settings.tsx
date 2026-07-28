@@ -181,6 +181,7 @@ export default function BusinessSettings() {
         send_reminders: businessSettings.sendReminders,
         advance_booking_days: businessSettings.advanceBookingDays,
         cancellation_policy: businessSettings.cancellationPolicy,
+        reminder_offsets_minutes: businessSettings.reminderOffsetsMinutes,
       };
       const { error } = await supabase
         .from('companies')
