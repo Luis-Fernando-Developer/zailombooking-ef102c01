@@ -85,13 +85,13 @@ export function WhyUs() {
             </p>
             
             <div className="hidden lg:block relative mt-12 max-w-md">
-              <LaptopMockup
+              <img
                 src={calendarShot.url}
-                alt="Página pública de agendamento — escolha de data"
-                urlLabel="booking.zailom.com/testando-01/agendar"
-                maxWidth={460}
+                alt="Página pública de agendamento em notebook e mobile"
+                className="w-full h-auto"
+                loading="lazy"
               />
-              <div className="absolute -bottom-6 -right-4 bg-card p-4 rounded-2xl shadow-2xl border border-primary/20 animate-float backdrop-blur-xl">
+              <div className="absolute -bottom-2 -right-2 bg-card p-4 rounded-2xl shadow-2xl border border-primary/20 animate-float backdrop-blur-xl">
                 <p className="text-xs font-bold text-primary mb-1">Aumento de Faturamento</p>
                 <p className="text-3xl font-black text-white">+35%</p>
                 <p className="text-[10px] text-muted-foreground mt-1">Média após 3 meses de uso</p>
