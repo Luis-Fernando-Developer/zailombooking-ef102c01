@@ -92,17 +92,7 @@ export function usePlanLimits(companyId?: string) {
             .ilike("plan_name", planKey)
             .maybeSingle();
 
-      const limitRow = limitRowById ?? limitRowByName;
-
-      const { data: legacyLimitRow } = limitRow
-        ? { data: null }
-        : await supabase
-        .from("plan_limits")
-        .select("*")
-        .eq("plan_id", planKey)
-        .maybeSingle();
-
-      const resolvedLimitRow = limitRow ?? legacyLimitRow;
+      const resolvedLimitRow = limitRowById ?? limitRowByName;
 
       const col = COLUMN_MAP[resource];
       const rawLimit = resolvedLimitRow ? (resolvedLimitRow as any)[col] : -1;
