@@ -84,11 +84,11 @@ export function WhyUs() {
               Cada minuto que você passa respondendo WhatsApp é um minuto a menos que você passa atendendo ou buscando novos clientes. O caos da agenda manual está travando o seu lucro.
             </p>
             
-            <div className="hidden lg:block relative mt-12 max-w-md">
+            <div className="hidden lg:block relative mt-12 max-w-2xl">
               <img
                 src={calendarShot.url}
                 alt="Página pública de agendamento em notebook e mobile"
-                className="w-full h-auto"
+                className="w-full h-auto drop-shadow-2xl"
                 loading="lazy"
               />
               <div className="absolute -bottom-2 -right-2 bg-card p-4 rounded-2xl shadow-2xl border border-primary/20 animate-float backdrop-blur-xl">
@@ -116,11 +116,11 @@ export function WhyUs() {
               </div>
             ))}
 
-            <div className="lg:hidden relative mt-16 pt-8 max-w-sm mx-auto">
+            <div className="lg:hidden relative mt-16 pt-8 max-w-lg mx-auto">
               <img
                 src={calendarShot.url}
                 alt="Página pública de agendamento em notebook e mobile"
-                className="w-full h-auto"
+                className="w-full h-auto drop-shadow-2xl"
                 loading="lazy"
               />
               <div className="absolute -bottom-4 -right-4 bg-card p-4 rounded-2xl shadow-2xl border border-primary/20 backdrop-blur-xl">
