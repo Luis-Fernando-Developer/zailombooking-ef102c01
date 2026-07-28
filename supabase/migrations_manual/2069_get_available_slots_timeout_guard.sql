@@ -261,7 +261,7 @@ BEGIN
           AND bs.start_datetime < $4
           AND bs.end_datetime   > $3
       $SQL$ INTO v_bl_s, v_bl_e USING p_company, p_employee, v_day_start_tstz, v_day_end_tstz;
-    ELSE
+    ELSIF v_block_start_type = 'timestamp without time zone' THEN
       EXECUTE $SQL$
         SELECT
           COALESCE(ARRAY_AGG(bs.start_datetime::TIME), ARRAY[]::TIME[]),
@@ -271,6 +271,18 @@ BEGIN
           AND (bs.employee_id IS NULL OR bs.employee_id = $2)
           AND bs.start_datetime < $4
           AND bs.end_datetime   > $3
+      $SQL$ INTO v_bl_s, v_bl_e USING p_company, p_employee, v_day_start_ts, v_day_end_ts;
+    ELSE
+      -- Fallback para schemas muito antigos que armazenaram datetime como texto.
+      EXECUTE $SQL$
+        SELECT
+          COALESCE(ARRAY_AGG(bs.start_datetime::TIMESTAMP::TIME), ARRAY[]::TIME[]),
+          COALESCE(ARRAY_AGG(bs.end_datetime::TIMESTAMP::TIME),   ARRAY[]::TIME[])
+        FROM public.blocked_slots bs
+        WHERE bs.company_id = $1
+          AND (bs.employee_id IS NULL OR bs.employee_id = $2)
+          AND bs.start_datetime::TIMESTAMP < $4
+          AND bs.end_datetime::TIMESTAMP   > $3
       $SQL$ INTO v_bl_s, v_bl_e USING p_company, p_employee, v_day_start_ts, v_day_end_ts;
     END IF;
   ELSIF v_has_block_time THEN
