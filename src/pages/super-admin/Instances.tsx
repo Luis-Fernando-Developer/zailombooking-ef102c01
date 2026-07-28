@@ -140,6 +140,7 @@ export default function SuperAdminInstances() {
                           <th className="text-left py-2 px-2">Numero</th>
                           <th className="text-left py-2 px-2">Status</th>
                           <th className="text-left py-2 px-2">Ultima atualizacao</th>
+                          <th className="text-right py-2 px-2">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
