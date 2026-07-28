@@ -49,6 +49,9 @@ export default function SuperAdminInstances() {
   const [items, setItems] = useState<EvoInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [confirm, setConfirm] = useState<{ name: string; action: "logout" | "delete" } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("super-admin-list-instances");
@@ -59,6 +62,28 @@ export default function SuperAdminInstances() {
       setItems((data as any)?.instances ?? []);
     }
     setLoading(false);
+  };
+
+  const runAction = async (name: string, action: "logout" | "delete") => {
+    setBusy(`${name}:${action}`);
+    const { data, error } = await supabase.functions.invoke("super-admin-manage-instance", {
+      body: { name, action },
+    });
+    setBusy(null);
+    setConfirm(null);
+    if (error || (data as any)?.error) {
+      toast({
+        title: action === "delete" ? "Falha ao excluir" : "Falha ao desconectar",
+        description: error?.message || (data as any)?.error || "Erro inesperado",
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({
+      title: action === "delete" ? "Instância excluída" : "Instância desconectada",
+      description: name,
+    });
+    load();
   };
 
   useEffect(() => { load(); }, []);
