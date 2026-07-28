@@ -5,9 +5,19 @@ import { BookingLogo } from "@/components/BookingLogo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Layers, RefreshCw } from "lucide-react";
+import { Layers, RefreshCw, LogOut, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface EvoInstance {
   name: string | null;
@@ -39,6 +49,9 @@ export default function SuperAdminInstances() {
   const [items, setItems] = useState<EvoInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [confirm, setConfirm] = useState<{ name: string; action: "logout" | "delete" } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("super-admin-list-instances");
@@ -49,6 +62,28 @@ export default function SuperAdminInstances() {
       setItems((data as any)?.instances ?? []);
     }
     setLoading(false);
+  };
+
+  const runAction = async (name: string, action: "logout" | "delete") => {
+    setBusy(`${name}:${action}`);
+    const { data, error } = await supabase.functions.invoke("super-admin-manage-instance", {
+      body: { name, action },
+    });
+    setBusy(null);
+    setConfirm(null);
+    if (error || (data as any)?.error) {
+      toast({
+        title: action === "delete" ? "Falha ao excluir" : "Falha ao desconectar",
+        description: error?.message || (data as any)?.error || "Erro inesperado",
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({
+      title: action === "delete" ? "Instância excluída" : "Instância desconectada",
+      description: name,
+    });
+    load();
   };
 
   useEffect(() => { load(); }, []);
@@ -105,6 +140,7 @@ export default function SuperAdminInstances() {
                           <th className="text-left py-2 px-2">Numero</th>
                           <th className="text-left py-2 px-2">Status</th>
                           <th className="text-left py-2 px-2">Ultima atualizacao</th>
+                          <th className="text-right py-2 px-2">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -140,6 +176,28 @@ export default function SuperAdminInstances() {
                             <td className="py-2 px-2 text-xs text-muted-foreground">
                               {i.updated_at ? new Date(i.updated_at).toLocaleString("pt-BR") : "-"}
                             </td>
+                            <td className="py-2 px-2">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!i.name || busy === `${i.name}:logout`}
+                                  onClick={() => i.name && runAction(i.name, "logout")}
+                                >
+                                  <LogOut className="w-3 h-3 mr-1" />
+                                  Desconectar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  disabled={!i.name || busy === `${i.name}:delete`}
+                                  onClick={() => i.name && setConfirm({ name: i.name, action: "delete" })}
+                                >
+                                  <Trash2 className="w-3 h-3 mr-1" />
+                                  Excluir
+                                </Button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -151,6 +209,26 @@ export default function SuperAdminInstances() {
           </main>
         </SidebarInset>
       </div>
+
+      <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir instância?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso vai desconectar e apagar <span className="font-mono">{confirm?.name}</span> na Evolution e remover o registro local. Ação irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirm && runAction(confirm.name, confirm.action)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 }
