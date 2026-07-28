@@ -390,7 +390,7 @@ export default function BusinessBookings() {
       userRole={employee.role}
       currentUser={currentUser}
     >
-      <div className="p-4 space-y-6 justify-center flex flex-col items-center w-full px-10 ">
+      <div className="p-4 sm:px-10 space-y-6 justify-center flex flex-col items-center w-full">
         {/* Header */}
         <div className="flex flex-col space-y-2 justify-between lg:flex-row lg:items-center w-full">
           <div className="flex flex-col mb-1  w-full">
@@ -409,11 +409,11 @@ export default function BusinessBookings() {
         </div>
 
         {focusBookingId && (
-          <div className="flex items-center justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 px-4 py-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 px-4 py-2 w-full">
             <p className="text-sm text-muted-foreground">
               Mostrando apenas o agendamento selecionado na notificação.
             </p>
-            <Button size="sm" variant="outline" onClick={clearBookingFocus}>
+            <Button size="sm" variant="outline" onClick={clearBookingFocus} className="w-full sm:w-auto">
               Ver todos
             </Button>
           </div>

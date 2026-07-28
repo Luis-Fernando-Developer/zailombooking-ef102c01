@@ -43,16 +43,16 @@ export function BusinessLayout({
       
       <div className="flex flex-col flex-1 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
         {!hideHeader ? (
-          <header className="h-[70px] shrink-0 w-full flex items-center border-b border-primary/20 bg-card/80 backdrop-blur-2xl px-4 z-40">
-            <SidebarTrigger className="text-foreground hover:bg-primary/10" />
-            <div className="ml-4 flex flex-col -space-y-2 py-3">
-              <h1 className="text-lg font-semibold text-gradient">{companyName} - Painel Administrativo</h1>
-              <div className="flex items-center text-sm text-muted-foreground">
-                <span className="stroke-primary-glow border-dashed">https://booking.zailom.com/{companySlug}</span>
-                <Button size="sm" variant="link" className="ml-2 p-0"><Copy className="w-4 h-4" /></Button>
+          <header className="min-h-[70px] shrink-0 w-full flex items-center border-b border-primary/20 bg-card/80 backdrop-blur-2xl px-3 sm:px-4 z-40 gap-2">
+            <SidebarTrigger className="text-foreground hover:bg-primary/10 shrink-0" />
+            <div className="ml-1 sm:ml-4 flex flex-col -space-y-1 sm:-space-y-2 py-2 sm:py-3 min-w-0 flex-1">
+              <h1 className="text-sm sm:text-lg font-semibold text-gradient truncate">{companyName} - Painel Administrativo</h1>
+              <div className="hidden sm:flex items-center text-sm text-muted-foreground min-w-0">
+                <span className="stroke-primary-glow border-dashed truncate">https://booking.zailom.com/{companySlug}</span>
+                <Button size="sm" variant="link" className="ml-2 p-0 shrink-0"><Copy className="w-4 h-4" /></Button>
               </div>
             </div>
-            <div className="ml-auto flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-1 shrink-0">
               <ThemeToggle />
               <NotificationsBell companyId={companyId} companySlug={companySlug} />
             </div>
