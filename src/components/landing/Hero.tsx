@@ -58,10 +58,11 @@ export function Hero() {
             <div className="absolute -inset-4 bg-neon-pink/10 blur-2xl rounded-[2.5rem] pointer-events-none" />
 
             <div className="relative z-10 transform transition-transform duration-700 group-hover:-translate-y-1">
-              <LaptopMockup
+              <img
                 src={heroDashboard.url}
-                alt="Painel Zailom Booking em uso"
-                urlLabel="booking.zailom.com/testando-01/admin"
+                alt="Painel Zailom Booking em notebook"
+                className="w-full h-auto"
+                loading="eager"
               />
             </div>
           </div>
