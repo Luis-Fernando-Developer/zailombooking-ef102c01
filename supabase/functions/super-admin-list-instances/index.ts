@@ -47,9 +47,17 @@ Deno.serve(async (req: Request) => {
     });
     if (!isAdmin) return json({ error: 'Forbidden' }, 403);
 
-    const evoUrl = (Deno.env.get('EVOLUTION_MANAGER_URL') ?? '').replace(/\/$/, '');
-    const evoKey = Deno.env.get('EVOLUTION_MANAGER_KEY');
-    if (!evoUrl || !evoKey) return json({ error: 'evolution_not_configured' }, 500);
+    const evoUrl = (
+      Deno.env.get('EVOLUTION_GLOBAL_BASE_URL') ??
+      Deno.env.get('EVOLUTION_MANAGER_URL') ??
+      ''
+    ).replace(/\/$/, '');
+    const evoKey =
+      Deno.env.get('EVOLUTION_GLOBAL_API_KEY') ??
+      Deno.env.get('EVOLUTION_MANAGER_KEY');
+    if (!evoUrl || !evoKey) {
+      return json({ error: 'evolution_not_configured', hint: 'set EVOLUTION_GLOBAL_BASE_URL and EVOLUTION_GLOBAL_API_KEY' }, 500);
+    }
 
     const r = await fetch(`${evoUrl}/instance/fetchInstances`, {
       headers: { apikey: evoKey, 'Content-Type': 'application/json' },
