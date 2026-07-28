@@ -43,9 +43,9 @@ export function Footer() {
           <div>
             <h3 className="text-white font-black text-xl mb-8 uppercase tracking-widest text-sm">Contato</h3>
             <ul className="space-y-4 text-muted-foreground text-lg">
-              <li className="flex items-center gap-3"><Phone className="w-5 h-5 text-primary" /> (11) 99999-9999</li>
-              <li className="flex items-center gap-3"><Mail className="w-5 h-5 text-primary" /> contato@zailom.com</li>
-              <li className="flex items-center gap-3"><MapPin className="w-5 h-5 text-primary" /> São Paulo, Brasil</li>
+              <li className="flex items-center gap-3"><Phone className="w-5 h-5 text-primary" /> 38998236400</li>
+              <li className="flex items-center gap-3"><Mail className="w-5 h-5 text-primary" /> fernandiimsousa@gmail.com</li>
+              <li className="flex items-center gap-3"><MapPin className="w-5 h-5 text-primary" /> Minas Gerais - Brasil</li>
             </ul>
           </div>
         </div>
