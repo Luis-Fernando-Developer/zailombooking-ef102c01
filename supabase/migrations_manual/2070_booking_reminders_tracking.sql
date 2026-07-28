@@ -103,7 +103,7 @@ AS $$
     FROM public.bookings b
     JOIN company_offsets co ON co.company_id = b.company_id
     WHERE co.enabled = true
-      AND b.status IN ('confirmed', 'pending')
+      AND LOWER(COALESCE(b.booking_status::text, '')) IN ('confirmed', 'pending')
       AND b.booking_date >= (now() AT TIME ZONE 'America/Sao_Paulo')::date
   )
   SELECT
