@@ -346,7 +346,7 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 1 — Indicadores Principais ══ */}
         <section>
-          <SectionTitle>📊 Indicadores Principais</SectionTitle>
+          <SectionTitle icon={BarChart3}>Indicadores Principais</SectionTitle>
           {loading ? <SkeletonCards n={4} /> : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard title="Agendamentos" value={d.bookingsCount} description="no período" icon={CalendarIcon} />
