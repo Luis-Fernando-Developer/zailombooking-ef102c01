@@ -287,6 +287,7 @@ serve(async (req) => {
       p_employee: employee_id,
       p_service: service_id,
       p_date: normalizedBookingDate,
+      p_ignore_min_advance: true,
     })
     if (gateErr) throw gateErr
     const availability = slotsContainTime(
