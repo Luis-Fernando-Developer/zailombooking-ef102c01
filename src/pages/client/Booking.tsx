@@ -410,7 +410,7 @@ export default function ClientBooking() {
          // buscar dados dos employees elegíveis (apenas do mesmo company)
         const { data: employeesData } = await supabase
           .from('employees')
-          .select('id, name, email, avatar_url')
+          .select('id, name, avatar_url')
           .in('id', eligibleEmployeeIds)
           .eq('company_id', company.id)
           .eq('is_active', true);
@@ -425,7 +425,6 @@ export default function ClientBooking() {
         .select(`
           id, 
           name, 
-          email,
           avatar_url,
           employee_services!inner(
             service_id
