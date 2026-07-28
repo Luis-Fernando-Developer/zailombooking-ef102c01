@@ -133,8 +133,25 @@ function StatCard({
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-xl font-semibold text-gradient mb-4">{children}</h2>;
+function SectionTitle({
+  children,
+  icon: Icon,
+  iconClassName,
+}: {
+  children: React.ReactNode;
+  icon?: React.ComponentType<{ className?: string }>;
+  iconClassName?: string;
+}) {
+  return (
+    <h2 className="text-xl font-semibold mb-4 flex items-center gap-3">
+      {Icon && (
+        <span className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 shadow-sm">
+          <Icon className={`h-5 w-5 text-primary ${iconClassName ?? ""}`} />
+        </span>
+      )}
+      <span className="text-gradient">{children}</span>
+    </h2>
+  );
 }
 
 function SkeletonCards({ n = 4 }: { n?: number }) {
