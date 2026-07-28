@@ -88,7 +88,7 @@ export function WhyUs() {
               <img
                 src={calendarShot.url}
                 alt="Página pública de agendamento em notebook e mobile"
-                className="w-full h-auto"
+                className="w-full h-auto drop-shadow-2xl"
                 loading="lazy"
               />
               <div className="absolute -bottom-2 -right-2 bg-card p-4 rounded-2xl shadow-2xl border border-primary/20 animate-float backdrop-blur-xl">
