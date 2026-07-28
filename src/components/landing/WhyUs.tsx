@@ -117,11 +117,11 @@ export function WhyUs() {
             ))}
 
             <div className="lg:hidden relative mt-16 pt-8 max-w-sm mx-auto">
-              <LaptopMockup
+              <img
                 src={calendarShot.url}
-                alt="Página pública de agendamento — escolha de data"
-                urlLabel="booking.zailom.com/testando-01/agendar"
-                maxWidth={360}
+                alt="Página pública de agendamento em notebook e mobile"
+                className="w-full h-auto"
+                loading="lazy"
               />
               <div className="absolute -bottom-4 -right-4 bg-card p-4 rounded-2xl shadow-2xl border border-primary/20 backdrop-blur-xl">
                 <p className="text-xs font-bold text-primary">Aumento de Faturamento</p>
