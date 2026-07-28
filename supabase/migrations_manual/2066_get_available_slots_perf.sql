@@ -201,19 +201,19 @@ BEGIN
           NOT IN ('cancelled','canceled','rejected','no_show')
   ) t;
 
-  -- Blocked slots do dia (filtrando por dia via range de timestamptz)
+  -- Blocked slots do colaborador. blocked_slots.start_time/end_time podem ser
+  -- TIME, TEXT ou TIMESTAMPTZ dependendo do histórico do schema; o cast ::TIME
+  -- funciona pros três casos e mantém compatibilidade com is_slot_available.
   SELECT
     COALESCE(ARRAY_AGG(bstart), ARRAY[]::TIME[]),
     COALESCE(ARRAY_AGG(bend),   ARRAY[]::TIME[])
   INTO v_bl_s, v_bl_e
   FROM (
     SELECT
-      (bs.start_time AT TIME ZONE 'America/Sao_Paulo')::TIME AS bstart,
-      (bs.end_time   AT TIME ZONE 'America/Sao_Paulo')::TIME AS bend
+      bs.start_time::TIME AS bstart,
+      bs.end_time::TIME   AS bend
     FROM public.blocked_slots bs
     WHERE bs.employee_id = p_employee
-      AND bs.start_time < (p_date + INTERVAL '1 day')::TIMESTAMPTZ
-      AND bs.end_time   > p_date::TIMESTAMPTZ
   ) t;
 
   -- Employee breaks aplicáveis ao dia da semana
