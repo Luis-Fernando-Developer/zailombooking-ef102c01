@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Calendar, Zap, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { BookingLogo } from "@/components/BookingLogo";
+import heroDashboard from "@/assets/hero-dashboard.png.asset.json";
 
 export function Hero() {
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden py-20">
       <div className="absolute inset-0 bg-gradient-hero"></div>
-      
+
       <div className="absolute inset-0">
         <div className="absolute top-20 left-10 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse-glow"></div>
         <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-neon-pink/10 rounded-full blur-3xl animate-float"></div>
@@ -52,12 +53,24 @@ export function Hero() {
           </div>
 
           <div className="relative lg:mt-2">
-            <div className="relative z-10 rounded-2xl shadow-2xl border border-primary/20 overflow-hidden bg-card/50">
-              <div className="absolute inset-0 bg-gradient-primary opacity-20"></div>
-              <img 
-                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=1200" 
-                alt="Zailom Booking Dashboard" 
-                className="w-full h-full object-cover aspect-video"
+            {/* Browser-style mockup wrapping the real dashboard screenshot */}
+            <div className="absolute -inset-6 bg-gradient-primary opacity-20 blur-3xl rounded-[2rem] pointer-events-none" />
+            <div className="relative z-10 rounded-2xl shadow-2xl border border-primary/20 overflow-hidden bg-card/70 backdrop-blur-sm">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-primary/10 bg-card/80">
+                <span className="w-3 h-3 rounded-full bg-red-500/80" />
+                <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                <span className="w-3 h-3 rounded-full bg-green-500/80" />
+                <div className="ml-3 flex-1 max-w-md">
+                  <div className="px-3 py-1 rounded-md bg-background/60 border border-primary/10 text-[11px] text-muted-foreground truncate">
+                    booking.zailom.com/painel-admin
+                  </div>
+                </div>
+              </div>
+              <img
+                src={heroDashboard.url}
+                alt="Painel Zailom Booking em uso"
+                className="w-full h-auto block"
+                loading="eager"
               />
             </div>
           </div>
