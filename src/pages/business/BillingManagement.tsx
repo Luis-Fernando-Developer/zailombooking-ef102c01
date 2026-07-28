@@ -279,8 +279,8 @@ export default function BillingManagement() {
           <TabsContent value="plan" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <CardTitle>{plan?.name || "Sem plano ativo"}</CardTitle>
                     <CardDescription>
                       {subscription ? (
@@ -296,7 +296,7 @@ export default function BillingManagement() {
                     </CardDescription>
 
                   </div>
-                  <Badge variant={subscription?.status === "active" ? "default" : "destructive"}>
+                  <Badge variant={subscription?.status === "active" ? "default" : "destructive"} className="self-start">
                     {subscription?.status || "inativo"}
                   </Badge>
                 </div>
@@ -364,20 +364,20 @@ export default function BillingManagement() {
                   <p className="text-sm text-muted-foreground">Nenhum método cadastrado. Adicione um cartão ou use PIX.</p>
                 )}
                 {methods.map(m => (
-                  <div key={m.id} className="flex items-center justify-between border rounded-md p-3">
-                    <div className="flex items-center gap-3">
-                      <CreditCard className="w-5 h-5" />
-                      <div>
-                        <div className="font-medium">{m.display_label || m.type}</div>
+                  <div key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between border rounded-md p-3 gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <CreditCard className="w-5 h-5 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{m.display_label || m.type}</div>
                         <div className="text-xs text-muted-foreground capitalize">{m.type.replace("_", " ")}</div>
                       </div>
                     </div>
-                    {m.is_default && <Badge><Check className="w-3 h-3 mr-1" /> Padrão</Badge>}
+                    {m.is_default && <Badge className="self-start sm:self-auto"><Check className="w-3 h-3 mr-1" /> Padrão</Badge>}
                   </div>
                 ))}
-                <div className="flex gap-2 pt-2">
-                  <Button onClick={() => setAddCardOpen(true)}>Adicionar cartão</Button>
-                  <Button variant="outline" onClick={handleSetMethodPix} disabled={busy}>Usar PIX</Button>
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button onClick={() => setAddCardOpen(true)} className="w-full sm:w-auto">Adicionar cartão</Button>
+                  <Button variant="outline" onClick={handleSetMethodPix} disabled={busy} className="w-full sm:w-auto">Usar PIX</Button>
                 </div>
               </CardContent>
             </Card>

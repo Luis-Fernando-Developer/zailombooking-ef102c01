@@ -67,17 +67,17 @@ export default function SuperAdminGateways() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <SuperAdminSidebar />
-        <div className="flex-1 p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Wallet className="h-7 w-7" /> Gateways de Pagamento
+        <div className="flex-1 p-4 sm:p-6 space-y-6 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+                <Wallet className="h-6 w-6 sm:h-7 sm:w-7" /> Gateways de Pagamento
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Controle central dos provedores de pagamento usados na plataforma.
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={load}>
+            <Button variant="outline" size="sm" onClick={load} className="self-start sm:self-auto">
               <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
             </Button>
           </div>

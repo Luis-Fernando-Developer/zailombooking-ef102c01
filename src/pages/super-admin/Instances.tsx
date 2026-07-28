@@ -109,10 +109,10 @@ export default function SuperAdminInstances() {
             </div>
           </header>
 
-          <main className="p-4 lg:p-8">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gradient mb-2">Instancias</h1>
-              <p className="text-muted-foreground">Todas as instancias globais do Evolution ({items.length}).</p>
+          <main className="p-4 lg:p-8 min-w-0">
+            <div className="mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gradient mb-2">Instancias</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Todas as instancias globais do Evolution ({items.length}).</p>
             </div>
 
             <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
@@ -177,7 +177,7 @@ export default function SuperAdminInstances() {
                               {i.updated_at ? new Date(i.updated_at).toLocaleString("pt-BR") : "-"}
                             </td>
                             <td className="py-2 px-2">
-                              <div className="flex justify-end gap-2">
+                              <div className="flex flex-col sm:flex-row justify-end gap-2">
                                 <Button
                                   size="sm"
                                   variant="outline"

@@ -218,7 +218,7 @@ export default function BusinessEmployees() {
       userRole={currentEmployee.role}
       currentUser={currentUser}
     >
-      <div className="p-6 px-10 w-full">
+      <div className="p-4 sm:p-6 sm:px-10 w-full">
         <div className="flex flex-col space-y-2 mb-6 sm:flex sm:items-start sm:space-y-2 md:flex-row md:items-center md:space-y-0  justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gradient">Colaboradores</h1>
@@ -236,7 +236,7 @@ export default function BusinessEmployees() {
           {employees.map((employee) => (
             <Card key={employee.id}>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-4">
                     <Avatar className="w-12 h-12">
                       <AvatarFallback>{getInitials(employee.name)}</AvatarFallback>
