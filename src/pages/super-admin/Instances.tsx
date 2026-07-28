@@ -209,6 +209,26 @@ export default function SuperAdminInstances() {
           </main>
         </SidebarInset>
       </div>
+
+      <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir instância?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso vai desconectar e apagar <span className="font-mono">{confirm?.name}</span> na Evolution e remover o registro local. Ação irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirm && runAction(confirm.name, confirm.action)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 }
