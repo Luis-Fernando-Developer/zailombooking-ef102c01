@@ -426,7 +426,7 @@ export default function BusinessDashboard() {
 
         {/* ══ GROUP 5 — Status dos Agendamentos ══ */}
         {loading ? (
-          <section><SectionTitle>📅 Status dos Agendamentos</SectionTitle><SkeletonCards n={6} /></section>
+          <section><SectionTitle icon={ListChecks}>Status dos Agendamentos</SectionTitle><SkeletonCards n={6} /></section>
         ) : (() => {
           const statusMeta = [
             { key: "pending", label: "Pendentes", icon: AlertCircle, color: "text-yellow-400" },
