@@ -452,7 +452,7 @@ export default function ChatbotIntegracao() {
                     {workspace.email && <div><span className="text-muted-foreground">E-mail:</span> {workspace.email}</div>}
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Plano:</span>
-                      <Badge variant="secondary">{workspace.plan ?? "—"}</Badge>
+                      <Badge variant="secondary">{flowPlanLabel}</Badge>
                       <span className="text-muted-foreground">Status:</span>
                       {workspace.status === "active"
                         ? <Badge className="bg-green-600">Ativo</Badge>
