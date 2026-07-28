@@ -52,7 +52,27 @@ export default function BusinessSettings() {
     sendReminders: true,
     advanceBookingDays: 30,
     cancellationPolicy: "",
+    reminderOffsetsMinutes: [1440] as number[],
   });
+
+  const REMINDER_OFFSET_OPTIONS: { value: number; label: string }[] = [
+    { value: 10, label: "10 minutos antes" },
+    { value: 30, label: "30 minutos antes" },
+    { value: 60, label: "1 hora antes" },
+    { value: 120, label: "2 horas antes" },
+    { value: 360, label: "6 horas antes" },
+    { value: 1440, label: "24 horas antes" },
+    { value: 2880, label: "48 horas antes" },
+    { value: 10080, label: "1 semana antes" },
+  ];
+
+  const toggleReminderOffset = (value: number) => {
+    setBusinessSettings((prev) => {
+      const set = new Set(prev.reminderOffsetsMinutes);
+      if (set.has(value)) set.delete(value); else set.add(value);
+      return { ...prev, reminderOffsetsMinutes: Array.from(set).sort((a, b) => a - b) };
+    });
+  };
 
   useEffect(() => {
     fetchData();
