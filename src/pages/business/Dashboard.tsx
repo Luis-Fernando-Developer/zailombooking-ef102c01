@@ -441,7 +441,7 @@ export default function BusinessDashboard() {
             .filter((x) => x.value > 0);
           return (
             <MetricGroup
-              title="📅 Status dos Agendamentos"
+              title={<SectionTitle icon={ListChecks}>Status dos Agendamentos</SectionTitle>}
               storageKey="status"
               numbers={
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
