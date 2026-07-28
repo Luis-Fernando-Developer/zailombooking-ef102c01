@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyPlan } from "@/hooks/useCompanyPlan";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,37 @@ import {
   UserCheck, UserX, RefreshCw, Building2, Bot, Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
+
+// Booking plan name -> Flow plan label (per business rule)
+function bookingPlanToFlowLabel(planName?: string): string {
+  const p = (planName || "starter").toLowerCase();
+  if (p.includes("enterprise") || p.includes("business")) return "business";
+  if (p.includes("professional") || p === "pro") return "pro";
+  return "starter";
+}
+
+// Extract a phone number from arbitrary instance object shapes
+function pickInstanceNumber(inst: Record<string, unknown> | null | undefined): string | null {
+  if (!inst) return null;
+  const direct = ["phone_number", "number", "wa_number", "msisdn", "phoneNumber", "waNumber"];
+  for (const k of direct) {
+    const v = inst[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  const jid = (inst.owner_jid || inst.ownerJid || inst.jid) as string | undefined;
+  if (typeof jid === "string" && jid.includes("@")) return jid.split("@")[0];
+  return null;
+}
+
+function pickLastConnected(inst: Record<string, unknown> | null | undefined): string | null {
+  if (!inst) return null;
+  const keys = ["last_connected_at", "connected_at", "lastConnectedAt", "updated_at", "updatedAt"];
+  for (const k of keys) {
+    const v = inst[k];
+    if (typeof v === "string" && v) return v;
+  }
+  return null;
+}
 
 // ─── Tipos vindos do painel do Booking (o que persistimos) ────────────────
 interface FlowWorkspace {
@@ -34,8 +66,16 @@ interface FlowInstance {
   instance_name?: string;
   status?: string;
   connection_state?: string;
+  state?: string;
   phone_number?: string;
+  number?: string;
+  wa_number?: string;
+  msisdn?: string;
+  owner_jid?: string;
   last_connected_at?: string | null;
+  connected_at?: string | null;
+  updated_at?: string | null;
+  [key: string]: unknown;
 }
 interface FlowBot {
   id: string;
@@ -68,6 +108,8 @@ export default function ChatbotIntegracao() {
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("");
+  const { planId: bookingPlanName } = useCompanyPlan(companyId ?? undefined);
+  const flowPlanLabel = bookingPlanToFlowLabel(bookingPlanName);
   const [integration, setIntegration] = useState<IntegrationRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -410,7 +452,7 @@ export default function ChatbotIntegracao() {
                     {workspace.email && <div><span className="text-muted-foreground">E-mail:</span> {workspace.email}</div>}
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Plano:</span>
-                      <Badge variant="secondary">{workspace.plan ?? "—"}</Badge>
+                      <Badge variant="secondary">{flowPlanLabel}</Badge>
                       <span className="text-muted-foreground">Status:</span>
                       {workspace.status === "active"
                         ? <Badge className="bg-green-600">Ativo</Badge>
@@ -457,9 +499,17 @@ export default function ChatbotIntegracao() {
                       if (!sel) return null;
                       return (
                         <div className="text-xs text-muted-foreground space-y-1 pt-1">
-                          <div>Número: <strong>{sel.phone_number ?? "—"}</strong></div>
-                          <div>Status: <strong>{sel.status ?? "—"}</strong>{sel.connection_state ? ` (${sel.connection_state})` : ""}</div>
-                          <div>Última conexão: {sel.last_connected_at ? new Date(sel.last_connected_at).toLocaleString("pt-BR") : "—"}</div>
+                          {(() => {
+                            const num = pickInstanceNumber(sel as unknown as Record<string, unknown>);
+                            const last = pickLastConnected(sel as unknown as Record<string, unknown>);
+                            return (
+                              <>
+                                <div>Número: <strong>{num ?? "—"}</strong></div>
+                                <div>Status: <strong>{sel.status ?? sel.state ?? "—"}</strong>{sel.connection_state ? ` (${sel.connection_state})` : ""}</div>
+                                <div>Última conexão: {last ? new Date(last).toLocaleString("pt-BR") : "—"}</div>
+                              </>
+                            );
+                          })()}
                         </div>
                       );
                     })()}

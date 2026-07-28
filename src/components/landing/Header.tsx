@@ -29,7 +29,7 @@ export function Header() {
             Entrar
           </Button>
           <Button variant="neon" size="sm" className="font-bold shadow-neon" onClick={() => window.location.href = "/signup"}>
-            Começar Grátis
+            Assinar Agora
           </Button>
         </div>
       </div>
