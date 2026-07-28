@@ -499,9 +499,17 @@ export default function ChatbotIntegracao() {
                       if (!sel) return null;
                       return (
                         <div className="text-xs text-muted-foreground space-y-1 pt-1">
-                          <div>Número: <strong>{sel.phone_number ?? "—"}</strong></div>
-                          <div>Status: <strong>{sel.status ?? "—"}</strong>{sel.connection_state ? ` (${sel.connection_state})` : ""}</div>
-                          <div>Última conexão: {sel.last_connected_at ? new Date(sel.last_connected_at).toLocaleString("pt-BR") : "—"}</div>
+                          {(() => {
+                            const num = pickInstanceNumber(sel as unknown as Record<string, unknown>);
+                            const last = pickLastConnected(sel as unknown as Record<string, unknown>);
+                            return (
+                              <>
+                                <div>Número: <strong>{num ?? "—"}</strong></div>
+                                <div>Status: <strong>{sel.status ?? sel.state ?? "—"}</strong>{sel.connection_state ? ` (${sel.connection_state})` : ""}</div>
+                                <div>Última conexão: {last ? new Date(last).toLocaleString("pt-BR") : "—"}</div>
+                              </>
+                            );
+                          })()}
                         </div>
                       );
                     })()}
