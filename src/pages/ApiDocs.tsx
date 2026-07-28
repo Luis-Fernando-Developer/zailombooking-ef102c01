@@ -483,7 +483,7 @@ export default function ApiDocs() {
         </main>
 
         {/* Painel direito — cURL + Request + Response */}
-        <aside className="h-[calc(100vh-56px)] overflow-y-auto border-l border-border/60 bg-card/30 p-4 space-y-4">
+        <aside className="xl:h-[calc(100vh-56px)] overflow-y-auto border-t xl:border-t-0 xl:border-l border-border/60 bg-card/30 p-4 space-y-4">
           {/* cURL */}
           <div className="rounded-lg border border-border bg-background">
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
