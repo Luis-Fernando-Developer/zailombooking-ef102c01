@@ -21,7 +21,7 @@ export function CTAFinal() {
               Criar minha Agenda Agora
               <ArrowRight className="ml-3 w-7 h-7" />
             </Button>
-            <Button size="xl" variant="glass" className="h-16 px-10 text-xl" onClick={() => window.location.href = "/demo"}>
+            <Button size="xl" variant="glass" className="h-16 px-10 text-xl" onClick={() => window.open("https://w.app/demosntracao-zailom-booking", "_blank", "noopener,noreferrer")}>
               Ver Demo ao Vivo
             </Button>
           </div>

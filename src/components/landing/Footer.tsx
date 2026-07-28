@@ -27,7 +27,7 @@ export function Footer() {
             <ul className="space-y-4">
               <li><a href="#features" className="text-muted-foreground hover:text-primary transition-colors text-lg">Recursos</a></li>
               <li><a href="#pricing" className="text-muted-foreground hover:text-primary transition-colors text-lg">Planos</a></li>
-              <li><a href="/demo" className="text-muted-foreground hover:text-primary transition-colors text-lg">Demonstração</a></li>
+              <li><a href="https://w.app/demosntracao-zailom-booking" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors text-lg">Demonstração</a></li>
             </ul>
           </div>
 

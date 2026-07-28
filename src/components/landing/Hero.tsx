@@ -37,7 +37,7 @@ export function Hero() {
                 Criar minha página agora
                 <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button size="xl" variant="glass" onClick={() => window.location.href = "/demo"}>
+              <Button size="xl" variant="glass" onClick={() => window.open("https://w.app/demosntracao-zailom-booking", "_blank", "noopener,noreferrer")}>
                 Ver demonstração
               </Button>
             </div>
