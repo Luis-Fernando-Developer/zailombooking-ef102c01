@@ -207,7 +207,8 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
             company_id: companyId,
             service_id: serviceId,
             employee_id: selectedEmployeeId,
-            date: dateStr
+            date: dateStr,
+            ignore_min_advance: true
           }
         });
 
@@ -237,7 +238,8 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
           company_id: companyId,
           service_id: serviceId,
           employee_id: selectedEmployeeId,
-          date: dateStr
+          date: dateStr,
+          ignore_min_advance: true
         }
       });
 

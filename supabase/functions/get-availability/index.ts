@@ -27,6 +27,7 @@ serve(async (req) => {
     let serviceId  = req.headers.get('x-service-id')
     let employeeId = req.headers.get('x-employee-id')
     let date       = req.headers.get('x-date')
+    let ignoreMinAdvance: boolean | string | null = req.headers.get('x-ignore-min-advance')
 
     if (!companyId || !serviceId || !employeeId || !date) {
       const body = await req.json().catch(() => ({}))
@@ -34,6 +35,7 @@ serve(async (req) => {
       serviceId  = serviceId  || body.service_id
       employeeId = employeeId || body.employee_id
       date       = date       || body.date
+      ignoreMinAdvance = ignoreMinAdvance ?? body.ignore_min_advance
     }
 
     if (!companyId || !serviceId || !employeeId || !date) {
@@ -47,6 +49,7 @@ serve(async (req) => {
       p_employee: employeeId,
       p_service:  serviceId,
       p_date:     date,
+      p_ignore_min_advance: ignoreMinAdvance === true || ignoreMinAdvance === 'true',
     })
 
     if (error) {
