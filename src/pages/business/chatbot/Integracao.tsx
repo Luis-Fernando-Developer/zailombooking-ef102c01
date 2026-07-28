@@ -144,7 +144,7 @@ export default function ChatbotIntegracao() {
   const refreshIntegration = useCallback(async (cid: string) => {
     const { data } = await supabase
       .from("chatbot_integration")
-      .select("api_key_prefix, flow_api_base_url, connected_at, is_active, talkmap_provisioned, talkmap_provisioned_at, flow_workspace_data, flow_scopes, flow_selected_instance_id, flow_selected_instance_name, flow_default_bot_id, flow_default_bot_name, flow_last_synced_at")
+      .select("api_key_prefix, flow_api_base_url, connected_at, is_active, talkmap_provisioned, talkmap_provisioned_at, flow_workspace_data, flow_scopes, flow_selected_instance_id, flow_selected_instance_name, flow_default_bot_id, flow_default_bot_name, flow_event_bots, flow_last_synced_at")
       .eq("company_id", cid)
       .maybeSingle();
     setIntegration((data as IntegrationRow) ?? null);
