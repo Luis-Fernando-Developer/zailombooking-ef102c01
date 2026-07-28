@@ -48,7 +48,7 @@ async function loadWhatsAppTemplate(supabase: any, companyId: string, eventKey: 
   return fallback?.template ?? null;
 }
 
-async function sendWhatsApp(supabase: any, companyId: string, to: string, message: string) {
+async function sendWhatsApp(supabase: any, companyId: string, to: string, message: string, eventKey?: string) {
   const cleanTo = String(to || "").replace(/\D/g, "");
   if (!cleanTo || !message) return { via: "none", ok: false, error: "invalid_input" };
 
@@ -62,9 +62,11 @@ async function sendWhatsApp(supabase: any, companyId: string, to: string, messag
 
   if (channel === "flow") {
     const { data: cb } = await supabase.from("chatbot_integration")
-      .select("flow_api_key, flow_api_base_url, flow_selected_instance_name, flow_default_bot_id")
+      .select("flow_api_key, flow_api_base_url, flow_selected_instance_name, flow_default_bot_id, flow_event_bots")
       .eq("company_id", companyId).maybeSingle();
     if (!cb?.flow_api_key) return { via: "flow", ok: false, error: "flow_not_configured" };
+    const eventBots = (cb.flow_event_bots ?? {}) as Record<string, string>;
+    const botId = (eventKey && eventBots[eventKey]) || cb.flow_default_bot_id;
     const base = (cb.flow_api_base_url || "https://api-flowbuilder.zailom.com/functions/v1/flow-api").replace(/\/$/, "");
     const res = await fetch(`${base}/v1/messages/send`, {
       method: "POST",
@@ -75,13 +77,13 @@ async function sendWhatsApp(supabase: any, companyId: string, to: string, messag
       },
       body: JSON.stringify({
         instance: cb.flow_selected_instance_name,
-        bot_id: cb.flow_default_bot_id,
+        bot_id: botId,
         to: cleanTo, text: message,
       }),
     });
     const respBody = await res.text().then((t) => { try { return JSON.parse(t); } catch { return t; }});
     if (res.ok) await supabase.rpc("whatsapp_bump_usage", { p_company: companyId });
-    return { via: "flow", ok: res.ok, status: res.status, response: respBody };
+    return { via: "flow", ok: res.ok, status: res.status, response: respBody, bot_id: botId };
   }
 
   const { data: integRow } = await supabase.from("whatsapp_integration")
