@@ -14,6 +14,7 @@ const LABEL: Record<PlanResource, string> = {
   chatbots: "bots",
   chatbot_messages: "mensagens",
   integrations: "integrações",
+  whatsapp_instances: "instâncias WhatsApp",
 };
 
 export function PlanOverageBanner({ companyId }: { companyId?: string }) {

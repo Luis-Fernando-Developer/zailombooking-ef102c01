@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { Copy } from "lucide-react";
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { PlanOverageBanner } from "@/components/business/PlanOverageBanner";
+import { SubscriptionSuspendedBanner } from "@/components/business/SubscriptionSuspendedBanner";
 import { PlatformNotificationModal } from "@/components/business/PlatformNotificationModal";
 import { NotificationsBell } from "@/components/business/NotificationsBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -66,6 +67,7 @@ export function BusinessLayout({
           <div className={`w-full ${hideHeader ? 'h-full flex flex-col' : ''}`}>
             {!hideHeader && (
               <div className="px-4 pt-4">
+                <SubscriptionSuspendedBanner companyId={companyId} />
                 <PlanOverageBanner companyId={companyId} />
               </div>
             )}
