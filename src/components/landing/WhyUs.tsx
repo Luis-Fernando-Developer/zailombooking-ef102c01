@@ -116,7 +116,7 @@ export function WhyUs() {
               </div>
             ))}
 
-            <div className="lg:hidden relative mt-16 pt-8 max-w-sm mx-auto">
+            <div className="lg:hidden relative mt-16 pt-8 max-w-lg mx-auto">
               <img
                 src={calendarShot.url}
                 alt="Página pública de agendamento em notebook e mobile"
