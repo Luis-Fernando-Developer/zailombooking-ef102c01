@@ -40,9 +40,8 @@ CREATE POLICY "reminders_sent_company_read"
   USING (
     EXISTS (
       SELECT 1 FROM public.bookings b
-      JOIN public.companies c ON c.id = b.company_id
       WHERE b.id = booking_reminders_sent.booking_id
-        AND c.owner_id = auth.uid()
+        AND public.user_belongs_to_company(auth.uid(), b.company_id)
     )
   );
 
