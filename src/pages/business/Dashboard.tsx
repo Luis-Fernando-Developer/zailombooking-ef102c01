@@ -16,7 +16,8 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import {
   CalendarIcon, Users, DollarSign, TrendingUp, Clock, CheckCircle,
   XCircle, AlertCircle, Activity, UserMinus, Repeat2, Star, Scissors,
-  Wallet, CreditCard, Banknote, UserX,
+  Wallet, CreditCard, Banknote, UserX, BarChart3, Settings2, Handshake,
+  ListChecks, UsersRound, Trophy,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { Link } from "react-router-dom";
