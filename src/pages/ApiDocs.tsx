@@ -620,7 +620,7 @@ export default function ApiDocs() {
         </aside>
           </>
         ) : (
-          <main className="col-span-2 flex h-[calc(100vh-56px)] items-center justify-center p-8">
+          <main className="md:col-span-1 xl:col-span-2 flex min-h-[calc(100vh-56px)] items-center justify-center p-8">
             <div className="max-w-md text-center">
               <Code2 className="mx-auto h-10 w-10 text-muted-foreground" />
               <h2 className="mt-4 text-xl font-semibold">Selecione um endpoint</h2>
