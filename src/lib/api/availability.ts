@@ -5,6 +5,7 @@ export interface GetAvailabilityParams {
   service_id: string;
   employee_id: string;
   date: string;
+  ignore_min_advance?: boolean;
 }
 
 interface AvailabilityResult {
@@ -35,12 +36,18 @@ const callAvailabilityRpc = async ({
   service_id,
   employee_id,
   date,
+  ignore_min_advance,
 }: GetAvailabilityParams): Promise<AvailabilityResult> => {
-  const { data, error } = await supabase.rpc('get_available_slots', {
+  const rpcParams = {
     p_company: company_id,
     p_employee: employee_id,
     p_service: service_id,
     p_date: date,
+    ...(ignore_min_advance ? { p_ignore_min_advance: true } : {}),
+  };
+
+  const { data, error } = await supabase.rpc('get_available_slots', {
+    ...rpcParams,
   });
 
   if (error) {
@@ -52,7 +59,7 @@ const callAvailabilityRpc = async ({
 };
 
 export const getAvailability = async (params: { data: GetAvailabilityParams }) => {
-  const { company_id, service_id, employee_id, date } = params.data;
+  const { company_id, service_id, employee_id, date, ignore_min_advance } = params.data;
 
   try {
     const rpcResult = await callAvailabilityRpc({ company_id, service_id, employee_id, date });
