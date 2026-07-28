@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { MessageSquareOff, Clock, TrendingUp, UserCheck } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { LaptopMockup } from "@/components/landing/LaptopMockup";
+import calendarShot from "@/assets/booking-calendar.png.asset.json";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -84,14 +86,12 @@ export function WhyUs() {
             </p>
             
             <div className="hidden lg:block relative mt-12">
-              <div className="card-glow rounded-3xl overflow-hidden border border-primary/20 shadow-2xl">
-                <img 
-                  src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800" 
-                  alt="Impacto no Negócio" 
-                  className="w-full h-full object-cover grayscale-[0.3] hover:grayscale-0 transition-all duration-500"
-                />
-              </div>
-              <div className="absolute -bottom-8 -right-8 bg-card p-8 rounded-2xl shadow-2xl border border-primary/20 animate-float backdrop-blur-xl">
+              <LaptopMockup
+                src={calendarShot.url}
+                alt="Página pública de agendamento — escolha de data"
+                urlLabel="booking.zailom.com/testando-01/agendar"
+              />
+              <div className="absolute -bottom-8 -right-8 bg-card p-6 rounded-2xl shadow-2xl border border-primary/20 animate-float backdrop-blur-xl">
                 <p className="text-sm font-bold text-primary mb-1">Aumento de Faturamento</p>
                 <p className="text-4xl font-black text-white">+35%</p>
                 <p className="text-xs text-muted-foreground mt-2">Média após 3 meses de uso</p>
@@ -117,14 +117,12 @@ export function WhyUs() {
             ))}
 
             <div className="lg:hidden relative mt-16 pt-8">
-              <div className="card-glow rounded-3xl overflow-hidden border border-primary/20 shadow-2xl">
-                <img 
-                  src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800" 
-                  alt="Impacto no Negócio" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="absolute -bottom-4 -right-4 bg-card p-6 rounded-2xl shadow-2xl border border-primary/20 backdrop-blur-xl">
+              <LaptopMockup
+                src={calendarShot.url}
+                alt="Página pública de agendamento — escolha de data"
+                urlLabel="booking.zailom.com/testando-01/agendar"
+              />
+              <div className="absolute -bottom-4 -right-4 bg-card p-4 rounded-2xl shadow-2xl border border-primary/20 backdrop-blur-xl">
                 <p className="text-xs font-bold text-primary">Aumento de Faturamento</p>
                 <p className="text-2xl font-black text-white">+35%</p>
               </div>
