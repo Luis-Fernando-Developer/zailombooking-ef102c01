@@ -575,6 +575,55 @@ export default function ChatbotIntegracao() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Bots por evento */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Workflow className="h-5 w-5" /> Bots por evento</CardTitle>
+                <CardDescription>
+                  Selecione um bot específico para cada evento do agendamento. Eventos sem bot definido usam o <strong>Bot padrão</strong>.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loadingLists ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando…</div>
+                ) : publishedBots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Publique bots no Zailom Flow para poder mapeá-los por evento.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {BOT_EVENTS.map((ev) => {
+                      const current = integration?.flow_event_bots?.[ev.key] ?? "__default__";
+                      return (
+                        <div key={ev.key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 rounded-md border border-primary/10 bg-card/40">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium">{ev.label}</div>
+                            <div className="text-xs text-muted-foreground">{ev.description}</div>
+                          </div>
+                          <div className="sm:w-64 shrink-0">
+                            <Select
+                              value={current}
+                              onValueChange={(v) => onSelectEventBot(ev.key, v)}
+                            >
+                              <SelectTrigger><SelectValue placeholder="Bot padrão" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__default__">
+                                  Bot padrão {integration?.flow_default_bot_name ? `(${integration.flow_default_bot_name})` : ""}
+                                </SelectItem>
+                                {publishedBots.map((b) => (
+                                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </>
         )}
 
