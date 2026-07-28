@@ -394,7 +394,23 @@ export default function ApiDocs() {
         {endpoint ? (
           <>
         {/* Painel central */}
-        <main className="h-[calc(100vh-56px)] overflow-y-auto p-8">
+        <main className="min-h-[calc(100vh-56px)] xl:h-[calc(100vh-56px)] overflow-y-auto p-4 sm:p-6 xl:p-8">
+          <div className="xl:hidden mb-4 flex justify-end">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <PanelRight className="h-4 w-4" /> Testar / cURL
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[92vw] max-w-md p-0 overflow-y-auto">
+                <SheetHeader className="border-b border-border/60 p-3">
+                  <SheetTitle>Testar endpoint</SheetTitle>
+                </SheetHeader>
+                <div id="mobile-tryit-slot" />
+              </SheetContent>
+            </Sheet>
+          </div>
+
           <div className="text-sm text-primary">{endpoint.group}</div>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">{endpoint.title}</h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">{endpoint.description}</p>
