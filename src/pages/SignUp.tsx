@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookingLogo } from "@/components/BookingLogo";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Building2, User, Mail, FileText, Check, X, CreditCard, Zap, Crown, Rocket, Gem } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
@@ -518,7 +519,12 @@ export default function SignUp() {
               {/* Phone */}
               <div className="space-y-2">
                 <Label htmlFor="ownerPhone">Telefone (WhatsApp) *</Label>
-                <Input id="ownerPhone" placeholder="(11) 90000-0000" value={formData.ownerPhone} onChange={(e) => handleInputChange("ownerPhone", e.target.value)} className="bg-background/50 border-primary/30 focus:border-primary" required />
+                <PhoneInput
+                  id="ownerPhone"
+                  value={formData.ownerPhone}
+                  onChange={(v) => handleInputChange("ownerPhone", v)}
+                  required
+                />
               </div>
 
               {/* Forma de pagamento */}

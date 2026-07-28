@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CompanyLogo } from "@/components/CompanyLogo";
 import { User, Mail, Lock, Phone, ArrowLeft, CreditCard } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { formatCPF, cleanCPF, validateCPF } from "@/lib/cpfValidation";
@@ -251,20 +252,16 @@ export default function ClientSignup() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="(11) 99999-9999"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                  required
-                />
-              </div>
+              <Label htmlFor="phone">Telefone (WhatsApp)</Label>
+              <PhoneInput
+                id="phone"
+                value={formData.phone}
+                onChange={(v) => {
+                  setFormData(prev => ({ ...prev, phone: v }));
+                  if (errors.phone) setErrors(prev => ({ ...prev, phone: "" }));
+                }}
+                required
+              />
               {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
             </div>
 
