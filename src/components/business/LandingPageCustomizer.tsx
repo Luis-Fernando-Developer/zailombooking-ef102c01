@@ -346,14 +346,14 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="header" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="header">Header</TabsTrigger>
-            <TabsTrigger value="font">Font</TabsTrigger>
-            <TabsTrigger value="hero">Hero</TabsTrigger>
-            <TabsTrigger value="buttons">Botões</TabsTrigger>
-            <TabsTrigger value="cards">Cards</TabsTrigger>
-            <TabsTrigger value="extra">Extra</TabsTrigger>
-            <TabsTrigger value="footer">Footer</TabsTrigger>
+          <TabsList className="flex w-full flex-wrap h-auto gap-1 justify-start sm:grid sm:grid-cols-4 lg:grid-cols-7">
+            <TabsTrigger value="header" className="flex-1 min-w-[80px]">Header</TabsTrigger>
+            <TabsTrigger value="font" className="flex-1 min-w-[80px]">Font</TabsTrigger>
+            <TabsTrigger value="hero" className="flex-1 min-w-[80px]">Hero</TabsTrigger>
+            <TabsTrigger value="buttons" className="flex-1 min-w-[80px]">Botões</TabsTrigger>
+            <TabsTrigger value="cards" className="flex-1 min-w-[80px]">Cards</TabsTrigger>
+            <TabsTrigger value="extra" className="flex-1 min-w-[80px]">Extra</TabsTrigger>
+            <TabsTrigger value="footer" className="flex-1 min-w-[80px]">Footer</TabsTrigger>
           </TabsList>
 
           <TabsContent value="header" className="space-y-4">

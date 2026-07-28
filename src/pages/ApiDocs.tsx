@@ -7,9 +7,11 @@
 // =============================================================================
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Check, Play, Loader2, ChevronRight, BookOpen, Code2, Download, FileJson, FileCode2, ExternalLink } from "lucide-react";
+import { Copy, Check, Play, Loader2, ChevronRight, BookOpen, Code2, Download, FileJson, FileCode2, ExternalLink, Menu, PanelRight } from "lucide-react";
 import { NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { buildOpenApiSpec, specToJson, specToYaml, downloadBlob } from "@/lib/openapi-spec";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 // ---------------------------------------------------------------------------
 // Base URL da API — usa o custom domain quando publicado, senão a edge function
@@ -238,23 +240,68 @@ export default function ApiDocs() {
 
       {/* Top bar */}
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
-        <div className="flex h-14 items-center gap-4 px-4">
-          <NavLink to="/api-docs/introduction" className="flex items-center gap-2">
-            <img src="/logo_zailom.svg" alt="Zailom" className="h-7 w-7 object-contain" />
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 sm:h-14 sm:flex-nowrap sm:gap-4 sm:px-4 sm:py-0">
+          {/* Mobile: sheet with endpoints list */}
+          {!isIntro && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden shrink-0" aria-label="Endpoints">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85vw] max-w-sm p-0 overflow-y-auto">
+                <SheetHeader className="border-b border-border/60 p-3">
+                  <SheetTitle>Endpoints</SheetTitle>
+                </SheetHeader>
+                <div className="p-3">
+                  {GROUPS.map((g) => (
+                    <div key={g} className="mb-4">
+                      <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {g}
+                      </div>
+                      <ul className="space-y-0.5">
+                        {ENDPOINTS.filter((e) => e.group === g).map((e) => (
+                          <li key={e.id}>
+                            <NavLink
+                              to={`/api-docs/endpoint/${endpointSlug(e)}`}
+                              onClick={() => setResult(null)}
+                              className={({ isActive }) =>
+                                `flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition ${
+                                  isActive
+                                    ? "bg-primary/15 text-foreground"
+                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                }`
+                              }
+                            >
+                              <MethodBadge method={e.method} />
+                              <span className="truncate">{e.title}</span>
+                            </NavLink>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
+
+          <NavLink to="/api-docs/introduction" className="flex items-center gap-2 min-w-0">
+            <img src="/logo_zailom.svg" alt="Zailom" className="h-7 w-7 object-contain shrink-0" />
             <img
               src="/brand_name_zailom_booking.svg"
               alt="Zailom Booking"
-              className="h-5 object-contain"
+              className="h-5 object-contain hidden sm:block"
             />
-            <span className="text-muted-foreground">/</span>
-            <span className="text-sm text-muted-foreground">API Reference</span>
+            <span className="text-muted-foreground hidden sm:inline">/</span>
+            <span className="text-sm text-muted-foreground truncate">API Reference</span>
           </NavLink>
 
-          <nav className="ml-6 flex items-center gap-1 text-sm">
+          <nav className="order-3 w-full flex items-center gap-1 text-sm overflow-x-auto sm:order-none sm:w-auto sm:ml-6">
             <NavLink
               to="/api-docs/introduction"
               className={({ isActive }) =>
-                `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
+                `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition shrink-0 ${
                   isActive
                     ? "bg-primary/15 text-foreground"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -267,7 +314,7 @@ export default function ApiDocs() {
             <NavLink
               to="/api-docs/endpoint/v1"
               className={() =>
-                `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
+                `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition shrink-0 ${
                   isEndpointsTab
                     ? "bg-primary/15 text-foreground"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -277,30 +324,29 @@ export default function ApiDocs() {
               <Code2 className="h-3.5 w-3.5" />
               Endpoints
             </NavLink>
+            <NavLink
+              to="/api-docs/swagger"
+              className={({ isActive }) =>
+                `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition shrink-0 ${
+                  isActive
+                    ? "bg-primary/15 text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }`
+              }
+            >
+              <FileCode2 className="h-3.5 w-3.5" />
+              Swagger UI
+            </NavLink>
           </nav>
 
-          <NavLink
-            to="/api-docs/swagger"
-            className={({ isActive }) =>
-              `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition ${
-                isActive
-                  ? "bg-primary/15 text-foreground"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              }`
-            }
-          >
-            <FileCode2 className="h-3.5 w-3.5" />
-            Swagger UI
-          </NavLink>
-
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 shrink-0">
             <OpenApiExportMenu />
             <input
               type="password"
               value={apiKey}
               onChange={(e) => saveApiKey(e.target.value)}
-              placeholder="Cole sua API key (zlm_...)"
-              className="h-8 w-64 rounded-md border border-border bg-card px-3 text-xs outline-none focus:ring-2 focus:ring-primary"
+              placeholder="API key (zlm_...)"
+              className="h-8 w-40 sm:w-64 rounded-md border border-border bg-card px-3 text-xs outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
@@ -312,9 +358,9 @@ export default function ApiDocs() {
         <>
 
 
-      <div className="grid grid-cols-[260px_1fr_480px] gap-0">
-        {/* Sidebar de endpoints */}
-        <aside className="h-[calc(100vh-56px)] overflow-y-auto border-r border-border/60 bg-card/30 p-3">
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_480px] gap-0">
+        {/* Sidebar de endpoints (desktop) */}
+        <aside className="hidden md:block h-[calc(100vh-56px)] overflow-y-auto border-r border-border/60 bg-card/30 p-3">
           {GROUPS.map((g) => (
             <div key={g} className="mb-4">
               <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -344,10 +390,13 @@ export default function ApiDocs() {
           ))}
         </aside>
 
+
         {endpoint ? (
           <>
         {/* Painel central */}
-        <main className="h-[calc(100vh-56px)] overflow-y-auto p-8">
+        <main className="min-h-[calc(100vh-56px)] xl:h-[calc(100vh-56px)] overflow-y-auto p-4 sm:p-6 xl:p-8">
+
+
           <div className="text-sm text-primary">{endpoint.group}</div>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">{endpoint.title}</h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">{endpoint.description}</p>
@@ -434,7 +483,7 @@ export default function ApiDocs() {
         </main>
 
         {/* Painel direito — cURL + Request + Response */}
-        <aside className="h-[calc(100vh-56px)] overflow-y-auto border-l border-border/60 bg-card/30 p-4 space-y-4">
+        <aside className="xl:h-[calc(100vh-56px)] overflow-y-auto border-t xl:border-t-0 xl:border-l border-border/60 bg-card/30 p-4 space-y-4">
           {/* cURL */}
           <div className="rounded-lg border border-border bg-background">
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
@@ -571,7 +620,7 @@ export default function ApiDocs() {
         </aside>
           </>
         ) : (
-          <main className="col-span-2 flex h-[calc(100vh-56px)] items-center justify-center p-8">
+          <main className="md:col-span-1 xl:col-span-2 flex min-h-[calc(100vh-56px)] items-center justify-center p-8">
             <div className="max-w-md text-center">
               <Code2 className="mx-auto h-10 w-10 text-muted-foreground" />
               <h2 className="mt-4 text-xl font-semibold">Selecione um endpoint</h2>

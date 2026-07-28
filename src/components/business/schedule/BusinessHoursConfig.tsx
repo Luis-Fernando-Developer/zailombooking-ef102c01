@@ -164,9 +164,9 @@ export function BusinessHoursConfig({ companyId }: BusinessHoursConfigProps) {
                 hour.is_open ? 'border-primary/30 bg-card/50' : 'border-muted bg-muted/20'
               }`}
             >
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
                 {/* Day name and toggle */}
-                <div className="flex items-center gap-3 min-w-[180px]">
+                <div className="flex items-center gap-3 sm:min-w-[180px]">
                   <Switch
                     checked={hour.is_open}
                     onCheckedChange={(checked) => handleHourChange(index, 'is_open', checked)}
@@ -177,26 +177,24 @@ export function BusinessHoursConfig({ companyId }: BusinessHoursConfigProps) {
                 </div>
 
                 {hour.is_open && (
-                  <>
-                    {/* Main period */}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                    <Label className="text-sm text-muted-foreground">Horário:</Label>
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm text-muted-foreground">Horário:</Label>
                       <Input
                         type="time"
                         value={hour.open_time}
                         onChange={(e) => handleHourChange(index, 'open_time', e.target.value)}
-                        className="w-28"
+                        className="w-32 sm:w-28"
                       />
                       <span className="text-muted-foreground">às</span>
                       <Input
                         type="time"
                         value={hour.close_time}
                         onChange={(e) => handleHourChange(index, 'close_time', e.target.value)}
-                        className="w-28"
+                        className="w-32 sm:w-28"
                       />
                     </div>
-
-                  </>
+                  </div>
                 )}
 
                 {!hour.is_open && (
