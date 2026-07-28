@@ -52,7 +52,27 @@ export default function BusinessSettings() {
     sendReminders: true,
     advanceBookingDays: 30,
     cancellationPolicy: "",
+    reminderOffsetsMinutes: [1440] as number[],
   });
+
+  const REMINDER_OFFSET_OPTIONS: { value: number; label: string }[] = [
+    { value: 10, label: "10 minutos antes" },
+    { value: 30, label: "30 minutos antes" },
+    { value: 60, label: "1 hora antes" },
+    { value: 120, label: "2 horas antes" },
+    { value: 360, label: "6 horas antes" },
+    { value: 1440, label: "24 horas antes" },
+    { value: 2880, label: "48 horas antes" },
+    { value: 10080, label: "1 semana antes" },
+  ];
+
+  const toggleReminderOffset = (value: number) => {
+    setBusinessSettings((prev) => {
+      const set = new Set(prev.reminderOffsetsMinutes);
+      if (set.has(value)) set.delete(value); else set.add(value);
+      return { ...prev, reminderOffsetsMinutes: Array.from(set).sort((a, b) => a - b) };
+    });
+  };
 
   useEffect(() => {
     fetchData();
@@ -92,6 +112,9 @@ export default function BusinessSettings() {
         sendReminders: bs.send_reminders ?? true,
         advanceBookingDays: bs.advance_booking_days ?? 30,
         cancellationPolicy: bs.cancellation_policy ?? "",
+        reminderOffsetsMinutes: Array.isArray(bs.reminder_offsets_minutes)
+          ? bs.reminder_offsets_minutes.filter((v: unknown): v is number => typeof v === "number")
+          : [1440],
       });
 
       // Buscar dados do funcionário
@@ -158,6 +181,7 @@ export default function BusinessSettings() {
         send_reminders: businessSettings.sendReminders,
         advance_booking_days: businessSettings.advanceBookingDays,
         cancellation_policy: businessSettings.cancellationPolicy,
+        reminder_offsets_minutes: businessSettings.reminderOffsetsMinutes,
       };
       const { error } = await supabase
         .from('companies')
@@ -318,7 +342,7 @@ export default function BusinessSettings() {
               <div className="space-y-0.5">
                 <Label>Enviar Lembretes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Envia lembretes automáticos por email/SMS
+                  Envia lembretes automáticos via WhatsApp (usa o template “Lembrete de agendamento”).
                 </p>
               </div>
               <Switch
@@ -329,6 +353,40 @@ export default function BusinessSettings() {
                 disabled={!canEditSettings}
               />
             </div>
+
+            {businessSettings.sendReminders && (
+              <div className="space-y-2 rounded-md border border-border p-4">
+                <Label>Quando enviar os lembretes</Label>
+                <p className="text-sm text-muted-foreground">
+                  Selecione um ou mais momentos antes do horário do agendamento.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
+                  {REMINDER_OFFSET_OPTIONS.map((opt) => {
+                    const active = businessSettings.reminderOffsetsMinutes.includes(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => canEditSettings && toggleReminderOffset(opt.value)}
+                        disabled={!canEditSettings}
+                        className={`text-sm rounded-md border px-3 py-2 transition-colors ${
+                          active
+                            ? "border-primary bg-primary/10 text-foreground"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/50"
+                        } ${!canEditSettings ? "opacity-60 cursor-not-allowed" : ""}`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {businessSettings.reminderOffsetsMinutes.length === 0 && (
+                  <p className="text-xs text-destructive pt-1">
+                    Selecione ao menos um horário ou desative os lembretes.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="advanceDays">Antecedência Máxima (dias)</Label>
