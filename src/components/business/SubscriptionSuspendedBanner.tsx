@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AlertOctagon } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 
 /**
  * Banner exibido quando a assinatura da empresa esta suspensa,
- * bloqueada ou pausada. Bloqueia visualmente o painel e leva a billing.
+ * bloqueada ou pausada. Alem de mostrar o aviso, redireciona
+ * automaticamente para a tela de billing para bloquear o uso
+ * do painel enquanto a fatura estiver em aberto.
  */
 export function SubscriptionSuspendedBanner({ companyId }: { companyId?: string }) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [status, setStatus] = useState<string | null>(null);
   const [graceUntil, setGraceUntil] = useState<string | null>(null);
 
@@ -29,6 +32,21 @@ export function SubscriptionSuspendedBanner({ companyId }: { companyId?: string 
     })();
     return () => { cancelled = true; };
   }, [companyId]);
+
+  // Bloqueia navegacao: se assinatura inativa, forca a tela de billing.
+  useEffect(() => {
+    if (!slug || !status) return;
+    const blocked = status === "suspended" || status === "blocked" || status === "paused";
+    if (!blocked) return;
+    const path = location.pathname;
+    const allowed =
+      path.includes("/business/billing") ||
+      path.includes("/admin/billing") ||
+      path.includes("/admin/configuracoes");
+    if (!allowed) {
+      navigate(`/${slug}/business/billing`, { replace: true });
+    }
+  }, [status, location.pathname, slug, navigate]);
 
   if (!status || status === "active" || status === "past_due") return null;
 
