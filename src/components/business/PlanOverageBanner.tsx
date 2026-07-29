@@ -70,7 +70,7 @@ export function PlanOverageBanner({ companyId }: { companyId?: string }) {
           <Button
             size="sm"
             className="mt-3"
-            onClick={() => navigate(`/${slug}/business/billing`)}
+            onClick={() => navigate(`/${slug}/admin/billing`)}
           >
             Fazer upgrade
           </Button>

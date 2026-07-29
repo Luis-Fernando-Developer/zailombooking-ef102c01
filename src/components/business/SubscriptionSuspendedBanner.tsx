@@ -44,7 +44,7 @@ export function SubscriptionSuspendedBanner({ companyId }: { companyId?: string 
       path.includes("/admin/billing") ||
       path.includes("/admin/configuracoes");
     if (!allowed) {
-      navigate(`/${slug}/business/billing`, { replace: true });
+      navigate(`/${slug}/admin/billing`, { replace: true });
     }
   }, [status, location.pathname, slug, navigate]);
 
@@ -79,7 +79,7 @@ export function SubscriptionSuspendedBanner({ companyId }: { companyId?: string 
             size="sm"
             variant="destructive"
             className="mt-3"
-            onClick={() => navigate(`/${slug}/business/billing`)}
+            onClick={() => navigate(`/${slug}/admin/billing`)}
           >
             Regularizar pagamento
           </Button>
