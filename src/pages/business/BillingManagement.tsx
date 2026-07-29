@@ -752,3 +752,30 @@ function statusVariant(s: string): any {
   if (s === "overdue") return "destructive";
   return "secondary";
 }
+
+/**
+ * O status financeiro real vive em `billing_status` (suspended/blocked/paused/past_due).
+ * `status` é apenas o estado do contrato, por isso pode continuar "active" mesmo
+ * com fatura em aberto. Aqui priorizamos o billing_status quando ele não estiver ativo.
+ */
+function effectiveSubStatus(sub: { status?: string; billing_status?: string | null } | null): string {
+  if (!sub) return "inativo";
+  const billing = (sub.billing_status || "").toLowerCase();
+  if (billing && billing !== "active") return billing;
+  return (sub.status || "inativo").toLowerCase();
+}
+
+function labelSubStatus(s: string) {
+  return ({
+    active: "Ativa",
+    inativo: "Inativa",
+    inactive: "Inativa",
+    suspended: "Suspensa",
+    blocked: "Bloqueada",
+    paused: "Pausada",
+    past_due: "Em atraso",
+    cancelled: "Cancelada",
+    canceled: "Cancelada",
+    trialing: "Em teste",
+  } as Record<string, string>)[s] || s;
+}
