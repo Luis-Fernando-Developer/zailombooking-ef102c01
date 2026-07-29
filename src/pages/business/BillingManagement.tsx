@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,8 @@ type Subscription = {
   plan_id: string; 
   billing_period: string;
   status: string; 
+  billing_status?: string | null;
+  paid_until?: string | null;
   original_price: number; 
   next_billing_date: string | null;
   pending_plan_change: any; 
@@ -79,6 +81,8 @@ type Limits = {
 export default function BillingManagement() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "plan";
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -271,7 +275,7 @@ export default function BillingManagement() {
           </div>
         </div>
 
-        <Tabs defaultValue="plan">
+        <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })}>
           <TabsList>
             <TabsTrigger value="plan"><Package className="w-4 h-4 mr-1" /> Plano Atual</TabsTrigger>
             <TabsTrigger value="methods"><CreditCard className="w-4 h-4 mr-1" /> Métodos</TabsTrigger>
@@ -299,8 +303,11 @@ export default function BillingManagement() {
                     </CardDescription>
 
                   </div>
-                  <Badge variant={subscription?.status === "active" ? "default" : "destructive"} className="self-start">
-                    {subscription?.status || "inativo"}
+                  <Badge
+                    variant={effectiveSubStatus(subscription) === "active" ? "default" : "destructive"}
+                    className="self-start"
+                  >
+                    {labelSubStatus(effectiveSubStatus(subscription))}
                   </Badge>
                 </div>
               </CardHeader>
@@ -744,4 +751,31 @@ function statusVariant(s: string): any {
   if (s === "paid") return "default";
   if (s === "overdue") return "destructive";
   return "secondary";
+}
+
+/**
+ * O status financeiro real vive em `billing_status` (suspended/blocked/paused/past_due).
+ * `status` é apenas o estado do contrato, por isso pode continuar "active" mesmo
+ * com fatura em aberto. Aqui priorizamos o billing_status quando ele não estiver ativo.
+ */
+function effectiveSubStatus(sub: { status?: string; billing_status?: string | null } | null): string {
+  if (!sub) return "inativo";
+  const billing = (sub.billing_status || "").toLowerCase();
+  if (billing && billing !== "active") return billing;
+  return (sub.status || "inativo").toLowerCase();
+}
+
+function labelSubStatus(s: string) {
+  return ({
+    active: "Ativa",
+    inativo: "Inativa",
+    inactive: "Inativa",
+    suspended: "Suspensa",
+    blocked: "Bloqueada",
+    paused: "Pausada",
+    past_due: "Em atraso",
+    cancelled: "Cancelada",
+    canceled: "Cancelada",
+    trialing: "Em teste",
+  } as Record<string, string>)[s] || s;
 }

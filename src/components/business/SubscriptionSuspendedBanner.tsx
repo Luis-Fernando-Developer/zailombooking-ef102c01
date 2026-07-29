@@ -79,7 +79,7 @@ export function SubscriptionSuspendedBanner({ companyId }: { companyId?: string 
             size="sm"
             variant="destructive"
             className="mt-3"
-            onClick={() => navigate(`/${slug}/admin/billing`)}
+            onClick={() => navigate(`/${slug}/admin/billing?tab=invoices`)}
           >
             Regularizar pagamento
           </Button>
