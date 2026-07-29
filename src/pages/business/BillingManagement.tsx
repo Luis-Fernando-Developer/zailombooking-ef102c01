@@ -32,6 +32,8 @@ type Subscription = {
   plan_id: string; 
   billing_period: string;
   status: string; 
+  billing_status?: string | null;
+  paid_until?: string | null;
   original_price: number; 
   next_billing_date: string | null;
   pending_plan_change: any; 
