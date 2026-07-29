@@ -16,7 +16,7 @@ const faqs = [
   },
   {
     question: "Como os clientes encontram minha página?",
-    answer: "Você recebe um link exclusivo (ex: zailom.com/sua-marca). Basta colocar na Bio do seu Instagram e WhatsApp. É o fim do 'me manda os horários'."
+    answer: "Você recebe um link exclusivo (ex: booking.zailom.com/sua-marca). Basta colocar na Bio do seu Instagram e WhatsApp. É o fim do 'me manda os horários'."
   },
   {
     question: "Posso cancelar quando eu quiser?",
@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     question: "O lembrete de WhatsApp é pago à parte?",
-    answer: "Não, os lembretes automáticos já estão inclusos nos planos Prata, Ouro e Diamante. Nosso foco é garantir que seu cliente não falte."
+    answer: "Não, os lembretes automáticos já estão inclusos nos planos Starter, Professional e Enterprise. Nosso foco é garantir que seu cliente não falte."
   }
 ];
 

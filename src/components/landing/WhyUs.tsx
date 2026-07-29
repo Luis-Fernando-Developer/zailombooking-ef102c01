@@ -86,7 +86,7 @@ export function WhyUs() {
             
             <div className="hidden lg:block relative mt-12 max-w-3xl mx-auto">
               <img
-                src={calendarShot.url}
+                src={calendarShot}
                 alt="Página pública de agendamento em notebook e mobile"
                 className="w-full h-auto drop-shadow-2xl"
                 loading="lazy"
@@ -118,7 +118,7 @@ export function WhyUs() {
 
             <div className="lg:hidden relative mt-16 pt-8 max-w-xl mx-auto">
               <img
-                src={calendarShot.url}
+                src={calendarShot}
                 alt="Página pública de agendamento em notebook e mobile"
                 className="w-full h-auto drop-shadow-2xl"
                 loading="lazy"
