@@ -130,9 +130,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_company_invoices_asaas_payment
 CREATE INDEX IF NOT EXISTS idx_company_invoices_company    ON public.company_invoices(company_id);
 CREATE INDEX IF NOT EXISTS idx_company_invoices_due        ON public.company_invoices(due_date DESC);
 CREATE INDEX IF NOT EXISTS idx_company_invoices_status     ON public.company_invoices(status);
+DROP INDEX IF EXISTS public.uq_company_invoice_cycle;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_company_invoice_cycle
-  ON public.company_invoices(company_id, cycle_start_at)
-  WHERE cycle_start_at IS NOT NULL;
+  ON public.company_invoices(company_id, cycle_start_at);
 
 GRANT SELECT ON public.company_invoices TO authenticated;
 GRANT ALL    ON public.company_invoices TO service_role;
