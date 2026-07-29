@@ -113,6 +113,17 @@ ALTER TABLE public.company_invoices
 UPDATE public.company_invoices SET due_date = COALESCE(due_date, created_at, now()) WHERE due_date IS NULL;
 ALTER TABLE public.company_invoices ALTER COLUMN due_date SET NOT NULL;
 
+-- Garante o CHECK de status mesmo em tabelas pré-existentes.
+ALTER TABLE public.company_invoices DROP CONSTRAINT IF EXISTS company_invoices_status_check;
+UPDATE public.company_invoices
+   SET status = 'pending'
+ WHERE status IS NULL
+    OR status NOT IN ('pending','paid','overdue','cancelled','refunded','failed');
+ALTER TABLE public.company_invoices
+  ADD CONSTRAINT company_invoices_status_check
+  CHECK (status IN ('pending','paid','overdue','cancelled','refunded','failed'));
+
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_company_invoices_asaas_payment
   ON public.company_invoices(asaas_payment_id) WHERE asaas_payment_id IS NOT NULL;
 
