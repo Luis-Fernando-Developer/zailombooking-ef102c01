@@ -92,6 +92,30 @@ CREATE TABLE IF NOT EXISTS public.company_invoices (
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- A tabela pode já existir de versões anteriores com colunas diferentes.
+-- Garante todas as colunas usadas abaixo antes de criar índices/policies.
+ALTER TABLE public.company_invoices
+  ADD COLUMN IF NOT EXISTS subscription_id  UUID REFERENCES public.company_subscriptions(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS amount           NUMERIC(12,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS status           TEXT NOT NULL DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS billing_type     TEXT,
+  ADD COLUMN IF NOT EXISTS due_date         TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS paid_at          TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS invoice_url      TEXT,
+  ADD COLUMN IF NOT EXISTS bank_slip_url    TEXT,
+  ADD COLUMN IF NOT EXISTS description      TEXT,
+  ADD COLUMN IF NOT EXISTS cycle_start_at   TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS cycle_end_at     TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS asaas_payment_id TEXT,
+  ADD COLUMN IF NOT EXISTS created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ NOT NULL DEFAULT now();
+
+UPDATE public.company_invoices SET due_date = COALESCE(due_date, created_at, now()) WHERE due_date IS NULL;
+ALTER TABLE public.company_invoices ALTER COLUMN due_date SET NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_company_invoices_asaas_payment
+  ON public.company_invoices(asaas_payment_id) WHERE asaas_payment_id IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_company_invoices_company    ON public.company_invoices(company_id);
 CREATE INDEX IF NOT EXISTS idx_company_invoices_due        ON public.company_invoices(due_date DESC);
 CREATE INDEX IF NOT EXISTS idx_company_invoices_status     ON public.company_invoices(status);
