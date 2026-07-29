@@ -275,7 +275,7 @@ export default function BillingManagement() {
           </div>
         </div>
 
-        <Tabs defaultValue="plan">
+        <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })}>
           <TabsList>
             <TabsTrigger value="plan"><Package className="w-4 h-4 mr-1" /> Plano Atual</TabsTrigger>
             <TabsTrigger value="methods"><CreditCard className="w-4 h-4 mr-1" /> Métodos</TabsTrigger>
