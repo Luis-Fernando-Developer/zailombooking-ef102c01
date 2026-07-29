@@ -185,6 +185,35 @@ export default function BillingManagement() {
     return data;
   }
 
+  /**
+   * Gera (ou reaproveita) a cobrança da fatura de assinatura no Asaas.
+   * O vínculo empresa <-> pagamento é criado no backend via externalReference.
+   */
+  async function handleGenerateCharge(invoice: Invoice, billingType: "PIX" | "BOLETO" = "PIX") {
+    setBusy(true);
+    try {
+      const result: any = await callFn("subscription-create-charge", {
+        invoice_id: invoice.id,
+        billing_type: billingType,
+      });
+
+      await fetchAll();
+
+      if (billingType === "PIX" && result?.pix_payload) {
+        setPixInvoice({ ...invoice, pix_payload: result.pix_payload, pix_qr_code: result.pix_qr_code });
+      } else if (result?.invoice_url) {
+        window.open(result.invoice_url, "_blank", "noopener,noreferrer");
+      }
+
+      toast({ title: "Cobrança gerada", description: "A fatura já pode ser paga." });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar cobrança", description: e.message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
   async function handleChangePlan() {
     if (!subscription || !selectedPlan) return;
     setBusy(true);
@@ -447,15 +476,13 @@ export default function BillingManagement() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                  const el = document.querySelector<HTMLElement>('[data-state][value="methods"]');
-                                  el?.click();
-                                  toast({ title: "Escolha um método de pagamento", description: "Selecione ou cadastre um método na aba Métodos para gerar a cobrança." });
-                                }}
+                                disabled={busy}
+                                onClick={() => handleGenerateCharge(i, "PIX")}
                               >
-                                <CreditCard className="w-3 h-3 mr-1" /> Pagar
+                                <CreditCard className="w-3 h-3 mr-1" /> Gerar cobrança
                               </Button>
                             )}
+
                           </div>
                         </TableCell>
                       </TableRow>
