@@ -149,7 +149,7 @@ CREATE POLICY "Company members can read invoices"
       SELECT 1 FROM public.companies c
        WHERE c.id = company_invoices.company_id
          AND (
-           c.owner_id = auth.uid()
+           lower(c.owner_email) = lower(COALESCE(auth.email(), ''))
            OR EXISTS (
              SELECT 1 FROM public.employees e
               WHERE e.company_id = c.id AND e.user_id = auth.uid()
