@@ -25,11 +25,6 @@ export function CTAFinal() {
               Ver Demo ao Vivo
             </Button>
           </div>
-          <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-muted-foreground font-medium">
-            <div className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" /> Sem cartão de crédito</div>
-            <div className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" /> Configuração em 2 min</div>
-            <div className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" /> Suporte humano 24/7</div>
-          </div>
         </div>
       </div>
     </section>
