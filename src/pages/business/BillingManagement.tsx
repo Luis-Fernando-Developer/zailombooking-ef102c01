@@ -60,6 +60,8 @@ type Invoice = {
   invoice_url: string | null;
   bank_slip_url: string | null; 
   description: string | null;
+  pix_payload?: string | null;
+  pix_qr_code?: string | null;
 };
 
 type Limits = {
