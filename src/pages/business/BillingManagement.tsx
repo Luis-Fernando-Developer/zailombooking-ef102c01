@@ -447,15 +447,13 @@ export default function BillingManagement() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                  const el = document.querySelector<HTMLElement>('[data-state][value="methods"]');
-                                  el?.click();
-                                  toast({ title: "Escolha um método de pagamento", description: "Selecione ou cadastre um método na aba Métodos para gerar a cobrança." });
-                                }}
+                                disabled={busy}
+                                onClick={() => handleGenerateCharge(i, "PIX")}
                               >
-                                <CreditCard className="w-3 h-3 mr-1" /> Pagar
+                                <CreditCard className="w-3 h-3 mr-1" /> Gerar cobrança
                               </Button>
                             )}
+
                           </div>
                         </TableCell>
                       </TableRow>
