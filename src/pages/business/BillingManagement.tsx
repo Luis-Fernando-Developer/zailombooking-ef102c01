@@ -303,8 +303,11 @@ export default function BillingManagement() {
                     </CardDescription>
 
                   </div>
-                  <Badge variant={subscription?.status === "active" ? "default" : "destructive"} className="self-start">
-                    {subscription?.status || "inativo"}
+                  <Badge
+                    variant={effectiveSubStatus(subscription) === "active" ? "default" : "destructive"}
+                    className="self-start"
+                  >
+                    {labelSubStatus(effectiveSubStatus(subscription))}
                   </Badge>
                 </div>
               </CardHeader>
