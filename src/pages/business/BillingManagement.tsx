@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLink, Check, MessageSquare, CalendarClock } from "lucide-react";
+import { ArrowLeft, CreditCard, FileText, Package, Loader2, Download, ExternalLink, Check, MessageSquare, CalendarClock, QrCode, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -94,6 +94,7 @@ export default function BillingManagement() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("monthly");
   const [busy, setBusy] = useState(false);
 
+  const [pixInvoice, setPixInvoice] = useState<Invoice | null>(null);
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [card, setCard] = useState({
     holderName: "", number: "", expiryMonth: "", expiryYear: "", ccv: "",
@@ -460,6 +461,37 @@ export default function BillingManagement() {
         </Tabs>
       </div>
 
+      {/* DIALOGO PIX */}
+      <Dialog open={!!pixInvoice} onOpenChange={(o) => !o && setPixInvoice(null)}>
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle>Pagar com PIX</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-center">
+            {pixInvoice?.pix_qr_code && (
+              <img
+                src={`data:image/png;base64,${pixInvoice.pix_qr_code}`}
+                alt="QR Code PIX da fatura"
+                className="mx-auto h-48 w-48 rounded-lg border bg-background p-2"
+              />
+            )}
+            <p className="text-sm text-muted-foreground">
+              Valor: R$ {Number(pixInvoice?.amount || 0).toFixed(2)}
+            </p>
+            <Button
+              className="w-full"
+              onClick={async () => {
+                if (!pixInvoice?.pix_payload) return;
+                await navigator.clipboard.writeText(pixInvoice.pix_payload);
+                toast({ title: "Código PIX copiado" });
+              }}
+            >
+              <Copy className="w-4 h-4 mr-2" /> Copiar código PIX
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* DIALOGO MUDAR PLANO */}
       <Dialog open={changePlanOpen} onOpenChange={setChangePlanOpen}>
         <DialogContent className="sm:max-w-[450px] max-h-[85vh] overflow-y-auto">
@@ -694,6 +726,16 @@ function formatDate(d?: string | null) {
 }
 function labelPeriod(p: string) {
   return p === "annual" ? "ano" : p === "quarterly" ? "trimestre" : "mês";
+}
+function translateInvoiceDescription(desc?: string | null) {
+  if (!desc) return "—";
+  return desc
+    .replace(/\bmonthly\b/gi, "mensal")
+    .replace(/\bquarterly\b/gi, "trimestral")
+    .replace(/\bannual\b|\byearly\b/gi, "anual")
+    .replace(/\bSubscription\b/g, "Assinatura")
+    .replace(/\bcycle\b/gi, "ciclo")
+    .replace(/\bto\b/g, "a");
 }
 function labelStatus(s: string) {
   return ({ paid: "Paga", pending: "Pendente", overdue: "Vencida", refunded: "Estornada", cancelled: "Cancelada", processing: "Processando" } as any)[s] || s;
