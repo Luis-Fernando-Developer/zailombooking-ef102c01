@@ -410,18 +410,45 @@ export default function BillingManagement() {
                     {invoices.map(i => (
                       <TableRow key={i.id}>
                         <TableCell>{formatDate(i.due_date)}</TableCell>
-                        <TableCell>{i.description || "—"}</TableCell>
+                        <TableCell>{translateInvoiceDescription(i.description)}</TableCell>
                         <TableCell>R$ {Number(i.amount).toFixed(2)}</TableCell>
                         <TableCell><Badge variant={statusVariant(i.status)}>{labelStatus(i.status)}</Badge></TableCell>
-                        <TableCell className="text-right space-x-2">
-                          {i.invoice_url && (
-                            <Button size="sm" variant="outline" asChild>
-                              <a href={i.invoice_url} target="_blank" rel="noreferrer">
-                                {i.status === "paid" ? <Download className="w-3 h-3 mr-1" /> : <ExternalLink className="w-3 h-3 mr-1" />}
-                                {i.status === "paid" ? "Recibo" : "Pagar"}
-                              </a>
-                            </Button>
-                          )}
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap justify-end gap-2">
+                            {i.status !== "paid" && i.pix_payload && (
+                              <Button size="sm" onClick={() => setPixInvoice(i)}>
+                                <QrCode className="w-3 h-3 mr-1" /> PIX
+                              </Button>
+                            )}
+                            {i.status !== "paid" && i.bank_slip_url && (
+                              <Button size="sm" variant="outline" asChild>
+                                <a href={i.bank_slip_url} target="_blank" rel="noreferrer">
+                                  <FileText className="w-3 h-3 mr-1" /> Boleto
+                                </a>
+                              </Button>
+                            )}
+                            {i.invoice_url && (
+                              <Button size="sm" variant="outline" asChild>
+                                <a href={i.invoice_url} target="_blank" rel="noreferrer">
+                                  {i.status === "paid" ? <Download className="w-3 h-3 mr-1" /> : <ExternalLink className="w-3 h-3 mr-1" />}
+                                  {i.status === "paid" ? "Recibo" : "Pagar"}
+                                </a>
+                              </Button>
+                            )}
+                            {i.status !== "paid" && !i.invoice_url && !i.pix_payload && !i.bank_slip_url && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const el = document.querySelector<HTMLElement>('[data-state][value="methods"]');
+                                  el?.click();
+                                  toast({ title: "Escolha um método de pagamento", description: "Selecione ou cadastre um método na aba Métodos para gerar a cobrança." });
+                                }}
+                              >
+                                <CreditCard className="w-3 h-3 mr-1" /> Pagar
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
