@@ -79,6 +79,8 @@ type Limits = {
 export default function BillingManagement() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "plan";
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
