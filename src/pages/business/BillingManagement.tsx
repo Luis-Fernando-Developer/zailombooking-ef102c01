@@ -223,15 +223,44 @@ export default function BillingManagement() {
         new_plan_id: selectedPlan,
         billing_period: selectedPeriod,
       });
-      
+
       const nextDate = formatDate(result.next_billing_date);
-      
-      toast({
-        title: "Alteração solicitada",
-        description: `O novo plano será aplicado após o término do período atual. Próxima cobrança: ${nextDate}`,
-      });
+
+      if (result?.immediate && result?.applied) {
+        toast({
+          title: "Upgrade aplicado",
+          description: result.proration_amount
+            ? `Cobrança de proração de ${formatBRL(result.proration_amount)} confirmada no cartão.`
+            : "Novo plano já está ativo.",
+        });
+      } else if (result?.immediate && result?.pix_payload) {
+        setPixInvoice({
+          id: result.invoice_id,
+          amount: result.proration_amount,
+          status: "pending",
+          billing_type: "PIX",
+          due_date: new Date().toISOString(),
+          paid_at: null,
+          invoice_url: result.invoice_url ?? null,
+          bank_slip_url: null,
+          description: "Proração do upgrade de plano",
+          pix_payload: result.pix_payload,
+          pix_qr_code: result.pix_qr_code,
+        });
+        toast({
+          title: "Pague a proração para ativar",
+          description: `O upgrade é liberado assim que o PIX de ${formatBRL(result.proration_amount)} for confirmado.`,
+        });
+      } else {
+        toast({
+          title: "Alteração agendada",
+          description: `O novo plano será aplicado após o término do período atual. Próxima cobrança: ${nextDate}`,
+        });
+      }
+
       setChangePlanOpen(false);
       fetchAll();
+
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally { setBusy(false); }
