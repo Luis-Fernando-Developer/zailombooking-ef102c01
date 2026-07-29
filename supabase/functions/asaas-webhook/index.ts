@@ -133,6 +133,22 @@ serve(async (req) => {
         });
         if (error) console.error(`[ASAAS_WEBHOOK][${requestId}] mark_paid erro:`, error.message);
         else console.info(`[ASAAS_WEBHOOK][${requestId}] mark_paid:`, JSON.stringify(data));
+
+        // Se a fatura era de proração de upgrade, aplica a troca de plano agora.
+        const invoiceIdForChange =
+          subscriptionInvoiceId ?? (data as any)?.invoice_id ?? null;
+        if (invoiceIdForChange) {
+          const { data: applied, error: applyErr } = await supabaseClient.rpc(
+            'apply_paid_plan_change',
+            { _invoice_id: invoiceIdForChange },
+          );
+          if (applyErr) {
+            console.error(`[ASAAS_WEBHOOK][${requestId}] apply_plan_change erro:`, applyErr.message);
+          } else {
+            console.info(`[ASAAS_WEBHOOK][${requestId}] apply_plan_change:`, JSON.stringify(applied));
+          }
+        }
+
       } else if (failedEvents[event]) {
         const { error } = await supabaseClient.rpc('mark_subscription_invoice_status', {
           _asaas_payment_id: asaasPaymentId,
