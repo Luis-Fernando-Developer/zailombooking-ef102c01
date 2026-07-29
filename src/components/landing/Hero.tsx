@@ -59,7 +59,7 @@ export function Hero() {
 
             <div className="relative z-10 transform transition-transform duration-700 group-hover:-translate-y-1">
               <img
-                src={heroDashboard.url}
+                src={heroDashboard}
                 alt="Painel Zailom Booking em notebook"
                 className="w-full h-auto drop-shadow-2xl"
                 loading="eager"
