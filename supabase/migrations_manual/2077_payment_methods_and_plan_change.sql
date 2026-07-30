@@ -68,7 +68,7 @@ CREATE POLICY "company members read payment methods"
       SELECT 1 FROM public.employees e
        WHERE e.company_id = company_payment_methods.company_id
          AND e.user_id = auth.uid()
-         AND e.role IN ('owner', 'admin', 'manager')
+         AND e.role::text IN ('owner', 'admin', 'manager', 'gerente', 'proprietario')
     )
   );
 -- escrita apenas via edge function (service_role): nenhuma policy de INSERT/UPDATE.
