@@ -9,6 +9,7 @@
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { getEvolutionBaseUrl, getEvolutionApiKey } from '../_shared/gateway-config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
