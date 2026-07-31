@@ -8,6 +8,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getGatewayConfig } from "../_shared/gateway-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,11 +34,16 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const ASAAS_API_KEY = (Deno.env.get("ASAAS_API_KEY") ?? "").trim();
 
     if (!SUPABASE_URL || !SERVICE_ROLE) {
       return json({ error: "Configuração do servidor ausente." }, 500);
     }
+
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const ASAAS_API_KEY = (await getGatewayConfig(admin, "asaas", "ASAAS_API_KEY") ?? "").trim();
     if (!ASAAS_API_KEY) {
       return json({ error: "Gateway da plataforma não configurado (ASAAS_API_KEY)." }, 500);
     }
@@ -65,10 +71,6 @@ serve(async (req) => {
     if (!["PIX", "BOLETO", "CREDIT_CARD"].includes(billingType)) {
       return json({ error: "billing_type inválido." }, 400);
     }
-
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
 
     // ---- 3) Carrega fatura + empresa e valida acesso ---------------------
     const { data: invoice, error: invErr } = await admin

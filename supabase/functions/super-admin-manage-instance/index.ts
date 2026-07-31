@@ -9,6 +9,7 @@
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { getEvolutionBaseUrl, getEvolutionApiKey } from '../_shared/gateway-config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,14 +54,8 @@ Deno.serve(async (req: Request) => {
     if (!name) return json({ error: 'missing_name' }, 400);
     if (!['logout', 'delete'].includes(action)) return json({ error: 'invalid_action' }, 400);
 
-    const evoUrl = (
-      Deno.env.get('EVOLUTION_GLOBAL_BASE_URL') ??
-      Deno.env.get('EVOLUTION_MANAGER_URL') ??
-      ''
-    ).replace(/\/$/, '');
-    const evoKey =
-      Deno.env.get('EVOLUTION_GLOBAL_API_KEY') ??
-      Deno.env.get('EVOLUTION_MANAGER_KEY');
+    const evoUrl = await getEvolutionBaseUrl(service);
+    const evoKey = await getEvolutionApiKey(service);
     if (!evoUrl || !evoKey) return json({ error: 'evolution_not_configured' }, 500);
 
     const evoFetch = (path: string, method: string) =>

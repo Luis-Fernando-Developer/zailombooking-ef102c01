@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getGatewayConfig } from '../_shared/gateway-config.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,9 +23,21 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      }
+    });
+
     // ---- 0) Validação do token do webhook ---------------------------------
     // Configure o mesmo valor em Asaas > Integrações > Webhooks (campo "Token").
-    const expectedToken = (Deno.env.get('ASAAS_WEBHOOK_TOKEN') ?? '').trim();
+    // Prioridade: Deno.env.get('ASAAS_WEBHOOK_TOKEN') -> tabela super_admin_gateway_configs.
+    const expectedToken = (await getGatewayConfig(supabaseClient, 'asaas', 'ASAAS_WEBHOOK_TOKEN') ?? '').trim();
     if (expectedToken) {
       const received = (
         req.headers.get('asaas-access-token') ||
@@ -38,17 +51,6 @@ serve(async (req) => {
     } else {
       console.warn(`[ASAAS_WEBHOOK][${requestId}] ASAAS_WEBHOOK_TOKEN não configurado — validação desativada`);
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false
-      }
-    });
 
     const rawBody = await req.text()
     console.info(`[ASAAS_WEBHOOK][${requestId}] Raw body:`, rawBody)
