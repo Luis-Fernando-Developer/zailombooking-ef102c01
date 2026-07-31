@@ -72,10 +72,6 @@ serve(async (req) => {
       return json({ error: "billing_type inválido." }, 400);
     }
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
     // ---- 3) Carrega fatura + empresa e valida acesso ---------------------
     const { data: invoice, error: invErr } = await admin
       .from("company_invoices")
