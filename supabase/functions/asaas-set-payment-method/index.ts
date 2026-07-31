@@ -67,10 +67,6 @@ serve(async (req) => {
       return json({ error: "type inválido (pix | boleto | credit_card)." }, 400);
     }
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
     // ---- Autorização na empresa -----------------------------------------
     const { data: company } = await admin
       .from("companies")
