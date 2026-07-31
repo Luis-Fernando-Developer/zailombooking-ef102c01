@@ -48,14 +48,8 @@ Deno.serve(async (req: Request) => {
     });
     if (!isAdmin) return json({ error: 'Forbidden' }, 403);
 
-    const evoUrl = (
-      Deno.env.get('EVOLUTION_GLOBAL_BASE_URL') ??
-      Deno.env.get('EVOLUTION_MANAGER_URL') ??
-      ''
-    ).replace(/\/$/, '');
-    const evoKey =
-      Deno.env.get('EVOLUTION_GLOBAL_API_KEY') ??
-      Deno.env.get('EVOLUTION_MANAGER_KEY');
+    const evoUrl = await getEvolutionBaseUrl(service);
+    const evoKey = await getEvolutionApiKey(service);
     if (!evoUrl || !evoKey) {
       return json({ error: 'evolution_not_configured', hint: 'set EVOLUTION_GLOBAL_BASE_URL and EVOLUTION_GLOBAL_API_KEY' }, 500);
     }
