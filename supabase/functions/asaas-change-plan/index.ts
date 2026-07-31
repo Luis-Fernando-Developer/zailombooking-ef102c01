@@ -76,10 +76,6 @@ serve(async (req) => {
       return json({ error: "billing_period inválido." }, 400);
     }
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
     // ---- Autorização -----------------------------------------------------
     const { data: company } = await admin
       .from("companies")
