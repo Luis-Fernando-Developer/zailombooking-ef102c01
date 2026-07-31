@@ -35,3 +35,33 @@ export async function getGatewayConfigBool(
   if (!value) return false;
   return ['true', '1', 'yes', 'on'].includes(value.toLowerCase());
 }
+
+// Tenta uma lista ordenada de chaves (env primeiro, depois tabela) e retorna a primeira preenchida.
+export async function getGatewayConfigFirst(
+  adminClient: any,
+  provider: string,
+  keys: string[],
+): Promise<string | undefined> {
+  for (const key of keys) {
+    const value = await getGatewayConfig(adminClient, provider, key);
+    if (value) return value;
+  }
+  return undefined;
+}
+
+// Helpers específicos para Evolution API, que aceita múltiplos nomes de variável legados.
+export async function getEvolutionBaseUrl(adminClient: any): Promise<string | undefined> {
+  const value = await getGatewayConfigFirst(adminClient, 'whatsapp', [
+    'EVOLUTION_GLOBAL_BASE_URL',
+    'EVOLUTION_GLOBAL_URL',
+    'EVOLUTION_MANAGER_URL',
+  ]);
+  return value?.replace(/\/$/, '');
+}
+
+export async function getEvolutionApiKey(adminClient: any): Promise<string | undefined> {
+  return getGatewayConfigFirst(adminClient, 'whatsapp', [
+    'EVOLUTION_GLOBAL_API_KEY',
+    'EVOLUTION_MANAGER_KEY',
+  ]);
+}
