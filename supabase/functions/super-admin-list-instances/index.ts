@@ -8,7 +8,60 @@
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getEvolutionBaseUrl, getEvolutionApiKey } from '../_shared/gateway-config.ts';
+// ---------------------------------------------------------------------------
+// Inlined de _shared/gateway-config.ts — o editor do painel Supabase não
+// resolve imports relativos fora da pasta da própria função.
+// Ordem: variável de ambiente -> tabela public.super_admin_gateway_configs.
+// ---------------------------------------------------------------------------
+async function getGatewayConfig(
+  adminClient: any,
+  provider: string,
+  key: string,
+): Promise<string | undefined> {
+  const envValue = (Deno.env.get(key) ?? '').trim();
+  if (envValue) return envValue;
+
+  const { data, error } = await adminClient
+    .from('super_admin_gateway_configs')
+    .select('value')
+    .eq('provider', provider)
+    .eq('key', key)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`[gateway-config] erro ao ler ${provider}/${key}:`, error.message);
+    return undefined;
+  }
+  return data?.value?.trim() || undefined;
+}
+
+async function getGatewayConfigFirst(
+  adminClient: any,
+  provider: string,
+  keys: string[],
+): Promise<string | undefined> {
+  for (const key of keys) {
+    const value = await getGatewayConfig(adminClient, provider, key);
+    if (value) return value;
+  }
+  return undefined;
+}
+
+async function getEvolutionBaseUrl(adminClient: any): Promise<string | undefined> {
+  const value = await getGatewayConfigFirst(adminClient, 'whatsapp', [
+    'EVOLUTION_GLOBAL_BASE_URL',
+    'EVOLUTION_GLOBAL_URL',
+    'EVOLUTION_MANAGER_URL',
+  ]);
+  return value?.replace(/\/$/, '');
+}
+
+async function getEvolutionApiKey(adminClient: any): Promise<string | undefined> {
+  return getGatewayConfigFirst(adminClient, 'whatsapp', [
+    'EVOLUTION_GLOBAL_API_KEY',
+    'EVOLUTION_MANAGER_KEY',
+  ]);
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
