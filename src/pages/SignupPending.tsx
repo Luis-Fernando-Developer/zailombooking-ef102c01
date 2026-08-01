@@ -37,23 +37,21 @@ export default function SignupPending() {
     let active = true;
 
     const load = async () => {
-      const { data: c } = await supabase
-        .from("companies")
-        .select("id, name, slug, status")
-        .eq("id", companyId)
-        .maybeSingle();
+      // RPC pública (SECURITY DEFINER): a tela roda anônima, sem sessão ainda.
+      const { data, error } = await supabase.rpc("signup_payment_status", {
+        _company_id: companyId,
+      });
       if (!active) return;
-      if (c) setCompany(c as CompanyInfo);
 
-      const { data: inv } = await supabase
-        .from("company_invoices")
-        .select("id, status, amount, billing_type, due_date, invoice_url, bank_slip_url, pix_qr_code, pix_payload")
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!active) return;
-      if (inv) setInvoice(inv as Invoice);
+      if (error) {
+        console.error("[SignupPending] falha ao consultar status:", error.message);
+        setLoading(false);
+        return;
+      }
+
+      const payload = data as { company?: CompanyInfo; invoice?: Invoice | null } | null;
+      if (payload?.company) setCompany(payload.company);
+      setInvoice(payload?.invoice ?? null);
       setLoading(false);
     };
 
