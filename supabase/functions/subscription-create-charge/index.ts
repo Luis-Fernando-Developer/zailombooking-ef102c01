@@ -120,11 +120,18 @@ serve(async (req) => {
     const body = await req.json().catch(() => null);
     const invoiceId: string | undefined = body?.invoice_id;
     const billingType: BillingType = (body?.billing_type ?? "PIX") as BillingType;
+    // CPF/CNPJ informado pelo painel quando a empresa foi criada sem documento
+    // (ex.: cadastro manual pelo super admin). O Asaas exige esse campo.
+    const providedDoc = String(body?.cpf_cnpj ?? "").replace(/\D/g, "");
 
     if (!invoiceId) return json({ error: "invoice_id é obrigatório." }, 400);
     if (!["PIX", "BOLETO", "CREDIT_CARD"].includes(billingType)) {
       return json({ error: "billing_type inválido." }, 400);
     }
+    if (providedDoc && ![11, 14].includes(providedDoc.length)) {
+      return json({ error: "CPF/CNPJ inválido." }, 400);
+    }
+
 
     // ---- 3) Carrega fatura + empresa e valida acesso ---------------------
     const { data: invoice, error: invErr } = await admin
@@ -198,7 +205,29 @@ serve(async (req) => {
 
     // 5a) Cliente Asaas (reaproveita se já existe)
     let customerId: string | null = company.asaas_customer_id ?? null;
-    const cpfCnpj = String(company.cnpj || company.owner_cpf || "").replace(/\D/g, "");
+    const storedDoc = String(company.cnpj || company.owner_cpf || "").replace(/\D/g, "");
+    const cpfCnpj = providedDoc || storedDoc;
+
+    // O Asaas recusa criar cliente sem documento. Empresas cadastradas pelo
+    // super admin podem não ter CPF/CNPJ — pedimos ao painel nesse caso.
+    if (!customerId && !cpfCnpj) {
+      return json(
+        {
+          error: "CPF/CNPJ do responsável é obrigatório para gerar a cobrança.",
+          code: "cpf_required",
+        },
+        // 200 de propósito: o painel precisa ler o "code" do corpo para abrir
+        // o formulário de CPF/CNPJ (o SDK esconde o body em respostas 4xx).
+        200,
+      );
+    }
+
+    // Persiste o documento informado agora, para não pedir de novo depois.
+    if (providedDoc && providedDoc !== storedDoc) {
+      const patch = providedDoc.length === 14 ? { cnpj: providedDoc } : { owner_cpf: providedDoc };
+      const { error: docErr } = await admin.from("companies").update(patch).eq("id", company.id);
+      if (docErr) console.error(`[SUB_CHARGE][${rid}] salvar documento falhou:`, docErr.message);
+    }
 
     if (!customerId) {
       if (cpfCnpj) {
@@ -222,6 +251,7 @@ serve(async (req) => {
         await admin.from("companies").update({ asaas_customer_id: customerId }).eq("id", company.id);
       }
     }
+
 
     if (!customerId) return json({ error: "Falha ao criar cliente no Asaas." }, 502);
 

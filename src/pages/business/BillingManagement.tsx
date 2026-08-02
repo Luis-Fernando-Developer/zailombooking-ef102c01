@@ -99,6 +99,10 @@ export default function BillingManagement() {
   const [busy, setBusy] = useState(false);
 
   const [pixInvoice, setPixInvoice] = useState<Invoice | null>(null);
+  // Cobrança bloqueada por falta de CPF/CNPJ (empresas criadas pelo super admin).
+  const [docPrompt, setDocPrompt] = useState<{ invoice: Invoice; billingType: "PIX" | "BOLETO" } | null>(null);
+  const [docValue, setDocValue] = useState("");
+
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [card, setCard] = useState({
     holderName: "", number: "", expiryMonth: "", expiryYear: "", ccv: "",
@@ -189,14 +193,32 @@ export default function BillingManagement() {
    * Gera (ou reaproveita) a cobrança da fatura de assinatura no Asaas.
    * O vínculo empresa <-> pagamento é criado no backend via externalReference.
    */
-  async function handleGenerateCharge(invoice: Invoice, billingType: "PIX" | "BOLETO" = "PIX") {
+  async function handleGenerateCharge(
+    invoice: Invoice,
+    billingType: "PIX" | "BOLETO" = "PIX",
+    cpfCnpj?: string,
+  ) {
     setBusy(true);
     try {
-      const result: any = await callFn("subscription-create-charge", {
-        invoice_id: invoice.id,
-        billing_type: billingType,
+      const { data, error } = await supabase.functions.invoke("subscription-create-charge", {
+        body: {
+          invoice_id: invoice.id,
+          billing_type: billingType,
+          ...(cpfCnpj ? { cpf_cnpj: cpfCnpj.replace(/\D/g, "") } : {}),
+        },
       });
+      if (error) throw new Error(error.message);
 
+      const result: any = data;
+      // O backend responde 200 com code=cpf_required quando falta o documento.
+      if (result?.code === "cpf_required") {
+        setDocValue("");
+        setDocPrompt({ invoice, billingType });
+        return;
+      }
+      if (result?.error) throw new Error(result.error);
+
+      setDocPrompt(null);
       await fetchAll();
 
       if (billingType === "PIX" && result?.pix_payload) {
@@ -212,6 +234,7 @@ export default function BillingManagement() {
       setBusy(false);
     }
   }
+
 
 
   async function handleChangePlan() {
@@ -523,6 +546,46 @@ export default function BillingManagement() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* DIALOGO CPF/CNPJ — exigido pelo Asaas para criar o cliente */}
+      <Dialog open={!!docPrompt} onOpenChange={(o) => !o && setDocPrompt(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Informe o CPF ou CNPJ</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              O gateway de pagamento exige o documento do responsável para emitir a cobrança.
+              Ele fica salvo para as próximas faturas.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="billing-doc">CPF ou CNPJ</Label>
+              <Input
+                id="billing-doc"
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                value={docValue}
+                onChange={(e) => setDocValue(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDocPrompt(null)} disabled={busy}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={busy || ![11, 14].includes(docValue.replace(/\D/g, "").length)}
+              onClick={() => {
+                if (!docPrompt) return;
+                handleGenerateCharge(docPrompt.invoice, docPrompt.billingType, docValue);
+              }}
+            >
+              {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Gerar cobrança
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* DIALOGO PIX */}
       <Dialog open={!!pixInvoice} onOpenChange={(o) => !o && setPixInvoice(null)}>

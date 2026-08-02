@@ -60,7 +60,13 @@ export default function SignupPending() {
     return () => { active = false; clearInterval(id); };
   }, [companyId]);
 
-  const isPaid = company?.status === "active" || invoice?.status === "paid";
+  // A fatura é a fonte da verdade. company.status só conta como confirmação
+  // quando não existe fatura pendente — evita liberar acesso indevidamente
+  // caso a empresa tenha sido criada com o status default do banco.
+  const isPaid = invoice
+    ? invoice.status === "paid"
+    : company?.status === "active";
+
 
   const copyPix = async () => {
     if (!invoice?.pix_payload) return;

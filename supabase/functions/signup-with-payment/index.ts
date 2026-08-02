@@ -183,14 +183,17 @@ serve(async (req) => {
       billing_period: billingPeriod,
       status: "pending_payment",
     };
+    // ATENÇÃO: "status" NÃO entra aqui. Se ele for removido no fallback, a
+    // empresa nasce com o default do banco ('active') e o cadastro é liberado
+    // sem pagamento — exatamente o bug que estamos corrigindo.
     const optionalKeys = [
-      "status",
       "billing_period",
       "plan_id",
       "company_niche",
       "company_segment",
       "cnpj",
     ];
+
 
     let companyRow: { id: string } | null = null;
     let lastErr: string | null = null;
@@ -227,6 +230,19 @@ serve(async (req) => {
     }
 
     const companyId = companyRow.id;
+
+    // Reforço: garante que nenhum default/trigger deixou a empresa ativa antes
+    // do pagamento. Só o webhook do Asaas pode promover para 'active'.
+    {
+      const { error: statusErr } = await admin
+        .from("companies")
+        .update({ status: "pending_payment" })
+        .eq("id", companyId);
+      if (statusErr) {
+        console.error("[signup-with-payment] falha ao forçar pending_payment:", statusErr.message);
+      }
+    }
+
 
     // 4) Cria employee owner — com fallback removendo colunas opcionais
     const empPayload: Record<string, unknown> = {
