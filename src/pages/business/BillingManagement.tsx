@@ -547,6 +547,46 @@ export default function BillingManagement() {
         </Tabs>
       </div>
 
+      {/* DIALOGO CPF/CNPJ — exigido pelo Asaas para criar o cliente */}
+      <Dialog open={!!docPrompt} onOpenChange={(o) => !o && setDocPrompt(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Informe o CPF ou CNPJ</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              O gateway de pagamento exige o documento do responsável para emitir a cobrança.
+              Ele fica salvo para as próximas faturas.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="billing-doc">CPF ou CNPJ</Label>
+              <Input
+                id="billing-doc"
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                value={docValue}
+                onChange={(e) => setDocValue(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDocPrompt(null)} disabled={busy}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={busy || ![11, 14].includes(docValue.replace(/\D/g, "").length)}
+              onClick={() => {
+                if (!docPrompt) return;
+                handleGenerateCharge(docPrompt.invoice, docPrompt.billingType, docValue);
+              }}
+            >
+              {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Gerar cobrança
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       {/* DIALOGO PIX */}
       <Dialog open={!!pixInvoice} onOpenChange={(o) => !o && setPixInvoice(null)}>
         <DialogContent className="sm:max-w-[380px]">
