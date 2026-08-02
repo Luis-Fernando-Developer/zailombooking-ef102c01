@@ -231,6 +231,19 @@ serve(async (req) => {
 
     const companyId = companyRow.id;
 
+    // Reforço: garante que nenhum default/trigger deixou a empresa ativa antes
+    // do pagamento. Só o webhook do Asaas pode promover para 'active'.
+    {
+      const { error: statusErr } = await admin
+        .from("companies")
+        .update({ status: "pending_payment" })
+        .eq("id", companyId);
+      if (statusErr) {
+        console.error("[signup-with-payment] falha ao forçar pending_payment:", statusErr.message);
+      }
+    }
+
+
     // 4) Cria employee owner — com fallback removendo colunas opcionais
     const empPayload: Record<string, unknown> = {
       company_id: companyId,
