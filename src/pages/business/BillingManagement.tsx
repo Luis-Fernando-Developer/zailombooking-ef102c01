@@ -193,14 +193,32 @@ export default function BillingManagement() {
    * Gera (ou reaproveita) a cobrança da fatura de assinatura no Asaas.
    * O vínculo empresa <-> pagamento é criado no backend via externalReference.
    */
-  async function handleGenerateCharge(invoice: Invoice, billingType: "PIX" | "BOLETO" = "PIX") {
+  async function handleGenerateCharge(
+    invoice: Invoice,
+    billingType: "PIX" | "BOLETO" = "PIX",
+    cpfCnpj?: string,
+  ) {
     setBusy(true);
     try {
-      const result: any = await callFn("subscription-create-charge", {
-        invoice_id: invoice.id,
-        billing_type: billingType,
+      const { data, error } = await supabase.functions.invoke("subscription-create-charge", {
+        body: {
+          invoice_id: invoice.id,
+          billing_type: billingType,
+          ...(cpfCnpj ? { cpf_cnpj: cpfCnpj.replace(/\D/g, "") } : {}),
+        },
       });
+      if (error) throw new Error(error.message);
 
+      const result: any = data;
+      // O backend responde 200 com code=cpf_required quando falta o documento.
+      if (result?.code === "cpf_required") {
+        setDocValue("");
+        setDocPrompt({ invoice, billingType });
+        return;
+      }
+      if (result?.error) throw new Error(result.error);
+
+      setDocPrompt(null);
       await fetchAll();
 
       if (billingType === "PIX" && result?.pix_payload) {
@@ -216,6 +234,7 @@ export default function BillingManagement() {
       setBusy(false);
     }
   }
+
 
 
   async function handleChangePlan() {
