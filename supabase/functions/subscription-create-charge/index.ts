@@ -120,11 +120,18 @@ serve(async (req) => {
     const body = await req.json().catch(() => null);
     const invoiceId: string | undefined = body?.invoice_id;
     const billingType: BillingType = (body?.billing_type ?? "PIX") as BillingType;
+    // CPF/CNPJ informado pelo painel quando a empresa foi criada sem documento
+    // (ex.: cadastro manual pelo super admin). O Asaas exige esse campo.
+    const providedDoc = String(body?.cpf_cnpj ?? "").replace(/\D/g, "");
 
     if (!invoiceId) return json({ error: "invoice_id é obrigatório." }, 400);
     if (!["PIX", "BOLETO", "CREDIT_CARD"].includes(billingType)) {
       return json({ error: "billing_type inválido." }, 400);
     }
+    if (providedDoc && ![11, 14].includes(providedDoc.length)) {
+      return json({ error: "CPF/CNPJ inválido." }, 400);
+    }
+
 
     // ---- 3) Carrega fatura + empresa e valida acesso ---------------------
     const { data: invoice, error: invErr } = await admin
