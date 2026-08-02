@@ -183,14 +183,17 @@ serve(async (req) => {
       billing_period: billingPeriod,
       status: "pending_payment",
     };
+    // ATENÇÃO: "status" NÃO entra aqui. Se ele for removido no fallback, a
+    // empresa nasce com o default do banco ('active') e o cadastro é liberado
+    // sem pagamento — exatamente o bug que estamos corrigindo.
     const optionalKeys = [
-      "status",
       "billing_period",
       "plan_id",
       "company_niche",
       "company_segment",
       "cnpj",
     ];
+
 
     let companyRow: { id: string } | null = null;
     let lastErr: string | null = null;
