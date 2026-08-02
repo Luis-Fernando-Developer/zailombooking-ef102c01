@@ -203,10 +203,26 @@ serve(async (req) => {
       return data;
     }
 
-    // 5a) Cliente Asaas (reaproveita se já existe)
+    // 5a) Cliente Asaas (reaproveita se já existe e ainda for válido)
     let customerId: string | null = company.asaas_customer_id ?? null;
     const storedDoc = String(company.cnpj || company.owner_cpf || "").replace(/\D/g, "");
     const cpfCnpj = providedDoc || storedDoc;
+
+    // O id salvo pode ser de outro ambiente (sandbox x produção) ou de um
+    // cliente removido no Asaas — nesse caso a API responde
+    // "Customer inválido ou não informado". Validamos antes de usar.
+    if (customerId) {
+      try {
+        const existing = await asaas(`/customers/${customerId}`, { method: "GET" });
+        if (!existing?.id || existing?.deleted) customerId = null;
+      } catch (e) {
+        console.warn(`[SUB_CHARGE][${rid}] customer ${customerId} inválido:`, (e as Error).message);
+        customerId = null;
+      }
+      if (!customerId) {
+        await admin.from("companies").update({ asaas_customer_id: null }).eq("id", company.id);
+      }
+    }
 
     // O Asaas recusa criar cliente sem documento. Empresas cadastradas pelo
     // super admin podem não ter CPF/CNPJ — pedimos ao painel nesse caso.
@@ -254,6 +270,7 @@ serve(async (req) => {
 
 
     if (!customerId) return json({ error: "Falha ao criar cliente no Asaas." }, 502);
+
 
     // 5b) Cobrança — externalReference identifica a FATURA (e a empresa).
     const dueDate = new Date(invoice.due_date ?? Date.now());
