@@ -99,6 +99,10 @@ export default function BillingManagement() {
   const [busy, setBusy] = useState(false);
 
   const [pixInvoice, setPixInvoice] = useState<Invoice | null>(null);
+  // Cobrança bloqueada por falta de CPF/CNPJ (empresas criadas pelo super admin).
+  const [docPrompt, setDocPrompt] = useState<{ invoice: Invoice; billingType: "PIX" | "BOLETO" } | null>(null);
+  const [docValue, setDocValue] = useState("");
+
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [card, setCard] = useState({
     holderName: "", number: "", expiryMonth: "", expiryYear: "", ccv: "",
