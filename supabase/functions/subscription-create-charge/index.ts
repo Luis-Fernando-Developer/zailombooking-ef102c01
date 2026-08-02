@@ -216,7 +216,9 @@ serve(async (req) => {
           error: "CPF/CNPJ do responsável é obrigatório para gerar a cobrança.",
           code: "cpf_required",
         },
-        400,
+        // 200 de propósito: o painel precisa ler o "code" do corpo para abrir
+        // o formulário de CPF/CNPJ (o SDK esconde o body em respostas 4xx).
+        200,
       );
     }
 
