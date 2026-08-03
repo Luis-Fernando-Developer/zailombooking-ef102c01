@@ -9,6 +9,7 @@ import { User, Mail, Lock, Phone, ArrowLeft, CreditCard } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { formatCPF, cleanCPF, validateCPF } from "@/lib/cpfValidation";
 
@@ -29,6 +30,8 @@ export default function ClientSignup() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   
   const [formData, setFormData] = useState({
     firstName: "",

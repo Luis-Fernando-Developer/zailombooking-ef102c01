@@ -53,6 +53,7 @@ interface Company {
   slug: string;
   created_at: string;
   address: string | null;
+  revenue?: number;
   company_subscriptions?: {
     status: string;
     subscription_plans: {
