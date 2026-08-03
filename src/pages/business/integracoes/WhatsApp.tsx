@@ -9,6 +9,7 @@ import { ChannelStatusCard } from "@/components/business/whatsapp/ChannelStatusC
 
 import { InstancesList } from "@/components/business/whatsapp/InstancesList";
 import { TemplatesEditor } from "@/components/business/whatsapp/TemplatesEditor";
+import { DisparosConfig } from "@/components/business/whatsapp/DisparosConfig";
 
 export default function IntegracaoWhatsApp() {
   const { slug } = useParams();
