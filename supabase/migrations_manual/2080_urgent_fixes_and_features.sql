@@ -69,3 +69,14 @@ ADD COLUMN IF NOT EXISTS provider_checkout_config jsonb DEFAULT '{}'::jsonb;
 -- 5. Grant permissions
 GRANT EXECUTE ON FUNCTION public.get_company_total_revenue(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_company_total_revenue(uuid) TO service_role;
+-- Garantir que a tabela clients tenha política de leitura correta para o próprio usuário
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'clients' AND policyname = 'Clients can view their own profile'
+  ) THEN
+    CREATE POLICY "Clients can view their own profile" ON public.clients
+    FOR SELECT TO authenticated
+    USING (auth.uid() = user_id);
+  END IF;
+END $$;

@@ -6,7 +6,6 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Smartphone } from "lucide-react";
 import { ChannelStatusCard } from "@/components/business/whatsapp/ChannelStatusCard";
-
 import { InstancesList } from "@/components/business/whatsapp/InstancesList";
 import { TemplatesEditor } from "@/components/business/whatsapp/TemplatesEditor";
 import { DisparosConfig } from "@/components/business/whatsapp/DisparosConfig";
@@ -44,6 +43,7 @@ export default function IntegracaoWhatsApp() {
             <TabsTrigger value="channel">Canal</TabsTrigger>
             <TabsTrigger value="instances">Conexões</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
+            <TabsTrigger value="disparos">Disparos (Marketing)</TabsTrigger>
           </TabsList>
 
           <TabsContent value="channel" className="space-y-4">
@@ -56,6 +56,10 @@ export default function IntegracaoWhatsApp() {
 
           <TabsContent value="templates">
             <TemplatesEditor companyId={companyId} />
+          </TabsContent>
+
+          <TabsContent value="disparos">
+            <DisparosConfig companyId={companyId} />
           </TabsContent>
         </Tabs>
       </div>
