@@ -115,17 +115,32 @@ export default function SuperAdminDashboard() {
         .order('created_at', { ascending: false });
 
       if (companiesData) {
-        setCompanies(companiesData as any);
+        // Calcular receita total real somando faturas pagas
+        const { data: invoices } = await supabase
+          .from('company_invoices')
+          .select('company_id, amount')
+          .eq('status', 'paid');
 
-        // Calcular estatísticas básicas
+        const revenueMap: Record<string, number> = {};
+        invoices?.forEach(inv => {
+          revenueMap[inv.company_id] = (revenueMap[inv.company_id] || 0) + Number(inv.amount || 0);
+        });
+
+        const totalRevenue = Object.values(revenueMap).reduce((a, b) => a + b, 0);
+
+        setCompanies(companiesData.map(c => ({
+          ...c,
+          revenue: revenueMap[c.id] || 0
+        })) as any);
+
         const totalCompanies = companiesData.length;
         const activeCompanies = companiesData.filter(c => c.status === 'active').length;
 
         setStats({
           totalCompanies,
           activeCompanies,
-          totalRevenue: 0, // Será calculado quando implementarmos o módulo financeiro
-          totalBookings: 0 // Será calculado quando implementarmos o módulo de agendamentos
+          totalRevenue,
+          totalBookings: 0 
         });
       }
     } catch (error) {

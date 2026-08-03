@@ -32,6 +32,8 @@ interface Company {
   status: string | null;
   slug: string;
   address: string | null;
+  manual_resource_release_until?: string | null;
+  force_early_renewal_once?: boolean;
 }
 
 interface Plan {
@@ -80,6 +82,8 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
     address: "",
     status: "active",
     slug: "",
+    manual_resource_release_until: null as string | null,
+    force_early_renewal_once: false,
   });
 
   const [discountData, setDiscountData] = useState({
@@ -107,6 +111,8 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
         address: company.address || "",
         status: company.status || "active",
         slug: company.slug || "",
+        manual_resource_release_until: company.manual_resource_release_until || null,
+        force_early_renewal_once: company.force_early_renewal_once || false,
       });
     }
   }, [company]);
@@ -273,6 +279,8 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
           address: formData.address,
           status: formData.status,
           slug: formData.slug,
+          manual_resource_release_until: formData.manual_resource_release_until,
+          force_early_renewal_once: formData.force_early_renewal_once,
         })
         .eq('id', company.id);
 
@@ -457,6 +465,33 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
                   <SelectItem value="blocked">Bloqueada</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 border-t border-primary/10 pt-4">
+            <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
+              <div className="space-y-0.5">
+                <Label className="text-xs">Liberação Manual</Label>
+                <p className="text-[10px] text-muted-foreground">Ignora inadimplência temporariamente.</p>
+              </div>
+              <Switch 
+                checked={!!formData.manual_resource_release_until && new Date(formData.manual_resource_release_until) > new Date()}
+                onCheckedChange={async (checked) => {
+                  const until = checked ? new Date(Date.now() + 7 * 86400000).toISOString() : null;
+                  setFormData({ ...formData, manual_resource_release_until: until });
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
+              <div className="space-y-0.5">
+                <Label className="text-xs">Renovação Antecipada</Label>
+                <p className="text-[10px] text-muted-foreground">Força reset de limites no próximo processamento.</p>
+              </div>
+              <Switch 
+                checked={formData.force_early_renewal_once}
+                onCheckedChange={(checked) => setFormData({ ...formData, force_early_renewal_once: checked })}
+              />
             </div>
           </div>
 
