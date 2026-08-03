@@ -92,11 +92,25 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
         {/* Brand */}
         <div className="px-4 pt-6 pb-3 flex items-center gap-3 border-b border-primary/10">
           {state === "collapsed" ? (
-            <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black">
-              {(companyName || '?').charAt(0).toUpperCase()}
+            <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black overflow-hidden">
+              {companyLogoUrl ? (
+                <img src={companyLogoUrl} alt={companyName} className="w-full h-full object-cover" />
+              ) : (
+                (companyName || '?').charAt(0).toUpperCase()
+              )}
             </div>
           ) : (
-            <CompanyLogo companySlug={companySlug} showText className="flex-1 min-w-0" />
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <CompanyLogo companySlug={companySlug} className="w-8 h-8 rounded-lg shrink-0" />
+              <div className="flex flex-col truncate">
+                <span className="font-black text-sm tracking-tight text-foreground truncate uppercase">
+                  {companyName}
+                </span>
+                <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase opacity-60">
+                  Zailom Booking
+                </span>
+              </div>
+            </div>
           )}
         </div>
 

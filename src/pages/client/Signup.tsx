@@ -9,6 +9,7 @@ import { User, Mail, Lock, Phone, ArrowLeft, CreditCard } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { formatCPF, cleanCPF, validateCPF } from "@/lib/cpfValidation";
 
@@ -29,6 +30,8 @@ export default function ClientSignup() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -62,11 +65,9 @@ export default function ClientSignup() {
     setErrors({});
 
     try {
-      // Validate form data - clean CPF before validation
       const dataToValidate = { ...formData, cpf: cleanCPF(formData.cpf) };
       const validatedData = signupSchema.parse(dataToValidate);
 
-      // First, get the company ID from the slug
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('id, name')
@@ -84,17 +85,24 @@ export default function ClientSignup() {
         return;
       }
 
-      // Create user in Supabase Auth
+      // Corrigindo: Se o usuário já existe no Supabase global mas não nesta empresa, 
+      // o signUp irá falhar ou apenas reenviar confirmação.
+      // Definimos o redirectTo para voltar ao fluxo correto após o e-mail.
+      const returnUrl = returnTo === 'agendar' ? `/${slug}/agendar?restore=true` : `/${slug}/login`;
+      const redirectTo = `${window.location.origin}${returnUrl}`;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
         password: validatedData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/${slug}/agendamentos`,
+          emailRedirectTo: redirectTo,
           data: {
             first_name: validatedData.firstName,
             last_name: validatedData.lastName,
             full_name: `${validatedData.firstName} ${validatedData.lastName}`,
-            phone: validatedData.phone
+            phone: validatedData.phone,
+            company_id: companyData.id,
+            role: 'client'
           }
         }
       });
@@ -118,7 +126,6 @@ export default function ClientSignup() {
       }
 
       if (authData.user) {
-        // Create client profile
         const cleanedCpf = cleanCPF(formData.cpf);
         const { error: clientError } = await supabase
           .from('clients')
@@ -133,7 +140,6 @@ export default function ClientSignup() {
 
         if (clientError) {
           console.error('Error creating client profile:', clientError);
-          // Don't show error to user as the auth account was created successfully
         }
 
         toast({
@@ -141,11 +147,6 @@ export default function ClientSignup() {
           description: "Verifique seu email para confirmar a conta e depois faça login.",
         });
 
-        // Check if there's a returnTo parameter for booking flow
-        const searchParams = new URLSearchParams(window.location.search);
-        const returnTo = searchParams.get('returnTo');
-        
-        // Redirect to login page with returnTo preserved
         if (returnTo) {
           navigate(`/${slug}/entrar?returnTo=${returnTo}`);
         } else {

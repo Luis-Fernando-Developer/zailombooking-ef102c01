@@ -468,6 +468,29 @@ export default function ClientProfile() {
                   </CardContent>
                 </Card>
 
+                {/* Payment Methods */}
+                <Card className="bg-card/40 backdrop-blur-sm border-primary/10 overflow-hidden">
+                  <CardHeader className="bg-primary/5 border-b border-primary/10">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-primary" /> Meus Cartões
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      Gerencie seus cartões salvos para agendamentos rápidos. 
+                      Os dados são armazenados de forma segura pelo nosso processador de pagamentos.
+                    </p>
+                    
+                    <div className="rounded-xl border border-dashed border-primary/20 p-8 text-center">
+                      <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-4 opacity-20" />
+                      <p className="text-sm text-muted-foreground mb-4">Você ainda não possui cartões salvos.</p>
+                      <Button variant="outline" size="sm" onClick={() => toast({ title: "Em breve", description: "O gerenciamento direto de cartões será liberado em breve." })}>
+                        Adicionar Novo Cartão
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Privacy */}
                 <Card className="bg-card/40 backdrop-blur-sm border-primary/10 overflow-hidden">
                   <CardContent className="p-6">

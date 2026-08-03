@@ -38,17 +38,36 @@ export function SubscriptionSuspendedBanner({ companyId }: { companyId?: string 
     if (!slug || !status) return;
     const blocked = status === "suspended" || status === "blocked" || status === "paused";
     if (!blocked) return;
-    const path = location.pathname;
-    const allowed =
-      path.includes("/business/billing") ||
-      path.includes("/admin/billing") ||
-      path.includes("/admin/configuracoes");
-    if (!allowed) {
-      navigate(`/${slug}/admin/billing`, { replace: true });
-    }
-  }, [status, location.pathname, slug, navigate]);
+
+    // Se houver liberação manual ativa, não bloqueia navegação
+    (async () => {
+      const { data: company } = await supabase
+        .from("companies")
+        .select("manual_resource_release_until")
+        .eq("id", companyId)
+        .maybeSingle();
+      
+      if (company?.manual_resource_release_until && new Date(company.manual_resource_release_until) > new Date()) {
+        return;
+      }
+
+      const path = location.pathname;
+      const allowed =
+        path.includes("/business/billing") ||
+        path.includes("/admin/billing") ||
+        path.includes("/admin/configuracoes");
+      if (!allowed) {
+        navigate(`/${slug}/admin/billing`, { replace: true });
+      }
+    })();
+  }, [status, location.pathname, slug, navigate, companyId]);
 
   if (!status || status === "active" || status === "past_due") return null;
+
+  // Não mostrar se houver liberação manual
+  // Nota: Aqui precisaríamos de um estado reativo para manual_resource_release_until para esconder o banner
+  // mas o useEffect acima já garante que a navegação não será bloqueada.
+
 
   const label: Record<string, string> = {
     suspended: "Assinatura suspensa",

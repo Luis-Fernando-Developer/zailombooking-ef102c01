@@ -181,13 +181,23 @@ serve(async (req) => {
       console.info(`[ASAAS_WEBHOOK][${requestId}] Cobrança de ASSINATURA | fatura=${subscriptionInvoiceId}`);
 
       if (isConfirmed) {
-        const { data, error } = await supabaseClient.rpc('mark_subscription_invoice_paid', {
+        // Tenta usar a v2 que limpa triplicatas, senão fallback v1
+        const { data, error } = await supabaseClient.rpc('mark_subscription_invoice_paid_v2', {
           _asaas_payment_id: asaasPaymentId,
           _invoice_id: subscriptionInvoiceId,
           _paid_at: new Date().toISOString(),
         });
-        if (error) console.error(`[ASAAS_WEBHOOK][${requestId}] mark_paid erro:`, error.message);
-        else console.info(`[ASAAS_WEBHOOK][${requestId}] mark_paid:`, JSON.stringify(data));
+        
+        if (error) {
+          console.error(`[ASAAS_WEBHOOK][${requestId}] mark_paid_v2 erro (fallback v1):`, error.message);
+          await supabaseClient.rpc('mark_subscription_invoice_paid', {
+            _asaas_payment_id: asaasPaymentId,
+            _invoice_id: subscriptionInvoiceId,
+            _paid_at: new Date().toISOString(),
+          });
+        } else {
+          console.info(`[ASAAS_WEBHOOK][${requestId}] mark_paid:`, JSON.stringify(data));
+        }
 
         // Se a fatura era de proração de upgrade, aplica a troca de plano agora.
         const invoiceIdForChange =
