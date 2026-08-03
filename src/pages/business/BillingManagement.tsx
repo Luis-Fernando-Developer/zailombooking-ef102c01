@@ -496,7 +496,14 @@ export default function BillingManagement() {
                     {invoices.length === 0 && (
                       <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nenhuma fatura</TableCell></TableRow>
                     )}
-                    {invoices.map(i => (
+                    {invoices
+                      // Filtra duplicatas pendentes do mesmo vencimento caso já exista uma paga
+                      .filter((inv, idx, self) => {
+                        if (inv.status !== 'pending') return true;
+                        const hasPaidSameDay = self.some(s => s.status === 'paid' && s.due_date === inv.due_date);
+                        return !hasPaidSameDay;
+                      })
+                      .map(i => (
                       <TableRow key={i.id}>
                         <TableCell>{formatDate(i.due_date)}</TableCell>
                         <TableCell>{translateInvoiceDescription(i.description)}</TableCell>
