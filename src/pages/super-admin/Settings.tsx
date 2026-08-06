@@ -235,8 +235,8 @@ export default function SuperAdminSettings() {
                   </code>
                 </Row>
                 <Row label="Publicação">
-                  <a href="https://zailombooking.lovable.app" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">
-                    zailombooking.lovable.app <ExternalLink className="h-3 w-3" />
+                  <a href="https://zailom.com" target="_blank" rel="noopener" className="text-primary inline-flex items-center gap-1">
+                    zailom.com <ExternalLink className="h-3 w-3" />
                   </a>
                 </Row>
                 <Separator className="sm:col-span-2 my-2" />
