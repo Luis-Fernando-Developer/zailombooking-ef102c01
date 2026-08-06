@@ -324,9 +324,11 @@ export default function SuperAdminDashboard() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gradient">+24%</div>
+                  <div className="text-2xl font-bold text-gradient">
+                    {stats.totalCompanies > 0 ? `+${Math.round((stats.activeCompanies / stats.totalCompanies) * 100)}%` : "0%"}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    Novos clientes
+                    Empresas ativas
                   </p>
                 </CardContent>
               </Card>
