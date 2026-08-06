@@ -378,7 +378,7 @@ export default function SuperAdminDashboard() {
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-medium">Receita</p>
-                          <p className="text-xs text-muted-foreground">R$ 0</p>
+                          <p className="text-xs text-muted-foreground">R$ {company.revenue?.toLocaleString() || "0"}</p>
                         </div>
 
                         <DropdownMenu>
