@@ -223,9 +223,12 @@ export default function BillingManagement() {
 
       if (billingType === "PIX" && result?.pix_payload) {
         setPixInvoice({ ...invoice, pix_payload: result.pix_payload, pix_qr_code: result.pix_qr_code });
+        // Iniciamos um pooling ou verificação após o pagamento aqui se necessário, 
+        // mas o webhook global cuidará da atualização automática do status.
       } else if (result?.invoice_url) {
         window.open(result.invoice_url, "_blank", "noopener,noreferrer");
       }
+
 
       toast({ title: "Cobrança gerada", description: "A fatura já pode ser paga." });
     } catch (e: any) {

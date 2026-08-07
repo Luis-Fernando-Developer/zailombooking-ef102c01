@@ -98,8 +98,10 @@ serve(async (req) => {
         ''
       ).trim();
       if (received !== expectedToken) {
-        console.warn(`[ASAAS_WEBHOOK][${requestId}] Token inválido — requisição rejeitada`);
-        return jsonResponse({ error: 'unauthorized' }, 401);
+        console.warn(`[ASAAS_WEBHOOK][${requestId}] Token inválido (${received}) — requisição rejeitada`);
+        // Retornamos 200 em vez de 401 para o Asaas parar de tentar reenviar se for apenas erro de token não configurado.
+        // Mas o log acima denunciará o problema.
+        return jsonResponse({ error: 'unauthorized_token_mismatch', received: true }, 200);
       }
     } else {
       console.warn(`[ASAAS_WEBHOOK][${requestId}] ASAAS_WEBHOOK_TOKEN não configurado — validação desativada`);

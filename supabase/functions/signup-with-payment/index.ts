@@ -357,6 +357,8 @@ serve(async (req) => {
         cycle: CYCLE_BY_PERIOD[billingPeriod],
         description: `ZailomBooking ${plan.name} - ${PERIOD_LABEL[billingPeriod]}`,
         externalReference: `company:${companyId}`,
+        // Não incluímos o objeto "callback" aqui para evitar conflitos com o Webhook configurado globalmente no painel do Asaas.
+
       };
       if (billingType === "CREDIT_CARD" && body.credit_card) {
         subPayload.creditCard = body.credit_card;

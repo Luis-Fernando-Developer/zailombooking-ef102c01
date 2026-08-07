@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wallet, CreditCard, DollarSign, RefreshCw, ExternalLink, Save, Eye, EyeOff, KeyRound, AlertCircle } from "lucide-react";
+import { Wallet, CreditCard, DollarSign, RefreshCw, ExternalLink, Save, Eye, EyeOff, KeyRound, AlertCircle, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ const GATEWAY_GROUPS = [
     configs: [
       { key: "ASAAS_API_KEY", label: "Chave de API", isSecret: true, placeholder: "$aact_... ou sandbox key" },
       { key: "ASAAS_WEBHOOK_TOKEN", label: "Token do Webhook", isSecret: true, placeholder: "Token configurado no Asaas" },
+      { key: "ASAAS_WEBHOOK_URL", label: "URL do Webhook (Dashboard)", isSecret: false, placeholder: "URL para colar no painel do Asaas", readOnly: true },
     ],
   },
   {
@@ -316,10 +317,11 @@ export default function SuperAdminGateways() {
                                 <Input
                                   id={compositeKey}
                                   type={cfg.isSecret && !visible ? "password" : "text"}
-                                  value={value}
+                                  value={cfg.key === "ASAAS_WEBHOOK_URL" ? `${SUPABASE_URL}/functions/v1/asaas-webhook` : value}
                                   placeholder={cfg.placeholder}
                                   onChange={(e) => updateLocalValue(g.key, cfg.key, e.target.value)}
-                                  className="pr-10 font-mono text-sm"
+                                  readOnly={(cfg as any).readOnly}
+                                  className={cn("pr-10 font-mono text-sm", (cfg as any).readOnly && "bg-muted cursor-default")}
                                 />
                                 {cfg.isSecret && (
                                   <button
@@ -331,15 +333,30 @@ export default function SuperAdminGateways() {
                                     {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                   </button>
                                 )}
+                                {cfg.key === "ASAAS_WEBHOOK_URL" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(`${SUPABASE_URL}/functions/v1/asaas-webhook`);
+                                      toast({ title: "Copiado", description: "URL copiada para a área de transferência." });
+                                    }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    tabIndex={-1}
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </button>
+                                )}
                               </div>
-                              <Button
-                                size="sm"
-                                onClick={() => saveConfig(g.key, cfg.key)}
-                                disabled={savingKeys.has(compositeKey)}
-                              >
-                                <Save className="h-4 w-4 mr-1" />
-                                {savingKeys.has(compositeKey) ? "Salvando..." : "Salvar"}
-                              </Button>
+                              {!(cfg as any).readOnly && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => saveConfig(g.key, cfg.key)}
+                                  disabled={savingKeys.has(compositeKey)}
+                                >
+                                  <Save className="h-4 w-4 mr-1" />
+                                  {savingKeys.has(compositeKey) ? "Salvando..." : "Salvar"}
+                                </Button>
+                              )}
                             </div>
                           </div>
                         );

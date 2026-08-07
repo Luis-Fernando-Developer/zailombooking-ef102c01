@@ -193,10 +193,9 @@ serve(async (req) => {
           booking_id: booking.id
         },
         postalCode: '12345678', // Postal code fallback for webhooks
-        callback: {
-          url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/asaas-webhook`,
-          autoRedirect: true
-        },
+        // Removemos o callback manual que estava causando conflitos com o webhook global configurado no painel do Asaas.
+        // O Asaas já envia webhooks para a URL configurada na conta (Account Settings -> Webhooks).
+
         address: 'Rua Principal',
         addressNumber: '123',
         province: 'Centro',

@@ -287,6 +287,8 @@ serve(async (req) => {
         dueDate: dueStr,
         description: invoice.description || `Assinatura ZailomBooking - ${company.name}`,
         externalReference: `subscription:${invoice.id}:${company.id}`,
+        // Não incluímos o objeto "callback" aqui para evitar conflitos com o Webhook configurado globalmente no painel do Asaas.
+
       }),
     });
 
