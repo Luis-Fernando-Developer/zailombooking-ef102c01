@@ -376,7 +376,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
       
       const { data: session } = await supabase.auth.getSession();
       if (session?.session?.access_token) {
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manual-resource-override`, {
+        await fetch(getEdgeFunctionUrl("manual-resource-override"), {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${session.session.access_token}`,
