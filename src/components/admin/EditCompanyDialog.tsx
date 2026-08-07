@@ -369,7 +369,26 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
 
       // Sincronizar tier do plano com o builder (status/plano podem ter mudado)
       const selectedPlan = getSelectedPlan();
+      
+      // Chamar syncBuilderPlan mas também a nossa nova função de override
       syncBuilderPlan(company.id, selectedPlan?.name);
+      
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session?.access_token) {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manual-resource-override`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${session.session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ 
+            companyId: company.id, 
+            days: formData.manual_resource_release_until ? 
+              Math.ceil((new Date(formData.manual_resource_release_until).getTime() - Date.now()) / 86400000) : 0,
+            forceEarlyRenewal: formData.force_early_renewal_once
+          }),
+        });
+      }
 
       onSuccess();
       onOpenChange(false);
