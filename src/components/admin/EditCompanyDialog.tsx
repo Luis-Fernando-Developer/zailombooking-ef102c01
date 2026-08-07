@@ -113,6 +113,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
         status: company.status || "active",
         slug: company.slug || "",
         manual_resource_release_until: company.manual_resource_release_until || null,
+        manual_release_days: "7",
         force_early_renewal_once: company.force_early_renewal_once || false,
       });
     }
