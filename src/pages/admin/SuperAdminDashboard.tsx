@@ -134,7 +134,10 @@ export default function SuperAdminDashboard() {
         })) as any);
 
         const totalCompanies = companiesData.length;
-        const activeCompanies = companiesData.filter(c => c.status === 'active').length;
+        const activeCompanies = companiesData.filter(c => 
+          c.status === 'active' || 
+          (c.manual_resource_release_until && new Date(c.manual_resource_release_until) > new Date())
+        ).length;
 
         setStats({
           totalCompanies,
