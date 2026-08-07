@@ -134,7 +134,10 @@ export default function SuperAdminDashboard() {
         })) as any);
 
         const totalCompanies = companiesData.length;
-        const activeCompanies = companiesData.filter(c => c.status === 'active').length;
+        const activeCompanies = companiesData.filter(c => 
+          c.status === 'active' || 
+          (c.manual_resource_release_until && new Date(c.manual_resource_release_until) > new Date())
+        ).length;
 
         setStats({
           totalCompanies,
@@ -324,9 +327,11 @@ export default function SuperAdminDashboard() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gradient">+24%</div>
+                  <div className="text-2xl font-bold text-gradient">
+                    {stats.totalCompanies > 0 ? `+${Math.round((stats.activeCompanies / stats.totalCompanies) * 100)}%` : "0%"}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    Novos clientes
+                    Empresas ativas
                   </p>
                 </CardContent>
               </Card>
@@ -376,7 +381,7 @@ export default function SuperAdminDashboard() {
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-medium">Receita</p>
-                          <p className="text-xs text-muted-foreground">R$ 0</p>
+                          <p className="text-xs text-muted-foreground">R$ {company.revenue?.toLocaleString() || "0"}</p>
                         </div>
 
                         <DropdownMenu>
