@@ -72,7 +72,6 @@ export default function ClientSignup() {
         .from('companies')
         .select('id, name')
         .eq('slug', slug)
-        .eq('status', 'active')
         .single();
 
       if (companyError || !companyData) {

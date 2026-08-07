@@ -74,11 +74,18 @@ export default function SuperAdminGateways() {
   });
 
   const loadStats = async () => {
+    // Buscar faturamento total das empresas via faturas pagas (mais preciso)
+    const { data: invoices } = await supabase
+      .from("company_invoices")
+      .select("amount")
+      .eq("status", "paid");
+      
+    const totalRevenue = (invoices ?? []).reduce((s: number, inv: any) => s + Number(inv.amount ?? 0), 0);
+
     const { data: payments } = await supabase
       .from("booking_payments")
       .select("amount,status");
-    const totalRevenue = (payments ?? []).filter((p: any) => ["paid", "confirmed", "received"].includes(String(p.status).toLowerCase()))
-      .reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+    
     const pending = (payments ?? []).filter((p: any) => String(p.status).toLowerCase() === "pending").length;
 
     const { count: activeSubs } = await supabase

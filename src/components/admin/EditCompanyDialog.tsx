@@ -83,6 +83,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
     status: "active",
     slug: "",
     manual_resource_release_until: null as string | null,
+    manual_release_days: "7",
     force_early_renewal_once: false,
   });
 
@@ -468,25 +469,56 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 border-t border-primary/10 pt-4">
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
-              <div className="space-y-0.5">
-                <Label className="text-xs">Liberação Manual</Label>
-                <p className="text-[10px] text-muted-foreground">Ignora inadimplência temporariamente.</p>
+          <div className="grid grid-cols-1 gap-4 border-t border-primary/10 pt-4">
+            <div className="space-y-4 p-4 border rounded-lg bg-primary/5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-semibold">Liberação Manual</Label>
+                  <p className="text-xs text-muted-foreground">Ignora a suspensão por falta de pagamento temporariamente.</p>
+                </div>
+                <Switch 
+                  checked={!!formData.manual_resource_release_until && new Date(formData.manual_resource_release_until) > new Date()}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      const days = parseInt(formData.manual_release_days) || 7;
+                      const until = new Date(Date.now() + days * 86400000).toISOString();
+                      setFormData({ ...formData, manual_resource_release_until: until });
+                    } else {
+                      setFormData({ ...formData, manual_resource_release_until: null });
+                    }
+                  }}
+                />
               </div>
-              <Switch 
-                checked={!!formData.manual_resource_release_until && new Date(formData.manual_resource_release_until) > new Date()}
-                onCheckedChange={async (checked) => {
-                  const until = checked ? new Date(Date.now() + 7 * 86400000).toISOString() : null;
-                  setFormData({ ...formData, manual_resource_release_until: until });
-                }}
-              />
+              
+              {!!formData.manual_resource_release_until && new Date(formData.manual_resource_release_until) > new Date() && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                  <Label htmlFor="manual_days" className="text-xs">Dias de liberação</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="manual_days"
+                      type="number"
+                      min="1"
+                      max="90"
+                      value={formData.manual_release_days}
+                      onChange={(e) => {
+                        const days = e.target.value;
+                        const until = new Date(Date.now() + (parseInt(days) || 0) * 86400000).toISOString();
+                        setFormData({ ...formData, manual_release_days: days, manual_resource_release_until: until });
+                      }}
+                      className="w-24 bg-background"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      Expira em: {new Date(formData.manual_resource_release_until).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-primary/5">
               <div className="space-y-0.5">
-                <Label className="text-xs">Renovação Antecipada</Label>
-                <p className="text-[10px] text-muted-foreground">Força reset de limites no próximo processamento.</p>
+                <Label className="text-sm font-semibold">Renovação Antecipada</Label>
+                <p className="text-xs text-muted-foreground">Força o reset imediato de limites e agendamentos no próximo ciclo.</p>
               </div>
               <Switch 
                 checked={formData.force_early_renewal_once}

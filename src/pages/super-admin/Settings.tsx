@@ -43,10 +43,10 @@ export default function SuperAdminSettings() {
     try {
       const [c, ca, u, i, p] = await Promise.all([
         supabase.from("companies").select("*", { count: "exact", head: true }),
-        supabase.from("companies").select("*", { count: "exact", head: true }).eq("billing_status", "active"),
+        supabase.from("companies").select("*", { count: "exact", head: true }).eq("status", "active"),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("whatsapp_instances").select("*", { count: "exact", head: true }),
-        supabase.from("plans").select("*", { count: "exact", head: true }),
+        supabase.from("subscription_plans").select("*", { count: "exact", head: true }),
       ]);
       setStats({
         companies: c.count ?? 0,
