@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wallet, CreditCard, DollarSign, RefreshCw, ExternalLink, Save, Eye, EyeOff, KeyRound, AlertCircle } from "lucide-react";
+import { Wallet, CreditCard, DollarSign, RefreshCw, ExternalLink, Save, Eye, EyeOff, KeyRound, AlertCircle, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
