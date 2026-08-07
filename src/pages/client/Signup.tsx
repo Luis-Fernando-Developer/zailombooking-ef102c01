@@ -32,7 +32,7 @@ export default function ClientSignup() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get('returnTo');
-  
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -42,18 +42,19 @@ export default function ClientSignup() {
     password: "",
     confirmPassword: ""
   });
+
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'cpf') {
       setFormData(prev => ({ ...prev, cpf: formatCPF(value) }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -65,7 +66,11 @@ export default function ClientSignup() {
     setErrors({});
 
     try {
-      const dataToValidate = { ...formData, cpf: cleanCPF(formData.cpf) };
+      const dataToValidate = {
+        ...formData,
+        cpf: cleanCPF(formData.cpf)
+      };
+
       const validatedData = signupSchema.parse(dataToValidate);
 
       const { data: companyData, error: companyError } = await supabase
@@ -80,16 +85,25 @@ export default function ClientSignup() {
           description: "Empresa não encontrada ou inativa.",
           variant: "destructive",
         });
+
         setIsLoading(false);
         return;
       }
 
-      // Corrigindo: Se o usuário já existe no Supabase global mas não nesta empresa, 
-      // o signUp irá falhar ou apenas reenviar confirmação.
-      // Definimos o redirectTo para voltar ao fluxo correto após o e-mail.
-      const returnUrl = returnTo === 'agendar' ? `/${slug}/agendar?restore=true` : `/${slug}/login`;
+      const returnUrl =
+        returnTo === 'agendar'
+          ? `/${slug}/agendar?restore=true`
+          : `/${slug}/login`;
+
       const redirectTo = `${window.location.origin}${returnUrl}`;
 
+      let userId: string | null = null;
+      let isExistingUser = false;
+
+      /*
+       * PRIMEIRO CASO:
+       * Tenta criar uma nova conta no Supabase Auth.
+       */
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
         password: validatedData.password,
@@ -100,69 +114,192 @@ export default function ClientSignup() {
             last_name: validatedData.lastName,
             full_name: `${validatedData.firstName} ${validatedData.lastName}`,
             phone: validatedData.phone,
-            company_id: companyData.id,
             role: 'client'
           }
         }
       });
 
-      if (authError) {
-        if (authError.message.includes("already registered")) {
+      if (!authError && authData.user) {
+        userId = authData.user.id;
+      } else if (
+        authError &&
+        authError.message.toLowerCase().includes("already registered")
+      ) {
+        /*
+         * SEGUNDO CASO:
+         * O usuário já existe no Supabase Auth.
+         *
+         * Não criamos outro usuário.
+         * Autenticamos o usuário existente usando a senha
+         * informada no formulário para obter o mesmo user.id.
+         */
+        const { data: existingAuthData, error: existingAuthError } =
+          await supabase.auth.signInWithPassword({
+            email: validatedData.email,
+            password: validatedData.password,
+          });
+
+        if (existingAuthError || !existingAuthData.user) {
           toast({
-            title: "Erro no cadastro",
-            description: "Este email já está cadastrado. Tente fazer login.",
+            title: "Conta já existente",
+            description:
+              "Este email já possui uma conta. Informe a senha dessa conta para vinculá-la a esta empresa.",
             variant: "destructive",
           });
-        } else {
-          toast({
-            title: "Erro no cadastro",
-            description: authError.message,
-            variant: "destructive",
-          });
+
+          setIsLoading(false);
+          return;
         }
+
+        userId = existingAuthData.user.id;
+        isExistingUser = true;
+      } else if (authError) {
+        toast({
+          title: "Erro no cadastro",
+          description: authError.message,
+          variant: "destructive",
+        });
+
         setIsLoading(false);
         return;
       }
 
-      if (authData.user) {
-        const cleanedCpf = cleanCPF(formData.cpf);
-        const { error: clientError } = await supabase
-          .from('clients')
-          .insert({
-            user_id: authData.user.id,
-            company_id: companyData.id,
-            name: `${validatedData.firstName} ${validatedData.lastName}`,
-            email: validatedData.email,
-            phone: validatedData.phone,
-            cpf: cleanedCpf || null
-          });
-
-        if (clientError) {
-          console.error('Error creating client profile:', clientError);
-        }
-
+      if (!userId) {
         toast({
-          title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu email para confirmar a conta e depois faça login.",
+          title: "Erro no cadastro",
+          description: "Não foi possível identificar o usuário.",
+          variant: "destructive",
         });
 
-        if (returnTo) {
-          navigate(`/${slug}/entrar?returnTo=${returnTo}`);
-        } else {
-          navigate(`/${slug}/entrar`);
-        }
+        setIsLoading(false);
+        return;
       }
+
+      /*
+       * Verifica se o usuário já possui cadastro nesta empresa.
+       */
+      const { data: existingClient, error: existingClientError } =
+        await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('company_id', companyData.id)
+          .maybeSingle();
+
+      if (existingClientError) {
+        console.error(
+          'Error checking existing client:',
+          existingClientError
+        );
+
+        toast({
+          title: "Erro no cadastro",
+          description: "Não foi possível verificar o cadastro nesta empresa.",
+          variant: "destructive",
+        });
+
+        await supabase.auth.signOut();
+
+        setIsLoading(false);
+        return;
+      }
+
+      if (existingClient) {
+        toast({
+          title: "Cadastro já existente",
+          description: "Você já possui cadastro nesta empresa. Faça login para continuar.",
+        });
+
+        await supabase.auth.signOut();
+
+        navigate(
+          returnTo
+            ? `/${slug}/entrar?returnTo=${returnTo}`
+            : `/${slug}/entrar`
+        );
+
+        return;
+      }
+
+      const cleanedCpf = cleanCPF(formData.cpf);
+
+      /*
+       * Cria o vínculo do mesmo usuário com a nova empresa.
+       *
+       * IMPORTANTE:
+       * Não cria outro usuário no Auth.
+       * Apenas cria outro registro em clients.
+       */
+      const { error: clientError } = await supabase
+        .from('clients')
+        .insert({
+          user_id: userId,
+          company_id: companyData.id,
+          name: `${validatedData.firstName} ${validatedData.lastName}`,
+          email: validatedData.email,
+          phone: validatedData.phone,
+          cpf: cleanedCpf || null
+        });
+
+      if (clientError) {
+        console.error('Error creating client profile:', clientError);
+
+        await supabase.auth.signOut();
+
+        toast({
+          title: "Erro no cadastro",
+          description: clientError.message,
+          variant: "destructive",
+        });
+
+        setIsLoading(false);
+        return;
+      }
+
+      /*
+       * Usuário novo:
+       * o Supabase enviará o email de confirmação normalmente.
+       *
+       * Usuário existente:
+       * a conta Auth já existe, então não tratamos isso
+       * como uma nova conta Auth.
+       */
+      if (isExistingUser) {
+        toast({
+          title: "Cadastro realizado com sucesso!",
+          description:
+            "Seu cadastro foi vinculado à empresa. Faça login para continuar.",
+        });
+      } else {
+        toast({
+          title: "Cadastro realizado com sucesso!",
+          description:
+            "Verifique seu email para confirmar a conta e depois faça login.",
+        });
+      }
+
+      await supabase.auth.signOut();
+
+      if (returnTo) {
+        navigate(`/${slug}/entrar?returnTo=${returnTo}`);
+      } else {
+        navigate(`/${slug}/entrar`);
+      }
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
+
         error.errors.forEach((err) => {
           if (err.path[0]) {
             newErrors[err.path[0] as string] = err.message;
           }
         });
+
         setErrors(newErrors);
       } else {
         console.error('Unexpected error:', error);
+
         toast({
           title: "Erro inesperado",
           description: "Ocorreu um erro inesperado. Tente novamente.",
@@ -176,6 +313,7 @@ export default function ClientSignup() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
+
       {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-72 h-72 bg-neon-violet/10 rounded-full blur-3xl animate-pulse-glow"></div>
@@ -183,23 +321,39 @@ export default function ClientSignup() {
       </div>
 
       <Card className="w-full max-w-md card-glow bg-card/50 backdrop-blur-sm border-primary/30 relative z-10">
+
         <CardHeader className="text-center">
+
           <div className="flex justify-center mb-6">
             <CompanyLogo companySlug={slug || ''} />
           </div>
-          <CardTitle className="text-2xl text-gradient">Criar conta</CardTitle>
+
+          <CardTitle className="text-2xl text-gradient">
+            Criar conta
+          </CardTitle>
+
           <CardDescription>
             Cadastre-se para agendar seus serviços
           </CardDescription>
+
         </CardHeader>
-        
+
         <CardContent>
+
           <form onSubmit={handleSubmit} className="space-y-4">
+
             <div className="grid grid-cols-2 gap-4">
+
               <div className="space-y-2">
-                <Label htmlFor="firstName">Nome</Label>
+
+                <Label htmlFor="firstName">
+                  Nome
+                </Label>
+
                 <div className="relative">
+
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+
                   <Input
                     id="firstName"
                     name="firstName"
@@ -210,14 +364,27 @@ export default function ClientSignup() {
                     className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                     required
                   />
+
                 </div>
-                {errors.firstName && <p className="text-sm text-red-500">{errors.firstName}</p>}
+
+                {errors.firstName && (
+                  <p className="text-sm text-red-500">
+                    {errors.firstName}
+                  </p>
+                )}
+
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lastName">Sobrenome</Label>
+
+                <Label htmlFor="lastName">
+                  Sobrenome
+                </Label>
+
                 <div className="relative">
+
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+
                   <Input
                     id="lastName"
                     name="lastName"
@@ -228,15 +395,29 @@ export default function ClientSignup() {
                     className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                     required
                   />
+
                 </div>
-                {errors.lastName && <p className="text-sm text-red-500">{errors.lastName}</p>}
+
+                {errors.lastName && (
+                  <p className="text-sm text-red-500">
+                    {errors.lastName}
+                  </p>
+                )}
+
               </div>
+
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+
+              <Label htmlFor="email">
+                Email
+              </Label>
+
               <div className="relative">
+
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+
                 <Input
                   id="email"
                   name="email"
@@ -247,28 +428,57 @@ export default function ClientSignup() {
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                   required
                 />
+
               </div>
-              {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+
+              {errors.email && (
+                <p className="text-sm text-red-500">
+                  {errors.email}
+                </p>
+              )}
+
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone (WhatsApp)</Label>
+
+              <Label htmlFor="phone">
+                Telefone (WhatsApp)
+              </Label>
+
               <PhoneInput
                 id="phone"
                 value={formData.phone}
                 onChange={(v) => {
                   setFormData(prev => ({ ...prev, phone: v }));
-                  if (errors.phone) setErrors(prev => ({ ...prev, phone: "" }));
+
+                  if (errors.phone) {
+                    setErrors(prev => ({
+                      ...prev,
+                      phone: ""
+                    }));
+                  }
                 }}
                 required
               />
-              {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
+
+              {errors.phone && (
+                <p className="text-sm text-red-500">
+                  {errors.phone}
+                </p>
+              )}
+
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF (opcional)</Label>
+
+              <Label htmlFor="cpf">
+                CPF (opcional)
+              </Label>
+
               <div className="relative">
+
                 <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+
                 <Input
                   id="cpf"
                   name="cpf"
@@ -279,14 +489,27 @@ export default function ClientSignup() {
                   maxLength={14}
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                 />
+
               </div>
-              {errors.cpf && <p className="text-sm text-red-500">{errors.cpf}</p>}
+
+              {errors.cpf && (
+                <p className="text-sm text-red-500">
+                  {errors.cpf}
+                </p>
+              )}
+
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+
+              <Label htmlFor="password">
+                Senha
+              </Label>
+
               <div className="relative">
+
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+
                 <Input
                   id="password"
                   name="password"
@@ -297,14 +520,27 @@ export default function ClientSignup() {
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                   required
                 />
+
               </div>
-              {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+
+              {errors.password && (
+                <p className="text-sm text-red-500">
+                  {errors.password}
+                </p>
+              )}
+
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar senha</Label>
+
+              <Label htmlFor="confirmPassword">
+                Confirmar senha
+              </Label>
+
               <div className="relative">
+
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
@@ -315,37 +551,62 @@ export default function ClientSignup() {
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                   required
                 />
+
               </div>
-              {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword}</p>}
+
+              {errors.confirmPassword && (
+                <p className="text-sm text-red-500">
+                  {errors.confirmPassword}
+                </p>
+              )}
+
             </div>
 
-            <Button 
-              type="submit" 
-              variant="neon" 
-              className="w-full" 
+            <Button
+              type="submit"
+              variant="neon"
+              className="w-full"
               disabled={isLoading}
               size="lg"
             >
               {isLoading ? "Criando conta..." : "Criar conta"}
             </Button>
+
           </form>
 
           <div className="mt-6 pt-6 border-t border-primary/20 text-center">
+
             <p className="text-sm text-muted-foreground">
+
               Já tem uma conta?{" "}
-              <Link to={`/${slug}/entrar`} className="text-primary hover:text-primary-glow transition-colors">
+
+              <Link
+                to={`/${slug}/entrar`}
+                className="text-primary hover:text-primary-glow transition-colors"
+              >
                 Entre aqui
               </Link>
+
             </p>
+
             <p className="text-sm text-muted-foreground mt-2">
-              <Link to={`/${slug}`} className="text-primary hover:text-primary-glow transition-colors inline-flex items-center gap-1">
+
+              <Link
+                to={`/${slug}`}
+                className="text-primary hover:text-primary-glow transition-colors inline-flex items-center gap-1"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Voltar à página inicial
               </Link>
+
             </p>
+
           </div>
+
         </CardContent>
+
       </Card>
+
     </div>
   );
 }
