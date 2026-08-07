@@ -14,9 +14,11 @@ import { ForgotPasswordDialog } from "@/components/business/ForgotPasswordDialog
 
 export default function ClientLogin() {
   const { slug } = useParams();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -25,6 +27,28 @@ export default function ClientLogin() {
     setIsLoading(true);
 
     try {
+      /*
+       * Primeiro identifica a empresa pelo slug.
+       * O login do cliente precisa ser contextualizado
+       * pela empresa atual.
+       */
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('id, name')
+        .eq('slug', slug)
+        .single();
+
+      if (companyError || !companyData) {
+        toast({
+          title: "Erro no login",
+          description: "Empresa não encontrada ou inativa.",
+          variant: "destructive",
+        });
+
+        setIsLoading(false);
+        return;
+      }
+
       // Autentica o usuário no Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -37,25 +61,36 @@ export default function ClientLogin() {
           description: error.message,
           variant: "destructive",
         });
+
         setIsLoading(false);
         return;
       }
 
       if (data.user) {
-        // Busca o cliente vinculado ao usuário autenticado
+
+        /*
+         * Busca o cliente vinculado ao usuário
+         * DENTRO DA EMPRESA ATUAL.
+         *
+         * Isso permite que o mesmo user_id tenha
+         * registros em várias empresas.
+         */
         const { data: client, error: clientError } = await supabase
           .from('clients')
           .select(`*`)
           .eq('user_id', data.user.id)
+          .eq('company_id', companyData.id)
           .single();
 
         if (clientError || !client) {
           toast({
             title: "Acesso negado",
-            description: "Usuário não está cadastrado como cliente.",
+            description: "Você não possui cadastro nesta empresa.",
             variant: "destructive",
           });
+
           await supabase.auth.signOut();
+
           setIsLoading(false);
           return;
         }
@@ -68,20 +103,23 @@ export default function ClientLogin() {
         // Check if there's a returnTo parameter for booking flow
         const searchParams = new URLSearchParams(window.location.search);
         const returnTo = searchParams.get('returnTo');
-        
+
         if (returnTo === 'agendar') {
           navigate(`/${slug}/agendar?restore=true`);
         } else {
           navigate(`/${slug}/agendamentos`);
         }
       }
+
     } catch (error) {
       console.error('Error signing in:', error);
+
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
+
     } finally {
       setIsLoading(false);
     }
@@ -89,6 +127,7 @@ export default function ClientLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
+
       {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-72 h-72 bg-neon-violet/10 rounded-full blur-3xl animate-pulse-glow"></div>
@@ -96,22 +135,37 @@ export default function ClientLogin() {
       </div>
 
       <Card className="w-full max-w-md card-glow bg-card/50 backdrop-blur-sm border-primary/30 relative z-10">
+
         <CardHeader className="text-center">
+
           <div className="flex justify-center mb-6">
             <CompanyLogo companySlug={slug || ''} />
           </div>
-          <CardTitle className="text-2xl text-gradient">Acesse sua conta</CardTitle>
+
+          <CardTitle className="text-2xl text-gradient">
+            Acesse sua conta
+          </CardTitle>
+
           <CardDescription>
             Veja e gerencie suas agendamentos aqui!
           </CardDescription>
+
         </CardHeader>
-        
+
         <CardContent>
+
           <form onSubmit={handleLogin} className="space-y-6">
+
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+
+              <Label htmlFor="email">
+                Email
+              </Label>
+
               <div className="relative">
+
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+
                 <Input
                   id="email"
                   type="email"
@@ -121,13 +175,21 @@ export default function ClientLogin() {
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                   required
                 />
+
               </div>
+
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+
+              <Label htmlFor="password">
+                Senha
+              </Label>
+
               <div className="relative">
+
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+
                 <Input
                   id="password"
                   type="password"
@@ -137,47 +199,72 @@ export default function ClientLogin() {
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                   required
                 />
+
               </div>
+
             </div>
 
             <div className="flex justify-end -mt-2">
+
               <ForgotPasswordDialog
                 defaultEmail={email}
                 trigger={
-                  <button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">
+                  <button
+                    type="button"
+                    className="text-sm text-primary hover:text-primary-glow transition-colors"
+                  >
                     Esqueci minha senha
                   </button>
                 }
               />
+
             </div>
 
-            <Button 
-              type="submit" 
-              variant="neon" 
-              className="w-full" 
+            <Button
+              type="submit"
+              variant="neon"
+              className="w-full"
               disabled={isLoading}
               size="lg"
             >
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
+
           </form>
 
           <div className="mt-6 pt-6 border-t border-primary/20 text-center">
+
             <p className="text-sm text-muted-foreground">
+
               Não tem uma conta?{" "}
-              <Link to={`/${slug}/cadastro`} className="text-primary hover:text-primary-glow transition-colors">
+
+              <Link
+                to={`/${slug}/cadastro`}
+                className="text-primary hover:text-primary-glow transition-colors"
+              >
                 Cadastre-se
               </Link>
+
             </p>
+
             <p className="text-sm text-muted-foreground mt-2">
-              <Link to={`/${slug}`} className="text-primary hover:text-primary-glow transition-colors inline-flex items-center gap-1">
+
+              <Link
+                to={`/${slug}`}
+                className="text-primary hover:text-primary-glow transition-colors inline-flex items-center gap-1"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Voltar à página inicial
               </Link>
+
             </p>
+
           </div>
+
         </CardContent>
+
       </Card>
+
     </div>
   );
 }
