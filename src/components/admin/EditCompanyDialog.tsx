@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Calculator, Percent, AlertTriangle, X, ArrowRightCircle, CalendarClock, MessageSquare } from "lucide-react";
 import { calculateSubscriptionChange, type BillingPeriod, formatBRL, periodLabel } from "@/lib/proration";
 import { CompanyCreditsPanel } from "./CompanyCreditsPanel";
+import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 
 
 // Aligned with database schema - companies table
