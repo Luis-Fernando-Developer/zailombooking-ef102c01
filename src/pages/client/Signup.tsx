@@ -68,15 +68,16 @@ export default function ClientSignup() {
     try {
       const dataToValidate = {
         ...formData,
-        cpf: cleanCPF(formData.cpf)
+        cpf: cleanCPF(formData.cpf),
       };
 
       const validatedData = signupSchema.parse(dataToValidate);
 
+      // Buscar a empresa atual
       const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('id, name')
-        .eq('slug', slug)
+        .from("companies")
+        .select("id, name")
+        .eq("slug", slug)
         .single();
 
       if (companyError || !companyData) {
@@ -85,207 +86,190 @@ export default function ClientSignup() {
           description: "Empresa não encontrada ou inativa.",
           variant: "destructive",
         });
-
-        setIsLoading(false);
         return;
       }
 
+      const cleanedCpf = cleanCPF(validatedData.cpf);
+      const fullName = `${validatedData.firstName} ${validatedData.lastName}`;
+
       const returnUrl =
-        returnTo === 'agendar'
+        returnTo === "agendar"
           ? `/${slug}/agendar?restore=true`
           : `/${slug}/login`;
 
       const redirectTo = `${window.location.origin}${returnUrl}`;
 
-      let userId: string | null = null;
-      let isExistingUser = false;
-
       /*
-       * PRIMEIRO CASO:
-       * Tenta criar uma nova conta no Supabase Auth.
+       * Primeiro tentamos criar a conta Auth.
+       *
+       * Se o email já existir no Supabase Auth, o Supabase pode retornar
+       * um usuário sem identities para evitar enumeração de usuários.
        */
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: validatedData.email,
-        password: validatedData.password,
-        options: {
-          emailRedirectTo: redirectTo,
-          data: {
-            first_name: validatedData.firstName,
-            last_name: validatedData.lastName,
-            full_name: `${validatedData.firstName} ${validatedData.lastName}`,
-            phone: validatedData.phone,
-            role: 'client'
-          }
-        }
-      });
+      const { data: authData, error: authError } =
+        await supabase.auth.signUp({
+          email: validatedData.email,
+          password: validatedData.password,
+          options: {
+            emailRedirectTo: redirectTo,
+            data: {
+              first_name: validatedData.firstName,
+              last_name: validatedData.lastName,
+              full_name: fullName,
+              phone: validatedData.phone,
+              company_id: companyData.id,
+              role: "client",
+            },
+          },
+        });
 
-      if (!authError && authData.user) {
-        userId = authData.user.id;
-      } else if (
-        authError &&
-        authError.message.toLowerCase().includes("already registered")
-      ) {
-        /*
-         * SEGUNDO CASO:
-         * O usuário já existe no Supabase Auth.
-         *
-         * Não criamos outro usuário.
-         * Autenticamos o usuário existente usando a senha
-         * informada no formulário para obter o mesmo user.id.
-         */
-        const { data: existingAuthData, error: existingAuthError } =
-          await supabase.auth.signInWithPassword({
-            email: validatedData.email,
-            password: validatedData.password,
-          });
-
-        if (existingAuthError || !existingAuthData.user) {
-          toast({
-            title: "Conta já existente",
-            description:
-              "Este email já possui uma conta. Informe a senha dessa conta para vinculá-la a esta empresa.",
-            variant: "destructive",
-          });
-
-          setIsLoading(false);
-          return;
-        }
-
-        userId = existingAuthData.user.id;
-        isExistingUser = true;
-      } else if (authError) {
+      if (authError) {
         toast({
           title: "Erro no cadastro",
           description: authError.message,
           variant: "destructive",
         });
-
-        setIsLoading(false);
-        return;
-      }
-
-      if (!userId) {
-        toast({
-          title: "Erro no cadastro",
-          description: "Não foi possível identificar o usuário.",
-          variant: "destructive",
-        });
-
-        setIsLoading(false);
         return;
       }
 
       /*
-       * Verifica se o usuário já possui cadastro nesta empresa.
-       */
-      const { data: existingClient, error: existingClientError } =
-        await supabase
-          .from('clients')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('company_id', companyData.id)
-          .maybeSingle();
-
-      if (existingClientError) {
-        console.error(
-          'Error checking existing client:',
-          existingClientError
-        );
-
-        toast({
-          title: "Erro no cadastro",
-          description: "Não foi possível verificar o cadastro nesta empresa.",
-          variant: "destructive",
-        });
-
-        await supabase.auth.signOut();
-
-        setIsLoading(false);
-        return;
-      }
-
-      if (existingClient) {
-        toast({
-          title: "Cadastro já existente",
-          description: "Você já possui cadastro nesta empresa. Faça login para continuar.",
-        });
-
-        await supabase.auth.signOut();
-
-        navigate(
-          returnTo
-            ? `/${slug}/entrar?returnTo=${returnTo}`
-            : `/${slug}/entrar`
-        );
-
-        return;
-      }
-
-      const cleanedCpf = cleanCPF(formData.cpf);
-
-      /*
-       * Cria o vínculo do mesmo usuário com a nova empresa.
+       * Email já existente no Auth.
        *
-       * IMPORTANTE:
-       * Não cria outro usuário no Auth.
-       * Apenas cria outro registro em clients.
+       * Nesse caso precisamos autenticar com a senha informada para
+       * obter o user.id REAL. Não podemos usar o user.id retornado
+       * pelo signUp nesse cenário.
        */
-      const { error: clientError } = await supabase
-        .from('clients')
-        .insert({
-          user_id: userId,
-          company_id: companyData.id,
-          name: `${validatedData.firstName} ${validatedData.lastName}`,
-          email: validatedData.email,
-          phone: validatedData.phone,
-          cpf: cleanedCpf || null
-        });
+      const existingAuthUser =
+        authData.user && authData.user.identities?.length === 0;
 
-      if (clientError) {
-        console.error('Error creating client profile:', clientError);
+      if (existingAuthUser) {
+        const { data: loginData, error: loginError } =
+          await supabase.auth.signInWithPassword({
+            email: validatedData.email,
+            password: validatedData.password,
+          });
+
+        if (loginError || !loginData.user) {
+          toast({
+            title: "Email já cadastrado",
+            description:
+              "Este email já possui uma conta. Use a senha da sua conta existente para se cadastrar nesta empresa.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        /*
+         * Agora temos o UUID real existente em auth.users.
+         * Verificamos se esse usuário já possui vínculo com esta empresa.
+         */
+        const { data: existingClient, error: existingClientError } =
+          await supabase
+            .from("clients")
+            .select("id")
+            .eq("user_id", loginData.user.id)
+            .eq("company_id", companyData.id)
+            .maybeSingle();
+
+        if (existingClientError) {
+          await supabase.auth.signOut();
+          throw existingClientError;
+        }
+
+        if (existingClient) {
+          await supabase.auth.signOut();
+
+          toast({
+            title: "Cadastro já realizado",
+            description:
+              "Este usuário já está cadastrado como cliente nesta empresa.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        /*
+         * O usuário já existe no Auth, mas ainda não pertence
+         * à empresa atual. Criamos apenas o vínculo em clients.
+         */
+        const { error: clientError } = await supabase
+          .from("clients")
+          .insert({
+            user_id: loginData.user.id,
+            company_id: companyData.id,
+            name: fullName,
+            email: validatedData.email,
+            phone: validatedData.phone,
+            cpf: cleanedCpf || null,
+          });
 
         await supabase.auth.signOut();
 
-        toast({
-          title: "Erro no cadastro",
-          description: clientError.message,
-          variant: "destructive",
-        });
+        if (clientError) {
+          console.error("Error creating client profile:", clientError);
 
-        setIsLoading(false);
-        return;
-      }
+          toast({
+            title: "Erro no cadastro",
+            description:
+              "Não foi possível vincular sua conta a esta empresa.",
+            variant: "destructive",
+          });
+          return;
+        }
 
-      /*
-       * Usuário novo:
-       * o Supabase enviará o email de confirmação normalmente.
-       *
-       * Usuário existente:
-       * a conta Auth já existe, então não tratamos isso
-       * como uma nova conta Auth.
-       */
-      if (isExistingUser) {
         toast({
           title: "Cadastro realizado com sucesso!",
           description:
-            "Seu cadastro foi vinculado à empresa. Faça login para continuar.",
+            "Sua conta já existia e foi vinculada a esta empresa. Faça login com a senha da sua conta.",
         });
-      } else {
+
+        if (returnTo) {
+          navigate(`/${slug}/entrar?returnTo=${returnTo}`);
+        } else {
+          navigate(`/${slug}/entrar`);
+        }
+
+        return;
+      }
+
+      /*
+       * Usuário realmente novo no Supabase Auth.
+       */
+      if (authData.user) {
+        const { error: clientError } = await supabase
+          .from("clients")
+          .insert({
+            user_id: authData.user.id,
+            company_id: companyData.id,
+            name: fullName,
+            email: validatedData.email,
+            phone: validatedData.phone,
+            cpf: cleanedCpf || null,
+          });
+
+        if (clientError) {
+          console.error("Error creating client profile:", clientError);
+
+          toast({
+            title: "Erro no cadastro",
+            description:
+              "A conta foi criada, mas não foi possível criar o cadastro de cliente.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         toast({
           title: "Cadastro realizado com sucesso!",
           description:
             "Verifique seu email para confirmar a conta e depois faça login.",
         });
+
+        if (returnTo) {
+          navigate(`/${slug}/entrar?returnTo=${returnTo}`);
+        } else {
+          navigate(`/${slug}/entrar`);
+        }
       }
-
-      await supabase.auth.signOut();
-
-      if (returnTo) {
-        navigate(`/${slug}/entrar?returnTo=${returnTo}`);
-      } else {
-        navigate(`/${slug}/entrar`);
-      }
-
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -298,7 +282,7 @@ export default function ClientSignup() {
 
         setErrors(newErrors);
       } else {
-        console.error('Unexpected error:', error);
+        console.error("Unexpected error:", error);
 
         toast({
           title: "Erro inesperado",
