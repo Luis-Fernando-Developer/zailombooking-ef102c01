@@ -89,7 +89,7 @@ export default function ClientSignup() {
         return;
       }
 
-      const cleanedCpf = cleanCPF(validatedData.cpf);
+      const cleanedCpf = cleanCPF(validatedData.cpf || "");
       const fullName = `${validatedData.firstName} ${validatedData.lastName}`;
 
       const returnUrl =
