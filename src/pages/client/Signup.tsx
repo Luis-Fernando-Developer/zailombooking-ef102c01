@@ -131,17 +131,45 @@ export default function ClientSignup() {
         return;
       }
 
-      /*
-       * Email já existente no Auth.
-       *
-       * Nesse caso precisamos autenticar com a senha informada para
-       * obter o user.id REAL. Não podemos usar o user.id retornado
-       * pelo signUp nesse cenário.
-       */
       const existingAuthUser =
         authData.user && authData.user.identities?.length === 0;
 
       if (existingAuthUser) {
+        // O usuário já existe globalmente no Auth.
+        // Em vez de forçar o login imediato com erro, solicitamos o ID do usuário
+        // e enviamos o e-mail de confirmação de vínculo para esta empresa específica.
+        
+        // Buscamos o ID do usuário pelo email (precisa de permissão ou RPC se não logado)
+        // Como o Supabase não retorna o ID em signUp para usuários existentes,
+        // tentamos obter via RPC segura ou usamos o fluxo de "Solicitar Vínculo".
+        
+        const { data: userIdData } = await supabase.rpc('get_user_id_by_email', { 
+          _email: validatedData.email 
+        });
+
+        if (userIdData) {
+          await supabase.functions.invoke("send-client-confirmation", {
+            body: {
+              user_id: userIdData,
+              company_id: companyData.id,
+              name: fullName,
+              email: validatedData.email,
+              phone: validatedData.phone,
+              cpf: cleanedCpf || null,
+              redirectTo: redirectTo
+            }
+          });
+
+          toast({
+            title: "Conta identificada",
+            description: `Você já possui uma conta Zailom. Enviamos um e-mail para confirmar seu vínculo com a empresa ${companyData.name}.`,
+          });
+          
+          navigate(`/${slug}/entrar`);
+          return;
+        }
+
+        // Fallback para o comportamento anterior caso a RPC não esteja disponível
         const { data: loginData, error: loginError } =
           await supabase.auth.signInWithPassword({
             email: validatedData.email,
