@@ -70,3 +70,20 @@ $$;
 GRANT EXECUTE ON FUNCTION public.confirm_client_company_link(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.confirm_client_company_link(UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION public.confirm_client_company_link(UUID) TO anon;
+
+-- 5. RPC Segura para buscar ID por email (apenas para fluxo de cadastro multi-empresa)
+CREATE OR REPLACE FUNCTION public.get_user_id_by_email(_email TEXT)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = auth, public
+AS $$
+BEGIN
+    RETURN (SELECT id FROM auth.users WHERE email = _email LIMIT 1);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) TO service_role;
+
