@@ -14,8 +14,13 @@ CREATE TABLE IF NOT EXISTS public.client_confirmations (
     name TEXT,
     phone TEXT,
     cpf TEXT,
+    password_hash TEXT, -- Armazena hash da senha específica para esta empresa
     UNIQUE(user_id, company_id)
 );
+
+-- Adicionar coluna de senha na tabela clients também
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS password_hash TEXT;
+
 
 -- 2. Habilitar RLS e permissões
 ALTER TABLE public.client_confirmations ENABLE ROW LEVEL SECURITY;
