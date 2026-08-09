@@ -27,120 +27,52 @@ export default function ClientLogin() {
     setIsLoading(true);
 
     try {
-      /*
-       * Primeiro identifica a empresa pelo slug.
-       * O login do cliente precisa ser contextualizado
-       * pela empresa atual.
-       */
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('id, name')
-        .eq('slug', slug)
-        .single();
+      // 1. Validar a senha contextual (multi-empresa) via RPC
+      const { data: validData, error: validError } = await supabase.rpc('validate_client_password', {
+        p_email: email,
+        p_company_slug: slug,
+        p_password: password
+      });
 
-      if (companyError || !companyData) {
+      if (validError || !validData?.success) {
         toast({
           title: "Erro no login",
-          description: "Empresa não encontrada ou inativa.",
+          description: validData?.error || "Credenciais inválidas para esta empresa.",
           variant: "destructive",
         });
-
         setIsLoading(false);
         return;
       }
 
-      // Autentica o usuário no Supabase Auth
+      // 2. Autentica o usuário no Supabase Auth
+      // Tentamos o login global. Se falhar (porque a senha global é diferente),
+      // enviamos um Magic Link ou usamos uma sessão administrativa para o cliente.
+      // Por enquanto, tentamos o login direto.
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        // Se a senha estiver incorreta no Auth global, mas o usuário tiver uma senha 
-        // específica para esta empresa no multi-tenant, tentamos a validação contextual.
-        if (error.message === "Invalid login credentials") {
-          const { data: companyDataCheck } = await supabase
-            .from('companies')
-            .select('id')
-            .eq('slug', slug)
-            .single();
-
-          if (companyDataCheck) {
-            const { data: clientCheck } = await supabase
-              .from('clients')
-              .select('*')
-              .eq('email', email)
-              .eq('company_id', companyDataCheck.id)
-              .maybeSingle();
-
-            if (clientCheck && clientCheck.password_hash === password) {
-              // A senha informada é a correta para ESTA empresa (Multi-tenant context)
-              // No Supabase, se o e-mail existe mas a senha é diferente da global, 
-              // não conseguimos uma sessão Auth válida com signInWithPassword.
-              // A estratégia de senhas diferentes exige que o usuário use a senha global 
-              // para o Auth do Supabase OU que usemos uma "Master Password" ou login via link.
-              
-              toast({
-                title: "Aviso de Autenticação",
-                description: "Sua conta global possui uma senha diferente. Por favor, use sua senha principal ou solicite um link de acesso.",
-                variant: "destructive",
-              });
-              setIsLoading(false);
-              return;
-            }
-          }
-        }
-
+        // Se a senha global for diferente, avisamos o usuário.
+        // O ideal aqui seria usar OTP ou Magic Link transparente para unificar a sessão.
         toast({
-          title: "Erro no login",
-          description: error.message,
+          title: "Senha Global Divergente",
+          description: "Sua senha para esta empresa é válida, mas sua conta global Zailom usa outra senha. Use sua senha principal ou solicite recuperação de senha.",
           variant: "destructive",
         });
-
         setIsLoading(false);
         return;
       }
 
       if (data.user) {
-
-        /*
-         * Busca o cliente vinculado ao usuário
-         * DENTRO DA EMPRESA ATUAL.
-         *
-         * Isso permite que o mesmo user_id tenha
-         * registros em várias empresas.
-         */
-        const { data: client, error: clientError } = await supabase
+        // Busca o perfil do cliente para a mensagem de boas-vindas
+        const { data: client } = await supabase
           .from('clients')
-          .select(`*`)
+          .select('name')
           .eq('user_id', data.user.id)
-          .eq('company_id', companyData.id)
+          .eq('email', email)
           .single();
-
-        if (clientError || !client) {
-          toast({
-            title: "Acesso negado",
-            description: "Você não possui cadastro nesta empresa.",
-            variant: "destructive",
-          });
-          await supabase.auth.signOut();
-          setIsLoading(false);
-          return;
-        }
-
-        /*
-         * Validação de Senha Específica por Empresa
-         */
-        if (client.password_hash && client.password_hash !== password) {
-          toast({
-            title: "Senha incorreta",
-            description: "A senha informada não corresponde à sua senha cadastrada nesta empresa.",
-            variant: "destructive",
-          });
-          await supabase.auth.signOut();
-          setIsLoading(false);
-          return;
-        }
 
         toast({
           title: "Login realizado com sucesso!",
