@@ -56,6 +56,41 @@ export default function ClientLogin() {
       });
 
       if (error) {
+        // Se a senha estiver incorreta no Auth global, mas o usuário tiver uma senha 
+        // específica para esta empresa no multi-tenant, tentamos a validação contextual.
+        if (error.message === "Invalid login credentials") {
+          const { data: companyDataCheck } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('slug', slug)
+            .single();
+
+          if (companyDataCheck) {
+            const { data: clientCheck } = await supabase
+              .from('clients')
+              .select('*')
+              .eq('email', email)
+              .eq('company_id', companyDataCheck.id)
+              .maybeSingle();
+
+            if (clientCheck && clientCheck.password_hash === password) {
+              // A senha informada é a correta para ESTA empresa (Multi-tenant context)
+              // No Supabase, se o e-mail existe mas a senha é diferente da global, 
+              // não conseguimos uma sessão Auth válida com signInWithPassword.
+              // A estratégia de senhas diferentes exige que o usuário use a senha global 
+              // para o Auth do Supabase OU que usemos uma "Master Password" ou login via link.
+              
+              toast({
+                title: "Aviso de Autenticação",
+                description: "Sua conta global possui uma senha diferente. Por favor, use sua senha principal ou solicite um link de acesso.",
+                variant: "destructive",
+              });
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+
         toast({
           title: "Erro no login",
           description: error.message,
