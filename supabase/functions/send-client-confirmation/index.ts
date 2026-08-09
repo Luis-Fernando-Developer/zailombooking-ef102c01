@@ -107,7 +107,7 @@ serve(async (req) => {
             "Authorization": `Bearer ${resendKey}`,
           },
           body: JSON.stringify({
-            from: "Zailom Booking <contato@zailom.com>",
+            from: "Zailom Booking <atendimento@suport-mail.booking.zailom.com>",
             to: [email],
             subject: `Confirme seu vínculo com ${company.name}`,
             html: `
