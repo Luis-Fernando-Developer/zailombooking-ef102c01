@@ -62,25 +62,47 @@ serve(async (req) => {
 
     const confirmationLink = `${new URL(redirectTo).origin}/confirmar-vincular?token=${confData.confirmation_token}&slug=${company.slug}`;
 
-    // 3. Enviar e-mail via Supabase Auth (adminUser.sendRawEmail não existe, então usamos o email de 'invite' ou 'magic link' adaptado ou apenas logamos o link)
-    // Para resolver o problema do usuário (SMTP configurado mas e-mail não chega), 
-    // a melhor forma é usar a API de e-mail do próprio Supabase para esse token.
-    // Como client_confirmations é customizado, precisamos disparar um e-mail.
+    // 3. Enviar notificação via WhatsApp (Fallback quando SMTP não funciona ou preferência do usuário)
+    // Buscamos se a empresa tem WhatsApp configurado
+    const { data: channel } = await supabaseClient.rpc("resolve_whatsapp_channel", { p_company: company_id });
     
-    console.log(`[CONFIRMATION EMAIL] Para: ${email}, Link: ${confirmationLink}`);
+    let whatsapp_sent = false;
 
-    // Tentativa de enviar via Resend se a KEY estiver disponível, ou via Supabase Admin
-    // Como o usuário mencionou SMTP no Supabase, ele espera que o sistema use o SMTP dele.
-    // A forma mais direta de usar o SMTP do Supabase é via templates de Auth, 
-    // mas aqui estamos em uma lógica custom.
-    
-    // Vamos simular o envio bem sucedido para o frontend não travar,
-    // mas informar o log para debug.
+    if (channel && channel !== "none") {
+      try {
+        const message = `🔔 Olá ${name}!\n\nVocê solicitou acesso à empresa *${company.name}*.\n\nPara confirmar seu vínculo e ativar sua conta com sua senha exclusiva, clique no link abaixo:\n\n🔗 ${confirmationLink}\n\nSe não foi você, ignore esta mensagem.`;
+        
+        const { data: integRow } = await supabaseClient.from("whatsapp_integration")
+          .select("wa_api_key").eq("company_id", company_id).maybeSingle();
+        
+        const { data: inst } = await supabaseClient.from("whatsapp_instances")
+          .select("wa_instance_id")
+          .eq("company_id", company_id).eq("status", "connected")
+          .order("is_default", { ascending: false }).limit(1).maybeSingle();
+
+        if (integRow?.wa_api_key && inst?.wa_instance_id && phone) {
+           const WA_BASE = (Deno.env.get("WA_SERVICE_BASE_URL") ?? "https://wa.zailom.com").replace(/\/$/, "");
+           const cleanTo = String(phone).replace(/\D/g, "");
+           
+           const waRes = await fetch(`${WA_BASE}/v1/instances/${inst.wa_instance_id}/message/sendText`, {
+             method: "POST",
+             headers: { "Authorization": `Bearer ${integRow.wa_api_key}`, "Content-Type": "application/json" },
+             body: JSON.stringify({ number: cleanTo, text: message }),
+           });
+           whatsapp_sent = waRes.ok;
+        }
+      } catch (e) {
+        console.error("Erro ao enviar WhatsApp de confirmação:", e);
+      }
+    }
+
+    console.log(`[CONFIRMATION EMAIL] Para: ${email}, Link: ${confirmationLink}`);
     
     return new Response(JSON.stringify({ 
         success: true, 
-        message: "Email de confirmação solicitado.",
-        debug_link: confirmationLink // Apenas para facilitar testes enquanto o SMTP não propaga
+        message: whatsapp_sent ? "Link de confirmação enviado via WhatsApp." : "Link de confirmação gerado (SMTP indisponível).",
+        whatsapp_sent,
+        debug_link: confirmationLink
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
