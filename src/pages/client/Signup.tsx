@@ -163,10 +163,14 @@ export default function ClientSignup() {
             });
 
             if (funcError) throw funcError;
+            
+            const msg = funcData?.whatsapp_sent 
+              ? `Você já possui uma conta Zailom. Enviamos um link de confirmação para seu WhatsApp (${validatedData.phone}) para ativar seu acesso à empresa ${companyData.name}.`
+              : `Você já possui uma conta Zailom. Um link de confirmação foi gerado para seu acesso à empresa ${companyData.name}. (Dica: verifique seu WhatsApp ou e-mail).`;
 
             toast({
-              title: "Vínculo solicitado",
-              description: `Você já possui uma conta Zailom. Enviamos um e-mail para ${validatedData.email} para confirmar seu vínculo com a empresa ${companyData.name}.`,
+              title: "Confirmação enviada",
+              description: msg,
             });
             
             navigate(`/${slug}/entrar`);
