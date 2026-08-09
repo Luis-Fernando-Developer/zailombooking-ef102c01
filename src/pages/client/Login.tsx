@@ -88,9 +88,21 @@ export default function ClientLogin() {
             description: "Você não possui cadastro nesta empresa.",
             variant: "destructive",
           });
-
           await supabase.auth.signOut();
+          setIsLoading(false);
+          return;
+        }
 
+        /*
+         * Validação de Senha Específica por Empresa
+         */
+        if (client.password_hash && client.password_hash !== password) {
+          toast({
+            title: "Senha incorreta",
+            description: "A senha informada não corresponde à sua senha cadastrada nesta empresa.",
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
           setIsLoading(false);
           return;
         }
