@@ -25,18 +25,32 @@ export default function ConfirmLink() {
 
     const confirm = async () => {
       try {
+        console.log("Iniciando confirmação com token:", token);
         const { data, error } = await supabase.rpc('confirm_client_company_link', {
           token: token
         });
 
-        if (error || !data.success) {
+        console.log("Resultado RPC:", { data, error });
+
+        if (error) {
           setStatus('error');
-          setMessage(data?.error || "Erro ao confirmar vínculo.");
+          setMessage(error.message || "Erro ao processar requisição no servidor.");
+          return;
+        }
+
+        if (!data || !data.success) {
+          setStatus('error');
+          setMessage(data?.error || "Link de confirmação inválido ou já utilizado.");
         } else {
           setStatus('success');
           setMessage("Vínculo confirmado com sucesso! Você já pode acessar a empresa.");
+          toast({
+            title: "Sucesso",
+            description: "Vínculo confirmado com sucesso!",
+          });
         }
       } catch (err) {
+        console.error("Erro inesperado:", err);
         setStatus('error');
         setMessage("Erro inesperado ao processar a confirmação.");
       }
