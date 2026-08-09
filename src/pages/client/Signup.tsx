@@ -156,6 +156,7 @@ export default function ClientSignup() {
               email: validatedData.email,
               phone: validatedData.phone,
               cpf: cleanedCpf || null,
+              password: validatedData.password, // Enviando a senha específica para esta empresa
               redirectTo: redirectTo
             }
           });

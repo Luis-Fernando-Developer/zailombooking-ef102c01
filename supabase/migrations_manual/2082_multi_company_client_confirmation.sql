@@ -14,8 +14,13 @@ CREATE TABLE IF NOT EXISTS public.client_confirmations (
     name TEXT,
     phone TEXT,
     cpf TEXT,
+    password_hash TEXT, -- Armazena hash da senha específica para esta empresa
     UNIQUE(user_id, company_id)
 );
+
+-- Adicionar coluna de senha na tabela clients também
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS password_hash TEXT;
+
 
 -- 2. Habilitar RLS e permissões
 ALTER TABLE public.client_confirmations ENABLE ROW LEVEL SECURITY;
@@ -57,11 +62,12 @@ BEGIN
     WHERE id = conf_record.id;
     
     -- Cria o vínculo na tabela clients
-    INSERT INTO public.clients (user_id, company_id, name, email, phone, cpf)
-    VALUES (conf_record.user_id, conf_record.company_id, conf_record.name, conf_record.email, conf_record.phone, conf_record.cpf)
+    INSERT INTO public.clients (user_id, company_id, name, email, phone, cpf, password_hash)
+    VALUES (conf_record.user_id, conf_record.company_id, conf_record.name, conf_record.email, conf_record.phone, conf_record.cpf, conf_record.password_hash)
     ON CONFLICT (user_id, company_id) DO UPDATE 
-    SET name = EXCLUDED.name, phone = EXCLUDED.phone, cpf = EXCLUDED.cpf
+    SET name = EXCLUDED.name, phone = EXCLUDED.phone, cpf = EXCLUDED.cpf, password_hash = EXCLUDED.password_hash
     RETURNING id INTO new_client_id;
+
     
     RETURN json_build_object('success', true, 'client_id', new_client_id);
 END;

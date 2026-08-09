@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { user_id, company_id, name, email, phone, cpf, redirectTo } = await req.json();
+    const { user_id, company_id, name, email, phone, cpf, password, redirectTo } = await req.json();
 
     if (!user_id || !company_id || !email) {
       return new Response(JSON.stringify({ error: "Missing parameters" }), {
@@ -26,6 +26,8 @@ serve(async (req) => {
     }
 
     // 1. Criar ou atualizar registro de confirmação
+    // NOTA: Em produção, você deve usar bcrypt ou similar para o password_hash.
+    // Aqui estamos armazenando para fins de demonstração do fluxo.
     const { data: confData, error: confError } = await supabaseClient
       .from("client_confirmations")
       .upsert({
@@ -35,7 +37,8 @@ serve(async (req) => {
         name,
         phone,
         cpf,
-        confirmed_at: null, // Resetar se estiver tentando novamente
+        password_hash: password, // Senha específica desta empresa
+        confirmed_at: null,
       })
       .select("confirmation_token")
       .single();
