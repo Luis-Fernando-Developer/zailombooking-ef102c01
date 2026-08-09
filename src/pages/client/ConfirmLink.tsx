@@ -27,10 +27,10 @@ export default function ConfirmLink() {
       try {
         console.log("Iniciando confirmação com token:", token);
         const { data, error } = await supabase.rpc('confirm_client_company_link', {
-          token: token
+          p_token: token
         });
 
-        console.log("Resultado RPC:", { data, error });
+        console.log("Resultado RPC confirm_client_company_link:", { data, error });
 
         if (error) {
           setStatus('error');
@@ -43,7 +43,7 @@ export default function ConfirmLink() {
           setMessage(data?.error || "Link de confirmação inválido ou já utilizado.");
         } else {
           setStatus('success');
-          setMessage("Vínculo confirmado com sucesso! Você já pode acessar a empresa.");
+          setMessage("Vínculo confirmado com sucesso! Você já pode acessar a empresa com a senha que escolheu no cadastro.");
           toast({
             title: "Sucesso",
             description: "Vínculo confirmado com sucesso!",

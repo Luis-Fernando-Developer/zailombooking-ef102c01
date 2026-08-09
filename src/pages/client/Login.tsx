@@ -27,6 +27,8 @@ export default function ClientLogin() {
     setIsLoading(true);
 
     try {
+      console.log("Tentando validar senha contextual para:", email, "no slug:", slug);
+      
       // 1. Validar a senha contextual (multi-empresa) via RPC
       const { data: validData, error: validError } = await supabase.rpc('validate_client_password', {
         p_email: email,
@@ -34,10 +36,12 @@ export default function ClientLogin() {
         p_password: password
       });
 
+      console.log("Resultado da validação contextual:", { validData, validError });
+
       if (validError || !validData?.success) {
         toast({
-          title: "Erro no login",
-          description: validData?.error || "Credenciais inválidas para esta empresa.",
+          title: "Senha incorreta",
+          description: validData?.error || "A senha informada não corresponde à sua senha cadastrada nesta empresa.",
           variant: "destructive",
         });
         setIsLoading(false);

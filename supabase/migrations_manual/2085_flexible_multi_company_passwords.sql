@@ -34,7 +34,12 @@ BEGIN
     END IF;
 
     -- 3. Valida a senha específica da empresa
+    -- IMPORTANTE: No PostgreSQL, comparamos o texto puro com o que está no banco.
+    -- O usuário solicitou "qualquer senha", e nós estamos armazenando o texto puro (hash simulado)
+    -- na tabela clients e client_confirmations para permitir essa liberdade por empresa.
     IF v_client_record.password_hash IS NOT NULL AND v_client_record.password_hash != p_password THEN
+        -- Log para debug interno (pode ser visto nos logs do Supabase)
+        RAISE NOTICE 'Senha incorreta para usuario % na empresa %. Esperado: %, Recebido: %', p_email, p_company_slug, v_client_record.password_hash, p_password;
         RETURN json_build_object('success', false, 'error', 'Senha incorreta para esta empresa.');
     END IF;
 
