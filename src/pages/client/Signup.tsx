@@ -143,31 +143,45 @@ export default function ClientSignup() {
         // Como o Supabase não retorna o ID em signUp para usuários existentes,
         // tentamos obter via RPC segura ou usamos o fluxo de "Solicitar Vínculo".
         
-        const { data: userIdData } = await supabase.rpc('get_user_id_by_email', { 
+        const { data: userIdData, error: rpcError } = await supabase.rpc('get_user_id_by_email', { 
           _email: validatedData.email 
         });
 
         if (userIdData) {
-          await supabase.functions.invoke("send-client-confirmation", {
-            body: {
-              user_id: userIdData,
-              company_id: companyData.id,
-              name: fullName,
-              email: validatedData.email,
-              phone: validatedData.phone,
-              cpf: cleanedCpf || null,
-              password: validatedData.password, // Enviando a senha específica para esta empresa
-              redirectTo: redirectTo
-            }
-          });
+          try {
+            const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
+              body: {
+                user_id: userIdData,
+                company_id: companyData.id,
+                name: fullName,
+                email: validatedData.email,
+                phone: validatedData.phone,
+                cpf: cleanedCpf || null,
+                password: validatedData.password,
+                redirectTo: redirectTo
+              }
+            });
 
-          toast({
-            title: "Conta identificada",
-            description: `Você já possui uma conta Zailom. Enviamos um e-mail para confirmar seu vínculo com a empresa ${companyData.name}.`,
-          });
-          
-          navigate(`/${slug}/entrar`);
-          return;
+            if (funcError) throw funcError;
+
+            toast({
+              title: "Vínculo solicitado",
+              description: `Você já possui uma conta Zailom. Enviamos um e-mail para ${validatedData.email} para confirmar seu vínculo com a empresa ${companyData.name}.`,
+            });
+            
+            navigate(`/${slug}/entrar`);
+            return;
+          } catch (invokeError: any) {
+            console.error("Erro ao invocar função de confirmação:", invokeError);
+            toast({
+              title: "Erro ao processar vínculo",
+              description: "Não conseguimos enviar o e-mail de confirmação. Tente novamente mais tarde.",
+              variant: "destructive",
+            });
+            return;
+          }
+        } else if (rpcError) {
+          console.error("Erro RPC get_user_id_by_email:", rpcError);
         }
 
         // Fallback para o comportamento anterior caso a RPC não esteja disponível
