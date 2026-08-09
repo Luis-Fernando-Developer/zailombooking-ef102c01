@@ -114,8 +114,10 @@ serve(async (req) => {
               <div style="font-family: sans-serif; padding: 20px;">
                 <h2>Olá ${name}!</h2>
                 <p>Você solicitou acesso à empresa <strong>${company.name}</strong> no Zailom Booking.</p>
-                <p>Para confirmar seu vínculo e configurar sua senha exclusiva para esta empresa, clique no botão abaixo:</p>
+                <p><strong>Atenção:</strong> Você pode usar qualquer senha para este cadastro. Ela será sua senha exclusiva para esta empresa.</p>
+                <p>Para confirmar seu vínculo e ativar seu acesso, clique no botão abaixo:</p>
                 <a href="${confirmationLink}" style="display: inline-block; background: #8B5CF6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0;">Confirmar Vínculo</a>
+
                 <p>Se você não solicitou este acesso, pode ignorar este e-mail.</p>
               </div>
             `,
