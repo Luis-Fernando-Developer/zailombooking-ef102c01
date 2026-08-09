@@ -53,7 +53,9 @@ import ClientSignup from "./pages/client/Signup";
 import ClientBookings from "./pages/client/Bookings";
 import ClientProfile from "./pages/client/Profile";
 import ClientDashboard from "./pages/client/Dashboard";
+import ConfirmLink from "./pages/client/ConfirmLink";
 import NotFound from "./pages/NotFound";
+
 
 const queryClient = new QueryClient();
 
@@ -119,7 +121,9 @@ const App = () => (
             <Route path="/:slug/agendar" element={<ClientBooking />} />
             <Route path="/:slug/entrar" element={<ClientLogin />} />
             <Route path="/:slug/cadastro" element={<ClientSignup />} />
-            <Route path="/:slug/agendamentos" element={<ClientBookings />} />
+             <Route path="/:slug/agendamentos" element={<ClientBookings />} />
+             <Route path="/confirmar-vincular" element={<ConfirmLink />} />
+
             <Route path="/:slug/client/dashboard" element={<ClientDashboard />} />
             <Route path="/:slug/client/perfil" element={<ClientProfile />} />
             <Route path="/:slug/client/agendamentos" element={<ClientBookings />} />
