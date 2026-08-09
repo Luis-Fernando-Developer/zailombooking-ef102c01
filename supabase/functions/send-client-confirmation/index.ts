@@ -26,7 +26,6 @@ serve(async (req) => {
     }
 
     // 1. Criar ou atualizar registro de confirmação
-    // Usamos UPSERT mas tratamos o conflito de token único se necessário
     const { data: confData, error: confError } = await supabaseClient
       .from("client_confirmations")
       .upsert({
@@ -62,12 +61,13 @@ serve(async (req) => {
 
     const confirmationLink = `${new URL(redirectTo).origin}/confirmar-vincular?token=${confData.confirmation_token}&slug=${company.slug}`;
 
-    // 3. Enviar notificação via WhatsApp (Fallback quando SMTP não funciona ou preferência do usuário)
-    // Buscamos se a empresa tem WhatsApp configurado
+    // 3. Lógica de envio: WhatsApp e/ou E-mail (Resend fallback planejado)
     const { data: channel } = await supabaseClient.rpc("resolve_whatsapp_channel", { p_company: company_id });
     
     let whatsapp_sent = false;
+    let email_sent = false;
 
+    // Tentativa via WhatsApp
     if (channel && channel !== "none") {
       try {
         const message = `🔔 Olá ${name}!\n\nVocê solicitou acesso à empresa *${company.name}*.\n\nPara confirmar seu vínculo e ativar sua conta com sua senha exclusiva, clique no link abaixo:\n\n🔗 ${confirmationLink}\n\nSe não foi você, ignore esta mensagem.`;
@@ -96,12 +96,46 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[CONFIRMATION EMAIL] Para: ${email}, Link: ${confirmationLink}`);
+    // Tentativa via E-mail (Resend)
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    if (resendKey) {
+      try {
+        const emailRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${resendKey}`,
+          },
+          body: JSON.stringify({
+            from: "Zailom Booking <contato@zailom.com>",
+            to: [email],
+            subject: `Confirme seu vínculo com ${company.name}`,
+            html: `
+              <div style="font-family: sans-serif; padding: 20px;">
+                <h2>Olá ${name}!</h2>
+                <p>Você solicitou acesso à empresa <strong>${company.name}</strong> no Zailom Booking.</p>
+                <p>Para confirmar seu vínculo e configurar sua senha exclusiva para esta empresa, clique no botão abaixo:</p>
+                <a href="${confirmationLink}" style="display: inline-block; background: #8B5CF6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0;">Confirmar Vínculo</a>
+                <p>Se você não solicitou este acesso, pode ignorar este e-mail.</p>
+              </div>
+            `,
+          }),
+        });
+        email_sent = emailRes.ok;
+      } catch (e) {
+        console.error("Erro ao enviar e-mail via Resend:", e);
+      }
+    }
+
+    console.log(`[CONFIRMATION] Para: ${email}, Link: ${confirmationLink}`);
     
     return new Response(JSON.stringify({ 
         success: true, 
-        message: whatsapp_sent ? "Link de confirmação enviado via WhatsApp." : "Link de confirmação gerado (SMTP indisponível).",
+        message: whatsapp_sent || email_sent 
+          ? "Link de confirmação enviado." 
+          : "Link de confirmação gerado (canais externos indisponíveis).",
         whatsapp_sent,
+        email_sent,
         debug_link: confirmationLink
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
