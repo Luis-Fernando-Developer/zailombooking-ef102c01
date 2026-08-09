@@ -62,11 +62,12 @@ BEGIN
     WHERE id = conf_record.id;
     
     -- Cria o vínculo na tabela clients
-    INSERT INTO public.clients (user_id, company_id, name, email, phone, cpf)
-    VALUES (conf_record.user_id, conf_record.company_id, conf_record.name, conf_record.email, conf_record.phone, conf_record.cpf)
+    INSERT INTO public.clients (user_id, company_id, name, email, phone, cpf, password_hash)
+    VALUES (conf_record.user_id, conf_record.company_id, conf_record.name, conf_record.email, conf_record.phone, conf_record.cpf, conf_record.password_hash)
     ON CONFLICT (user_id, company_id) DO UPDATE 
-    SET name = EXCLUDED.name, phone = EXCLUDED.phone, cpf = EXCLUDED.cpf
+    SET name = EXCLUDED.name, phone = EXCLUDED.phone, cpf = EXCLUDED.cpf, password_hash = EXCLUDED.password_hash
     RETURNING id INTO new_client_id;
+
     
     RETURN json_build_object('success', true, 'client_id', new_client_id);
 END;
