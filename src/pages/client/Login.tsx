@@ -76,7 +76,7 @@ export default function ClientLogin() {
 
         toast({
           title: "Login realizado com sucesso!",
-          description: `Bem-vindo(a), ${client.name}`,
+          description: `Bem-vindo(a), ${client?.name || 'Cliente'}`,
         });
 
         // Check if there's a returnTo parameter for booking flow
