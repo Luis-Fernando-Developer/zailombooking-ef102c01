@@ -54,6 +54,7 @@ import ClientBookings from "./pages/client/Bookings";
 import ClientProfile from "./pages/client/Profile";
 import ClientDashboard from "./pages/client/Dashboard";
 import ConfirmLink from "./pages/client/ConfirmLink";
+import SetPassword from "./pages/client/SetPassword";
 import NotFound from "./pages/NotFound";
 
 
@@ -122,7 +123,8 @@ const App = () => (
             <Route path="/:slug/entrar" element={<ClientLogin />} />
             <Route path="/:slug/cadastro" element={<ClientSignup />} />
              <Route path="/:slug/agendamentos" element={<ClientBookings />} />
-             <Route path="/confirmar-vincular" element={<ConfirmLink />} />
+            <Route path="/confirmar-vincular" element={<ConfirmLink />} />
+            <Route path="/:slug/criar-senha" element={<SetPassword />} />
 
             <Route path="/:slug/client/dashboard" element={<ClientDashboard />} />
             <Route path="/:slug/client/perfil" element={<ClientProfile />} />

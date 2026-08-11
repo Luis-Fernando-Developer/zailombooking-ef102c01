@@ -43,11 +43,16 @@ export default function ConfirmLink() {
           setMessage(data?.error || "Link de confirmação inválido ou já utilizado.");
         } else {
           setStatus('success');
-          setMessage("Vínculo confirmado com sucesso! Você já pode acessar a empresa com a senha exclusiva que escolheu.");
+          setMessage("Vínculo confirmado com sucesso! Redirecionando para definir sua senha...");
           toast({
             title: "Sucesso",
-            description: "Vínculo confirmado com sucesso!",
+            description: "Vínculo confirmado! Agora crie sua senha.",
           });
+          // Redireciona para a tela de criação de senha levando o token e o slug
+          setTimeout(() => {
+            const redirectSlug = data.company_slug || slug;
+            navigate(`/${redirectSlug}/criar-senha?token=${token}`);
+          }, 2000);
         }
       } catch (err) {
         console.error("Erro inesperado:", err);
