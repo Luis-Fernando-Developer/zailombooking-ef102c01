@@ -1,6 +1,7 @@
 -- Migração para consolidar a lógica de confirmação de vínculo multi-empresa.
 -- Esta migração garante que a RPC confirm_client_company_link exista e tenha a lógica correta.
 
+DROP FUNCTION IF EXISTS public.confirm_client_company_link(UUID);
 CREATE OR REPLACE FUNCTION public.confirm_client_company_link(p_token UUID)
 RETURNS JSON
 LANGUAGE plpgsql
