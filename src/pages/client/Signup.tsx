@@ -407,67 +407,6 @@ export default function ClientSignup() {
 
             </div>
 
-            <div className="space-y-2">
-
-              <Label htmlFor="password">
-                Senha para esta empresa
-              </Label>
-
-              <div className="relative">
-
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                    className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                    required
-                  />
-
-              </div>
-
-              {errors.password && (
-                <p className="text-sm text-red-500">
-                  {errors.password}
-                </p>
-              )}
-
-            </div>
-
-            <div className="space-y-2">
-
-              <Label htmlFor="confirmPassword">
-                Confirmar senha
-              </Label>
-
-              <div className="relative">
-
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                  required
-                />
-
-              </div>
-
-              {errors.confirmPassword && (
-                <p className="text-sm text-red-500">
-                  {errors.confirmPassword}
-                </p>
-              )}
-
-            </div>
 
             <Button
               type="submit"
