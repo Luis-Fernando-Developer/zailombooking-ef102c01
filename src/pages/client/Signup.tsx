@@ -244,7 +244,7 @@ export default function ClientSignup() {
           </CardTitle>
 
           <CardDescription>
-            Cadastre-se e crie sua senha exclusiva para esta empresa
+            Cadastre-se para receber seu link de acesso exclusivo
           </CardDescription>
 
         </CardHeader>
