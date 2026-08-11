@@ -40,7 +40,7 @@ export default function ClientLogin() {
 
       if (validError || !validData?.success) {
         toast({
-          title: "Senha incorreta",
+          title: "Atenção",
           description: validData?.error || "A senha informada não corresponde à sua senha cadastrada nesta empresa.",
           variant: "destructive",
         });
