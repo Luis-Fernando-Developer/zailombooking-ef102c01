@@ -19,11 +19,6 @@ const signupSchema = z.object({
   email: z.string().trim().email("Email inválido").max(255, "Email deve ter no máximo 255 caracteres"),
   phone: z.string().trim().min(10, "Telefone deve ter no mínimo 10 dígitos").max(15, "Telefone deve ter no máximo 15 dígitos"),
   cpf: z.string().optional().refine((val) => !val || validateCPF(val), "CPF inválido"),
-  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
-  confirmPassword: z.string().min(6, "A confirmação de senha deve ter no mínimo 6 caracteres")
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Senhas não coincidem",
-  path: ["confirmPassword"]
 });
 
 export default function ClientSignup() {
