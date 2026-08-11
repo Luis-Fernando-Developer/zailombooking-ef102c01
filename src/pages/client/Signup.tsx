@@ -171,148 +171,12 @@ export default function ClientSignup() {
         return;
       }
 
-      // Se por algum motivo o signUp retornou sucesso mas o usuário já existia (race condition),
-      // o identities.length será 0.
-      const existingAuthUser = authData.user && authData.user.identities?.length === 0;
-
-      if (existingAuthUser) {
-        // Repete a lógica de vínculo caso o RPC tenha falhado em detectar mas o signUp detectou.
-        const { data: retryUserId } = await supabase.rpc('get_user_id_by_email', { 
-          _email: validatedData.email 
-        });
-        
-        if (retryUserId) {
-          // ... (Mesmo código de invoke acima se necessário, mas o RPC inicial deve pegar 99% dos casos)
-          // Para brevidade, redirecionamos para login avisando que já existe.
-          toast({
-            title: "Conta já existente",
-            description: "Detectamos que você já possui uma conta. Por favor, faça login ou verifique seu e-mail.",
-          });
-          navigate(`/${slug}/entrar`);
-          return;
-        }
-      }
-
-      const existingAuthUser =
-        (authData.user && authData.user.identities?.length === 0) || 
-        (authError && (authError.message.includes("rate limit") || authError.status === 429));
-
-      if (existingAuthUser) {
-        // O usuário já existe globalmente no Auth.
-        // Em vez de forçar o login imediato com erro, solicitamos o ID do usuário
-        // e enviamos o e-mail de confirmação de vínculo para esta empresa específica.
-        
-        // Buscamos o ID do usuário pelo email (precisa de permissão ou RPC se não logado)
-        // Como o Supabase não retorna o ID em signUp para usuários existentes,
-        // tentamos obter via RPC segura ou usamos o fluxo de "Solicitar Vínculo".
-        
-        const { data: userIdData, error: rpcError } = await supabase.rpc('get_user_id_by_email', { 
-          _email: validatedData.email 
-        });
-
-        if (userIdData) {
-          try {
-            console.log("Usuário existente detectado. Solicitando vínculo para:", validatedData.email);
-            
-            const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
-              body: {
-                user_id: userIdData,
-                company_id: companyData.id,
-                name: fullName,
-                email: validatedData.email,
-                phone: validatedData.phone,
-                cpf: cleanedCpf || null,
-                password: validatedData.password,
-                redirectTo: redirectTo
-              }
-            });
-
-            if (funcError) {
-              console.error("Erro na Edge Function:", funcError);
-              throw funcError;
-            }
-            
-            console.log("Resposta da função de confirmação:", funcData);
-
-            const msg = funcData?.whatsapp_sent 
-              ? `Você já possui uma conta Zailom. Enviamos um link de confirmação para seu WhatsApp (${validatedData.phone}) para ativar seu acesso à empresa ${companyData.name}.`
-              : `Você já possui uma conta Zailom. Um link de confirmação foi enviado para seu e-mail para validar seu acesso à empresa ${companyData.name}.`;
-
-            toast({
-              title: "Confirmação enviada",
-              description: msg,
-            });
-            
-            navigate(`/${slug}/entrar`);
-            return;
-          } catch (invokeError: any) {
-            console.error("Erro ao invocar função de confirmação:", invokeError);
-            toast({
-              title: "Erro ao processar vínculo",
-              description: "Não conseguimos enviar o link de confirmação. Tente novamente mais tarde.",
-              variant: "destructive",
-            });
-            return;
-          }
-        } else {
-          console.error("RPC get_user_id_by_email não retornou ID ou falhou:", rpcError);
-          // Fallback para comportamento padrão se a RPC falhar
-        }
-
-        // Fallback para o comportamento anterior caso a RPC não esteja disponível
-        const { data: loginData, error: loginError } =
-          await supabase.auth.signInWithPassword({
-            email: validatedData.email,
-            password: validatedData.password,
-          });
-
-        if (loginError || !loginData.user) {
-          toast({
-            title: "Email já cadastrado",
-            description:
-              "Este email já possui uma conta. Use a senha da sua conta existente para se cadastrar nesta empresa.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        /*
-         * Agora temos o UUID real existente em auth.users.
-         * Verificamos se esse usuário já possui vínculo com esta empresa.
-         */
-        const { data: existingClient, error: existingClientError } =
-          await supabase
-            .from("clients")
-            .select("id")
-            .eq("user_id", loginData.user.id)
-            .eq("company_id", companyData.id)
-            .maybeSingle();
-
-        if (existingClientError) {
-          await supabase.auth.signOut();
-          throw existingClientError;
-        }
-
-        if (existingClient) {
-          await supabase.auth.signOut();
-
-          toast({
-            title: "Cadastro já realizado",
-            description:
-              "Este usuário já está cadastrado como cliente nesta empresa.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        /*
-         * O usuário já existe no Auth, mas ainda não pertence
-         * à empresa atual. Criamos apenas o vínculo em clients.
-         */
+      // 3. Usuário realmente novo no Supabase Auth.
+      if (authData.user) {
         const { error: clientError } = await supabase
           .from("clients")
           .insert({
-            user_id: loginData.user.id,
+            user_id: authData.user.id,
             company_id: companyData.id,
             name: fullName,
             email: validatedData.email,
@@ -320,15 +184,13 @@ export default function ClientSignup() {
             cpf: cleanedCpf || null,
           });
 
-        await supabase.auth.signOut();
-
         if (clientError) {
           console.error("Error creating client profile:", clientError);
 
           toast({
             title: "Erro no cadastro",
             description:
-              "Não foi possível vincular sua conta a esta empresa.",
+              "A conta foi criada, mas não foi possível criar o cadastro de cliente.",
             variant: "destructive",
           });
           return;
@@ -337,7 +199,7 @@ export default function ClientSignup() {
         toast({
           title: "Cadastro realizado com sucesso!",
           description:
-            "Sua conta já existia e foi vinculada a esta empresa. Faça login com a senha da sua conta.",
+            "Verifique seu email para confirmar a conta e depois faça login.",
         });
 
         if (returnTo) {
@@ -345,8 +207,6 @@ export default function ClientSignup() {
         } else {
           navigate(`/${slug}/entrar`);
         }
-
-        return;
       }
 
       /*
