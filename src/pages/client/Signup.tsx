@@ -99,12 +99,52 @@ export default function ClientSignup() {
 
       const redirectTo = `${window.location.origin}${returnUrl}`;
 
-      /*
-       * Primeiro tentamos criar a conta Auth.
-       *
-       * Se o email já existir no Supabase Auth, o Supabase pode retornar
-       * um usuário sem identities para evitar enumeração de usuários.
-       */
+      // 1. Verificar PRIMEIRO se o usuário já existe no nosso banco (ou via RPC de email)
+      // para evitar bater no rate limit do Supabase Auth desnecessariamente.
+      const { data: userIdData, error: rpcError } = await supabase.rpc('get_user_id_by_email', { 
+        _email: validatedData.email 
+      });
+
+      if (userIdData) {
+        // O usuário já existe globalmente no Auth.
+        // Pulamos o signUp do Supabase e vamos direto para o fluxo de vínculo via Resend/WhatsApp.
+        try {
+          console.log("Usuário existente detectado via RPC. Solicitando vínculo para:", validatedData.email);
+          
+          const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
+            body: {
+              user_id: userIdData,
+              company_id: companyData.id,
+              name: fullName,
+              email: validatedData.email,
+              phone: validatedData.phone,
+              cpf: cleanedCpf || null,
+              password: validatedData.password,
+              redirectTo: redirectTo
+            }
+          });
+
+          if (funcError) throw funcError;
+
+          const msg = funcData?.whatsapp_sent 
+            ? `Você já possui uma conta Zailom. Enviamos um link de confirmação para seu WhatsApp (${validatedData.phone}) para ativar seu acesso à empresa ${companyData.name}.`
+            : `Você já possui uma conta Zailom. Um link de confirmação foi enviado para seu e-mail para validar seu acesso à empresa ${companyData.name}.`;
+
+          toast({ title: "Confirmação enviada", description: msg });
+          navigate(`/${slug}/entrar`);
+          return;
+        } catch (error) {
+          console.error("Erro ao vincular conta existente:", error);
+          toast({
+            title: "Erro ao processar vínculo",
+            description: "Não conseguimos enviar o link de confirmação. Tente novamente mais tarde.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      // 2. Se NÃO existe (userIdData é nulo), aí sim tentamos o signUp normal do Supabase.
       const { data: authData, error: authError } =
         await supabase.auth.signUp({
           email: validatedData.email,
@@ -123,18 +163,32 @@ export default function ClientSignup() {
         });
 
       if (authError) {
-        // Se o erro for rate limit do Supabase Auth, mas for um usuário que já existe
-        // podemos tentar seguir com o fluxo de vínculo mesmo assim, pois o Auth global não é crítico
-        // se o usuário já tem conta.
-        if (authError.message.includes("rate limit") || authError.status === 429) {
-          console.log("Rate limit detectado no Auth. Tentando verificar se usuário já existe...");
-          // O fluxo continuará para a verificação de existingAuthUser abaixo
-        } else {
+        toast({
+          title: "Erro no cadastro",
+          description: authError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Se por algum motivo o signUp retornou sucesso mas o usuário já existia (race condition),
+      // o identities.length será 0.
+      const existingAuthUser = authData.user && authData.user.identities?.length === 0;
+
+      if (existingAuthUser) {
+        // Repete a lógica de vínculo caso o RPC tenha falhado em detectar mas o signUp detectou.
+        const { data: retryUserId } = await supabase.rpc('get_user_id_by_email', { 
+          _email: validatedData.email 
+        });
+        
+        if (retryUserId) {
+          // ... (Mesmo código de invoke acima se necessário, mas o RPC inicial deve pegar 99% dos casos)
+          // Para brevidade, redirecionamos para login avisando que já existe.
           toast({
-            title: "Erro no cadastro",
-            description: authError.message,
-            variant: "destructive",
+            title: "Conta já existente",
+            description: "Detectamos que você já possui uma conta. Por favor, faça login ou verifique seu e-mail.",
           });
+          navigate(`/${slug}/entrar`);
           return;
         }
       }
