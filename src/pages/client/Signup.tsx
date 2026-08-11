@@ -176,7 +176,7 @@ export default function ClientSignup() {
             email: validatedData.email,
             phone: validatedData.phone,
             cpf: cleanedCpf || null,
-            password_hash: validatedData.password // A senha real vinda do formulário é salva APENAS na tabela clients
+            // A senha será definida via link de confirmação
           });
 
         if (clientError) {
