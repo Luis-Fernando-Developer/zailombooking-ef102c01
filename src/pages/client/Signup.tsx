@@ -34,8 +34,6 @@ export default function ClientSignup() {
     email: "",
     phone: "",
     cpf: "",
-    password: "",
-    confirmPassword: ""
   });
 
   const [isLoading, setIsLoading] = useState(false);
