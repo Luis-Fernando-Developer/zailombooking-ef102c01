@@ -10,8 +10,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { ForgotPasswordDialog } from "@/components/business/ForgotPasswordDialog";
 
-// ...imports...
-
 export default function ClientLogin() {
   const { slug } = useParams();
 
@@ -21,6 +19,29 @@ export default function ClientLogin() {
 
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleSuccess = async (user: any, userEmail: string) => {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('name')
+      .eq('user_id', user.id)
+      .eq('email', userEmail)
+      .single();
+
+    toast({
+      title: "Login realizado com sucesso!",
+      description: `Bem-vindo(a), ${client?.name || 'Cliente'}`,
+    });
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const returnTo = searchParams.get('returnTo');
+
+    if (returnTo === 'agendar') {
+      navigate(`/${slug}/agendar?restore=true`);
+    } else {
+      navigate(`/${slug}/agendamentos`);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,15 +60,12 @@ export default function ClientLogin() {
       console.log("Resultado da validação contextual:", { validData, validError });
 
       if (validError || !validData?.success) {
-        // Se o usuário existe globalmente mas não tem vínculo, oferecemos disparar o vínculo
         if (validData?.needs_link && validData?.user_id) {
            toast({
              title: "Vínculo necessário",
              description: validData.error,
              variant: "default",
            });
-           
-           // Opcional: Disparar automaticamente o send-client-confirmation aqui se desejado
            return;
         }
 
@@ -67,74 +85,43 @@ export default function ClientLogin() {
       });
 
       if (authError) {
-        console.log("Erro no Auth Global (esperado se senhas divergirem):", authError.message);
+        console.log("Senha da empresa válida, mas Auth Global falhou. Tentando re-autenticar após sincronização...");
         
-        // Se a RPC validou a senha da empresa, mas o login global falhou (400 ou 401),
-        // usamos o fluxo de Magic Link para sincronizar a sessão.
-        if (authError.status === 400 || authError.status === 401 || authError.message.includes("Invalid login credentials")) {
+        // A RPC validate_client_password já chamou sync_auth_password internamente
+        // Tentamos o login novamente com a mesma senha que agora deve ser a global
+        const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (retryError) {
+          console.error("Erro após sincronização:", retryError.message);
           toast({
-            title: "Sincronizando acesso",
-            description: "Sua senha para esta empresa é válida. Enviamos um link de acesso rápido para seu e-mail/WhatsApp para validar sua sessão global.",
+            title: "Erro na sincronização",
+            description: "Sua senha é válida para esta empresa, mas houve um problema ao atualizar seu acesso global. Tente entrar novamente em alguns segundos.",
+            variant: "destructive",
           });
-
-          // Buscar empresa_id para o trigger de notificação
-          const { data: comp } = await supabase.from('companies').select('id').eq('slug', slug).single();
-
-          // Dispara a Edge Function para enviar o link (ou usa signInWithOtp nativo)
-          await supabase.auth.signInWithOtp({
-            email,
-            options: {
-              emailRedirectTo: window.location.href,
-            }
-          });
-          
           setIsLoading(false);
           return;
         }
 
-        toast({
-          title: "Erro no login",
-          description: authError.message,
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
+        if (retryData.user) {
+          handleSuccess(retryData.user, email);
+          return;
+        }
       }
 
       if (data.user) {
-        // Busca o perfil do cliente para a mensagem de boas-vindas
-        const { data: client } = await supabase
-          .from('clients')
-          .select('name')
-          .eq('user_id', data.user.id)
-          .eq('email', email)
-          .single();
-
-        toast({
-          title: "Login realizado com sucesso!",
-          description: `Bem-vindo(a), ${client?.name || 'Cliente'}`,
-        });
-
-        // Check if there's a returnTo parameter for booking flow
-        const searchParams = new URLSearchParams(window.location.search);
-        const returnTo = searchParams.get('returnTo');
-
-        if (returnTo === 'agendar') {
-          navigate(`/${slug}/agendar?restore=true`);
-        } else {
-          navigate(`/${slug}/agendamentos`);
-        }
+        handleSuccess(data.user, email);
       }
 
     } catch (error) {
       console.error('Error signing in:', error);
-
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
-
     } finally {
       setIsLoading(false);
     }
@@ -142,45 +129,30 @@ export default function ClientLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
-
-      {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-72 h-72 bg-neon-violet/10 rounded-full blur-3xl animate-pulse-glow"></div>
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-neon-pink/10 rounded-full blur-3xl animate-float"></div>
       </div>
 
       <Card className="w-full max-w-md card-glow bg-card/50 backdrop-blur-sm border-primary/30 relative z-10">
-
         <CardHeader className="text-center">
-
           <div className="flex justify-center mb-6">
             <CompanyLogo companySlug={slug || ''} />
           </div>
-
           <CardTitle className="text-2xl text-gradient">
             Acesse sua conta
           </CardTitle>
-
           <CardDescription>
             Veja e gerencie suas agendamentos aqui!
           </CardDescription>
-
         </CardHeader>
 
         <CardContent>
-
           <form onSubmit={handleLogin} className="space-y-6">
-
             <div className="space-y-2">
-
-              <Label htmlFor="email">
-                Email
-              </Label>
-
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
-
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-
                 <Input
                   id="email"
                   type="email"
@@ -190,21 +162,13 @@ export default function ClientLogin() {
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                   required
                 />
-
               </div>
-
             </div>
 
             <div className="space-y-2">
-
-              <Label htmlFor="password">
-                Senha
-              </Label>
-
+              <Label htmlFor="password">Senha</Label>
               <div className="relative">
-
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-
                 <Input
                   id="password"
                   type="password"
@@ -214,13 +178,10 @@ export default function ClientLogin() {
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                   required
                 />
-
               </div>
-
             </div>
 
             <div className="flex justify-end -mt-2">
-
               <ForgotPasswordDialog
                 defaultEmail={email}
                 trigger={
@@ -232,7 +193,6 @@ export default function ClientLogin() {
                   </button>
                 }
               />
-
             </div>
 
             <Button
@@ -244,26 +204,19 @@ export default function ClientLogin() {
             >
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
-
           </form>
 
           <div className="mt-6 pt-6 border-t border-primary/20 text-center">
-
             <p className="text-sm text-muted-foreground">
-
               Não tem uma conta?{" "}
-
               <Link
                 to={`/${slug}/cadastro`}
                 className="text-primary hover:text-primary-glow transition-colors"
               >
                 Cadastre-se
               </Link>
-
             </p>
-
             <p className="text-sm text-muted-foreground mt-2">
-
               <Link
                 to={`/${slug}`}
                 className="text-primary hover:text-primary-glow transition-colors inline-flex items-center gap-1"
@@ -271,15 +224,10 @@ export default function ClientLogin() {
                 <ArrowLeft className="w-4 h-4" />
                 Voltar à página inicial
               </Link>
-
             </p>
-
           </div>
-
         </CardContent>
-
       </Card>
-
     </div>
   );
 }
