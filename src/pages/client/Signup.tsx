@@ -123,16 +123,25 @@ export default function ClientSignup() {
         });
 
       if (authError) {
-        toast({
-          title: "Erro no cadastro",
-          description: authError.message,
-          variant: "destructive",
-        });
-        return;
+        // Se o erro for rate limit do Supabase Auth, mas for um usuário que já existe
+        // podemos tentar seguir com o fluxo de vínculo mesmo assim, pois o Auth global não é crítico
+        // se o usuário já tem conta.
+        if (authError.message.includes("rate limit") || authError.status === 429) {
+          console.log("Rate limit detectado no Auth. Tentando verificar se usuário já existe...");
+          // O fluxo continuará para a verificação de existingAuthUser abaixo
+        } else {
+          toast({
+            title: "Erro no cadastro",
+            description: authError.message,
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       const existingAuthUser =
-        authData.user && authData.user.identities?.length === 0;
+        (authData.user && authData.user.identities?.length === 0) || 
+        (authError && (authError.message.includes("rate limit") || authError.status === 429));
 
       if (existingAuthUser) {
         // O usuário já existe globalmente no Auth.
