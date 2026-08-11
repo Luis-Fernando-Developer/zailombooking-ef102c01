@@ -98,8 +98,7 @@ export default function ClientSignup() {
       });
 
       if (userIdData) {
-        // O usuário já existe globalmente no Auth.
-        // Solicitamos vínculo via Resend/WhatsApp com a SENHA que ele escolheu agora.
+        // Solicitamos vínculo via Resend/WhatsApp. A SENHA será criada após a confirmação.
         try {
           const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
             body: {
@@ -109,7 +108,6 @@ export default function ClientSignup() {
               email: validatedData.email,
               phone: validatedData.phone,
               cpf: cleanedCpf || null,
-              password: validatedData.password, // Senha independente para esta empresa
               redirectTo: redirectTo
             }
           });
