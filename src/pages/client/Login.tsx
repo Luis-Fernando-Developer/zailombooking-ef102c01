@@ -39,6 +39,18 @@ export default function ClientLogin() {
       console.log("Resultado da validação contextual:", { validData, validError });
 
       if (validError || !validData?.success) {
+        // Se o usuário existe globalmente mas não tem vínculo, oferecemos disparar o vínculo
+        if (validData?.needs_link && validData?.user_id) {
+           toast({
+             title: "Vínculo necessário",
+             description: validData.error,
+             variant: "default",
+           });
+           
+           // Opcional: Disparar automaticamente o send-client-confirmation aqui se desejado
+           return;
+        }
+
         toast({
           title: "Atenção",
           description: validData?.error || "A senha informada não corresponde à sua senha cadastrada nesta empresa.",
@@ -49,40 +61,42 @@ export default function ClientLogin() {
       }
 
       // 2. Tenta autenticar no Supabase Auth globalmente
-      // Se a senha global for DIFERENTE da senha desta empresa, tentamos forçar o login
-      // atualizando a senha global do usuário (uma vez que ele já provou que conhece a senha desta empresa via RPC).
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
-        // Se falhar o login global, mas a RPC validate_client_password deu success,
-        // significa que a senha é válida para esta empresa, mas diferente no Auth.
-        // Como o usuário deseja "senhas livres" por empresa, vamos usar um fluxo de Bypass.
-        // O ideal é usar uma Edge Function para gerar um link de login (Magic Link)
-        // que ignore a senha global, ou atualizar a senha global para a que ele acabou de digitar.
-
-        // Tentamos o login via OTP (Magic Link) de forma transparente
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            emailRedirectTo: window.location.href,
-          }
-        });
-
-        if (otpError) {
+      if (authError) {
+        console.log("Erro no Auth Global (esperado se senhas divergirem):", authError.message);
+        
+        // Se a RPC validou a senha da empresa, mas o login global falhou (400 ou 401),
+        // usamos o fluxo de Magic Link para sincronizar a sessão.
+        if (authError.status === 400 || authError.status === 401 || authError.message.includes("Invalid login credentials")) {
           toast({
-            title: "Ação necessária",
-            description: "Sua senha para esta empresa é válida, mas diverge da sua conta global. Enviamos um link de acesso para seu e-mail para validar sua sessão.",
-            variant: "destructive",
+            title: "Sincronizando acesso",
+            description: "Sua senha para esta empresa é válida. Enviamos um link de acesso rápido para seu e-mail/WhatsApp para validar sua sessão global.",
           });
-        } else {
-          toast({
-            title: "Verifique seu e-mail",
-            description: "Detectamos uma senha diferente na sua conta global. Enviamos um link de acesso seguro para seu e-mail.",
+
+          // Buscar empresa_id para o trigger de notificação
+          const { data: comp } = await supabase.from('companies').select('id').eq('slug', slug).single();
+
+          // Dispara a Edge Function para enviar o link (ou usa signInWithOtp nativo)
+          await supabase.auth.signInWithOtp({
+            email,
+            options: {
+              emailRedirectTo: window.location.href,
+            }
           });
+          
+          setIsLoading(false);
+          return;
         }
+
+        toast({
+          title: "Erro no login",
+          description: authError.message,
+          variant: "destructive",
+        });
         setIsLoading(false);
         return;
       }
