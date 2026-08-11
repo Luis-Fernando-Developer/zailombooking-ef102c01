@@ -19,9 +19,14 @@ const signupSchema = z.object({
   email: z.string().trim().email("Email inválido").max(255, "Email deve ter no máximo 255 caracteres"),
   phone: z.string().trim().min(10, "Telefone deve ter no mínimo 10 dígitos").max(15, "Telefone deve ter no máximo 15 dígitos"),
   cpf: z.string().optional().refine((val) => !val || validateCPF(val), "CPF inválido"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres").max(100, "Senha deve ter no máximo 100 caracteres"),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
+  password: z.string().optional(),
+  confirmPassword: z.string().optional()
+}).refine((data) => {
+  if (data.password || data.confirmPassword) {
+    return data.password === data.confirmPassword;
+  }
+  return true;
+}, {
   message: "Senhas não coincidem",
   path: ["confirmPassword"]
 });
@@ -142,12 +147,13 @@ export default function ClientSignup() {
       }
 
       // 2. Se NÃO existe, criamos a identidade global no Supabase Auth.
-      // NOTA: Para respeitar a regra de não usar a senha global para representar a da empresa,
-      // poderíamos usar uma senha randômica no Auth, mas para o primeiro cadastro, 
-      // deixamos o Supabase Auth gerenciar a identidade.
+      // NOTA: Para o primeiro cadastro, usamos uma senha aleatória no Supabase Auth 
+      // para não forçar a sincronização de senhas. A senha real fica contextual.
+      const tempPassword = Math.random().toString(36).slice(-12);
+      
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
-        password: validatedData.password, // Identidade inicial
+        password: tempPassword, 
         options: {
           emailRedirectTo: redirectTo,
           data: {
@@ -181,7 +187,7 @@ export default function ClientSignup() {
             email: validatedData.email,
             phone: validatedData.phone,
             cpf: cleanedCpf || null,
-            password_hash: validatedData.password // Salva a senha contextual
+            password_hash: validatedData.password || null // Salva a senha contextual se fornecida
           });
 
         if (clientError) {
@@ -202,45 +208,6 @@ export default function ClientSignup() {
         navigate(`/${slug}/entrar${returnTo ? `?returnTo=${returnTo}` : ''}`);
       }
 
-      /*
-       * Usuário realmente novo no Supabase Auth.
-       */
-      if (authData.user) {
-        const { error: clientError } = await supabase
-          .from("clients")
-          .insert({
-            user_id: authData.user.id,
-            company_id: companyData.id,
-            name: fullName,
-            email: validatedData.email,
-            phone: validatedData.phone,
-            cpf: cleanedCpf || null,
-          });
-
-        if (clientError) {
-          console.error("Error creating client profile:", clientError);
-
-          toast({
-            title: "Erro no cadastro",
-            description:
-              "A conta foi criada, mas não foi possível criar o cadastro de cliente.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        toast({
-          title: "Cadastro realizado com sucesso!",
-          description:
-            "Verifique seu email para confirmar a conta e depois faça login.",
-        });
-
-        if (returnTo) {
-          navigate(`/${slug}/entrar?returnTo=${returnTo}`);
-        } else {
-          navigate(`/${slug}/entrar`);
-        }
-      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -317,7 +284,6 @@ export default function ClientSignup() {
                     value={formData.firstName}
                     onChange={handleInputChange}
                     className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                    required
                   />
 
                 </div>
@@ -348,7 +314,6 @@ export default function ClientSignup() {
                     value={formData.lastName}
                     onChange={handleInputChange}
                     className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                    required
                   />
 
                 </div>
@@ -381,7 +346,6 @@ export default function ClientSignup() {
                   value={formData.email}
                   onChange={handleInputChange}
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                  required
                 />
 
               </div>
@@ -413,7 +377,6 @@ export default function ClientSignup() {
                     }));
                   }
                 }}
-                required
               />
 
               {errors.phone && (
@@ -458,7 +421,7 @@ export default function ClientSignup() {
             <div className="space-y-2">
 
               <Label htmlFor="password">
-                Senha
+                Senha (opcional)
               </Label>
 
               <div className="relative">
@@ -473,7 +436,6 @@ export default function ClientSignup() {
                   value={formData.password}
                   onChange={handleInputChange}
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                  required
                 />
 
               </div>
