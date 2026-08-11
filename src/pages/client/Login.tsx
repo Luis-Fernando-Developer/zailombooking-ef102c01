@@ -85,30 +85,23 @@ export default function ClientLogin() {
       });
 
       if (authError) {
-        console.log("Senha da empresa válida, mas Auth Global falhou. Tentando re-autenticar após sincronização...");
+        console.log("Senha da empresa válida, mas Auth Global falhou (senhas diferentes).");
         
-        // A RPC validate_client_password já chamou sync_auth_password internamente
-        // Tentamos o login novamente com a mesma senha que agora deve ser a global
-        const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+        // Se a senha global for diferente, tentamos o login via OTP silencioso ou 
+        // instruímos o usuário. Mas para manter a UX fluida sem mudar a senha global,
+        // o ideal seria uma Edge Function que gera um session token via Admin API.
+        
+        // Como não temos a edge function 'login-with-context' ainda, 
+        // vamos exibir um erro claro para o usuário sobre a divergência global
+        // até que o fluxo de session bypass esteja implementado.
+        
+        toast({
+          title: "Divergência de Acesso",
+          description: "Sua senha nesta empresa é válida, mas você possui outra senha em uma empresa diferente. Para sua segurança, use a senha do seu primeiro cadastro ou recupere sua senha.",
+          variant: "destructive",
         });
-
-        if (retryError) {
-          console.error("Erro após sincronização:", retryError.message);
-          toast({
-            title: "Erro na sincronização",
-            description: "Sua senha é válida para esta empresa, mas houve um problema ao atualizar seu acesso global. Tente entrar novamente em alguns segundos.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        if (retryData.user) {
-          handleSuccess(retryData.user, email);
-          return;
-        }
+        setIsLoading(false);
+        return;
       }
 
       if (data.user) {
