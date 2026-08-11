@@ -15,6 +15,7 @@ export default function ConfirmLink() {
 
   const token = searchParams.get('token');
   const slug = searchParams.get('slug');
+  const type = searchParams.get('type'); // 'signup' ou 'link'
 
   useEffect(() => {
     if (!token) {
@@ -43,11 +44,17 @@ export default function ConfirmLink() {
           setMessage(data?.error || "Link de confirmação inválido ou já utilizado.");
         } else {
           setStatus('success');
-          setMessage("Vínculo confirmado com sucesso! Você já pode acessar a empresa com a senha exclusiva que escolheu.");
+          setMessage("Identidade confirmada com sucesso! Redirecionando para definir sua senha...");
           toast({
             title: "Sucesso",
-            description: "Vínculo confirmado com sucesso!",
+            description: "Identidade confirmada! Agora crie sua senha.",
           });
+          
+          setTimeout(() => {
+            const redirectSlug = data.company_slug || slug;
+            // Se for o primeiro cadastro (signup), redirecionamos para criar a senha
+            navigate(`/${redirectSlug}/criar-senha?token=${token}`);
+          }, 2000);
         }
       } catch (err) {
         console.error("Erro inesperado:", err);
