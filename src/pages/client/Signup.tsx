@@ -144,7 +144,7 @@ export default function ClientSignup() {
         email: validatedData.email,
         password: Math.random().toString(36).slice(-16) + Math.random().toString(36).toUpperCase().slice(-16), // Senha "lixo" técnica nunca usada
         options: {
-          emailRedirectTo: redirectTo,
+          emailRedirectTo: `${window.location.origin}/confirmar-vincular?slug=${slug}&type=signup`,
           data: {
             first_name: validatedData.firstName,
             last_name: validatedData.lastName,
