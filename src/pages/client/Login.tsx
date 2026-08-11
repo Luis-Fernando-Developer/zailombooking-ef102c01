@@ -48,74 +48,51 @@ export default function ClientLogin() {
     setIsLoading(true);
 
     try {
-      console.log("Tentando validar senha contextual para:", email, "no slug:", slug);
+      console.log("Iniciando login contextual para:", email);
       
-      // 1. Validar a senha contextual (multi-empresa) via RPC
-      const { data: validData, error: validError } = await supabase.rpc('validate_client_password', {
-        p_email: email,
-        p_company_slug: slug,
-        p_password: password
-      });
-
-      console.log("Resultado da validação contextual:", { validData, validError });
-
-      if (validError || !validData?.success) {
-        if (validData?.needs_link && validData?.user_id) {
-           toast({
-             title: "Vínculo necessário",
-             description: validData.error,
-             variant: "default",
-           });
-           return;
+      // Chamamos a Edge Function que valida a senha contextual e gera o link de sessão
+      const { data, error } = await supabase.functions.invoke("login-with-context", {
+        body: {
+          email,
+          password,
+          company_slug: slug
         }
-
-        toast({
-          title: "Atenção",
-          description: validData?.error || "A senha informada não corresponde à sua senha cadastrada nesta empresa.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. Tenta autenticar no Supabase Auth globalmente
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
       });
 
-      if (authError) {
-        console.log("Senha da empresa válida, mas Auth Global falhou (senhas diferentes).");
+      if (error || !data?.success) {
+        const errorMsg = data?.error || "E-mail ou senha incorretos para esta empresa.";
         
-        // Se a senha global for diferente, tentamos o login via OTP silencioso ou 
-        // instruímos o usuário. Mas para manter a UX fluida sem mudar a senha global,
-        // o ideal seria uma Edge Function que gera um session token via Admin API.
-        
-        // Como não temos a edge function 'login-with-context' ainda, 
-        // vamos exibir um erro claro para o usuário sobre a divergência global
-        // até que o fluxo de session bypass esteja implementado.
-        
-        toast({
-          title: "Divergência de Acesso",
-          description: "Sua senha nesta empresa é válida, mas você possui outra senha em uma empresa diferente. Para sua segurança, use a senha do seu primeiro cadastro ou recupere sua senha.",
-          variant: "destructive",
-        });
+        if (data?.needs_link) {
+          toast({
+            title: "Vínculo necessário",
+            description: "Você já possui conta no Zailom. Verifique seu e-mail/WhatsApp para confirmar seu vínculo com esta empresa.",
+          });
+        } else {
+          toast({
+            title: "Erro no login",
+            description: errorMsg,
+            variant: "destructive",
+          });
+        }
         setIsLoading(false);
         return;
       }
 
-      if (data.user) {
-        handleSuccess(data.user, email);
+      // Se a função retornou o action_link, o usuário é redirecionado para processar o login via Supabase
+      // O action_link do admin.generateLink contém o token de autenticação
+      if (data.action_link) {
+        window.location.href = data.action_link;
+      } else {
+        throw new Error("Resposta de login inválida.");
       }
 
     } catch (error) {
       console.error('Error signing in:', error);
       toast({
         title: "Erro no login",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
+        description: "Não foi possível realizar o login. Tente novamente.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
