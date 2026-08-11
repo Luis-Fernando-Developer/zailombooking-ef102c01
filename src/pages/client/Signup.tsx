@@ -19,14 +19,9 @@ const signupSchema = z.object({
   email: z.string().trim().email("Email inválido").max(255, "Email deve ter no máximo 255 caracteres"),
   phone: z.string().trim().min(10, "Telefone deve ter no mínimo 10 dígitos").max(15, "Telefone deve ter no máximo 15 dígitos"),
   cpf: z.string().optional().refine((val) => !val || validateCPF(val), "CPF inválido"),
-  password: z.string().optional(),
-  confirmPassword: z.string().optional()
-}).refine((data) => {
-  if (data.password || data.confirmPassword) {
-    return data.password === data.confirmPassword;
-  }
-  return true;
-}, {
+  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
+  confirmPassword: z.string().min(6, "A confirmação de senha deve ter no mínimo 6 caracteres")
+}).refine((data) => data.password === data.confirmPassword, {
   message: "Senhas não coincidem",
   path: ["confirmPassword"]
 });
@@ -148,8 +143,8 @@ export default function ClientSignup() {
 
       // 2. Se NÃO existe, criamos a identidade global no Supabase Auth.
       // NOTA: Para o primeiro cadastro, usamos uma senha aleatória no Supabase Auth 
-      // para não forçar a sincronização de senhas. A senha real fica contextual.
-      const tempPassword = Math.random().toString(36).slice(-12);
+      // para não forçar a sincronização de senhas. O usuário NÃO define a senha do Auth.
+      const tempPassword = Math.random().toString(36).slice(-12) + "aA1!";
       
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
@@ -187,7 +182,7 @@ export default function ClientSignup() {
             email: validatedData.email,
             phone: validatedData.phone,
             cpf: cleanedCpf || null,
-            password_hash: validatedData.password || null // Salva a senha contextual se fornecida
+            password_hash: validatedData.password // A senha real vinda do formulário é salva APENAS na tabela clients
           });
 
         if (clientError) {
@@ -255,7 +250,7 @@ export default function ClientSignup() {
           </CardTitle>
 
           <CardDescription>
-            Cadastre-se para agendar seus serviços
+            Cadastre-se e crie sua senha exclusiva para esta empresa
           </CardDescription>
 
         </CardHeader>
@@ -421,7 +416,7 @@ export default function ClientSignup() {
             <div className="space-y-2">
 
               <Label htmlFor="password">
-                Senha (opcional)
+                Senha para esta empresa
               </Label>
 
               <div className="relative">
@@ -435,8 +430,9 @@ export default function ClientSignup() {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                />
+                    className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
+                    required
+                  />
 
               </div>
 

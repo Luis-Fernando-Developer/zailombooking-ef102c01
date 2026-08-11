@@ -113,7 +113,7 @@ export default function ClientLogin() {
             Acesse sua conta
           </CardTitle>
           <CardDescription>
-            Veja e gerencie suas agendamentos aqui!
+            Acesse sua conta com sua senha exclusiva desta empresa
           </CardDescription>
         </CardHeader>
 
@@ -136,7 +136,7 @@ export default function ClientLogin() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">Senha da Empresa</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
