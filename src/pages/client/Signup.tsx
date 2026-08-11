@@ -108,7 +108,7 @@ export default function ClientSignup() {
               email: validatedData.email,
               phone: validatedData.phone,
               cpf: cleanedCpf || null,
-              redirectTo: redirectTo
+              redirectTo: `${window.location.origin}/confirmar-vincular?slug=${slug}&type=link`
             }
           });
 
