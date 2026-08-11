@@ -19,11 +19,6 @@ const signupSchema = z.object({
   email: z.string().trim().email("Email inválido").max(255, "Email deve ter no máximo 255 caracteres"),
   phone: z.string().trim().min(10, "Telefone deve ter no mínimo 10 dígitos").max(15, "Telefone deve ter no máximo 15 dígitos"),
   cpf: z.string().optional().refine((val) => !val || validateCPF(val), "CPF inválido"),
-  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
-  confirmPassword: z.string().min(6, "A confirmação de senha deve ter no mínimo 6 caracteres")
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Senhas não coincidem",
-  path: ["confirmPassword"]
 });
 
 export default function ClientSignup() {
@@ -39,8 +34,6 @@ export default function ClientSignup() {
     email: "",
     phone: "",
     cpf: "",
-    password: "",
-    confirmPassword: ""
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -105,8 +98,7 @@ export default function ClientSignup() {
       });
 
       if (userIdData) {
-        // O usuário já existe globalmente no Auth.
-        // Solicitamos vínculo via Resend/WhatsApp com a SENHA que ele escolheu agora.
+        // Solicitamos vínculo via Resend/WhatsApp. A SENHA será criada após a confirmação.
         try {
           const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
             body: {
@@ -116,7 +108,6 @@ export default function ClientSignup() {
               email: validatedData.email,
               phone: validatedData.phone,
               cpf: cleanedCpf || null,
-              password: validatedData.password, // Senha independente para esta empresa
               redirectTo: redirectTo
             }
           });
@@ -185,7 +176,7 @@ export default function ClientSignup() {
             email: validatedData.email,
             phone: validatedData.phone,
             cpf: cleanedCpf || null,
-            password_hash: validatedData.password // A senha real vinda do formulário é salva APENAS na tabela clients
+            // A senha será definida via link de confirmação
           });
 
         if (clientError) {
@@ -253,7 +244,7 @@ export default function ClientSignup() {
           </CardTitle>
 
           <CardDescription>
-            Cadastre-se e crie sua senha exclusiva para esta empresa
+            Cadastre-se para receber seu link de acesso exclusivo
           </CardDescription>
 
         </CardHeader>
@@ -416,67 +407,6 @@ export default function ClientSignup() {
 
             </div>
 
-            <div className="space-y-2">
-
-              <Label htmlFor="password">
-                Senha para esta empresa
-              </Label>
-
-              <div className="relative">
-
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                    className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                    required
-                  />
-
-              </div>
-
-              {errors.password && (
-                <p className="text-sm text-red-500">
-                  {errors.password}
-                </p>
-              )}
-
-            </div>
-
-            <div className="space-y-2">
-
-              <Label htmlFor="confirmPassword">
-                Confirmar senha
-              </Label>
-
-              <div className="relative">
-
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
-                  required
-                />
-
-              </div>
-
-              {errors.confirmPassword && (
-                <p className="text-sm text-red-500">
-                  {errors.confirmPassword}
-                </p>
-              )}
-
-            </div>
 
             <Button
               type="submit"
