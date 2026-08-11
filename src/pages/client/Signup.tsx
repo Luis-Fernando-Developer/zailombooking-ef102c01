@@ -149,6 +149,8 @@ export default function ClientSignup() {
 
         if (userIdData) {
           try {
+            console.log("Usuário existente detectado. Solicitando vínculo para:", validatedData.email);
+            
             const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
               body: {
                 user_id: userIdData,
@@ -162,11 +164,16 @@ export default function ClientSignup() {
               }
             });
 
-            if (funcError) throw funcError;
+            if (funcError) {
+              console.error("Erro na Edge Function:", funcError);
+              throw funcError;
+            }
             
+            console.log("Resposta da função de confirmação:", funcData);
+
             const msg = funcData?.whatsapp_sent 
               ? `Você já possui uma conta Zailom. Enviamos um link de confirmação para seu WhatsApp (${validatedData.phone}) para ativar seu acesso à empresa ${companyData.name}.`
-              : `Você já possui uma conta Zailom. Um link de confirmação foi gerado para seu acesso à empresa ${companyData.name}. (Dica: verifique seu WhatsApp ou e-mail).`;
+              : `Você já possui uma conta Zailom. Um link de confirmação foi enviado para seu e-mail para validar seu acesso à empresa ${companyData.name}.`;
 
             toast({
               title: "Confirmação enviada",
@@ -179,13 +186,14 @@ export default function ClientSignup() {
             console.error("Erro ao invocar função de confirmação:", invokeError);
             toast({
               title: "Erro ao processar vínculo",
-              description: "Não conseguimos enviar o e-mail de confirmação. Tente novamente mais tarde.",
+              description: "Não conseguimos enviar o link de confirmação. Tente novamente mais tarde.",
               variant: "destructive",
             });
             return;
           }
-        } else if (rpcError) {
-          console.error("Erro RPC get_user_id_by_email:", rpcError);
+        } else {
+          console.error("RPC get_user_id_by_email não retornou ID ou falhou:", rpcError);
+          // Fallback para comportamento padrão se a RPC falhar
         }
 
         // Fallback para o comportamento anterior caso a RPC não esteja disponível
