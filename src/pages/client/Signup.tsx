@@ -99,18 +99,15 @@ export default function ClientSignup() {
 
       const redirectTo = `${window.location.origin}${returnUrl}`;
 
-      // 1. Verificar PRIMEIRO se o usuário já existe no nosso banco (ou via RPC de email)
-      // para evitar bater no rate limit do Supabase Auth desnecessariamente.
-      const { data: userIdData, error: rpcError } = await supabase.rpc('get_user_id_by_email', { 
+      // 1. Verificar PRIMEIRO se o usuário já existe no nosso banco
+      const { data: userIdData } = await supabase.rpc('get_user_id_by_email', { 
         _email: validatedData.email 
       });
 
       if (userIdData) {
         // O usuário já existe globalmente no Auth.
-        // Pulamos o signUp do Supabase e vamos direto para o fluxo de vínculo via Resend/WhatsApp.
+        // Solicitamos vínculo via Resend/WhatsApp com a SENHA que ele escolheu agora.
         try {
-          console.log("Usuário existente detectado via RPC. Solicitando vínculo para:", validatedData.email);
-          
           const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
             body: {
               user_id: userIdData,
@@ -119,7 +116,7 @@ export default function ClientSignup() {
               email: validatedData.email,
               phone: validatedData.phone,
               cpf: cleanedCpf || null,
-              password: validatedData.password,
+              password: validatedData.password, // Senha independente para esta empresa
               redirectTo: redirectTo
             }
           });
@@ -127,8 +124,8 @@ export default function ClientSignup() {
           if (funcError) throw funcError;
 
           const msg = funcData?.whatsapp_sent 
-            ? `Você já possui uma conta Zailom. Enviamos um link de confirmação para seu WhatsApp (${validatedData.phone}) para ativar seu acesso à empresa ${companyData.name}.`
-            : `Você já possui uma conta Zailom. Um link de confirmação foi enviado para seu e-mail para validar seu acesso à empresa ${companyData.name}.`;
+            ? `Enviamos um link de confirmação para seu WhatsApp (${validatedData.phone}) para ativar sua conta na empresa ${companyData.name}.`
+            : `Um link de confirmação foi enviado para seu e-mail para validar seu acesso à empresa ${companyData.name}.`;
 
           toast({ title: "Confirmação enviada", description: msg });
           navigate(`/${slug}/entrar`);
@@ -137,30 +134,32 @@ export default function ClientSignup() {
           console.error("Erro ao vincular conta existente:", error);
           toast({
             title: "Erro ao processar vínculo",
-            description: "Não conseguimos enviar o link de confirmação. Tente novamente mais tarde.",
+            description: "Tente novamente mais tarde.",
             variant: "destructive",
           });
           return;
         }
       }
 
-      // 2. Se NÃO existe (userIdData é nulo), aí sim tentamos o signUp normal do Supabase.
-      const { data: authData, error: authError } =
-        await supabase.auth.signUp({
-          email: validatedData.email,
-          password: validatedData.password,
-          options: {
-            emailRedirectTo: redirectTo,
-            data: {
-              first_name: validatedData.firstName,
-              last_name: validatedData.lastName,
-              full_name: fullName,
-              phone: validatedData.phone,
-              company_id: companyData.id,
-              role: "client",
-            },
+      // 2. Se NÃO existe, criamos a identidade global no Supabase Auth.
+      // NOTA: Para respeitar a regra de não usar a senha global para representar a da empresa,
+      // poderíamos usar uma senha randômica no Auth, mas para o primeiro cadastro, 
+      // deixamos o Supabase Auth gerenciar a identidade.
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: validatedData.email,
+        password: validatedData.password, // Identidade inicial
+        options: {
+          emailRedirectTo: redirectTo,
+          data: {
+            first_name: validatedData.firstName,
+            last_name: validatedData.lastName,
+            full_name: fullName,
+            phone: validatedData.phone,
+            company_id: companyData.id,
+            role: "client",
           },
-        });
+        },
+      });
 
       if (authError) {
         toast({
@@ -171,7 +170,7 @@ export default function ClientSignup() {
         return;
       }
 
-      // 3. Usuário realmente novo no Supabase Auth.
+      // 3. Usuário novo no Supabase Auth. O vínculo inicial é criado imediatamente.
       if (authData.user) {
         const { error: clientError } = await supabase
           .from("clients")
@@ -182,15 +181,14 @@ export default function ClientSignup() {
             email: validatedData.email,
             phone: validatedData.phone,
             cpf: cleanedCpf || null,
+            password_hash: validatedData.password // Salva a senha contextual
           });
 
         if (clientError) {
           console.error("Error creating client profile:", clientError);
-
           toast({
             title: "Erro no cadastro",
-            description:
-              "A conta foi criada, mas não foi possível criar o cadastro de cliente.",
+            description: "A conta foi criada, mas o vínculo com a empresa falhou.",
             variant: "destructive",
           });
           return;
@@ -198,15 +196,10 @@ export default function ClientSignup() {
 
         toast({
           title: "Cadastro realizado com sucesso!",
-          description:
-            "Verifique seu email para confirmar a conta e depois faça login.",
+          description: "Verifique seu e-mail para confirmar a conta.",
         });
 
-        if (returnTo) {
-          navigate(`/${slug}/entrar?returnTo=${returnTo}`);
-        } else {
-          navigate(`/${slug}/entrar`);
-        }
+        navigate(`/${slug}/entrar${returnTo ? `?returnTo=${returnTo}` : ''}`);
       }
 
       /*
