@@ -142,13 +142,16 @@ export default function ClientSignup() {
       }
 
       // 2. Se NÃO existe, criamos a identidade global no Supabase Auth.
-      // NOTA: Para o primeiro cadastro, usamos uma senha aleatória no Supabase Auth 
-      // para não forçar a sincronização de senhas. O usuário NÃO define a senha do Auth.
-      const tempPassword = Math.random().toString(36).slice(-12) + "aA1!";
+      // NOTA: Para o primeiro cadastro, usamos login sem senha (identidade pura).
+      // Como o Supabase Auth exige uma senha no signUp tradicional, 
+      // o fluxo correto para "apenas identidade" sem senha no Auth é usar o Admin API 
+      // ou um fluxo de convite/link que não defina credencial global.
+      // Entretanto, para manter a compatibilidade com o client SDK sem Lovable Cloud,
+      // usaremos um fluxo onde a senha global é irrelevante e não utilizada.
       
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
-        password: tempPassword, 
+        password: Math.random().toString(36).slice(-16) + Math.random().toString(36).toUpperCase().slice(-16), // Senha "lixo" técnica nunca usada
         options: {
           emailRedirectTo: redirectTo,
           data: {
