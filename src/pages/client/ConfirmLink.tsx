@@ -43,7 +43,7 @@ export default function ConfirmLink() {
           setMessage(data?.error || "Link de confirmação inválido ou já utilizado.");
         } else {
           setStatus('success');
-          setMessage("Vínculo confirmado com sucesso! Você já pode acessar a empresa com a senha que escolheu no cadastro.");
+          setMessage("Vínculo confirmado com sucesso! Você já pode acessar a empresa com a senha exclusiva que escolheu.");
           toast({
             title: "Sucesso",
             description: "Vínculo confirmado com sucesso!",
