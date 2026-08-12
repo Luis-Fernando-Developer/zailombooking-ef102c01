@@ -232,7 +232,7 @@ serve(async (req) => {
     // Gravar no banco
     await supabaseClient.from('booking_payments').insert({
       booking_id: booking.id,
-      gateway_payment_id: paymentResult.id,
+      asaas_id: paymentResult.id,
       provider: 'asaas',
       amount,
       status: 'pending',
