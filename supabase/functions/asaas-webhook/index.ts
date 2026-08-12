@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-// ---------------------------------------------------------------------------
-// Inlined de _shared/gateway-config.ts — o editor do painel Supabase não
-// resolve imports relativos fora da pasta da própria função.
-// Ordem: variável de ambiente -> tabela public.super_admin_gateway_configs.
-// ---------------------------------------------------------------------------
+
 async function getGatewayConfig(
   adminClient: any,
   provider: string,
@@ -39,22 +35,6 @@ async function getGatewayConfigFirst(
   return undefined;
 }
 
-async function getEvolutionBaseUrl(adminClient: any): Promise<string | undefined> {
-  const value = await getGatewayConfigFirst(adminClient, 'whatsapp', [
-    'EVOLUTION_GLOBAL_BASE_URL',
-    'EVOLUTION_GLOBAL_URL',
-    'EVOLUTION_MANAGER_URL',
-  ]);
-  return value?.replace(/\/$/, '');
-}
-
-async function getEvolutionApiKey(adminClient: any): Promise<string | undefined> {
-  return getGatewayConfigFirst(adminClient, 'whatsapp', [
-    'EVOLUTION_GLOBAL_API_KEY',
-    'EVOLUTION_MANAGER_KEY',
-  ]);
-}
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, asaas-access-token',
@@ -87,9 +67,6 @@ serve(async (req) => {
       }
     });
 
-    // ---- 0) Validação do token do webhook ---------------------------------
-    // Configure o mesmo valor em Asaas > Integrações > Webhooks (campo "Token").
-    // Prioridade: Deno.env.get('ASAAS_WEBHOOK_TOKEN') -> tabela super_admin_gateway_configs.
     const expectedToken = (await getGatewayConfig(supabaseClient, 'asaas', 'ASAAS_WEBHOOK_TOKEN') ?? '').trim();
     if (expectedToken) {
       const received = (
@@ -99,12 +76,8 @@ serve(async (req) => {
       ).trim();
       if (received !== expectedToken) {
         console.warn(`[ASAAS_WEBHOOK][${requestId}] Token inválido (${received}) — requisição rejeitada`);
-        // Retornamos 200 em vez de 401 para o Asaas parar de tentar reenviar se for apenas erro de token não configurado.
-        // Mas o log acima denunciará o problema.
         return jsonResponse({ error: 'unauthorized_token_mismatch', received: true }, 200);
       }
-    } else {
-      console.warn(`[ASAAS_WEBHOOK][${requestId}] ASAAS_WEBHOOK_TOKEN não configurado — validação desativada`);
     }
 
     const rawBody = await req.text()
@@ -157,11 +130,6 @@ serve(async (req) => {
     const externalRef: string =
       payment?.externalReference || body.externalReference || body.payment?.externalReference || '';
 
-    // =====================================================================
-    // ROTA A — Fatura de ASSINATURA da plataforma
-    // externalReference = "subscription:<invoice_id>:<company_id>"
-    // Fallback: fatura já vinculada pelo asaas_payment_id.
-    // =====================================================================
     let subscriptionInvoiceId: string | null = null;
     if (externalRef.startsWith('subscription:')) {
       subscriptionInvoiceId = externalRef.split(':')[1] ?? null;
@@ -184,7 +152,6 @@ serve(async (req) => {
       console.info(`[ASAAS_WEBHOOK][${requestId}] Cobrança de ASSINATURA | fatura=${subscriptionInvoiceId}`);
 
       if (isConfirmed) {
-        // Tenta usar a v2 que limpa triplicatas, senão fallback v1
         const { data, error } = await supabaseClient.rpc('mark_subscription_invoice_paid_v2', {
           _asaas_payment_id: asaasPaymentId,
           _invoice_id: subscriptionInvoiceId,
@@ -198,53 +165,34 @@ serve(async (req) => {
             _invoice_id: subscriptionInvoiceId,
             _paid_at: new Date().toISOString(),
           });
-        } else {
-          console.info(`[ASAAS_WEBHOOK][${requestId}] mark_paid:`, JSON.stringify(data));
         }
 
-        // Se a fatura era de proração de upgrade, aplica a troca de plano agora.
         const invoiceIdForChange =
           subscriptionInvoiceId ?? (data as any)?.invoice_id ?? null;
         if (invoiceIdForChange) {
-          const { data: applied, error: applyErr } = await supabaseClient.rpc(
-            'apply_paid_plan_change',
-            { _invoice_id: invoiceIdForChange },
-          );
-          if (applyErr) {
-            console.error(`[ASAAS_WEBHOOK][${requestId}] apply_plan_change erro:`, applyErr.message);
-          } else {
-            console.info(`[ASAAS_WEBHOOK][${requestId}] apply_plan_change:`, JSON.stringify(applied));
-          }
+          await supabaseClient.rpc('apply_paid_plan_change', { _invoice_id: invoiceIdForChange });
         }
 
       } else if (failedEvents[event]) {
-        const { error } = await supabaseClient.rpc('mark_subscription_invoice_status', {
+        await supabaseClient.rpc('mark_subscription_invoice_status', {
           _asaas_payment_id: asaasPaymentId,
           _status: failedEvents[event],
         });
-        if (error) console.error(`[ASAAS_WEBHOOK][${requestId}] mark_status erro:`, error.message);
       }
 
       return jsonResponse({ success: true, kind: 'subscription' }, 200);
     }
 
-    // =====================================================================
-    // ROTA B — Pagamento de AGENDAMENTO (cliente final -> empresa)
-    // =====================================================================
     let bookingId = externalRef || null;
-
-    if (bookingId && bookingId.includes(':')) bookingId = null; // ref de outro domínio
-
+    if (bookingId && bookingId.includes(':')) bookingId = null;
     if (!bookingId && payment?.metadata?.booking_id) {
       bookingId = payment.metadata.booking_id;
     }
-
     if (!bookingId && (payment?.description || body.description || "")?.includes('#')) {
       const desc = payment?.description || body.description || "";
       const match = desc.match(/#([0-9a-f-]{36})/i);
       if (match) bookingId = match[1];
     }
-
     if (!bookingId) {
       const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
       const uuidMatch = rawBody.match(uuidRegex);
@@ -260,14 +208,18 @@ serve(async (req) => {
         .from('bookings')
         .update({
           booking_status: 'confirmed',
-          payment_status: 'confirmed',
+          payment_status: 'paid',
           updated_at: now
         })
         .eq('id', bookingId);
 
       const { error: pErr } = await supabaseClient
         .from('booking_payments')
-        .update({ status: 'paid', updated_at: now })
+        .update({ 
+          status: 'paid', 
+          updated_at: now,
+          asaas_id: asaasPaymentId
+        })
         .eq('booking_id', bookingId);
 
       if (bErr) console.error(`[ASAAS_WEBHOOK][${requestId}] Bookings update error:`, bErr);
@@ -285,7 +237,7 @@ serve(async (req) => {
         .from('bookings')
         .update({ 
           payment_status: 'pending',
-          updated_at: now
+          updated_at: new Date().toISOString()
         })
         .eq('id', bookingId);
     }
