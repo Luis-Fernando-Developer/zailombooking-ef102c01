@@ -20,7 +20,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email: rawEmail, password, company_slug } = await req.json();
+    const { email: rawEmail, password, company_slug, returnTo } = await req.json();
     const email = rawEmail?.trim();
 
     if (!email || !password || !company_slug) {
@@ -51,7 +51,11 @@ serve(async (req) => {
     // 2. Gerar link de sessão
     // A URL de redirecionamento DEVE ser absoluta para evitar que o Supabase redirecione para a raiz errada
     const siteUrl = Deno.env.get("SITE_URL") || "https://booking.zailom.com";
-    const redirectUrl = `${siteUrl}/${company_slug}/agendamentos`;
+    let redirectUrl = `${siteUrl}/${company_slug}/agendamentos`;
+    
+    if (returnTo === 'agendar') {
+      redirectUrl = `${siteUrl}/${company_slug}/agendar?restore=true`;
+    }
 
     console.log(`Gerando link de sessão para ${email}. Redirecionando para: ${redirectUrl}`);
 

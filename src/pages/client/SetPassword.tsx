@@ -59,7 +59,9 @@ export default function SetPassword() {
           title: "Sucesso!",
           description: "Sua senha foi definida com sucesso. Agora você pode entrar.",
         });
-        navigate(`/${slug}/entrar`);
+        const searchParams = new URLSearchParams(window.location.search);
+        const returnTo = searchParams.get("returnTo");
+        navigate(`/${slug}/entrar${returnTo ? `?returnTo=${returnTo}` : ''}`);
       } else {
         throw new Error(data?.error || "Erro ao definir senha.");
       }

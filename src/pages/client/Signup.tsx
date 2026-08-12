@@ -108,7 +108,8 @@ export default function ClientSignup() {
               email: validatedData.email,
               phone: validatedData.phone,
               cpf: cleanedCpf || null,
-              redirectTo: `${window.location.origin}/confirmar-vincular?slug=${slug}&type=link`
+              redirectTo: `${window.location.origin}/confirmar-vincular?slug=${slug}&type=link`,
+              returnTo: returnTo
             }
           });
 
@@ -144,7 +145,7 @@ export default function ClientSignup() {
         email: validatedData.email,
         password: Math.random().toString(36).slice(-16) + Math.random().toString(36).toUpperCase().slice(-16), // Senha "lixo" técnica nunca usada
         options: {
-          emailRedirectTo: `${window.location.origin}/confirmar-vincular?slug=${slug}&type=signup`,
+          emailRedirectTo: `${window.location.origin}/confirmar-vincular?slug=${slug}&type=signup${returnTo ? `&returnTo=${returnTo}` : ''}`,
           data: {
             first_name: validatedData.firstName,
             last_name: validatedData.lastName,
@@ -427,7 +428,7 @@ export default function ClientSignup() {
               Já tem uma conta?{" "}
 
               <Link
-                to={`/${slug}/entrar`}
+                to={`/${slug}/entrar${returnTo ? `?returnTo=${returnTo}` : ''}`}
                 className="text-primary hover:text-primary-glow transition-colors"
               >
                 Entre aqui
