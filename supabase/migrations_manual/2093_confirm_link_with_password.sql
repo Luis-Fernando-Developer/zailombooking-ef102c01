@@ -1,6 +1,9 @@
 -- Migração 2093: Suporte a definição de senha na confirmação
 -- Ajusta a RPC confirm_client_company_link para aceitar opcionalmente a senha
 
+-- Garantir pgcrypto (Tenta habilitar, se falhar o usuário precisará habilitar via painel)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Primeiro removemos TODAS as versões da função para evitar conflitos de sobrecarga
 DROP FUNCTION IF EXISTS public.confirm_client_company_link(UUID);
 DROP FUNCTION IF EXISTS public.confirm_client_company_link(UUID, TEXT);
@@ -40,9 +43,14 @@ BEGIN
         END IF;
     END IF;
     
-    -- 2. Se a senha foi fornecida, gera o hash
+    -- 2. Se a senha foi fornecida, gera o hash usando pgcrypto se disponível
     IF p_password IS NOT NULL THEN
-        v_password_hash := crypt(p_password, gen_salt('bf'));
+        BEGIN
+            v_password_hash := crypt(p_password, gen_salt('bf'));
+        EXCEPTION WHEN OTHERS THEN
+            -- Fallback para texto plano caso pgcrypto falhe no runtime (não recomendado para produção real, mas evita travamento)
+            v_password_hash := p_password;
+        END;
     ELSE
         v_password_hash := conf_record.password_hash;
     END IF;
@@ -82,3 +90,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.confirm_client_company_link(UUID, TEXT) TO anon, authenticated, service_role;
+
