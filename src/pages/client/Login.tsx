@@ -87,6 +87,8 @@ export default function ClientLogin() {
       if (data.action_link) {
         // Usamos replace para evitar que o link de login do Supabase fique no histórico de navegação
         // e cause loops se o usuário clicar em "Voltar"
+        // 3. Redirecionar para o action_link retornado pela Edge Function
+        // Se returnTo=agendar foi enviado, a Edge Function já gerou o link apontando para restore=true
         window.location.replace(data.action_link);
       } else {
         throw new Error("Resposta de login inválida.");

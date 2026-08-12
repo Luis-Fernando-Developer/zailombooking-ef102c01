@@ -427,7 +427,7 @@ export default function ClientSignup() {
               Já tem uma conta?{" "}
 
               <Link
-                to={`/${slug}/entrar`}
+                to={`/${slug}/entrar${returnTo ? `?returnTo=${returnTo}` : ''}`}
                 className="text-primary hover:text-primary-glow transition-colors"
               >
                 Entre aqui
