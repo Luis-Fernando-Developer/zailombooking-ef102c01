@@ -9,8 +9,6 @@ const corsHeaders = {
 /**
  * Edge Function: login-with-context
  * Autentica um usuário baseado na senha contextual da empresa.
- * Se a senha for válida via RPC, gera um link de sessão (OTP) ou usa admin logic 
- * para logar o usuário sem precisar da senha global do Supabase Auth.
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -50,15 +48,18 @@ serve(async (req) => {
       });
     }
 
-    // 2. Senha Válida! Agora precisamos criar uma sessão para o usuário.
-    // Como não queremos usar a senha global, usamos o Magic Link/OTP Interno (silencioso)
-    // para obter um access_token para este user_id.
-    
+    // 2. Gerar link de sessão
+    // A URL de redirecionamento DEVE ser absoluta para evitar que o Supabase redirecione para a raiz errada
+    const siteUrl = Deno.env.get("SITE_URL") || "https://booking.zailom.com";
+    const redirectUrl = `${siteUrl}/${company_slug}/agendamentos`;
+
+    console.log(`Gerando link de sessão para ${email}. Redirecionando para: ${redirectUrl}`);
+
     const { data: otpData, error: otpError } = await supabaseClient.auth.admin.generateLink({
       type: 'magiclink',
       email: email,
       options: {
-        redirectTo: `/${company_slug}/agendamentos`
+        redirectTo: redirectUrl
       }
     });
 
@@ -67,8 +68,6 @@ serve(async (req) => {
       throw new Error("Não foi possível gerar a sessão de acesso.");
     }
 
-    // Retornamos o link de ação ou o token para o frontend finalizar o login
-    // O frontend pode usar o action_link para redirecionar ou extrair o token hash.
     return new Response(JSON.stringify({ 
       success: true, 
       action_link: otpData.properties.action_link,

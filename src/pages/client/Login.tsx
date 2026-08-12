@@ -81,7 +81,9 @@ export default function ClientLogin() {
       // Se a função retornou o action_link, o usuário é redirecionado para processar o login via Supabase
       // O action_link do admin.generateLink contém o token de autenticação
       if (data.action_link) {
-        window.location.href = data.action_link;
+        // Usamos replace para evitar que o link de login do Supabase fique no histórico de navegação
+        // e cause loops se o usuário clicar em "Voltar"
+        window.location.replace(data.action_link);
       } else {
         throw new Error("Resposta de login inválida.");
       }
