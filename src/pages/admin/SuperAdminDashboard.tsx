@@ -434,7 +434,9 @@ export default function SuperAdminDashboard() {
             owner_email: editingCompany.owner_email || "",
             owner_phone: editingCompany.owner_phone || "",
             status: editingCompany.status || "active",
-            address: editingCompany.address || ""
+            address: editingCompany.address || "",
+            plan_id: (editingCompany as any).plan_id,
+            billing_period: (editingCompany as any).billing_period
           } : null}
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
