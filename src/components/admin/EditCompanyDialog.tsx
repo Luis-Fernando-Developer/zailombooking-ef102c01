@@ -35,6 +35,8 @@ interface Company {
   address: string | null;
   manual_resource_release_until?: string | null;
   force_early_renewal_once?: boolean;
+  plan_id?: string | null;
+  billing_period?: string | null;
 }
 
 interface Plan {
@@ -86,6 +88,8 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
     manual_resource_release_until: null as string | null,
     manual_release_days: "7",
     force_early_renewal_once: false,
+    plan_id: null as string | null,
+    billing_period: "monthly" as string,
   });
 
   const [discountData, setDiscountData] = useState({
@@ -116,7 +120,11 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
         manual_resource_release_until: company.manual_resource_release_until || null,
         manual_release_days: "7",
         force_early_renewal_once: company.force_early_renewal_once || false,
+        plan_id: company.plan_id || null,
+        billing_period: company.billing_period || "monthly",
       });
+      if (company.plan_id) setSelectedPlanId(company.plan_id);
+      if (company.billing_period) setBillingPeriod(company.billing_period);
     }
   }, [company]);
 
@@ -191,6 +199,12 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
         setSubscription(data as Subscription);
         setSelectedPlanId(data.plan_id);
         setBillingPeriod(data.billing_period || "monthly");
+        // Also update the form state so it's consistent
+        setFormData(prev => ({
+          ...prev,
+          plan_id: data.plan_id,
+          billing_period: data.billing_period || "monthly"
+        }));
         if (data.discount_percentage > 0) {
           setDescontoEspecial(true);
           setDiscountData({
@@ -284,6 +298,8 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
           slug: formData.slug,
           manual_resource_release_until: formData.manual_resource_release_until,
           force_early_renewal_once: formData.force_early_renewal_once,
+          plan_id: selectedPlanId || null,
+          billing_period: billingPeriod || 'monthly',
         })
         .eq('id', company.id);
 
@@ -562,7 +578,10 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="plan">Plano</Label>
-              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+              <Select value={selectedPlanId} onValueChange={(val) => {
+                setSelectedPlanId(val);
+                setFormData(prev => ({ ...prev, plan_id: val }));
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um plano" />
                 </SelectTrigger>
@@ -575,7 +594,10 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             </div>
             <div className="space-y-2">
               <Label>Período de Cobrança</Label>
-              <Select value={billingPeriod} onValueChange={setBillingPeriod}>
+              <Select value={billingPeriod} onValueChange={(val) => {
+                setBillingPeriod(val);
+                setFormData(prev => ({ ...prev, billing_period: val }));
+              }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

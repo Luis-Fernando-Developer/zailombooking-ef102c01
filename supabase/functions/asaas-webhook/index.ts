@@ -207,8 +207,8 @@ serve(async (req) => {
       const { error: bErr } = await supabaseClient
         .from('bookings')
         .update({
-          booking_status: 'confirmed',
           payment_status: 'paid',
+          booking_status: 'confirmed',
           updated_at: now
         })
         .eq('id', bookingId);

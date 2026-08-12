@@ -223,6 +223,8 @@ export default function SignUp() {
           cnpj: formData.companyCnpj || null,
           company_segment: formData.companySegment,
           company_niche: formData.companyNiche,
+          plan_id: selectedPlan.id,
+          billing_period: billingPeriod,
         },
         password: formData.ownerPass,
         plan_id: selectedPlan.id,

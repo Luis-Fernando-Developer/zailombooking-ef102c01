@@ -79,7 +79,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         
         console.log(`[PAYMENT_DIALOG] Status: Agendamento=${bBookingStatus}, Pagamento=${bStatus}`);
 
-        const confirmedTerms = ["paid", "confirmed", "received", "pago", "confirmado", "sucesso", "success", "settled", "authorized", "deposited", "done"];
+        const confirmedTerms = ["paid", "confirmed", "received", "pago", "confirmado", "sucesso", "success", "settled", "authorized", "deposited", "done", "received_in_cash"];
         
         const isConfirmed = confirmedTerms.includes(bStatus) || confirmedTerms.includes(bBookingStatus);
 
@@ -98,7 +98,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Poll exception:", err);
       }
-    }, 2500);
+    }, 2000);
     
     return () => { 
       isSubscribed = false;
