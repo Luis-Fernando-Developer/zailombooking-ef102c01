@@ -23,7 +23,7 @@ export default function ConfirmLink() {
     const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
     
     // Prioridade: token da query > access_token do hash (padrão Supabase) > token do hash
-    const finalToken = token || hashParams.get('access_token') || hashParams.get('token');
+    const finalToken = token || hashParams.get('access_token') || hashParams.get('token') || hashParams.get('confirmation_token');
 
     console.log("ConfirmLink: Debug URL", { 
       fullUrl: window.location.href,
@@ -33,12 +33,20 @@ export default function ConfirmLink() {
     });
 
     if (!finalToken) {
-      // Pequeno delay para garantir que o hash foi processado (alguns navegadores/SPAs demoram ms)
       if (window.location.hash) {
         return; 
       }
       setStatus('error');
       setMessage("Token de confirmação ausente.");
+      return;
+    }
+
+    // Validação de UUID para evitar erro 22P02 no Postgres
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(finalToken)) {
+      console.error("Token extraído não é um UUID válido:", finalToken);
+      setStatus('error');
+      setMessage("O token de confirmação é inválido.");
       return;
     }
 
