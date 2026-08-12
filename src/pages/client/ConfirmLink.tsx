@@ -18,7 +18,16 @@ export default function ConfirmLink() {
   const type = searchParams.get('type'); // 'signup' ou 'link'
 
   useEffect(() => {
-    if (!token) {
+    // Supabase Auth redireciona com o token no fragmento (#access_token=...) ou query (?token=...)
+    // Se vier do fragmento (signup global), o Supabase injeta o token lá.
+    const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+    const finalToken = token || hashParams.get('access_token') || hashParams.get('token');
+
+    if (!finalToken) {
+      console.error("Token não encontrado na URL ou Hash:", { 
+        query: token, 
+        hash: window.location.hash 
+      });
       setStatus('error');
       setMessage("Token de confirmação ausente.");
       return;
@@ -26,9 +35,9 @@ export default function ConfirmLink() {
 
     const confirm = async () => {
       try {
-        console.log("Iniciando confirmação com token:", token);
+        console.log("Iniciando confirmação com token:", finalToken);
         const { data, error } = await supabase.rpc('confirm_client_company_link', {
-          p_token: token
+          p_token: finalToken
         });
 
         console.log("Resultado RPC confirm_client_company_link:", { data, error });
@@ -53,7 +62,7 @@ export default function ConfirmLink() {
           setTimeout(() => {
             const redirectSlug = data.company_slug || slug;
             // Se for o primeiro cadastro (signup), redirecionamos para criar a senha
-            navigate(`/${redirectSlug}/criar-senha?token=${token}`);
+            navigate(`/${redirectSlug}/criar-senha?token=${finalToken}`);
           }, 2000);
         }
       } catch (err) {
@@ -64,7 +73,7 @@ export default function ConfirmLink() {
     };
 
     confirm();
-  }, [token]);
+  }, [token, window.location.hash]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
