@@ -50,12 +50,16 @@ export default function ClientLogin() {
     try {
       console.log("Iniciando login contextual para:", email);
       
+      const searchParams = new URLSearchParams(window.location.search);
+      const returnTo = searchParams.get('returnTo');
+
       // Chamamos a Edge Function que valida a senha contextual e gera o link de sessão
       const { data, error } = await supabase.functions.invoke("login-with-context", {
         body: {
           email: email.trim(),
           password,
-          company_slug: slug
+          company_slug: slug,
+          returnTo
         }
       });
 
