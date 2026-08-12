@@ -199,6 +199,12 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
         setSubscription(data as Subscription);
         setSelectedPlanId(data.plan_id);
         setBillingPeriod(data.billing_period || "monthly");
+        // Also update the form state so it's consistent
+        setFormData(prev => ({
+          ...prev,
+          plan_id: data.plan_id,
+          billing_period: data.billing_period || "monthly"
+        }));
         if (data.discount_percentage > 0) {
           setDescontoEspecial(true);
           setDiscountData({
@@ -572,7 +578,10 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="plan">Plano</Label>
-              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+              <Select value={selectedPlanId} onValueChange={(val) => {
+                setSelectedPlanId(val);
+                setFormData(prev => ({ ...prev, plan_id: val }));
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um plano" />
                 </SelectTrigger>
@@ -585,7 +594,10 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
             </div>
             <div className="space-y-2">
               <Label>Período de Cobrança</Label>
-              <Select value={billingPeriod} onValueChange={setBillingPeriod}>
+              <Select value={billingPeriod} onValueChange={(val) => {
+                setBillingPeriod(val);
+                setFormData(prev => ({ ...prev, billing_period: val }));
+              }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
