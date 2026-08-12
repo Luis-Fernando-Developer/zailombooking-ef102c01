@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AuthSession } from "@supabase/supabase-js";
 
 export default function ConfirmLink() {
   const [searchParams] = useSearchParams();
@@ -18,58 +19,64 @@ export default function ConfirmLink() {
   const type = searchParams.get('type'); // 'signup' ou 'link'
 
   useEffect(() => {
-    // Supabase Auth redireciona com o token no fragmento (#access_token=...) ou query (?token=...)
-    // Se vier do fragmento (signup global), o Supabase injeta o token lá.
-    const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
-    
-    // Prioridade: token da query > access_token do hash (padrão Supabase) > token do hash
-    const finalToken = token || hashParams.get('access_token') || hashParams.get('token') || hashParams.get('confirmation_token');
+    const handleAuth = async () => {
+      // 1. Verificar se o Supabase Auth já processou o link (primeiro cadastro)
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      
+      if (session) {
+        console.log("ConfirmLink: Sessão ativa detectada via hash do Supabase.");
+        setStatus('success');
+        setMessage("Identidade confirmada com sucesso! Redirecionando...");
+        
+        // Se temos uma sessão, precisamos saber para qual empresa o usuário deve ir.
+        // O slug geralmente vem da URL query parameter que injetamos no redirectTo.
+        const currentSlug = searchParams.get('slug');
+        
+        setTimeout(() => {
+          navigate(`/${currentSlug || 'client'}/agendamentos`);
+        }, 1500);
+        return;
+      }
 
-    console.log("ConfirmLink: Debug URL", { 
-      fullUrl: window.location.href,
-      queryToken: token, 
-      hash: window.location.hash,
-      extractedToken: finalToken 
-    });
-    
-    // Pequeno delay para garantir que o hash foi processado se houver um
-    if (!finalToken && window.location.hash) {
-      const timer = setTimeout(() => {
-        const retryHashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
-        const retryToken = retryHashParams.get('access_token') || retryHashParams.get('token') || retryHashParams.get('confirmation_token');
-        if (retryToken) {
-          // A re-execução do useEffect cuidará disso
+      // 2. Se não há sessão automática, processamos o token manual (vinda de e-mail/WhatsApp personalizado)
+      const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+      const finalToken = token || hashParams.get('access_token') || hashParams.get('token') || hashParams.get('confirmation_token');
+
+      console.log("ConfirmLink: Debug URL", { 
+        fullUrl: window.location.href,
+        queryToken: token, 
+        hash: window.location.hash,
+        extractedToken: finalToken 
+      });
+
+      if (!finalToken) {
+        // Se não tem token mas tem slug, talvez o login contextual tenha acabado de redirecionar
+        // e o hash esteja prestes a ser consumido pelo Supabase.
+        if (window.location.hash.includes('access_token')) {
+            return; // Espera o getSession() acima capturar na próxima renderização ou efeito do Supabase
         }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
+        
+        setStatus('error');
+        setMessage("Token de confirmação ausente.");
+        return;
+      }
 
-    if (!finalToken) {
-      setStatus('error');
-      setMessage("Token de confirmação ausente.");
-      return;
-    }
+      // Validação de UUID para evitar erro 22P02 no Postgres
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      
+      if (!uuidRegex.test(finalToken)) {
+        console.error("Token extraído não é um UUID válido:", finalToken);
+        setStatus('error');
+        setMessage("O token de confirmação é inválido ou malformatado.");
+        return;
+      }
 
-    // Validação de UUID para evitar erro 22P02 no Postgres
-    // Permite UUIDs padrão (com hífens)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    
-    if (!uuidRegex.test(finalToken)) {
-      console.error("Token extraído não é um UUID válido:", finalToken);
-      setStatus('error');
-      setMessage("O token de confirmação é inválido ou malformatado.");
-      return;
-    }
-
-    const confirm = async () => {
       try {
-        console.log("Iniciando confirmação com token:", finalToken);
+        console.log("Iniciando confirmação manual com token:", finalToken);
         const { data, error } = await supabase.rpc('confirm_client_company_link', {
           p_token: finalToken,
           p_password: null
         });
-
-        console.log("Resultado RPC confirm_client_company_link:", { data, error });
 
         if (error) {
           setStatus('error');
@@ -90,7 +97,6 @@ export default function ConfirmLink() {
           
           setTimeout(() => {
             const redirectSlug = data.company_slug || slug;
-            // Se for o primeiro cadastro (signup), redirecionamos para criar a senha
             navigate(`/${redirectSlug}/criar-senha?token=${finalToken}`);
           }, 2000);
         }
@@ -101,8 +107,17 @@ export default function ConfirmLink() {
       }
     };
 
-    confirm();
-  }, [token, window.location.hash]);
+    handleAuth();
+
+    // Listener para mudanças de auth (caso o Supabase demore a injetar a sessão no hash)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        handleAuth();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [token, window.location.hash, navigate, slug, searchParams, toast]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
