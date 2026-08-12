@@ -1,6 +1,10 @@
 -- Migração 2093: Suporte a definição de senha na confirmação
 -- Ajusta a RPC confirm_client_company_link para aceitar opcionalmente a senha
 
+-- Primeiro removemos TODAS as versões da função para evitar conflitos de sobrecarga
+DROP FUNCTION IF EXISTS public.confirm_client_company_link(UUID);
+DROP FUNCTION IF EXISTS public.confirm_client_company_link(UUID, TEXT);
+
 CREATE OR REPLACE FUNCTION public.confirm_client_company_link(
     p_token UUID,
     p_password TEXT DEFAULT NULL
