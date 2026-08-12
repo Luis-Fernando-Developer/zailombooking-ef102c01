@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { user_id, company_id, name, email, phone, cpf, password, redirectTo } = await req.json();
+    const { user_id, company_id, name, email, phone, cpf, password, redirectTo, returnTo } = await req.json();
 
     if (!user_id || !company_id || !email) {
       return new Response(JSON.stringify({ error: "Parâmetros obrigatórios ausentes" }), {

@@ -97,7 +97,9 @@ export default function ConfirmLink() {
           
           setTimeout(() => {
             const redirectSlug = data.company_slug || slug;
-            navigate(`/${redirectSlug}/criar-senha?token=${finalToken}`);
+            const returnTo = searchParams.get('returnTo');
+            const passwordUrl = `/${redirectSlug}/criar-senha?token=${finalToken}${returnTo ? `&returnTo=${returnTo}` : ''}`;
+            navigate(passwordUrl);
           }, 2000);
         }
       } catch (err) {
