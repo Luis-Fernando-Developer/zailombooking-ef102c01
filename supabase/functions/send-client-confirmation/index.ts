@@ -59,7 +59,7 @@ serve(async (req) => {
         throw new Error("Empresa não encontrada");
     }
 
-    const confirmationLink = `${new URL(redirectTo).origin}/confirmar-vincular?token=${confData.confirmation_token}&slug=${company.slug}`;
+    const confirmationLink = `${new URL(redirectTo).origin}/confirmar-vincular?token=${confData.confirmation_token}&slug=${company.slug}${returnTo ? `&returnTo=${returnTo}` : ''}`;
 
     // 3. Lógica de envio: WhatsApp e/ou E-mail (Resend fallback planejado)
     const { data: channel } = await supabaseClient.rpc("resolve_whatsapp_channel", { p_company: company_id });
