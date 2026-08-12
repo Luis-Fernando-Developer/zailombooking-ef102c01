@@ -4,6 +4,7 @@
 -- 1. Remover RPCs obsoletas ou que faziam sincronização de senha
 DROP FUNCTION IF EXISTS public.sync_auth_password(UUID, TEXT);
 DROP FUNCTION IF EXISTS public.validate_client_password(TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.validate_client_password(TEXT, TEXT, TEXT, BOOLEAN);
 
 -- 2. Garantir que a tabela clients tenha a coluna password_hash
 DO $$ 
@@ -70,8 +71,17 @@ BEGIN
     END IF;
 
     -- Comparação (Ajustar para hash se pgcrypto estiver ativo)
-    IF v_client_record.password_hash != p_password AND v_client_record.password_hash != crypt(p_password, v_client_record.password_hash) THEN
-        RETURN json_build_object('success', false, 'error', 'Senha incorreta para esta empresa.');
+    -- Verifica tanto comparação direta (caso pgcrypto não estivesse ativo no momento do cadastro)
+    -- quanto comparação via crypt()
+    IF v_client_record.password_hash != p_password THEN
+        BEGIN
+            IF v_client_record.password_hash != crypt(p_password, v_client_record.password_hash) THEN
+                RETURN json_build_object('success', false, 'error', 'Senha incorreta para esta empresa.');
+            END IF;
+        EXCEPTION WHEN OTHERS THEN
+            -- Se crypt falhar (pgcrypto off), e a comparação direta já falhou acima
+            RETURN json_build_object('success', false, 'error', 'Senha incorreta para esta empresa (erro de validação).');
+        END;
     END IF;
 
     -- Sucesso: Retornamos os dados para que o frontend possa gerar a sessão

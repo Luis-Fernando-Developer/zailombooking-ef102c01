@@ -22,7 +22,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email, password, company_slug } = await req.json();
+    const { email: rawEmail, password, company_slug } = await req.json();
+    const email = rawEmail?.trim();
 
     if (!email || !password || !company_slug) {
       return new Response(JSON.stringify({ error: "E-mail, senha e empresa são obrigatórios." }), {

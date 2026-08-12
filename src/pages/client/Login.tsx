@@ -53,7 +53,7 @@ export default function ClientLogin() {
       // Chamamos a Edge Function que valida a senha contextual e gera o link de sessão
       const { data, error } = await supabase.functions.invoke("login-with-context", {
         body: {
-          email,
+          email: email.trim(),
           password,
           company_slug: slug
         }
