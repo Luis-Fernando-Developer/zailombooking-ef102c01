@@ -21,13 +21,22 @@ export default function ConfirmLink() {
     // Supabase Auth redireciona com o token no fragmento (#access_token=...) ou query (?token=...)
     // Se vier do fragmento (signup global), o Supabase injeta o token lá.
     const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+    
+    // Prioridade: token da query > access_token do hash (padrão Supabase) > token do hash
     const finalToken = token || hashParams.get('access_token') || hashParams.get('token');
 
+    console.log("ConfirmLink: Debug URL", { 
+      fullUrl: window.location.href,
+      queryToken: token, 
+      hash: window.location.hash,
+      extractedToken: finalToken 
+    });
+
     if (!finalToken) {
-      console.error("Token não encontrado na URL ou Hash:", { 
-        query: token, 
-        hash: window.location.hash 
-      });
+      // Pequeno delay para garantir que o hash foi processado (alguns navegadores/SPAs demoram ms)
+      if (window.location.hash) {
+        return; 
+      }
       setStatus('error');
       setMessage("Token de confirmação ausente.");
       return;
