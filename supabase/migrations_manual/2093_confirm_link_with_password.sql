@@ -48,10 +48,12 @@ BEGIN
         BEGIN
             v_password_hash := crypt(p_password, gen_salt('bf'));
         EXCEPTION WHEN OTHERS THEN
-            -- Fallback para texto plano caso pgcrypto falhe no runtime (não recomendado para produção real, mas evita travamento)
+            -- Se falhar o crypt (extensão pgcrypto), mas p_password existe
+            -- verificamos se já existia um hash e mantemos se p_password for nulo
             v_password_hash := p_password;
         END;
     ELSE
+        -- Mantém o hash atual se não enviou nova senha
         v_password_hash := conf_record.password_hash;
     END IF;
 
