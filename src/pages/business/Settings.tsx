@@ -36,6 +36,7 @@ export default function BusinessSettings() {
   const navigate = useNavigate();
   const [company, setCompany] = useState<Company | null>(null);
   const [subscription, setSubscription] = useState<any>(null);
+  const [plans, setPlans] = useState<any[]>([]);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -428,7 +429,7 @@ export default function BusinessSettings() {
         {/* Personalização da Landing Page */}
         <LandingPageCustomizer 
           companyId={company.id}
-          companyPlan={subscription?.subscription_plans?.name?.toLowerCase() || "starter"}
+          companyPlan={company.plan_id ? (plans?.find(p => p.id === company.plan_id)?.name?.toLowerCase() || subscription?.subscription_plans?.name?.toLowerCase() || "starter") : (subscription?.subscription_plans?.name?.toLowerCase() || "starter")}
           canEdit={canEditSettings}
           className=" flex w-full flex-col "
           
@@ -468,7 +469,9 @@ export default function BusinessSettings() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold capitalize">{subscription?.subscription_plans?.name || "Sem Plano"}</h3>
+                <h3 className="font-semibold capitalize">
+                  {company.plan_id ? (plans?.find(p => p.id === company.plan_id)?.name || subscription?.subscription_plans?.name || "Sem Plano") : (subscription?.subscription_plans?.name || "Sem Plano")}
+                </h3>
                 <p className="text-sm text-muted-foreground">Status: {subscription?.status || 'Inativo'}</p>
               </div>
               <Button variant="outline" onClick={() => navigate(`/${slug}/admin/billing`)}>
