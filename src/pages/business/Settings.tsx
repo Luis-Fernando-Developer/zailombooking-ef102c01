@@ -102,6 +102,12 @@ export default function BusinessSettings() {
       const activeSub = companyData.company_subscriptions?.[0];
       setSubscription(activeSub);
       
+      const { data: plansData } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true);
+      if (plansData) setPlans(plansData);
+      
       setCompanyData({
         name: companyData.name || "",
         address: companyData.address || "",
