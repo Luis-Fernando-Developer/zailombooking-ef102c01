@@ -199,16 +199,19 @@ serve(async (req) => {
     let lastErr: string | null = null;
     const payload: Record<string, unknown> = { ...fullPayload };
 
+    // Tentativas de inserção garantindo que plan_id e billing_period sejam mantidos se possível
     for (let attempt = 0; attempt <= optionalKeys.length; attempt++) {
       const { data, error } = await admin
         .from("companies")
         .insert(payload)
         .select("id")
         .single();
+      
       if (!error && data) {
         companyRow = data;
         break;
       }
+      
       lastErr = error?.message ?? "unknown";
       console.error(`[signup-with-payment] tentativa ${attempt} falhou:`, lastErr);
 
@@ -218,7 +221,19 @@ serve(async (req) => {
         msg.includes("does not exist") ||
         msg.includes("violates check") ||
         msg.includes("invalid input value");
+      
       if (!isSchema) break;
+
+      // Só removemos a chave se o erro indicar especificamente que a coluna não existe
+      const columnNameMatch = lastErr.match(/column "([^"]+)" does not exist/i);
+      if (columnNameMatch) {
+        const missingCol = columnNameMatch[1];
+        console.warn(`[signup-with-payment] Removendo coluna inexistente: ${missingCol}`);
+        delete payload[missingCol];
+        continue;
+      }
+
+      // Fallback genérico caso o regex falhe, mas tentando preservar plan_id e billing_period
       const drop = optionalKeys[attempt];
       if (!drop) break;
       delete payload[drop];
