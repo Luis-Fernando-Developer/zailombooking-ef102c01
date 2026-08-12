@@ -46,7 +46,8 @@ export default function ConfirmLink() {
       try {
         console.log("Iniciando confirmação com token:", finalToken);
         const { data, error } = await supabase.rpc('confirm_client_company_link', {
-          p_token: finalToken
+          p_token: finalToken,
+          p_password: null // Garantir que passamos o parâmetro para evitar ambiguidade na RPC
         });
 
         console.log("Resultado RPC confirm_client_company_link:", { data, error });
