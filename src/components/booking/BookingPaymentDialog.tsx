@@ -90,7 +90,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           setIsPaid(true);
           onPaid();
           toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
-          setTimeout(onClose, 3000);
+          // Reduzido para 2 segundos para dar tempo do Toast ser visto, mas não demorar muito
+          setTimeout(() => {
+            if (isSubscribed === false) onClose();
+          }, 2000);
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Poll exception:", err);

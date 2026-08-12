@@ -1373,6 +1373,7 @@ export default function ClientBooking() {
           onPaid={() => { 
             console.log("[BOOKING] Payment confirmed callback.");
             setPaymentDialog(prev => ({ ...prev, wasPaid: true })); 
+            // Movemos para o passo 6 imediatamente no callback do onPaid
             setStep(6); 
           }}
         />

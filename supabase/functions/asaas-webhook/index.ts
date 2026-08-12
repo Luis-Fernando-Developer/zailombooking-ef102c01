@@ -134,7 +134,8 @@ serve(async (req) => {
       'PAYMENT_ANTICIPATED',
       'PAYMENT_DEPOSITED',
       'PAYMENT_CREDIT_CARD_CAPTURE_CONFIRMED',
-      'CHECKOUT_PAID'
+      'CHECKOUT_PAID',
+      'PAYMENT_RECEIVED_IN_CASH'
     ];
 
     const successStatuses = [
@@ -282,7 +283,10 @@ serve(async (req) => {
     } else if (bookingId && (event === 'PAYMENT_CREATED' || currentStatus === 'PENDING')) {
       await supabaseClient
         .from('bookings')
-        .update({ payment_status: 'pending' })
+        .update({ 
+          payment_status: 'pending',
+          updated_at: now
+        })
         .eq('id', bookingId);
     }
 
