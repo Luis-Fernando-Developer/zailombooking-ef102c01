@@ -23,6 +23,8 @@ interface Company {
   owner_phone: string | null;
   address: string | null;
   status: string | null;
+  plan_id?: string | null;
+  billing_period?: string | null;
 }
 
 interface Employee {
