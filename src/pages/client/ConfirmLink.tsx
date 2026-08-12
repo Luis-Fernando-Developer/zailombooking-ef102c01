@@ -31,22 +31,33 @@ export default function ConfirmLink() {
       hash: window.location.hash,
       extractedToken: finalToken 
     });
+    
+    // Pequeno delay para garantir que o hash foi processado se houver um
+    if (!finalToken && window.location.hash) {
+      const timer = setTimeout(() => {
+        const retryHashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+        const retryToken = retryHashParams.get('access_token') || retryHashParams.get('token') || retryHashParams.get('confirmation_token');
+        if (retryToken) {
+          // A re-execução do useEffect cuidará disso
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
 
     if (!finalToken) {
-      if (window.location.hash) {
-        return; 
-      }
       setStatus('error');
       setMessage("Token de confirmação ausente.");
       return;
     }
 
     // Validação de UUID para evitar erro 22P02 no Postgres
+    // Permite UUIDs padrão (com hífens)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    
     if (!uuidRegex.test(finalToken)) {
       console.error("Token extraído não é um UUID válido:", finalToken);
       setStatus('error');
-      setMessage("O token de confirmação é inválido.");
+      setMessage("O token de confirmação é inválido ou malformatado.");
       return;
     }
 
@@ -55,7 +66,7 @@ export default function ConfirmLink() {
         console.log("Iniciando confirmação com token:", finalToken);
         const { data, error } = await supabase.rpc('confirm_client_company_link', {
           p_token: finalToken,
-          p_password: null // Garantir que passamos o parâmetro para evitar ambiguidade na RPC
+          p_password: null
         });
 
         console.log("Resultado RPC confirm_client_company_link:", { data, error });
