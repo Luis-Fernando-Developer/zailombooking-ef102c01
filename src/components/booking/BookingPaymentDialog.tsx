@@ -56,41 +56,42 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   useEffect(() => {
     if (!payment?.id || isPaid || !open) return;
     
-    console.log("[PAYMENT_DIALOG] Starting poll for booking:", bookingId);
+    console.log("[PAYMENT_DIALOG] Starting poll for booking:", bookingId, "Asaas ID:", payment.id);
     
     let isSubscribed = true;
     const t = setInterval(async () => {
       if (!isSubscribed) return;
       
       try {
-        const { data: bData, error: bErr } = await supabase
-          .from("bookings")
-          .select("payment_status, booking_status")
-          .eq("id", bookingId)
-          .maybeSingle();
+        // Poll both tables for maximum synchronization
+        const [bRes, pRes] = await Promise.all([
+          supabase.from("bookings").select("payment_status, booking_status").eq("id", bookingId).maybeSingle(),
+          supabase.from("booking_payments").select("status").eq("asaas_id", payment.id).maybeSingle()
+        ]);
 
-        if (bErr) {
-          console.error("[PAYMENT_DIALOG] Polling error:", bErr);
-          return;
-        }
+        const bData = bRes.data;
+        const pData = pRes.data;
 
         const bStatus = (bData?.payment_status || "").toLowerCase().trim();
         const bBookingStatus = (bData?.booking_status || "").toLowerCase().trim();
+        const pStatus = (pData?.status || "").toLowerCase().trim();
         
-        console.log(`[PAYMENT_DIALOG] Status: Agendamento=${bBookingStatus}, Pagamento=${bStatus}`);
+        console.log(`[PAYMENT_DIALOG] Status: Agendamento=${bBookingStatus}, Pagamento=${bStatus}, Transação=${pStatus}`);
 
         const confirmedTerms = ["paid", "confirmed", "received", "pago", "confirmado", "sucesso", "success", "settled", "authorized", "deposited", "done", "received_in_cash"];
         
-        const isConfirmed = confirmedTerms.includes(bStatus) || confirmedTerms.includes(bBookingStatus);
+        const isConfirmed = 
+          confirmedTerms.includes(bStatus) || 
+          confirmedTerms.includes(bBookingStatus) || 
+          confirmedTerms.includes(pStatus);
 
         if (isConfirmed) {
-          console.log("[PAYMENT_DIALOG] PAYMENT DETECTED IN DATABASE!");
+          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED IN DATABASE!");
           isSubscribed = false;
           clearInterval(t);
           setIsPaid(true);
           onPaid();
           toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
-          // Fecha imediatamente para não deixar o usuário esperando o timeout anterior
           onClose();
         }
       } catch (err) {
@@ -103,6 +104,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       clearInterval(t); 
     };
   }, [payment?.id, bookingId, isPaid, open]);
+
 
 
   async function generate() {
