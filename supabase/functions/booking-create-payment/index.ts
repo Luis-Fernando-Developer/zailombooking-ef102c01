@@ -171,7 +171,7 @@ serve(async (req) => {
     // B) Pagamento
     const billingType = method === 'PIX' ? 'PIX' : (method === 'CREDIT_CARD' ? 'CREDIT_CARD' : (method === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
     
-    const bookingAmount = Number(booking.price ?? booking.total_price ?? 0)
+    const bookingAmount = Number(booking.total_price ?? booking.price ?? 0)
     const amount = Number(bodyAmount || bookingAmount || 0)
     console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType} | Amount: ${amount}`)
 

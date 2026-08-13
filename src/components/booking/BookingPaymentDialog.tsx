@@ -79,12 +79,16 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         
         console.log(`[PAYMENT_DIALOG] Status: Agendamento=${bBookingStatus}, Pagamento=${bStatus}, Transação=${pStatus}`);
 
-        const confirmedTerms = ["paid", "confirmed", "received", "pago", "confirmado", "sucesso", "success", "settled", "authorized", "deposited", "done", "received_in_cash"];
+        const confirmedTerms = ["paid", "confirmed", "received", "pago", "confirmado", "sucesso", "success", "settled", "authorized", "deposited", "done", "received_in_cash", "payment_received", "payment_confirmed"];
         
         const isConfirmed = 
           confirmedTerms.includes(bStatus) || 
           confirmedTerms.includes(bBookingStatus) || 
-          confirmedTerms.includes(pStatus);
+          confirmedTerms.includes(pStatus) ||
+          bStatus.includes("paid") || 
+          pStatus.includes("paid") ||
+          bStatus.includes("confirm") || 
+          pStatus.includes("confirm");
 
         if (isConfirmed) {
           console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED IN DATABASE!");
