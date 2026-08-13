@@ -72,9 +72,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const bData = bRes.data;
         const pData = pRes.data;
 
-        const bStatus = (bData?.payment_status || "").toLowerCase().trim();
-        const bBookingStatus = (bData?.booking_status || "").toLowerCase().trim();
-        const pStatus = (pData?.status || "").toLowerCase().trim();
+        // More robust status extraction handling nulls/undefined
+        const bStatus = (bData?.payment_status || "pending").toLowerCase().trim();
+        const bBookingStatus = (bData?.booking_status || "pending").toLowerCase().trim();
+        const pStatus = (pData?.status || "pending").toLowerCase().trim();
         
         console.log(`[PAYMENT_DIALOG] Status: Agendamento=${bBookingStatus}, Pagamento=${bStatus}, Transação=${pStatus}`);
 
