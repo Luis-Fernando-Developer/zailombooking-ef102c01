@@ -113,7 +113,7 @@ serve(async (req) => {
 
     const successStatuses = [
       'CONFIRMED', 'RECEIVED', 'SETTLED', 'AUTHORIZED',
-      'RECEIVED_IN_CASH', 'DEPOSITED', 'DONE', 'PAID'
+      'RECEIVED_IN_CASH', 'DEPOSITED', 'DONE', 'PAID', 'PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'
     ];
 
     const failedEvents: Record<string, string> = {
