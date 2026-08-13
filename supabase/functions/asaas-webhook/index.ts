@@ -185,21 +185,43 @@ serve(async (req) => {
 
     let bookingId = externalRef || null;
     if (bookingId && bookingId.includes(':')) bookingId = null;
+    
+    // Fallback 1: Metadata
     if (!bookingId && payment?.metadata?.booking_id) {
       bookingId = payment.metadata.booking_id;
     }
+    
+    // Fallback 2: Lookup by asaas_id in booking_payments
+    if (!bookingId && asaasPaymentId) {
+      console.info(`[ASAAS_WEBHOOK][${requestId}] Tentando localizar booking_id via asaas_id=${asaasPaymentId}`);
+      const { data: payRow } = await supabaseClient
+        .from('booking_payments')
+        .select('booking_id')
+        .eq('asaas_id', asaasPaymentId)
+        .maybeSingle();
+      
+      if (payRow?.booking_id) {
+        bookingId = payRow.booking_id;
+        console.info(`[ASAAS_WEBHOOK][${requestId}] Localizado via asaas_id: ${bookingId}`);
+      }
+    }
+
+    // Fallback 3: Description regex
     if (!bookingId && (payment?.description || body.description || "")?.includes('#')) {
       const desc = payment?.description || body.description || "";
       const match = desc.match(/#([0-9a-f-]{36})/i);
       if (match) bookingId = match[1];
     }
+    
+    // Fallback 4: Raw UUID anywhere in body
     if (!bookingId) {
       const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
       const uuidMatch = rawBody.match(uuidRegex);
       if (uuidMatch) bookingId = uuidMatch[0];
     }
 
-    console.info(`[ASAAS_WEBHOOK][${requestId}] Agendamento: ${bookingId} | Confirmado: ${isConfirmed}`)
+    console.info(`[ASAAS_WEBHOOK][${requestId}] Agendamento Resolvido: ${bookingId} | Confirmado: ${isConfirmed}`)
+
 
     if (bookingId && isConfirmed) {
       const now = new Date().toISOString();
