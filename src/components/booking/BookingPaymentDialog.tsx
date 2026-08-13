@@ -72,9 +72,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         const bData = bRes.data;
         const pData = pRes.data;
 
-        const bStatus = (bData?.payment_status || "").toLowerCase().trim();
-        const bBookingStatus = (bData?.booking_status || "").toLowerCase().trim();
-        const pStatus = (pData?.status || "").toLowerCase().trim();
+        // More robust status extraction handling nulls/undefined
+        const bStatus = (bData?.payment_status || "pending").toLowerCase().trim();
+        const bBookingStatus = (bData?.booking_status || "pending").toLowerCase().trim();
+        const pStatus = (pData?.status || "pending").toLowerCase().trim();
         
         console.log(`[PAYMENT_DIALOG] Status: Agendamento=${bBookingStatus}, Pagamento=${bStatus}, Transação=${pStatus}`);
 
@@ -92,7 +93,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           setIsPaid(true);
           onPaid();
           toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
-          onClose();
+          // Não fechamos o dialog imediatamente para mostrar a tela de sucesso (isPaid=true)
+          setTimeout(() => {
+            if (open) onClose();
+          }, 2000);
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Poll exception:", err);

@@ -230,7 +230,7 @@ serve(async (req) => {
     }
 
     // Gravar no banco
-    await supabaseClient.from('booking_payments').insert({
+    const { error: dbErr } = await supabaseClient.from('booking_payments').insert({
       booking_id: booking.id,
       asaas_id: paymentResult.id,
       provider: 'asaas',
@@ -239,6 +239,11 @@ serve(async (req) => {
       method: billingType,
       payment_data: responseData.payment
     })
+
+    if (dbErr) {
+      console.error('[BOOKING_PAYMENT] DB Insert Error:', dbErr.message)
+      // Não falha a requisição se o pagamento no Asaas foi criado, mas tenta logar o erro
+    }
 
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
