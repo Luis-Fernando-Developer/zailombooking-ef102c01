@@ -64,13 +64,18 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       
       try {
         // Poll both tables for maximum synchronization
-        const [bRes, pRes] = await Promise.all([
-          supabase.from("bookings").select("payment_status, booking_status").eq("id", bookingId).maybeSingle(),
-          supabase.from("booking_payments").select("status").eq("asaas_id", payment.id).maybeSingle()
-        ]);
+        // If booking_payments fails (e.g. schema cache issue), we still have bookings table
+        let pData = null;
+        const bRes = await supabase.from("bookings").select("payment_status, booking_status").eq("id", bookingId).maybeSingle();
+        
+        try {
+          const pRes = await supabase.from("booking_payments").select("status").eq("asaas_id", payment.id).maybeSingle();
+          if (!pRes.error) pData = pRes.data;
+        } catch (e) {
+          console.warn("[PAYMENT_DIALOG] Failed to poll booking_payments (schema issue?), relying on bookings table.");
+        }
 
         const bData = bRes.data;
-        const pData = pRes.data;
 
         // More robust status extraction handling nulls/undefined
         const bStatus = (bData?.payment_status || "pending").toLowerCase().trim();
