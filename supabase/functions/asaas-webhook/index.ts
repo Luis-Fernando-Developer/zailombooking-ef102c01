@@ -113,7 +113,7 @@ serve(async (req) => {
 
     const successStatuses = [
       'CONFIRMED', 'RECEIVED', 'SETTLED', 'AUTHORIZED',
-      'RECEIVED_IN_CASH', 'DEPOSITED', 'DONE', 'PAID'
+      'RECEIVED_IN_CASH', 'DEPOSITED', 'DONE', 'PAID', 'PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'
     ];
 
     const failedEvents: Record<string, string> = {
@@ -225,27 +225,35 @@ serve(async (req) => {
 
     if (bookingId && isConfirmed) {
       const now = new Date().toISOString();
+      console.info(`[ASAAS_WEBHOOK][${requestId}] Marcando booking ${bookingId} como PAGO`);
 
-      const { error: bErr } = await supabaseClient
+      // Update booking first
+      const { data: bData, error: bErr } = await supabaseClient
         .from('bookings')
         .update({
           payment_status: 'paid',
           booking_status: 'confirmed',
           updated_at: now
         })
-        .eq('id', bookingId);
+        .eq('id', bookingId)
+        .select();
 
-      const { error: pErr } = await supabaseClient
+      // Update payment record
+      const { data: pData, error: pErr } = await supabaseClient
         .from('booking_payments')
         .update({ 
           status: 'paid', 
           updated_at: now,
           asaas_id: asaasPaymentId
         })
-        .eq('booking_id', bookingId);
+        .eq('booking_id', bookingId)
+        .select();
 
       if (bErr) console.error(`[ASAAS_WEBHOOK][${requestId}] Bookings update error:`, bErr);
+      else console.info(`[ASAAS_WEBHOOK][${requestId}] Bookings update success:`, bData);
+      
       if (pErr) console.error(`[ASAAS_WEBHOOK][${requestId}] Booking_payments update error:`, pErr);
+      else console.info(`[ASAAS_WEBHOOK][${requestId}] Booking_payments update success:`, pData);
 
       try {
         await fetch(`${supabaseUrl}/functions/v1/notify-booking-event`, {
@@ -266,8 +274,8 @@ serve(async (req) => {
 
     return jsonResponse({ success: true, kind: 'booking' }, 200)
   } catch (error) {
-    console.error(`[ASAAS_WEBHOOK][${requestId}] Fatal error:`, (error as Error).message)
+    console.error(`[ASAAS_WEBHOOK][${requestId}] Fatal error:`, (error as Error).message, (error as Error).stack)
     // Retornamos 200 OK mesmo em erro fatal para evitar que o Asaas desative o webhook por falhas consecutivas
-    return jsonResponse({ error: (error as Error).message, fatal: true }, 200)
+    return jsonResponse({ error: (error as Error).message, stack: (error as Error).stack, fatal: true }, 200)
   }
 })
