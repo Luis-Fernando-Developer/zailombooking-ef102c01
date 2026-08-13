@@ -274,8 +274,8 @@ serve(async (req) => {
 
     return jsonResponse({ success: true, kind: 'booking' }, 200)
   } catch (error) {
-    console.error(`[ASAAS_WEBHOOK][${requestId}] Fatal error:`, (error as Error).message)
+    console.error(`[ASAAS_WEBHOOK][${requestId}] Fatal error:`, (error as Error).message, (error as Error).stack)
     // Retornamos 200 OK mesmo em erro fatal para evitar que o Asaas desative o webhook por falhas consecutivas
-    return jsonResponse({ error: (error as Error).message, fatal: true }, 200)
+    return jsonResponse({ error: (error as Error).message, stack: (error as Error).stack, fatal: true }, 200)
   }
 })

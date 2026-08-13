@@ -88,7 +88,8 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           bStatus.includes("paid") || 
           pStatus.includes("paid") ||
           bStatus.includes("confirm") || 
-          pStatus.includes("confirm");
+          pStatus.includes("confirm") ||
+          bBookingStatus.includes("confirm");
 
         if (isConfirmed) {
           console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED IN DATABASE!");
