@@ -194,15 +194,21 @@ serve(async (req) => {
     // Fallback 2: Lookup by asaas_id in booking_payments
     if (!bookingId && asaasPaymentId) {
       console.info(`[ASAAS_WEBHOOK][${requestId}] Tentando localizar booking_id via asaas_id=${asaasPaymentId}`);
-      const { data: payRow } = await supabaseClient
-        .from('booking_payments')
-        .select('booking_id')
-        .eq('asaas_id', asaasPaymentId)
-        .maybeSingle();
-      
-      if (payRow?.booking_id) {
-        bookingId = payRow.booking_id;
-        console.info(`[ASAAS_WEBHOOK][${requestId}] Localizado via asaas_id: ${bookingId}`);
+      try {
+        const { data: payRow, error: payErr } = await supabaseClient
+          .from('booking_payments')
+          .select('booking_id')
+          .eq('asaas_id', asaasPaymentId)
+          .maybeSingle();
+        
+        if (payRow?.booking_id) {
+          bookingId = payRow.booking_id;
+          console.info(`[ASAAS_WEBHOOK][${requestId}] Localizado via asaas_id: ${bookingId}`);
+        } else if (payErr) {
+          console.error(`[ASAAS_WEBHOOK][${requestId}] Erro ao buscar via asaas_id (schema issue?):`, payErr.message);
+        }
+      } catch (e) {
+        console.error(`[ASAAS_WEBHOOK][${requestId}] Exceção ao buscar via asaas_id:`, (e as any).message);
       }
     }
 
