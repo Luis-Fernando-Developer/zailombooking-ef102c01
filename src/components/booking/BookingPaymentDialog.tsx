@@ -101,9 +101,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           pStatus.includes("confirm") ||
           bBookingStatus.includes("confirm") ||
           // Adicionando verificação para os status exatos do Asaas enviados via webhook
-          ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"].some(s => 
+          ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAID", "SETTLED"].some(s => 
             bStatus.toUpperCase() === s || pStatus.toUpperCase() === s || bBookingStatus.toUpperCase() === s
-          );
+          ) ||
+          (pStatus && pStatus !== 'pending' && pStatus !== 'undefined');
 
         if (isConfirmed) {
           console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED IN DATABASE!");

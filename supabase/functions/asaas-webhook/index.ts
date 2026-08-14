@@ -125,7 +125,7 @@ serve(async (req) => {
       PAYMENT_CREDIT_CARD_CAPTURE_REFUSED: 'failed',
     };
 
-    const isConfirmed = confirmedEvents.includes(event) || successStatuses.includes(currentStatus) || currentStatus === 'PAID' || currentStatus === 'RECEIVED' || currentStatus === 'CONFIRMED';
+    const isConfirmed = confirmedEvents.includes(event) || successStatuses.includes(currentStatus) || currentStatus === 'PAID' || currentStatus === 'RECEIVED' || currentStatus === 'CONFIRMED' || currentStatus.includes('CONFIRM') || currentStatus.includes('PAID');
 
     const externalRef: string =
       payment?.externalReference || body.externalReference || body.payment?.externalReference || '';
