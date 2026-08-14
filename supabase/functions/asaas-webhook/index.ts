@@ -125,7 +125,7 @@ serve(async (req) => {
       PAYMENT_CREDIT_CARD_CAPTURE_REFUSED: 'failed',
     };
 
-    const isConfirmed = confirmedEvents.includes(event) || successStatuses.includes(currentStatus) || currentStatus === 'PAID';
+    const isConfirmed = confirmedEvents.includes(event) || successStatuses.includes(currentStatus) || currentStatus === 'PAID' || currentStatus === 'RECEIVED' || currentStatus === 'CONFIRMED';
 
     const externalRef: string =
       payment?.externalReference || body.externalReference || body.payment?.externalReference || '';
@@ -231,20 +231,9 @@ serve(async (req) => {
 
     if (bookingId && isConfirmed) {
       const now = new Date().toISOString();
-      console.info(`[ASAAS_WEBHOOK][${requestId}] Marcando booking ${bookingId} como PAGO`);
+      console.info(`[ASAAS_WEBHOOK][${requestId}] Marcando booking ${bookingId} como PAGO. Event: ${event}, Status: ${currentStatus}`);
 
-      // Update booking first
-      const { data: bData, error: bErr } = await supabaseClient
-        .from('bookings')
-        .update({
-          payment_status: 'paid',
-          booking_status: 'confirmed',
-          updated_at: now
-        })
-        .eq('id', bookingId)
-        .select();
-
-      // Update payment record
+      // Update payment record FIRST with asaas_id for polling stability
       const { data: pData, error: pErr } = await supabaseClient
         .from('booking_payments')
         .update({ 
@@ -253,6 +242,17 @@ serve(async (req) => {
           asaas_id: asaasPaymentId
         })
         .eq('booking_id', bookingId)
+        .select();
+
+      // Update booking
+      const { data: bData, error: bErr } = await supabaseClient
+        .from('bookings')
+        .update({
+          payment_status: 'paid',
+          booking_status: 'confirmed',
+          updated_at: now
+        })
+        .eq('id', bookingId)
         .select();
 
       if (bErr) console.error(`[ASAAS_WEBHOOK][${requestId}] Bookings update error:`, bErr);

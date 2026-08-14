@@ -84,7 +84,12 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         
         console.log(`[PAYMENT_DIALOG] Status: Agendamento=${bBookingStatus}, Pagamento=${bStatus}, Transação=${pStatus}`);
 
-        const confirmedTerms = ["paid", "confirmed", "received", "pago", "confirmado", "sucesso", "success", "settled", "authorized", "deposited", "done", "received_in_cash", "payment_received", "payment_confirmed"];
+        // Status que indicam sucesso no Asaas e no nosso banco
+        const confirmedTerms = [
+          "paid", "confirmed", "received", "pago", "confirmado", "sucesso", "success", 
+          "settled", "authorized", "deposited", "done", "received_in_cash", 
+          "payment_received", "payment_confirmed", "received", "confirmed"
+        ];
         
         const isConfirmed = 
           confirmedTerms.includes(bStatus) || 
@@ -94,7 +99,11 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           pStatus.includes("paid") ||
           bStatus.includes("confirm") || 
           pStatus.includes("confirm") ||
-          bBookingStatus.includes("confirm");
+          bBookingStatus.includes("confirm") ||
+          // Adicionando verificação para os status exatos do Asaas enviados via webhook
+          ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"].some(s => 
+            bStatus.toUpperCase() === s || pStatus.toUpperCase() === s || bBookingStatus.toUpperCase() === s
+          );
 
         if (isConfirmed) {
           console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED IN DATABASE!");
@@ -105,8 +114,11 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
           // Não fechamos o dialog imediatamente para mostrar a tela de sucesso (isPaid=true)
           setTimeout(() => {
-            if (open) onClose();
-          }, 2000);
+            if (open) {
+              onClose();
+              onPaid(); // Garante que o fluxo de sucesso seja chamado
+            }
+          }, 3000);
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Poll exception:", err);
