@@ -52,54 +52,64 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
     })();
   }, [open, companyId]);
 
-  // Polling for paid status
+  // Polling em duas camadas (mesmo padrão do fluxo de cadastro):
+  // 1) RPC pública SECURITY DEFINER (imune a RLS)
+  // 2) A cada 3 ciclos, verificação ativa no gateway, caso o webhook não chegue.
   useEffect(() => {
     if (!payment?.id || isPaid || !open) return;
-    
+
     console.log("[PAYMENT_DIALOG] Starting poll for booking:", bookingId);
-    
+
     let isSubscribed = true;
+    let tick = 0;
+
+    const confirm = () => {
+      isSubscribed = false;
+      clearInterval(t);
+      setIsPaid(true);
+      onPaid();
+      toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
+      setTimeout(() => onClose(), 3000);
+    };
+
     const t = setInterval(async () => {
       if (!isSubscribed) return;
-      
+      tick += 1;
+
       try {
         const { data, error } = await supabase.rpc("check_booking_payment_status", {
-          _booking_id: bookingId
+          _booking_id: bookingId,
         });
 
-        if (error) {
-          console.error("[PAYMENT_DIALOG] RPC Error:", error);
+        if (!error && (data as any)?.is_paid) {
+          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (db)");
+          confirm();
           return;
         }
+        if (error) console.error("[PAYMENT_DIALOG] RPC Error:", error);
 
-        const res = data as { is_paid: boolean; booking_status: string; payment_status: string; transaction_status: string };
-        console.log(`[PAYMENT_DIALOG] Status: ${res.booking_status} / ${res.payment_status} / ${res.transaction_status}`);
-
-        if (res.is_paid) {
-          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED!");
-          isSubscribed = false;
-          clearInterval(t);
-          setIsPaid(true);
-          onPaid();
-          toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
-          
-          setTimeout(() => {
-            if (open) {
-              onClose();
-              onPaid();
-            }
-          }, 3000);
+        // Fallback ativo: pergunta direto ao gateway a cada ~6s.
+        if (tick % 3 === 0) {
+          const { data: remote } = await supabase.functions.invoke("booking-payment-status", {
+            body: { booking_id: bookingId },
+          });
+          console.log("[PAYMENT_DIALOG] Gateway check:", remote);
+          if ((remote as any)?.is_paid) {
+            console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (gateway)");
+            confirm();
+          }
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Poll exception:", err);
       }
     }, 2000);
-    
-    return () => { 
+
+    return () => {
       isSubscribed = false;
-      clearInterval(t); 
+      clearInterval(t);
     };
   }, [payment?.id, bookingId, isPaid, open]);
+
 
 
 
