@@ -56,75 +56,44 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   useEffect(() => {
     if (!payment?.id || isPaid || !open) return;
     
-    console.log("[PAYMENT_DIALOG] Starting poll for booking:", bookingId, "Asaas ID:", payment.id);
+    console.log("[PAYMENT_DIALOG] Starting poll for booking:", bookingId);
     
     let isSubscribed = true;
     const t = setInterval(async () => {
       if (!isSubscribed) return;
       
       try {
-        // Poll both tables for maximum synchronization
-        // If booking_payments fails (e.g. schema cache issue), we still have bookings table
-        let pData = null;
-        const bRes = await supabase.from("bookings").select("payment_status, booking_status").eq("id", bookingId).maybeSingle();
-        
-        try {
-          const pRes = await supabase.from("booking_payments").select("status").eq("asaas_id", payment.id).maybeSingle();
-          if (!pRes.error) pData = pRes.data;
-        } catch (e) {
-          console.warn("[PAYMENT_DIALOG] Failed to poll booking_payments (schema issue?), relying on bookings table.");
+        const { data, error } = await supabase.rpc("check_booking_payment_status", {
+          _booking_id: bookingId
+        });
+
+        if (error) {
+          console.error("[PAYMENT_DIALOG] RPC Error:", error);
+          return;
         }
 
-        const bData = bRes.data;
+        const res = data as { is_paid: boolean; booking_status: string; payment_status: string; transaction_status: string };
+        console.log(`[PAYMENT_DIALOG] Status: ${res.booking_status} / ${res.payment_status} / ${res.transaction_status}`);
 
-        // More robust status extraction handling nulls/undefined
-        const bStatus = (bData?.payment_status || "pending").toLowerCase().trim();
-        const bBookingStatus = (bData?.booking_status || "pending").toLowerCase().trim();
-        const pStatus = (pData?.status || "pending").toLowerCase().trim();
-        
-        console.log(`[PAYMENT_DIALOG] Status: Agendamento=${bBookingStatus}, Pagamento=${bStatus}, Transação=${pStatus}`);
-
-        // Status que indicam sucesso no Asaas e no nosso banco
-        const confirmedTerms = [
-          "paid", "confirmed", "received", "pago", "confirmado", "sucesso", "success", 
-          "settled", "authorized", "deposited", "done", "received_in_cash", 
-          "payment_received", "payment_confirmed", "received", "confirmed"
-        ];
-        
-        const isConfirmed = 
-          confirmedTerms.includes(bStatus) || 
-          confirmedTerms.includes(bBookingStatus) || 
-          confirmedTerms.includes(pStatus) ||
-          bStatus.includes("paid") || 
-          pStatus.includes("paid") ||
-          bStatus.includes("confirm") || 
-          pStatus.includes("confirm") ||
-          bBookingStatus.includes("confirm") ||
-          // Adicionando verificação para os status exatos do Asaas enviados via webhook
-          ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAID", "SETTLED"].some(s => 
-            bStatus.toUpperCase() === s || pStatus.toUpperCase() === s || bBookingStatus.toUpperCase() === s
-          ) ||
-          (pStatus && pStatus !== 'pending' && pStatus !== 'undefined');
-
-        if (isConfirmed) {
-          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED IN DATABASE!");
+        if (res.is_paid) {
+          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED!");
           isSubscribed = false;
           clearInterval(t);
           setIsPaid(true);
           onPaid();
           toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
-          // Não fechamos o dialog imediatamente para mostrar a tela de sucesso (isPaid=true)
+          
           setTimeout(() => {
             if (open) {
               onClose();
-              onPaid(); // Garante que o fluxo de sucesso seja chamado
+              onPaid();
             }
           }, 3000);
         }
       } catch (err) {
         console.error("[PAYMENT_DIALOG] Poll exception:", err);
       }
-    }, 1500);
+    }, 2000);
     
     return () => { 
       isSubscribed = false;
