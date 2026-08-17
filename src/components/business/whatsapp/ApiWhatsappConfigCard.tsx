@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -96,7 +97,7 @@ export function ApiWhatsappConfigCard({ companyId, onChanged }: Props) {
         </div>
         <div className="space-y-2">
           <Label>Chave global da API {integ?.has_global_key && <span className="text-xs text-muted-foreground">(salva: {integ.api_key_prefix}…)</span>}</Label>
-          <Input type="password"
+          <PasswordInput showLeftIcon={false}
             placeholder={integ?.has_global_key ? "Deixe em branco para manter a atual" : "Chave global (opcional)"}
             value={globalKey} onChange={(e) => setGlobalKey(e.target.value)} disabled={saving} />
           <p className="text-xs text-muted-foreground">Necessária para criar/listar conexões automaticamente.</p>

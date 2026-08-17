@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BookingLogo } from "@/components/BookingLogo";
@@ -360,10 +361,10 @@ export default function CreateCompany() {
 
                 <div className="space-y-2">
                   <Label htmlFor="owner_password">Senha do Proprietário *</Label>
-                  <Input
+                  <PasswordInput
                     id="owner_password"
                     name="owner_password"
-                    type="password"
+                    showLeftIcon={false}
                     value={formData.owner_password}
                     onChange={handleInputChange}
                     placeholder="Digite uma senha segura"

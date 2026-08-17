@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Wallet, CheckCircle2, Copy, ExternalLink } from "lucide-react";
@@ -205,7 +206,7 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
                 </span>
               )}
             </div>
-            <Input type="password" value={apiKeyInput}
+            <PasswordInput showLeftIcon={false} value={apiKeyInput}
               onChange={(e) => { setApiKeyInput(e.target.value); setValidatedAccount(null); }}
               placeholder={hasStoredKey ? "•••••••••• (cole nova chave para substituir)" : info.keyPlaceholder} />
             <p className="text-xs text-muted-foreground mt-1">{info.keyHelp}</p>
