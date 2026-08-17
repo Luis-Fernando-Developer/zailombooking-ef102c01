@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
@@ -799,9 +800,9 @@ export function AddBookingDialog({ companyId, companySlug, onBookingAdded }: Add
                 {existingClient === false && (
                   <div className="space-y-2">
                     <Label htmlFor="password">Senha Padrão *</Label>
-                    <Input
+                    <PasswordInput
                       id="password"
-                      type="password"
+                      showLeftIcon={false}
                       value={clientForm.password}
                       onChange={(e) => setClientForm(prev => ({ ...prev, password: e.target.value }))}
                       placeholder="Senha para o cliente"

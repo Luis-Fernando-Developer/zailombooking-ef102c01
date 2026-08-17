@@ -6,7 +6,7 @@ import * as z from "zod";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -88,11 +88,11 @@ export default function SetPassword() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Nova Senha</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="********"
                 {...register("password")}
+                showLeftIcon={false}
                 className="bg-background/50"
               />
               {errors.password && (
@@ -102,11 +102,11 @@ export default function SetPassword() {
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 placeholder="********"
                 {...register("confirmPassword")}
+                showLeftIcon={false}
                 className="bg-background/50"
               />
               {errors.confirmPassword && (

@@ -6,6 +6,7 @@ import { useCompanyPlan } from "@/hooks/useCompanyPlan";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -444,7 +445,7 @@ export default function ChatbotIntegracao() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="apikey">Chave de API</Label>
-                <Input id="apikey" type="password" placeholder="zf_live_..." value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+                <PasswordInput id="apikey" showLeftIcon={false} placeholder="zf_live_..." value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
                 <p className="text-xs text-muted-foreground">Deve começar com <code>zf_live_</code> e ter scopes <code>workspace:read</code>, <code>instances:read</code>, <code>bots:read</code>.</p>
               </div>
               <div className="space-y-2">

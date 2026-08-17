@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookingLogo } from "@/components/BookingLogo";
-import { Lock } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -72,21 +71,13 @@ export default function ResetPassword() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="password">Nova senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input id="password" type="password" placeholder="••••••••" value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 bg-background/50 border-primary/30 focus:border-primary" required />
-                </div>
+                <PasswordInput id="password" placeholder="••••••••" value={password}
+                  onChange={(e) => setPassword(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm">Confirmar senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input id="confirm" type="password" placeholder="••••••••" value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    className="pl-10 bg-background/50 border-primary/30 focus:border-primary" required />
-                </div>
+                <PasswordInput id="confirm" placeholder="••••••••" value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)} required />
               </div>
               <Button type="submit" variant="neon" className="w-full" disabled={isLoading} size="lg">
                 {isLoading ? "Salvando..." : "Redefinir senha"}

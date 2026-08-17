@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Copy, Check, Play, Loader2, ChevronRight, BookOpen, Code2, Download, FileJson, FileCode2, ExternalLink, Menu, PanelRight } from "lucide-react";
 import { NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
+import { PasswordInput } from "@/components/ui/password-input";
 import { buildOpenApiSpec, specToJson, specToYaml, downloadBlob } from "@/lib/openapi-spec";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -341,11 +342,11 @@ export default function ApiDocs() {
 
           <div className="ml-auto flex items-center gap-2 shrink-0">
             <OpenApiExportMenu />
-            <input
-              type="password"
+            <PasswordInput
               value={apiKey}
               onChange={(e) => saveApiKey(e.target.value)}
               placeholder="API key (zlm_...)"
+              showLeftIcon={false}
               className="h-8 w-40 sm:w-64 rounded-md border border-border bg-card px-3 text-xs outline-none focus:ring-2 focus:ring-primary"
             />
           </div>

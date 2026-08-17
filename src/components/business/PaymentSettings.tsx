@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -268,8 +269,8 @@ export function PaymentSettings({ companyId }: Props) {
                   </span>
                 )}
               </div>
-              <Input
-                type="password"
+              <PasswordInput
+                showLeftIcon={false}
                 value={apiKeyInput}
                 onChange={(e) => { setApiKeyInput(e.target.value); setValidatedAccount(null); }}
                 placeholder={hasStoredKey ? "•••••••••• (cole uma nova chave para substituir)" : info.keyPlaceholder}

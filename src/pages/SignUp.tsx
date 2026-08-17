@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -450,13 +451,13 @@ export default function SignUp() {
               {/* Senha */}
               <div className="space-y-2">
                 <Label htmlFor="ownerPass">Senha *</Label>
-                <Input id="ownerPass" type="password" placeholder="Digite uma senha" value={formData.ownerPass} onChange={(e) => handleInputChange("ownerPass", e.target.value)} className="bg-background/50 border-primary/30 focus:border-primary" minLength={8} required />
+                <PasswordInput id="ownerPass" showLeftIcon={false} placeholder="Digite uma senha" value={formData.ownerPass} onChange={(e) => handleInputChange("ownerPass", e.target.value)} className="border-primary/30 focus:border-primary" minLength={8} required />
               </div>
 
               {/* Confirmar Senha */}
               <div className="space-y-2">
                 <Label htmlFor="ownerPassRepeat">Confirmar Senha *</Label>
-                <Input id="ownerPassRepeat" type="password" placeholder="Digite a senha novamente" value={formData.ownerPassRepeat} onChange={(e) => handleInputChange("ownerPassRepeat", e.target.value)} className="bg-background/50 border-primary/30 focus:border-primary" minLength={8} required />
+                <PasswordInput id="ownerPassRepeat" showLeftIcon={false} placeholder="Digite a senha novamente" value={formData.ownerPassRepeat} onChange={(e) => handleInputChange("ownerPassRepeat", e.target.value)} className="border-primary/30 focus:border-primary" minLength={8} required />
               </div>
 
               {/* CNPJ */}

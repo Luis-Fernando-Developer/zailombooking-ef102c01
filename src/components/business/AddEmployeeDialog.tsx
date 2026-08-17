@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -342,9 +343,9 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
           <div className="space-y-2">
             <Label htmlFor="password">Senha *</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
+              showLeftIcon={false}
               value={formData.password}
               onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
               placeholder="••••••••"
