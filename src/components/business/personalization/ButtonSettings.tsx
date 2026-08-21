@@ -2,7 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ColorPicker } from "../ColorPicker";
 import { TypographySettings } from "./TypographySettings";
-import { type TypographyConfig } from "./types";
+import { type TypographyConfig, defaultTypography } from "./types";
 
 export interface ButtonConfig {
   background_type?: "solid" | "gradient";
@@ -48,7 +48,7 @@ export function ButtonSettings({ label, config, onChange, disabled }: ButtonSett
 
       <TypographySettings 
         label="Tipografia do Botão"
-        config={config.typography || {}}
+        config={config.typography || defaultTypography}
         onChange={handleTypographyChange}
         disabled={disabled}
       />
