@@ -11,12 +11,18 @@ import { Badge } from "@/components/ui/badge";
 import { ColorPicker } from "./ColorPicker";
 import { CodeEditor } from "./CodeEditor";
 import { LogoUploader } from "./LogoUploader";
-import { Save, Lock, Unlock, Upload, Link, Palette, Type, Image, Layout, Code, Camera } from "lucide-react";
+import { Save, Lock, Unlock, Upload, Link, Palette, Type, Image, Layout, Code, Camera, Monitor, Smartphone, Tablet } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { BookingLogo } from "../BookingLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
-import { log } from "console";
+import { BodySettings, type BodyConfig } from "./personalization/BodySettings";
+import { HeaderSettings, type HeaderConfig } from "./personalization/HeaderSettings";
+import { HeroSettings, type HeroConfig } from "./personalization/HeroSettings";
+import { ButtonSettings, type ButtonConfig } from "./personalization/ButtonSettings";
+import { CardSettings, type CardConfig } from "./personalization/CardSettings";
+import { FooterSettings, type FooterConfig } from "./personalization/FooterSettings";
+import { defaultTypography } from "./personalization/types";
 
 interface Employee {
   id: string;
@@ -31,8 +37,12 @@ interface LandingPageCustomizerProps {
 }
 
 interface CustomizationData {
+  // Body (Fallback & Global)
+  body?: BodyConfig;
+
   // Header
-  header_position: string;
+  header?: HeaderConfig;
+  header_position: string; // Keep for compatibility
   logo_type: string;
   logo_url: string;
   logo_upload_path: string;
@@ -40,7 +50,7 @@ interface CustomizationData {
   header_background_color: string;
   header_background_gradient: any;
 
-  // Font
+  // Font (Legacy - Keep for compatibility)
   font_family: string;
   font_size_base: number;
   font_color_type: string;
@@ -48,6 +58,7 @@ interface CustomizationData {
   font_gradient: any;
   
   // Hero
+  hero?: HeroConfig;
   hero_banner_type: string;
   hero_banner_urls: string[];
   hero_background_type: string;
@@ -58,11 +69,13 @@ interface CustomizationData {
   hero_content_position: string;
   
   // Buttons
+  buttons?: ButtonConfig;
   button_color_type: string;
   button_color: string;
   button_gradient: any;
   
   // Cards
+  cards?: CardConfig;
   cards_show_images: boolean;
   cards_layout: string;
   cards_font_family: string;
@@ -75,6 +88,7 @@ interface CustomizationData {
   extra_section_code: string;
   
   // Footer
+  footer?: FooterConfig;
   footer_background_type: string;
   footer_background_color: string;
   footer_background_gradient: any;
@@ -116,6 +130,48 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
 
   // Default customization data moved outside for global access
   const defaultData: CustomizationData = {
+    body: {
+      background_type: 'solid',
+      background_color: '#ffffff',
+      default_font_family: 'Inter',
+      default_text_color: '#000000',
+      default_font_size: 16,
+      max_width: 1200
+    },
+    header: {
+      position: 'fixed',
+      background_type: 'solid',
+      background_color: 'hsl(251, 91%, 65%)',
+      menu_typography: { ...defaultTypography, color: '#ffffff' }
+    },
+    hero: {
+      background_type: 'gradient',
+      background_gradient: { type: "linear", angle: 135, colors: ["hsl(251, 91%, 65%)", "hsl(308, 56%, 85%)", "hsl(240, 10%, 3.9%)"] },
+      title_typography: { ...defaultTypography, size: 48, weight: "700", color: "#ffffff" },
+      description_typography: { ...defaultTypography, size: 18, color: "#eeeeee" }
+    },
+    buttons: {
+      background_type: 'solid',
+      background_color: 'hsl(251, 91%, 65%)',
+      typography: { ...defaultTypography, weight: "600", color: "#ffffff" },
+      border_radius: 8,
+      padding_v: 12,
+      padding_h: 24
+    },
+    cards: {
+      background_type: 'solid',
+      background_color: '#ffffff',
+      title_typography: { ...defaultTypography, size: 22, weight: "600" },
+      description_typography: { ...defaultTypography, size: 16, color: "#666666" },
+      border_radius: 12,
+      has_shadow: true
+    },
+    footer: {
+      background_type: 'gradient',
+      background_gradient: { type: "linear", angle: 180, colors: ["hsl(240, 10%, 3.9%)", "hsl(251, 91%, 65%)"] },
+      title_typography: { ...defaultTypography, size: 20, color: "#ffffff" },
+      text_typography: { ...defaultTypography, size: 14, color: "#cccccc" }
+    },
     header_position: 'fixed',
     logo_type: 'url',
     logo_url: '',
