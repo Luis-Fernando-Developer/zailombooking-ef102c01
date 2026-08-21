@@ -359,16 +359,46 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
   //   input.click();
   // }
 
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+
   return (
     <Card className={className}>
       <CardHeader>
         <CardTitle className="h-fit flex flex-col items-center justify-between ">
           <div className="w-full flex flex-col h-full justify-center gap-6 ">
-            <div className="w-full flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              <h3 className="text-lg font-bold">
-                Personalização da Landing Page
-              </h3>
+            <div className="w-full flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Palette className="w-4 h-4" />
+                <h3 className="text-lg font-bold">
+                  Personalização da Landing Page
+                </h3>
+              </div>
+              <div className="flex items-center bg-muted rounded-lg p-1 gap-1">
+                <Button 
+                  variant={previewDevice === "desktop" ? "secondary" : "ghost"} 
+                  size="icon" 
+                  className="w-8 h-8"
+                  onClick={() => setPreviewDevice("desktop")}
+                >
+                  <Monitor className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant={previewDevice === "tablet" ? "secondary" : "ghost"} 
+                  size="icon" 
+                  className="w-8 h-8"
+                  onClick={() => setPreviewDevice("tablet")}
+                >
+                  <Tablet className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant={previewDevice === "mobile" ? "secondary" : "ghost"} 
+                  size="icon" 
+                  className="w-8 h-8"
+                  onClick={() => setPreviewDevice("mobile")}
+                >
+                  <Smartphone className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
             <div className="flex items-center justify-between w-full gap-2 ">
 
