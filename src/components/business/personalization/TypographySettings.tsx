@@ -1,179 +1,166 @@
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ColorPicker } from "../ColorPicker";
-
-export const fontOptions = [
-  { value: "Inter", label: "Inter" },
-  { value: "Roboto", label: "Roboto" },
-  { value: "Open Sans", label: "Open Sans" },
-  { value: "Poppins", label: "Poppins" },
-  { value: "Playfair Display", label: "Playfair Display" },
-  { value: "Montserrat", label: "Montserrat" },
-  { value: "Berkshire Swash", label: "Berkshire Swash" },
-  { value: "My Soul", label: "My Soul" },
-  { value: "Bebas Neue", label: "Bebas Neue" },
-  { value: "Rubik Puddles", label: "Rubik Puddles" },
-  { value: "Henny Penny", label: "Henny Penny" },
-  { value: "Londrina Shadow", label: "Londrina Shadow" },
-  { value: "Lavishly Yours", label: "Lavishly Yours" },
-  { value: "Fleur De Leah", label: "Fleur De Leah" },
-  { value: "Tangerine", label: "Tangerine" },
-  { value: "Ballet", label: "Ballet" },
-  { value: "Mea Culpa", label: "Mea Culpa" },
-  { value: "Imperial Script", label: "Imperial Script" },
-  { value: "Manufacturing Consent", label: "Manufacturing Consent" },
-];
-
-export const fontWeightOptions = [
-  { value: "300", label: "300 — Light" },
-  { value: "400", label: "400 — Regular" },
-  { value: "500", label: "500 — Medium" },
-  { value: "600", label: "600 — Semi Bold" },
-  { value: "700", label: "700 — Bold" },
-  { value: "800", label: "800 — Extra Bold" },
-  { value: "900", label: "900 — Black" },
-];
-
-export const alignmentOptions = [
-  { value: "left", label: "Esquerda" },
-  { value: "center", label: "Centro" },
-  { value: "right", label: "Direita" },
-];
-
-export interface TypographyConfig {
-  family?: string;
-  size?: number;
-  weight?: string;
-  color_type?: "solid" | "gradient";
-  color?: string;
-  gradient?: any;
-  align?: string;
-  line_height?: number;
-  letter_spacing?: number;
-}
+import { fontOptions, fontWeightOptions, TypographyConfig } from "./types";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, Type } from "lucide-react";
+import { useState } from "react";
 
 interface TypographySettingsProps {
   label: string;
   config: TypographyConfig;
   onChange: (config: TypographyConfig) => void;
+  showText?: boolean;
   disabled?: boolean;
 }
 
-export function TypographySettings({ label, config, onChange, disabled }: TypographySettingsProps) {
+export function TypographySettings({
+  label,
+  config,
+  onChange,
+  showText = false,
+  disabled = false
+}: TypographySettingsProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   const updateConfig = (field: keyof TypographyConfig, value: any) => {
     onChange({ ...config, [field]: value });
   };
 
   return (
-    <div className="space-y-4 border-l-2 pl-4 py-2 border-muted">
-      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{label}</h4>
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="border rounded-md p-2 bg-card"
+    >
+      <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-muted/50 rounded-sm transition-colors">
+        <div className="flex items-center gap-2">
+          <Type className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{label}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </CollapsibleTrigger>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CollapsibleContent className="pt-4 pb-2 px-2 space-y-4">
+        {showText && (
+          <div className="space-y-2">
+            <Label className="text-xs">Texto</Label>
+            <Input
+              value={config.text || ""}
+              onChange={(e) => updateConfig("text", e.target.value)}
+              disabled={disabled}
+              className="h-8 text-xs"
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs">Família da Fonte</Label>
+            <Select
+              value={config.family}
+              onValueChange={(value) => updateConfig("family", value)}
+              disabled={disabled}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {fontOptions.map((font) => (
+                  <SelectItem key={font.value} value={font.value}>
+                    {font.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Peso da Fonte</Label>
+            <Select
+              value={config.weight}
+              onValueChange={(value) => updateConfig("weight", value)}
+              disabled={disabled}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {fontWeightOptions.map((weight) => (
+                  <SelectItem key={weight.value} value={weight.value}>
+                    {weight.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-2">
+            <Label className="text-xs">Tamanho (px)</Label>
+            <Input
+              type="number"
+              value={config.size}
+              onChange={(e) => updateConfig("size", parseInt(e.target.value))}
+              disabled={disabled}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Line Height</Label>
+            <Input
+              type="number"
+              step="0.1"
+              value={config.lineHeight || 1.2}
+              onChange={(e) => updateConfig("lineHeight", parseFloat(e.target.value))}
+              disabled={disabled}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Espaçamento</Label>
+            <Input
+              type="number"
+              value={config.letterSpacing || 0}
+              onChange={(e) => updateConfig("letterSpacing", parseInt(e.target.value))}
+              disabled={disabled}
+              className="h-8 text-xs"
+            />
+          </div>
+        </div>
+
         <div className="space-y-2">
-          <Label>Família da Fonte</Label>
-          <Select 
-            value={config.family || "Inter"} 
-            onValueChange={(value) => updateConfig("family", value)}
+          <Label className="text-xs">Alinhamento</Label>
+          <Select
+            value={config.alignment}
+            onValueChange={(value: "left" | "center" | "right") => updateConfig("alignment", value)}
             disabled={disabled}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {fontOptions.map((font) => (
-                <SelectItem key={font.value} value={font.value}>
-                  {font.label}
-                </SelectItem>
-              ))}
+              <SelectItem value="left">Esquerda</SelectItem>
+              <SelectItem value="center">Centro</SelectItem>
+              <SelectItem value="right">Direita</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label>Tamanho (px)</Label>
-          <Input
-            type="number"
-            value={config.size || ""}
-            onChange={(e) => updateConfig("size", parseInt(e.target.value))}
-            disabled={disabled}
-            placeholder="Ex: 16"
+        <div className="border-t pt-4">
+          <ColorPicker
+            type={config.colorType}
+            solidColor={config.color}
+            gradientSettings={config.gradient}
+            onTypeChange={(type) => updateConfig("colorType", type)}
+            onSolidColorChange={(color) => updateConfig("color", color)}
+            onGradientChange={(gradient) => updateConfig("gradient", gradient)}
+            label="Cor do Texto"
           />
         </div>
-
-        <div className="space-y-2">
-          <Label>Peso da Fonte</Label>
-          <Select 
-            value={config.weight || "400"} 
-            onValueChange={(value) => updateConfig("weight", value)}
-            disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {fontWeightOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Alinhamento</Label>
-          <Select 
-            value={config.align || "left"} 
-            onValueChange={(value) => updateConfig("align", value)}
-            disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {alignmentOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Altura da linha (Line Height)</Label>
-          <Input
-            type="number"
-            step="0.1"
-            value={config.line_height || ""}
-            onChange={(e) => updateConfig("line_height", parseFloat(e.target.value))}
-            disabled={disabled}
-            placeholder="Ex: 1.5"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Espaçamento entre letras (px)</Label>
-          <Input
-            type="number"
-            value={config.letter_spacing || ""}
-            onChange={(e) => updateConfig("letter_spacing", parseInt(e.target.value))}
-            disabled={disabled}
-            placeholder="Ex: 0"
-          />
-        </div>
-      </div>
-
-      <ColorPicker
-        type={config.color_type || "solid"}
-        solidColor={config.color || "#000000"}
-        gradientSettings={config.gradient}
-        onTypeChange={(type) => updateConfig("color_type", type)}
-        onSolidColorChange={(color) => updateConfig("color", color)}
-        onGradientChange={(gradient) => updateConfig("gradient", gradient)}
-        label="Cor do Texto"
-      />
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
