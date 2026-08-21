@@ -2,7 +2,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "../ColorPicker";
-import { TypographySettings, type TypographyConfig } from "./TypographySettings";
+import { TypographySettings } from "./TypographySettings";
+import { type TypographyConfig } from "./types";
 
 export interface CardConfig {
   background_type?: "solid" | "gradient";

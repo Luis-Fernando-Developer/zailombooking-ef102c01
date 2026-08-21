@@ -1,7 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ColorPicker } from "../ColorPicker";
-import { TypographySettings, type TypographyConfig } from "./TypographySettings";
+import { TypographySettings } from "./TypographySettings";
+import { type TypographyConfig } from "./types";
 
 export interface ButtonConfig {
   background_type?: "solid" | "gradient";
