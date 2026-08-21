@@ -25,6 +25,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { BookingPaymentDialog } from "@/components/booking/BookingPaymentDialog";
 import { getAvailability, AVAILABILITY_REASON_LABELS } from "@/lib/api/availability";
+import { applyTheme, getInitialTheme } from "@/components/ThemeToggle";
 
 
 interface Service {
@@ -89,6 +90,10 @@ export default function ClientBooking() {
   const [customization, setCustomization] = useState<any>(null);
   const [pendingEmployeeRestore, setPendingEmployeeRestore] = useState<string | null>(null);
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; bookingId?: string; amount?: number; allowLater?: boolean; wasPaid?: boolean }>({ open: false });
+
+  useEffect(() => {
+    applyTheme(getInitialTheme("client"));
+  }, []);
 
   useEffect(() => {
     fetchCompanyAndServices();

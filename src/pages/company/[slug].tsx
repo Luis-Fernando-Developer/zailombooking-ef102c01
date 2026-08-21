@@ -9,6 +9,7 @@ import { BookingLogo } from "@/components/BookingLogo";
 import { Calendar, Clock, Star, MapPin, Phone, Mail, User, Lock, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { applyTheme, getInitialTheme } from "@/components/ThemeToggle";
 
 export default function CompanyLandingPage() {
   const { slug } = useParams();
@@ -21,6 +22,10 @@ export default function CompanyLandingPage() {
 
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ name: "", email: "", password: "", phone: "" });
+
+  useEffect(() => {
+    applyTheme(getInitialTheme("client"));
+  }, []);
 
   useEffect(() => {
     if (slug) {

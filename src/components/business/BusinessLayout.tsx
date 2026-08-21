@@ -33,6 +33,10 @@ export function BusinessLayout({
   hideHeader = false 
 }: BusinessLayoutProps) {
   const { toast } = useToast();
+
+  useEffect(() => {
+    applyTheme(getInitialTheme("admin"));
+  }, []);
   const [copied, setCopied] = useState(false);
   const publicUrl = `https://booking.zailom.com/${companySlug}`;
 
