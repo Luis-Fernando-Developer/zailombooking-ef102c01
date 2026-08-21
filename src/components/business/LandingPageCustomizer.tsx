@@ -433,138 +433,100 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
       <CardContent>
         <Tabs defaultValue="header" className="w-full">
           <TabsList className="flex w-full flex-wrap h-auto gap-1 justify-start sm:grid sm:grid-cols-4 lg:grid-cols-7">
+            <TabsTrigger value="body" className="flex-1 min-w-[80px]">Body</TabsTrigger>
             <TabsTrigger value="header" className="flex-1 min-w-[80px]">Header</TabsTrigger>
-            <TabsTrigger value="font" className="flex-1 min-w-[80px]">Font</TabsTrigger>
             <TabsTrigger value="hero" className="flex-1 min-w-[80px]">Hero</TabsTrigger>
             <TabsTrigger value="buttons" className="flex-1 min-w-[80px]">Botões</TabsTrigger>
             <TabsTrigger value="cards" className="flex-1 min-w-[80px]">Cards</TabsTrigger>
+            <TabsTrigger value="footer" className="flex-1 min-w-[80px]">Rodapé</TabsTrigger>
             <TabsTrigger value="extra" className="flex-1 min-w-[80px]">Extra</TabsTrigger>
-            <TabsTrigger value="footer" className="flex-1 min-w-[80px]">Footer</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="header" className="space-y-4">
-            <div className="space-y-8">
-              <div className="space-y-2">
-                <Label>Logo</Label>
-                <div className="space-y-4">
+          <TabsContent value="body" className="space-y-4 pt-4">
+            <BodySettings 
+              config={customization.body || {}}
+              onChange={(val) => updateCustomization('body', val)}
+              disabled={isLocked}
+            />
+          </TabsContent>
+
+          <TabsContent value="header" className="space-y-4 pt-4">
+            <HeaderSettings 
+              config={customization.header || {}}
+              onChange={(val) => updateCustomization('header', val)}
+              disabled={isLocked}
+            />
+            
+            <div className="mt-8 border-t pt-8">
+              <h4 className="text-sm font-bold uppercase tracking-wider mb-4 opacity-70">Configurações Gerais do Header</h4>
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <Label>Logo</Label>
+                  <div className="space-y-4">
+                    <Select 
+                      key={`logo-type-${customization.logo_type}`}
+                      value={customization.logo_type || 'url'} 
+                        onValueChange={(value) => {
+                          setCustomization((prev) => {
+                            if (!prev) return prev;
+                            const next = { ...prev, logo_type: value } as CustomizationData;
+                            if (value === 'url') {
+                              next.logo_upload_path = '';
+                            } else {
+                              next.logo_url = '';
+                            }
+                            return next;
+                          });
+                        }}
+                      disabled={isLocked}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="url">Por URL</SelectItem>
+                        <SelectItem value="upload">Por Upload</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {customization.logo_type === 'url' ? (
+                      <div>
+                        <Input
+                          placeholder="URL da logo (deixe vazio para usar o nome da empresa)"
+                          value={customization.logo_url || ''}
+                          onChange={(e) => updateCustomization('logo_url', e.target.value)}
+                          disabled={isLocked}
+                        />
+                      </div>
+                    ) : (
+                      <LogoUploader
+                        currentLogo={customization.logo_upload_path || undefined}
+                        onLogoChange={(path) => updateCustomization('logo_upload_path', path)}
+                        companyId={companyId}
+                        disabled={isLocked}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Posição do Header</Label>
                   <Select 
-                    key={`logo-type-${customization.logo_type}`}
-                    value={customization.logo_type || 'url'} 
-                      onValueChange={(value) => {
-                        // Use functional update to avoid stale state when updating multiple fields
-                        setCustomization((prev) => {
-                          if (!prev) return prev;
-                          const next = { ...prev, logo_type: value } as CustomizationData;
-                          if (value === 'url') {
-                            next.logo_upload_path = '';
-                          } else {
-                            next.logo_url = '';
-                          }
-                          return next;
-                        });
-                      }}
+                    value={customization.header_position} 
+                    onValueChange={(value) => updateCustomization('header_position', value)}
                     disabled={isLocked}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="url">Por URL</SelectItem>
-                      <SelectItem value="upload">Por Upload</SelectItem>
+                      <SelectItem value="fixed">Fixo</SelectItem>
+                      <SelectItem value="relative">Relativo</SelectItem>
                     </SelectContent>
                   </Select>
-                  
-                  {customization.logo_type === 'url' ? (
-                    <div>
-                      <Input
-                        placeholder="URL da logo (deixe vazio para usar o nome da empresa)"
-                        value={customization.logo_url || ''}
-                        onChange={(e) => updateCustomization('logo_url', e.target.value)}
-                        disabled={isLocked}
-                      />
-                    </div>
-                  ) : (
-                    <LogoUploader
-                      currentLogo={customization.logo_upload_path || undefined}
-                      onLogoChange={(path) => updateCustomization('logo_upload_path', path)}
-                      companyId={companyId}
-                      disabled={isLocked}
-                    />
-                  )}
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label>Posição do Header</Label>
-                <Select 
-                  value={customization.header_position} 
-                  onValueChange={(value) => updateCustomization('header_position', value)}
-                  disabled={isLocked}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fixed">Fixo</SelectItem>
-                    <SelectItem value="relative">Relativo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <ColorPicker
-                type={customization.header_background_type as "solid" | "gradient"}
-                solidColor={customization.header_background_color}
-                gradientSettings={customization.header_background_gradient}
-                onTypeChange={(type) => updateCustomization('header_background_type', type)}
-                onSolidColorChange={(color) => updateCustomization('header_background_color', color)}
-                onGradientChange={(gradient) => updateCustomization('header_background_gradient', gradient)}
-                label="Cor do Header"
-              />
             </div>
-          </TabsContent>
-
-          <TabsContent value="font" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Família da Fonte</Label>
-                <Select 
-                  value={customization.font_family} 
-                  onValueChange={(value) => updateCustomization('font_family', value)}
-                  disabled={isLocked}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fontOptions.map((font) => (
-                      <SelectItem key={font.value} value={font.value}>
-                        {font.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tamanho Base (px)</Label>
-                <Input
-                  type="number"
-                  value={customization.font_size_base}
-                  onChange={(e) => updateCustomization('font_size_base', parseInt(e.target.value))}
-                  disabled={isLocked}
-                />
-              </div>
-            </div>
-
-            <ColorPicker
-              type={customization.font_color_type as "solid" | "gradient"}
-              solidColor={customization.font_color}
-              gradientSettings={customization.font_gradient}
-              onTypeChange={(type) => updateCustomization('font_color_type', type)}
-              onSolidColorChange={(color) => updateCustomization('font_color', color)}
-              onGradientChange={(gradient) => updateCustomization('font_gradient', gradient)}
-              label="Cor da Fonte"
-            />
           </TabsContent>
 
           <TabsContent value="hero" className="space-y-4">
