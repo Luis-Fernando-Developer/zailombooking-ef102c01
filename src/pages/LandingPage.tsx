@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Header } from "@/components/landing/Header";
 import { Hero } from "@/components/landing/Hero";
 import { TargetAudience } from "@/components/landing/TargetAudience";
@@ -9,8 +10,13 @@ import { Pricing } from "@/components/landing/Pricing";
 import { FAQ } from "@/components/landing/FAQ";
 import { CTAFinal } from "@/components/landing/CTAFinal";
 import { Footer } from "@/components/landing/Footer";
+import { applyTheme, getInitialTheme } from "@/components/ThemeToggle";
 
 export default function LandingPage() {
+  useEffect(() => {
+    applyTheme(getInitialTheme("client"));
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />

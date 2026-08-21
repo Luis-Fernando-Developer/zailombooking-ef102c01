@@ -8,7 +8,8 @@ import { PlanOverageBanner } from "@/components/business/PlanOverageBanner";
 import { SubscriptionSuspendedBanner } from "@/components/business/SubscriptionSuspendedBanner";
 import { PlatformNotificationModal } from "@/components/business/PlatformNotificationModal";
 import { NotificationsBell } from "@/components/business/NotificationsBell";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle, applyTheme, getInitialTheme } from "@/components/ThemeToggle";
+import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -32,6 +33,10 @@ export function BusinessLayout({
   hideHeader = false 
 }: BusinessLayoutProps) {
   const { toast } = useToast();
+
+  useEffect(() => {
+    applyTheme(getInitialTheme("admin"));
+  }, []);
   const [copied, setCopied] = useState(false);
   const publicUrl = `https://booking.zailom.com/${companySlug}`;
 
