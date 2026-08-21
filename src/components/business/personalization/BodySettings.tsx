@@ -1,7 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ColorPicker } from "../ColorPicker";
-import { TypographySettings, type TypographyConfig, fontOptions } from "./TypographySettings";
+import { TypographySettings } from "./TypographySettings";
+import { type TypographyConfig, fontOptions } from "./types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface BodyConfig {

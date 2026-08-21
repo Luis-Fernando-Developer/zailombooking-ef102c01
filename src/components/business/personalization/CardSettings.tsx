@@ -2,7 +2,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "../ColorPicker";
-import { TypographySettings, type TypographyConfig } from "./TypographySettings";
+import { TypographySettings } from "./TypographySettings";
+import { type TypographyConfig, defaultTypography } from "./types";
 
 export interface CardConfig {
   background_type?: "solid" | "gradient";
@@ -45,21 +46,21 @@ export function CardSettings({ label, config, onChange, disabled }: CardSettings
 
       <TypographySettings 
         label="Tipografia do Título"
-        config={config.title_typography || {}}
+        config={config.title_typography || defaultTypography}
         onChange={(val) => updateConfig("title_typography", val)}
         disabled={disabled}
       />
 
       <TypographySettings 
         label="Tipografia da Descrição"
-        config={config.description_typography || {}}
+        config={config.description_typography || defaultTypography}
         onChange={(val) => updateConfig("description_typography", val)}
         disabled={disabled}
       />
 
       <TypographySettings 
         label="Tipografia do Preço"
-        config={config.price_typography || {}}
+        config={config.price_typography || defaultTypography}
         onChange={(val) => updateConfig("price_typography", val)}
         disabled={disabled}
       />

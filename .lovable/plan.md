@@ -1,29 +1,35 @@
-# Plan - Fix Schema Cache and Column Naming for Payment Sync
+# Plano de Implementação: Refatoração da Personalização da Landing Page (V2)
 
-The user is experiencing a 400 Bad Request error when polling for payment status because the `asaas_id` column is reported as non-existent by the database, despite previous migrations attempting to use it. This indicates a potential mismatch between the actual database schema and the schema cache used by PostgREST/Supabase, or a missing column.
+Refatorar o sistema de personalização da Landing Page para permitir configurações granulares de tipografia e cores por elemento, utilizando uma arquitetura modular e escalável.
 
-## Proposed Changes
+## Alterações Técnicas
 
-### 1. Database Schema Fix
-- Create a new migration `2098_ensure_payment_columns.sql` to:
-    - Explicitly check for the existence of `asaas_id` in `booking_payments`.
-    - If it doesn't exist, create it (or rename if a legacy name exists).
-    - If it exists, ensure it has the correct type (`TEXT`).
-    - **CRITICAL**: Run `NOTIFY pgrst, 'reload schema';` to force PostgREST to refresh its cache. This is the most likely reason for "column does not exist" errors when the column is actually there.
+### 1. Estrutura de Dados e Tipos
+- Centralização de tipos em `src/components/business/personalization/types.ts`.
+- Definição da interface `TypographyConfig` abrangendo: família, peso (300-900), tamanho, cor (sólida/gradiente), alinhamento, line-height e letter-spacing.
+- Criação de constantes para opções de fontes e pesos.
 
-### 2. Edge Function Robustness
-- Update `booking-create-payment` Edge Function:
-    - Improve the `INSERT` into `booking_payments` to be more defensive.
-    - Log the exact schema being used if possible.
+### 2. Componentes de UI (Modulares)
+- **TypographySettings**: Controle unificado para todos os campos de texto.
+- **ColorPicker**: (Existente) Reutilizado para cores e gradientes.
+- **Configurações por Seção**: Criados `BodySettings`, `HeaderSettings`, `HeroSettings`, `CardSettings`, `ButtonSettings` e `FooterSettings` para agrupar logicamente os controles.
 
-### 3. Frontend Polling Improvements
-- Update `BookingPaymentDialog.tsx`:
-    - Add a fallback mechanism in the polling logic. If fetching from `booking_payments` fails with a 400 (cache/schema error), rely solely on the `bookings` table status which seems more stable.
+### 3. Integração no Customizador
+- Substituição da aba "Font" por "Body" (Fallback).
+- Atualização das abas existentes (Header, Hero, Botões, Cards, Footer) para incluir os novos controles granulares.
+- Utilização de `Accordion` e `Collapsible` para manter a interface organizada.
 
-## Technical Details
-- The error `Could not find the 'asaas_id' column of 'booking_payments' in the schema cache` is a classic PostgREST cache issue.
-- The SQL `NOTIFY pgrst, 'reload schema';` will be added to the migration.
+### 4. Banco de Dados (Supabase Externo)
+- **Nota**: As alterações de banco serão fornecidas como script SQL para execução manual.
+- Adição de colunas JSONB na tabela `company_customizations` para armazenar as novas configurações sem quebrar a compatibilidade com campos antigos.
 
-## User Review Required
-> [!IMPORTANT]
-> I will need to apply a new migration (2098) to force the database to refresh its cache. Please confirm if you want me to proceed with this structural fix.
+### 5. Renderização (Frontend)
+- Implementação da lógica de fallback: verifica se o elemento tem estilo próprio -> verifica seção -> verifica body -> valor default.
+- Aplicação dinâmica de estilos via inline `style` ou classes CSS variáveis para garantir o preview em tempo real.
+
+## Etapas de Execução
+
+1. **Finalizar Componentes de Configuração**: Concluir a criação dos componentes modulares iniciados.
+2. **Atualizar `LandingPageCustomizer.tsx`**: Integrar todos os novos componentes e gerenciar o estado global de customização.
+3. **Gerar Script SQL**: Preparar o script de migração para o banco de dados externo.
+4. **Atualizar Renderização Pública**: Ajustar os componentes da Landing Page (`Hero`, `Header`, etc.) para consumirem os novos dados granulares.
