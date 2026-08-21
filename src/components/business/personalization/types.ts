@@ -47,3 +47,15 @@ export interface TypographyConfig {
   lineHeight?: number;
   letterSpacing?: number;
 }
+
+export const defaultTypography: TypographyConfig = {
+  family: "Inter",
+  size: 16,
+  weight: "400",
+  colorType: "solid",
+  color: "#000000",
+  alignment: "left",
+  lineHeight: 1.2,
+  letterSpacing: 0
+};
+
