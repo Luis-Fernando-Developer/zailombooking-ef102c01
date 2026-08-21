@@ -13,6 +13,10 @@ import { Footer } from "@/components/landing/Footer";
 import { applyTheme, getInitialTheme } from "@/components/ThemeToggle";
 
 export default function LandingPage() {
+  useEffect(() => {
+    applyTheme(getInitialTheme("client"));
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
