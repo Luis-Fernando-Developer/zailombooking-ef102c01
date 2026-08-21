@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 
 type Theme = "dark" | "light";
 
-const STORAGE_KEY = "zailom:theme";
+const ADMIN_STORAGE_KEY = "zailom:admin:theme";
+const CLIENT_STORAGE_KEY = "zailom:client:theme";
 
-function getInitialTheme(): Theme {
+export function getInitialTheme(scope: "admin" | "client" = "admin"): Theme {
   if (typeof window === "undefined") return "dark";
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const key = scope === "admin" ? ADMIN_STORAGE_KEY : CLIENT_STORAGE_KEY;
+  const saved = localStorage.getItem(key);
   if (saved === "light" || saved === "dark") return saved;
   return "dark";
 }
@@ -19,18 +21,18 @@ export function applyTheme(theme: Theme) {
   root.classList.add(theme);
 }
 
-// Initialize as early as possible (called from module import via layout)
-if (typeof window !== "undefined") {
-  applyTheme(getInitialTheme());
+interface ThemeToggleProps {
+  scope?: "admin" | "client";
 }
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+export function ThemeToggle({ scope = "admin" }: ThemeToggleProps) {
+  const storageKey = scope === "admin" ? ADMIN_STORAGE_KEY : CLIENT_STORAGE_KEY;
+  const [theme, setTheme] = useState<Theme>(() => getInitialTheme(scope));
 
   useEffect(() => {
     applyTheme(theme);
-    try { localStorage.setItem(STORAGE_KEY, theme); } catch {}
-  }, [theme]);
+    try { localStorage.setItem(storageKey, theme); } catch {}
+  }, [theme, storageKey]);
 
   const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
