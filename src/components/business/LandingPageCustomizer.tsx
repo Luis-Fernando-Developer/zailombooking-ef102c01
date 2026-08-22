@@ -529,104 +529,103 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
             </div>
           </TabsContent>
 
-          <TabsContent value="hero" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Título</Label>
-                <Input
-                  value={customization.hero_title}
-                  onChange={(e) => updateCustomization('hero_title', e.target.value)}
+          <TabsContent value="hero" className="space-y-4 pt-4">
+            <HeroSettings 
+              config={customization.hero || {}}
+              onChange={(val) => updateCustomization('hero', val)}
+              disabled={isLocked}
+            />
+
+            <div className="mt-8 border-t pt-8">
+              <h4 className="text-sm font-bold uppercase tracking-wider mb-4 opacity-70">Configurações Gerais do Hero</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Título (Texto)</Label>
+                  <Input
+                    value={customization.hero_title}
+                    onChange={(e) => updateCustomization('hero_title', e.target.value)}
+                    disabled={isLocked}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tipo de Banner</Label>
+                  <Select 
+                    value={customization.hero_banner_type} 
+                    onValueChange={(value) => updateCustomization('hero_banner_type', value)}
+                    disabled={isLocked}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="single">Banner Único</SelectItem>
+                      <SelectItem value="carousel">Carrossel</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2 mt-4">
+                <Label>Descrição (Texto)</Label>
+                <Textarea
+                  value={customization.hero_description}
+                  onChange={(e) => updateCustomization('hero_description', e.target.value)}
                   disabled={isLocked}
+                  rows={3}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Tipo de Banner</Label>
+              <div className="space-y-2 mt-4">
+                <Label>URLs dos Banners</Label>
+                <div className="space-y-2">
+                  {customization.hero_banner_urls.map((url, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={url}
+                        onChange={(e) => updateBannerUrl(index, e.target.value)}
+                        placeholder="https://exemplo.com/imagem.jpg"
+                        disabled={isLocked}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => removeBannerUrl(index)}
+                        disabled={isLocked}
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    size="sm"
+                    onClick={addBannerUrl}
+                    disabled={isLocked}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Adicionar Banner
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2 mt-4">
+                <Label>Posição do Conteúdo</Label>
                 <Select 
-                  value={customization.hero_banner_type} 
-                  onValueChange={(value) => updateCustomization('hero_banner_type', value)}
+                  value={customization.hero_content_position} 
+                  onValueChange={(value) => updateCustomization('hero_content_position', value)}
                   disabled={isLocked}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="single">Banner Único</SelectItem>
-                    <SelectItem value="carousel">Carrossel</SelectItem>
+                    <SelectItem value="absolute">Sobre a Imagem (Absolute)</SelectItem>
+                    <SelectItem value="below">Abaixo da Imagem</SelectItem>
+                    <SelectItem value="above">Acima da Imagem</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label>Descrição</Label>
-              <Textarea
-                value={customization.hero_description}
-                onChange={(e) => updateCustomization('hero_description', e.target.value)}
-                disabled={isLocked}
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>URLs dos Banners</Label>
-              <div className="space-y-2">
-                {customization.hero_banner_urls.map((url, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={url}
-                      onChange={(e) => updateBannerUrl(index, e.target.value)}
-                      placeholder="https://exemplo.com/imagem.jpg"
-                      disabled={isLocked}
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => removeBannerUrl(index)}
-                      disabled={isLocked}
-                    >
-                      Remover
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  size="sm"
-                  onClick={addBannerUrl}
-                  disabled={isLocked}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Adicionar Banner
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Posição do Conteúdo</Label>
-              <Select 
-                value={customization.hero_content_position} 
-                onValueChange={(value) => updateCustomization('hero_content_position', value)}
-                disabled={isLocked}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="absolute">Sobre a Imagem (Absolute)</SelectItem>
-                  <SelectItem value="below">Abaixo da Imagem</SelectItem>
-                  <SelectItem value="above">Acima da Imagem</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <ColorPicker
-              type={customization.hero_background_type as "solid" | "gradient"}
-              solidColor={customization.hero_background_color}
-              gradientSettings={customization.hero_background_gradient}
-              onTypeChange={(type) => updateCustomization('hero_background_type', type)}
-              onSolidColorChange={(color) => updateCustomization('hero_background_color', color)}
-              onGradientChange={(gradient) => updateCustomization('hero_background_gradient', gradient)}
-              label="Fundo do Hero"
-            />
           </TabsContent>
 
           <TabsContent value="buttons" className="space-y-4">
