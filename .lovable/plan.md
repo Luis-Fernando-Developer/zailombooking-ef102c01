@@ -1,34 +1,30 @@
-# Plano de Correção: Erro Minified React #310 (Objects as Children)
+# Plano de Correção: Erro React #310 (Objects as Children)
 
-O erro "Minified React error #310" ocorre quando o React tenta renderizar um objeto onde espera uma string, número ou elemento React. No contexto da personalização da Landing Page, isso geralmente acontece devido ao aninhamento acidental de objetos nas configurações de tipografia ou cores.
+O erro "React #310" ocorre quando um objeto é passado como filho no React em vez de um texto, número ou elemento. No contexto da personalização da Landing Page, isso geralmente acontece devido a dados corrompidos no JSON persistido no banco de dados, onde propriedades que deveriam ser strings (como `family` ou `color`) acabaram recebendo objetos aninhados.
 
 ## Ações Propostas
 
-### 1. Robustez no `TypographySettings`
-Garantir que os valores passados para o componente de edição nunca sejam objetos aninhados (exceto o campo `gradient`).
-- Adicionar validação no `updateConfig` para filtrar qualquer valor que seja um objeto inesperado.
-- Normalizar o estado local antes de passar para os inputs.
+### 1. Robustez na Sanitização (LandingPageCustomizer.tsx)
+Aumentar o rigor da função `sanitizeTheme` para detectar e corrigir proativamente qualquer aninhamento de objeto em campos que devem ser primitivos, garantindo que o estado do React nunca receba esses objetos.
 
-### 2. Sanitização no `LandingPageCustomizer`
-Sanitizar os dados carregados do Supabase antes de injetá-los no estado da aplicação.
-- Implementar uma função `sanitizeTheme` que percorre recursivamente o objeto de tema e garante que campos de texto/número não contenham objetos aninhados.
-- Tratar especificamente o campo `menu_typography` no `header`, que foi identificado como um ponto crítico de falha.
+### 2. Proteção nos Componentes de Configuração
+Adicionar validações "strict" em cada componente de configuração (`BodySettings`, `HeaderSettings`, `HeroSettings`, etc.) para impedir que novas atualizações de estado injetem objetos em campos de texto ou números.
 
-### 3. Proteção no `getTypographyStyles` e `getBackgroundStyles`
-Adicionar verificações de tipo mais rigorosas nas funções utilitárias que geram estilos CSS.
-- Se um valor de cor ou família de fonte for detectado como um objeto, aplicar um fallback de string seguro em vez de deixar o erro propagar.
-
-### 4. Correção no `ColorPicker`
-Garantir que os inputs nativos de cor (`type="color"`) recebam apenas strings hexadecimais válidas.
-- Adicionar conversão explícita de HSL/RGB para HEX se necessário para o input nativo, ou simplesmente ignorar valores inválidos para o preview visual sem quebrar a renderização.
+### 3. Fallbacks Seguros no ColorPicker e Typography
+Garantir que os inputs nativos (como `<input type="color">`) recebam apenas strings válidas e que a função `getTypographyStyles` ignore qualquer valor que não seja um primitivo.
 
 ## Detalhes Técnicos
 
-- **Arquivos afetados:**
-    - `src/components/business/personalization/utils.ts`
-    - `src/components/business/personalization/TypographySettings.tsx`
-    - `src/components/business/LandingPageCustomizer.tsx`
-    - `src/components/business/ColorPicker.tsx`
+- **LandingPageCustomizer.tsx**: Refatorar `sanitizeTheme` para ser recursiva e deletar chaves que não correspondam aos tipos esperados.
+- **utils.ts**: Fortalecer `getSafeValue` para garantir que `styles` CSS não recebam objetos.
+- **ColorPicker.tsx**: Adicionar verificação de tipo antes de renderizar os inputs de cor.
 
-- **Estratégia de Depuração:**
-    - Manter logs temporários que imprimam o caminho do objeto corrompido para que, caso o erro persista, saibamos exatamente qual campo no banco de dados está "sujo".
+---
+
+### 📊 Relatório de Execução (Planejamento)
+
+**Sub-agentes ativados:**
+- 🎨 **UI Architect** — ✅ Planejado
+- 🔍 **Code Auditor** — ✅ Planejado
+- 🧪 **Testing Agent** — ✅ Planejado
+- 🗄️ **Supabase Engineer** — ➖ Não necessário
