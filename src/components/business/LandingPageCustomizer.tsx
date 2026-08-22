@@ -628,82 +628,65 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
             </div>
           </TabsContent>
 
-          <TabsContent value="buttons" className="space-y-4">
-            <div className="space-y-4">
-              <ColorPicker
-                type={customization.button_color_type as "solid" | "gradient"}
-                solidColor={customization.button_color}
-                gradientSettings={customization.button_gradient}
-                onTypeChange={(type) => updateCustomization('button_color_type', type)}
-                onSolidColorChange={(color) => updateCustomization('button_color', color)}
-                onGradientChange={(gradient) => updateCustomization('button_gradient', gradient)}
-                label="Cor dos Botões"
-              />
+          <TabsContent value="buttons" className="space-y-4 pt-4">
+            <ButtonSettings 
+              label="Personalização de Botões"
+              config={customization.buttons || {}}
+              onChange={(val) => updateCustomization('buttons', val)}
+              disabled={isLocked}
+            />
+          </TabsContent>
+
+          <TabsContent value="cards" className="space-y-4 pt-4">
+            <CardSettings 
+              label="Configurações dos Cards"
+              config={customization.cards || {}}
+              onChange={(val) => updateCustomization('cards', val)}
+              disabled={isLocked}
+            />
+
+            <div className="mt-8 border-t pt-8">
+              <h4 className="text-sm font-bold uppercase tracking-wider mb-4 opacity-70">Estrutura dos Cards</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Layout dos Cards</Label>
+                  <Select 
+                    value={customization.cards_layout} 
+                    onValueChange={(value) => updateCustomization('cards_layout', value)}
+                    disabled={isLocked}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vertical">Vertical</SelectItem>
+                      <SelectItem value="horizontal">Horizontal (com imagem)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-4">
+                <div className="space-y-0.5">
+                  <Label>Mostrar Imagens nos Cards</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Permite adicionar imagens aos cards de serviços
+                  </p>
+                </div>
+                <Switch
+                  checked={customization.cards_show_images}
+                  onCheckedChange={(checked) => updateCustomization('cards_show_images', checked)}
+                  disabled={isLocked}
+                />
+              </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="cards" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Layout dos Cards</Label>
-                <Select 
-                  value={customization.cards_layout} 
-                  onValueChange={(value) => updateCustomization('cards_layout', value)}
-                  disabled={isLocked}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vertical">Vertical</SelectItem>
-                    <SelectItem value="horizontal">Horizontal (com imagem)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Fonte dos Cards</Label>
-                <Select 
-                  value={customization.cards_font_family} 
-                  onValueChange={(value) => updateCustomization('cards_font_family', value)}
-                  disabled={isLocked}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fontOptions.map((font) => (
-                      <SelectItem key={font.value} value={font.value}>
-                        {font.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Mostrar Imagens nos Cards</Label>
-                <p className="text-sm text-muted-foreground">
-                  Permite adicionar imagens aos cards de serviços
-                </p>
-              </div>
-              <Switch
-                checked={customization.cards_show_images}
-                onCheckedChange={(checked) => updateCustomization('cards_show_images', checked)}
-                disabled={isLocked}
-              />
-            </div>
-
-            <ColorPicker
-              type={customization.cards_color_type as "solid" | "gradient"}
-              solidColor={customization.cards_color}
-              gradientSettings={customization.cards_gradient}
-              onTypeChange={(type) => updateCustomization('cards_color_type', type)}
-              onSolidColorChange={(color) => updateCustomization('cards_color', color)}
-              onGradientChange={(gradient) => updateCustomization('cards_gradient', gradient)}
-              label="Cor dos Cards"
+          <TabsContent value="footer" className="space-y-4 pt-4">
+            <FooterSettings 
+              config={customization.footer || {}}
+              onChange={(val) => updateCustomization('footer', val)}
+              disabled={isLocked}
             />
           </TabsContent>
 
