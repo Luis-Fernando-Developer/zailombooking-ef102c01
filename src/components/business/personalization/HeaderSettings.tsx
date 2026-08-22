@@ -24,6 +24,7 @@ interface HeaderSettingsProps {
 
 export function HeaderSettings({ config, onChange, disabled }: HeaderSettingsProps) {
   const updateConfig = (field: keyof HeaderConfig, value: any) => {
+    console.log(`[HeaderSettings] Updating field "${field}":`, value);
     onChange({ ...config, [field]: value });
   };
 

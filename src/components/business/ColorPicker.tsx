@@ -95,8 +95,11 @@ export function ColorPicker({
             <div className="flex gap-2">
               <Input
                 type="color"
-                value={typeof solidColor === 'string' && solidColor.startsWith("hsl") ? "#8b5cf6" : (typeof solidColor === 'string' && solidColor.startsWith("#") ? solidColor : "#ffffff")}
-                onChange={(e) => onSolidColorChange(e.target.value)}
+                value={typeof solidColor === 'string' && solidColor.startsWith("#") ? solidColor : "#8b5cf6"}
+                onChange={(e) => {
+                  console.log(`[ColorPicker] Solid color change: ${e.target.value}`);
+                  onSolidColorChange(e.target.value);
+                }}
                 className="w-12 h-10 p-1 border rounded"
               />
               <Input

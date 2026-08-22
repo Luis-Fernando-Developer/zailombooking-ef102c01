@@ -25,6 +25,11 @@ export function TypographySettings({
   const [isOpen, setIsOpen] = useState(false);
 
   const updateConfig = (field: keyof TypographyConfig, value: any) => {
+    // Basic validation to prevent nesting objects in simple fields
+    if (value && typeof value === 'object' && !Array.isArray(value) && field !== 'gradient') {
+      console.warn(`[TypographySettings] Attempted to set nested object to field "${field}":`, value);
+      return;
+    }
     onChange({ ...config, [field]: value });
   };
 

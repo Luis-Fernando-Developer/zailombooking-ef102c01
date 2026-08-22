@@ -22,6 +22,7 @@ interface FooterSettingsProps {
 
 export function FooterSettings({ config, onChange, disabled }: FooterSettingsProps) {
   const updateConfig = (field: keyof FooterConfig, value: any) => {
+    console.log(`[FooterSettings] Updating field "${field}":`, value);
     onChange({ ...config, [field]: value });
   };
 
