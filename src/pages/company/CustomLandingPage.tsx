@@ -897,9 +897,12 @@ export default function CustomLandingPage() {
                       />
                     )}
                     <div className="flex-1 flex flex-col">
-                      <h3 className={`text-xl font-semibold mb-2 custom-font ${
-                        customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
-                      }`}>
+                      <h3 
+                        style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                        className={`text-xl font-semibold mb-2 custom-font ${
+                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
+                        }`}
+                      >
                         {combo.name}
                       </h3>
                       {combo.items && combo.items.length > 0 && (
@@ -910,9 +913,12 @@ export default function CustomLandingPage() {
                         </div>
                       )}
                       {combo.description && (
-                        <p className={`mb-4 text-sm custom-font ${
-                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
-                        }`}>
+                        <p 
+                          style={getTypographyStyles((customization as any).cards?.description_typography, (customization as any).body)}
+                          className={`mb-4 text-sm custom-font ${
+                            customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
+                          }`}
+                        >
                           {combo.description}
                         </p>
                       )}
@@ -969,15 +975,21 @@ export default function CustomLandingPage() {
                     />
                   )}
                   <div className="flex-1 flex flex-col">
-                    <h3 className={`text-xl font-semibold mb-2 custom-font ${
-                      customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
-                    }`}>
+                    <h3 
+                      style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                      className={`text-xl font-semibold mb-2 custom-font ${
+                        customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
+                      }`}
+                    >
                       {service.name}
                     </h3>
                     {service.description && (
-                      <p className={`mb-4 custom-font ${
-                        customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
-                      }`}>
+                      <p 
+                        style={getTypographyStyles((customization as any).cards?.description_typography, (customization as any).body)}
+                        className={`mb-4 custom-font ${
+                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
+                        }`}
+                      >
                         {service.description}
                       </p>
                     )}
@@ -1092,9 +1104,12 @@ export default function CustomLandingPage() {
                         )
                       )}
                       <div className={`flex-1 ${customization?.cards_layout === 'horizontal' ? '' : 'text-center'}`}>
-                        <h3 className={`text-xl font-semibold mb-2 ${
-                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
-                        }`}>
+                        <h3 
+                          style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                          className={`text-xl font-semibold mb-2 ${
+                            customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
+                          }`}
+                        >
                           {employee.name}
                         </h3>
                         {employeeServiceNames.length > 0 && (
