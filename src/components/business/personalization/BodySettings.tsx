@@ -23,6 +23,12 @@ interface BodySettingsProps {
 
 export function BodySettings({ config, onChange, disabled }: BodySettingsProps) {
   const updateConfig = (field: keyof BodyConfig, value: any) => {
+    // Bloqueio de objetos em campos primitivos
+    const primitiveFields = ['background_type', 'background_color', 'default_font_family', 'default_text_color', 'default_font_size', 'max_width'];
+    if (primitiveFields.includes(field as string) && value && typeof value === 'object') {
+      console.error(`[BodySettings] Blocked object for field "${field}":`, value);
+      return;
+    }
     onChange({ ...config, [field]: value });
   };
 

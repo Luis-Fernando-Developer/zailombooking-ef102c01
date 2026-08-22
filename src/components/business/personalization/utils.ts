@@ -84,7 +84,7 @@ export function getTypographyStyles(
  */
 export function getBackgroundStyles(config: any): React.CSSProperties {
   try {
-    if (!config || typeof config !== 'object') return {};
+    if (!config || typeof config !== 'object' || Array.isArray(config)) return {};
 
     const type = config.background_type || config.type;
     
@@ -92,7 +92,10 @@ export function getBackgroundStyles(config: any): React.CSSProperties {
       const grad = config.background_gradient || config.gradient;
       if (grad && typeof grad === 'object' && Array.isArray(grad.colors)) {
         const { type: gradType, angle, colors } = grad;
-        const colorString = colors.join(', ');
+        // Filter out non-string colors to prevent crashes
+        const colorString = colors.filter((c: any) => typeof c === 'string').join(', ');
+        if (!colorString) return {};
+        
         return {
           background: gradType === 'linear' 
             ? `linear-gradient(${angle || 0}deg, ${colorString})`

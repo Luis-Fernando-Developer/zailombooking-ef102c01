@@ -24,6 +24,20 @@ interface HeroSettingsProps {
 
 export function HeroSettings({ config, onChange, disabled }: HeroSettingsProps) {
   const updateConfig = (field: keyof HeroConfig, value: any) => {
+    // Sanitização para banner_urls que deve ser um array de strings
+    if (field === 'banner_urls' && Array.isArray(value)) {
+      const sanitizedUrls = value.filter(url => typeof url === 'string');
+      onChange({ ...config, [field]: sanitizedUrls });
+      return;
+    }
+    
+    // Bloqueio de objetos em campos primitivos
+    const primitiveFields = ['banner_type', 'background_type', 'background_color', 'content_position'];
+    if (primitiveFields.includes(field as string) && value && typeof value === 'object') {
+      console.error(`[HeroSettings] Blocked object for field "${field}":`, value);
+      return;
+    }
+
     onChange({ ...config, [field]: value });
   };
 
