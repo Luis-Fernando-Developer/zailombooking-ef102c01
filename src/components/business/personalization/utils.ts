@@ -1,115 +1,97 @@
-import { TypographyConfig } from "./types";
+import { type TypographyConfig, type ButtonConfig, type CardConfig } from "./types";
 
 /**
- * Utilitário para gerar estilos CSS a partir de uma configuração de tipografia.
- * @param config Configuração de tipografia do elemento.
- * @param fallbackConfig Configuração de fallback (seção ou body).
- * @returns Um objeto de estilo CSS.
+ * Generates CSS custom properties for typography configuration.
  */
-export function getTypographyStyles(
-  config?: TypographyConfig,
-  fallbackConfig?: TypographyConfig | any
-): React.CSSProperties {
-  try {
-    const styles: React.CSSProperties = {};
-
-    // Strict primitive extraction to prevent React #310
-    const getSafeValue = (val: any) => {
-      if (val === null || val === undefined) return undefined;
-      // If we got an object, it's corrupt data (React #310)
-      if (typeof val === 'object') {
-        // Log specifically what we found to help debugging
-        console.warn("[Typography Styles] React #310 Prevention: Object found instead of string/number:", val);
-        return undefined;
-      }
-      return val;
-    };
-
-    const family = getSafeValue(config?.family) || getSafeValue(fallbackConfig?.family) || getSafeValue((fallbackConfig as any)?.default_font_family);
-    if (family && typeof family === 'string') styles.fontFamily = `${family}, system-ui, sans-serif`;
-
-    const size = getSafeValue(config?.size) || getSafeValue(fallbackConfig?.size) || getSafeValue((fallbackConfig as any)?.default_font_size);
-    if (size) styles.fontSize = `${size}px`;
-
-    const weight = getSafeValue(config?.weight) || getSafeValue(fallbackConfig?.weight);
-    if (weight && (typeof weight === 'string' || typeof weight === 'number')) {
-      styles.fontWeight = weight as any;
-    }
-
-    const alignment = getSafeValue(config?.alignment) || getSafeValue(fallbackConfig?.alignment);
-    if (alignment && typeof alignment === 'string') {
-      styles.textAlign = alignment as any;
-    }
-
-    const lineHeight = getSafeValue(config?.lineHeight) || getSafeValue(fallbackConfig?.lineHeight);
-    if (lineHeight) styles.lineHeight = lineHeight;
-
-    const letterSpacing = getSafeValue(config?.letterSpacing) ?? getSafeValue(fallbackConfig?.letterSpacing);
-    if (letterSpacing !== undefined) styles.letterSpacing = `${letterSpacing}px`;
-
-    // Cores
-    const colorType = getSafeValue(config?.colorType) || getSafeValue(fallbackConfig?.colorType) || (getSafeValue((fallbackConfig as any)?.default_text_color) ? 'solid' : undefined);
-    
-    if (colorType === 'gradient') {
-      const grad = config?.gradient || fallbackConfig?.gradient;
-      if (grad && typeof grad === 'object' && Array.isArray(grad.colors)) {
-        const { type, angle, colors } = grad;
-        const colorString = colors.filter((c: any) => typeof c === 'string').join(', ');
-        const gradient = type === 'linear' 
-          ? `linear-gradient(${angle || 0}deg, ${colorString})`
-          : `radial-gradient(circle, ${colorString})`;
-        
-        return {
-          ...styles,
-          background: gradient,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          display: 'inline-block'
-        };
-      }
-    }
-
-    const color = getSafeValue(config?.color) || getSafeValue(fallbackConfig?.color) || getSafeValue((fallbackConfig as any)?.default_text_color);
-    if (color && typeof color === 'string') styles.color = color;
-
-    return styles;
-  } catch (error) {
-    console.error("Error in getTypographyStyles:", error, { config, fallbackConfig });
-    return {};
+export const getTypographyStyles = (config?: TypographyConfig, fallback?: any): React.CSSProperties => {
+  if (!config) return {};
+  
+  const styles: any = {};
+  
+  if (config.family) styles.fontFamily = `${config.family}, system-ui, sans-serif`;
+  if (config.size) styles.fontSize = `${config.size}px`;
+  if (config.weight) styles.fontWeight = config.weight;
+  
+  if (config.colorType === 'gradient' && config.gradient) {
+    const { type, angle, colors } = config.gradient;
+    const colorString = colors.join(', ');
+    styles.backgroundImage = type === 'linear' 
+      ? `linear-gradient(${angle}deg, ${colorString})`
+      : `radial-gradient(${colorString})`;
+    styles.WebkitBackgroundClip = 'text';
+    styles.WebkitTextFillColor = 'transparent';
+    styles.backgroundClip = 'text';
+    styles.color = 'transparent';
+  } else if (config.color) {
+    styles.color = config.color;
+    styles.backgroundImage = 'none';
+    styles.WebkitBackgroundClip = 'initial';
+    styles.WebkitTextFillColor = 'initial';
   }
-}
+
+  if (config.alignment) styles.textAlign = config.alignment;
+  if (config.lineHeight) styles.lineHeight = config.lineHeight;
+  if (config.letterSpacing !== undefined) styles.letterSpacing = `${config.letterSpacing}px`;
+  
+  return styles;
+};
 
 /**
- * Gera estilo de fundo (solid ou gradient)
+ * Generates CSS custom properties for background configuration (solid or gradient).
  */
-export function getBackgroundStyles(config: any): React.CSSProperties {
-  try {
-    if (!config || typeof config !== 'object' || Array.isArray(config)) return {};
-
-    const type = config.background_type || config.type;
-    
-    if (type === 'gradient') {
-      const grad = config.background_gradient || config.gradient;
-      if (grad && typeof grad === 'object' && Array.isArray(grad.colors)) {
-        const { type: gradType, angle, colors } = grad;
-        // Filter out non-string colors to prevent crashes
-        const colorString = colors.filter((c: any) => typeof c === 'string').join(', ');
-        if (!colorString) return {};
-        
-        return {
-          background: gradType === 'linear' 
-            ? `linear-gradient(${angle || 0}deg, ${colorString})`
-            : `radial-gradient(circle, ${colorString})`
-        };
-      }
-    }
-
-    const color = config.background_color || config.solidColor || config.color;
-    if (color && typeof color === 'string') return { backgroundColor: color };
-
-    return {};
-  } catch (error) {
-    console.error("Error in getBackgroundStyles:", error, { config });
-    return {};
+export const getBackgroundStyles = (config?: { 
+  background_type?: "solid" | "gradient", 
+  background_color?: string, 
+  background_gradient?: any 
+}): React.CSSProperties => {
+  if (!config) return {};
+  
+  const styles: any = {};
+  
+  if (config.background_type === 'gradient' && config.background_gradient) {
+    const { type, angle, colors } = config.background_gradient;
+    const colorString = colors.join(', ');
+    styles.background = type === 'linear' 
+      ? `linear-gradient(${angle}deg, ${colorString})`
+      : `radial-gradient(${colorString})`;
+  } else if (config.background_color) {
+    styles.backgroundColor = config.background_color;
   }
-}
+  
+  return styles;
+};
+
+/**
+ * Generates CSS styles for a button based on its configuration.
+ */
+export const getButtonStyles = (config?: ButtonConfig, fallbackBody?: any): React.CSSProperties => {
+  if (!config) return {};
+  
+  const bgStyles = getBackgroundStyles(config as any);
+  const typographyStyles = getTypographyStyles(config.typography, fallbackBody);
+  
+  return {
+    ...bgStyles,
+    ...typographyStyles,
+    borderRadius: config.border_radius !== undefined ? `${config.border_radius}px` : undefined,
+    padding: config.padding_v !== undefined && config.padding_h !== undefined 
+      ? `${config.padding_v}px ${config.padding_h}px` 
+      : undefined
+  };
+};
+
+/**
+ * Generates CSS styles for a card based on its configuration.
+ */
+export const getCardStyles = (config?: CardConfig): React.CSSProperties => {
+  if (!config) return {};
+  
+  const bgStyles = getBackgroundStyles(config as any);
+  
+  return {
+    ...bgStyles,
+    borderRadius: config.border_radius !== undefined ? `${config.border_radius}px` : undefined,
+    border: config.has_border ? `1px solid ${config.border_color || '#e2e8f0'}` : 'none',
+    boxShadow: config.has_shadow ? '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' : 'none'
+  };
+};
