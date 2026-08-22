@@ -24,7 +24,17 @@ interface HeaderSettingsProps {
 
 export function HeaderSettings({ config, onChange, disabled }: HeaderSettingsProps) {
   const updateConfig = (field: keyof HeaderConfig, value: any) => {
-    console.log(`[HeaderSettings] Updating field "${field}":`, value);
+    // Prevenir aninhamento recursivo em menu_typography
+    if (field === 'menu_typography' && value && typeof value === 'object') {
+      const sanitizedTypography = { ...value };
+      // Se houver campos que não pertencem a TypographyConfig, removemos
+      const validFields = ['text', 'family', 'size', 'weight', 'colorType', 'color', 'gradient', 'alignment', 'lineHeight', 'letterSpacing', 'hover_color', 'active_color'];
+      Object.keys(sanitizedTypography).forEach(key => {
+        if (!validFields.includes(key)) delete sanitizedTypography[key];
+      });
+      onChange({ ...config, [field]: sanitizedTypography });
+      return;
+    }
     onChange({ ...config, [field]: value });
   };
 

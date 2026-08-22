@@ -13,19 +13,15 @@ export function getTypographyStyles(
   try {
     const styles: React.CSSProperties = {};
 
-    // Logging to catch invalid data
-    if (typeof config === 'object' && config !== null) {
-      Object.entries(config).forEach(([key, value]) => {
-        if (typeof value === 'object' && value !== null && !Array.isArray(value) && key !== 'gradient') {
-          console.warn(`[Typography] Found nested object in field "${key}":`, value);
-        }
-      });
-    }
-
-    // Strict value retrieval with object detection
+    // Strict primitive extraction to prevent React #310
     const getSafeValue = (val: any) => {
       if (val === null || val === undefined) return undefined;
-      if (typeof val === 'object' && !Array.isArray(val)) return undefined;
+      // If we got an object (and it's not an array, which shouldn't happen for primitives anyway)
+      // we treat it as corrupt data to avoid React #310
+      if (typeof val === 'object' && !Array.isArray(val)) {
+        console.error("[Typography] Corrupt object found where primitive expected:", val);
+        return undefined;
+      }
       return val;
     };
 
@@ -88,7 +84,7 @@ export function getTypographyStyles(
  */
 export function getBackgroundStyles(config: any): React.CSSProperties {
   try {
-    if (!config || typeof config !== 'object') return {};
+    if (!config || typeof config !== 'object' || Array.isArray(config)) return {};
 
     const type = config.background_type || config.type;
     
@@ -96,7 +92,10 @@ export function getBackgroundStyles(config: any): React.CSSProperties {
       const grad = config.background_gradient || config.gradient;
       if (grad && typeof grad === 'object' && Array.isArray(grad.colors)) {
         const { type: gradType, angle, colors } = grad;
-        const colorString = colors.join(', ');
+        // Filter out non-string colors to prevent crashes
+        const colorString = colors.filter((c: any) => typeof c === 'string').join(', ');
+        if (!colorString) return {};
+        
         return {
           background: gradType === 'linear' 
             ? `linear-gradient(${angle || 0}deg, ${colorString})`

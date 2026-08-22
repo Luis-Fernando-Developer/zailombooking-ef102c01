@@ -260,10 +260,10 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
           const value = sanitized[sectionKey][fieldKey];
           // If a field that should be a primitive (string, number, boolean) is an object, reset it
           // Exceptions are specific config objects like 'gradient', 'cta_button', 'menu_typography', 'typography', 'title_typography', 'description_typography', 'text_typography'
-          const objectFields = ['gradient', 'background_gradient', 'cta_button', 'menu_typography', 'typography', 'title_typography', 'description_typography', 'text_typography', 'banner_urls'];
+          const objectFields = ['gradient', 'background_gradient', 'cta_button', 'menu_typography', 'typography', 'title_typography', 'description_typography', 'text_typography', 'price_typography', 'links_typography', 'banner_urls'];
           
           if (value && typeof value === 'object' && !Array.isArray(value) && !objectFields.includes(fieldKey)) {
-            console.warn(`[Sanitize] Detected invalid object in ${sectionKey}.${fieldKey}, resetting.`, value);
+            console.error(`[Sanitize] CRITICAL: Deleting invalid object in ${sectionKey}.${fieldKey}`, value);
             delete sanitized[sectionKey][fieldKey];
           }
 
