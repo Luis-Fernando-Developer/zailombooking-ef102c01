@@ -621,15 +621,6 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
               <h4 className="text-sm font-bold uppercase tracking-wider mb-4 opacity-70">Configurações Gerais do Hero</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Título (Texto)</Label>
-                  <Input
-                    value={customization.hero_title}
-                    onChange={(e) => updateCustomization('hero_title', e.target.value)}
-                    disabled={isLocked}
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label>Tipo de Banner</Label>
                   <Select 
                     value={customization.hero_banner_type} 
@@ -645,16 +636,24 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="space-y-2 mt-4">
-                <Label>Descrição (Texto)</Label>
-                <Textarea
-                  value={customization.hero_description}
-                  onChange={(e) => updateCustomization('hero_description', e.target.value)}
-                  disabled={isLocked}
-                  rows={3}
-                />
+                <div className="space-y-2">
+                  <Label>Posição do Conteúdo</Label>
+                  <Select 
+                    value={customization.hero_content_position} 
+                    onValueChange={(value) => updateCustomization('hero_content_position', value)}
+                    disabled={isLocked}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="absolute">Sobre a Imagem (Absolute)</SelectItem>
+                      <SelectItem value="below">Abaixo da Imagem</SelectItem>
+                      <SelectItem value="above">Acima da Imagem</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2 mt-4">
@@ -689,23 +688,6 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
                 </div>
               </div>
 
-              <div className="space-y-2 mt-4">
-                <Label>Posição do Conteúdo</Label>
-                <Select 
-                  value={customization.hero_content_position} 
-                  onValueChange={(value) => updateCustomization('hero_content_position', value)}
-                  disabled={isLocked}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="absolute">Sobre a Imagem (Absolute)</SelectItem>
-                    <SelectItem value="below">Abaixo da Imagem</SelectItem>
-                    <SelectItem value="above">Acima da Imagem</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </TabsContent>
 
