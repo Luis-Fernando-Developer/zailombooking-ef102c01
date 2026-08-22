@@ -26,6 +26,7 @@ import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { BookingPaymentDialog } from "@/components/booking/BookingPaymentDialog";
 import { getAvailability, AVAILABILITY_REASON_LABELS } from "@/lib/api/availability";
 import { applyTheme, getInitialTheme } from "@/components/ThemeToggle";
+import { getTypographyStyles, getBackgroundStyles } from "@/components/business/personalization/utils";
 
 
 interface Service {
@@ -144,9 +145,40 @@ export default function ClientBooking() {
     }
   }, [selectedDate, selectedEmployee, selectedService, company]);
 
+  // Apply dynamic theme customizations
   useEffect(() => {
     if (customization) {
-      console.log("customization:", customization);
+      const themeData = typeof customization.theme === 'object' && customization.theme !== null 
+        ? customization.theme as Record<string, any>
+        : {};
+      
+      const mergedCustomization = {
+        ...customization,
+        ...themeData
+      };
+
+      const bodyCfg = (mergedCustomization as any).body;
+      const root = document.documentElement;
+
+      if (bodyCfg) {
+        // Apply body background
+        const bgStyles = getBackgroundStyles(bodyCfg);
+        if (bgStyles.backgroundColor) root.style.backgroundColor = bgStyles.backgroundColor as string;
+        if (bgStyles.background) root.style.background = bgStyles.background as string;
+        
+        // Apply default typography variables
+        if (bodyCfg.default_font_family) root.style.setProperty('--font-primary', bodyCfg.default_font_family);
+        if (bodyCfg.default_text_color) root.style.setProperty('--text-color', bodyCfg.default_text_color);
+        if (bodyCfg.max_width) root.style.setProperty('--max-width', `${bodyCfg.max_width}px`);
+      } else {
+        // Legacy fallbacks
+        if (customization.primary_color) {
+          root.style.setProperty('--primary', customization.primary_color);
+        }
+        if (customization.font_family) {
+          root.style.setProperty('--font-primary', customization.font_family);
+        }
+      }
     }
   }, [customization]);
 

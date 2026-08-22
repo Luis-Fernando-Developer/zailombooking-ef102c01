@@ -11,6 +11,7 @@ import { custom } from "zod";
 import { CampaignTopBar, CampaignPopup, CampaignHeroBanner } from "@/components/marketing/CampaignSlots";
 import { useActiveCampaigns, type CampaignWithMaterials } from "@/hooks/use-active-campaigns";
 import { trackCampaignClick, type PlacementCTA } from "@/lib/api/marketing";
+import { getTypographyStyles, getBackgroundStyles } from "@/components/business/personalization/utils";
 
 interface CustomizationData {
   company_id: string;
@@ -263,6 +264,8 @@ export default function CustomLandingPage() {
         const themeData = typeof customizationData.theme === 'object' && customizationData.theme !== null 
           ? customizationData.theme as Record<string, any>
           : {};
+        
+        // Deep merge logic could be added here if needed, for now flat merge
         setCustomization({
           ...customizationData,
           ...themeData
@@ -285,6 +288,7 @@ export default function CustomLandingPage() {
       setLoading(false);
     }
   };
+
 
   const generateGradient = (gradientData: any) => {
     if (!gradientData) return '';
@@ -379,44 +383,29 @@ export default function CustomLandingPage() {
     if (!customization) return {};
 
     const styles: any = {};
+    const bodyCfg = (customization as any).body;
 
-    // Apply font settings
-    if (customization.font_family) {
-      styles['--font-family'] = customization.font_family;
+    // Body Fallback Styles
+    if (bodyCfg) {
+      const bodyStyles = getBackgroundStyles(bodyCfg);
+      Object.assign(styles, bodyStyles);
+      
+      if (bodyCfg.default_font_family) styles['--font-family'] = bodyCfg.default_font_family;
+      if (bodyCfg.default_font_size) styles['--font-size-base'] = `${bodyCfg.default_font_size}px`;
+      if (bodyCfg.default_text_color) styles['--text-color'] = bodyCfg.default_text_color;
+      if (bodyCfg.max_width) styles['--max-width'] = `${bodyCfg.max_width}px`;
+    } else {
+      // Legacy Font settings as fallback for body
+      if (customization.font_family) {
+        styles['--font-family'] = customization.font_family;
+      }
+      if (customization.font_size_base) {
+        styles['--font-size-base'] = `${customization.font_size_base}px`;
+      }
+      if (customization.font_color) {
+        styles['--text-color'] = customization.font_color;
+      }
     }
-    if (customization.font_size_base) {
-      styles['--font-size-base'] = `${customization.font_size_base}px`;
-    }
-
-    // Apply color settings
-    if (customization.font_color_type === 'gradient' && customization.font_gradient) {
-      styles['--text-gradient'] = generateGradient(customization.font_gradient);
-    } else if (customization.font_color) {
-      styles['--text-color'] = customization.font_color;
-    }
-
-    // Apply hero background
-    if (customization.hero_background_type === 'gradient' && customization.hero_background_gradient) {
-      styles['--hero-background'] = generateGradient(customization.hero_background_gradient);
-    } else if (customization.hero_background_color) {
-      styles['--hero-background'] = customization.hero_background_color;
-    }
-
-    // Apply header background
-    if (customization.header_background_type === 'gradient' && customization.header_background_gradient) {
-      styles['--header-background'] = generateGradient(customization.header_background_gradient);
-    } else if (customization.header_background_color) {
-      styles['--header-background'] = customization.header_background_color;
-    }
-
-    // Apply footer background
-    if (customization.footer_background_type === 'gradient' && customization.footer_background_gradient) {
-      styles['--footer-background'] = generateGradient(customization.footer_background_gradient);
-    } else if (customization.footer_background_color) {
-      styles['--footer-background'] = customization.footer_background_color;
-    }
-
-    
 
     return styles;
   };
@@ -476,8 +465,13 @@ export default function CustomLandingPage() {
   return (
     <div 
       className="min-h-screen"
-      style={customStyles}
+      style={{
+        ...customStyles,
+        fontFamily: customStyles['--font-family'] ? `${customStyles['--font-family']}, system-ui, sans-serif` : undefined,
+        color: customStyles['--text-color'] || undefined
+      }}
     >
+      <div className="mx-auto" style={{ maxWidth: customStyles['--max-width'] || '100%' }}>
       {customization?.header_position !== 'fixed' && (
         <CampaignTopBar companyId={company?.id} />
       )}
@@ -562,7 +556,8 @@ export default function CustomLandingPage() {
         <div className="sticky top-0 left-0 right-0 z-50">
           <CampaignTopBar companyId={company?.id} />
           <header
-          className={`backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
+            style={getBackgroundStyles((customization as any).header)}
+            className={`backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
           <div className="max-w-7xl  mx-auto  px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center  justify-between">
               <div className="w-full justify-between flex items-center gap-4 ">
@@ -578,7 +573,10 @@ export default function CustomLandingPage() {
                 ) : (
                   <BookingLogo showText={false} className="pt-0" />
                 )}
-                <h1 className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}>
+                <h1 
+                  style={getTypographyStyles((customization as any).header?.typography, (customization as any).body)}
+                  className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
+                >
                   {company.name} 
                 </h1>
                 <div className="flex items-center">
@@ -605,9 +603,23 @@ export default function CustomLandingPage() {
                               {loggedClient.name.charAt(0).toUpperCase()}
                             </div>
                           )}
-                          <span className="font-bold text-sm">{loggedClient.name.split(' ')[0]}</span>
+                          <span 
+                            style={getTypographyStyles((customization as any).header?.menu_typography, (customization as any).body)}
+                            className="font-bold text-sm"
+                          >
+                            {loggedClient.name.split(' ')[0]}
+                          </span>
                         </div>
-                        <Button variant="neon" className="h-[30px] p-2 font-bold" onClick={() => navigate(`/${slug}/client/dashboard`)}>
+                        <Button 
+                          variant="neon" 
+                          style={{
+                            ...getBackgroundStyles((customization as any).buttons),
+                            ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                            borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                          }}
+                          className="h-[30px] p-2 font-bold" 
+                          onClick={() => navigate(`/${slug}/client/dashboard`)}
+                        >
                           Meu Painel
                         </Button>
                         <Button variant="ghost" className="h-[30px] p-2 font-bold" onClick={handleClientLogout}>
@@ -619,6 +631,11 @@ export default function CustomLandingPage() {
                         <Button 
                           variant="neon" 
                           className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
+                          style={{
+                            ...getBackgroundStyles((customization as any).buttons),
+                            ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                            borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                          }}
                           onClick={() => navigate(`/${slug}/entrar`)}
                         >
                           <LogInIcon />
@@ -627,6 +644,11 @@ export default function CustomLandingPage() {
                         <Button 
                           variant="neon" 
                           className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
+                          style={{
+                            ...getBackgroundStyles((customization as any).buttons),
+                            ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                            borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                          }}
                           onClick={() => navigate(`/${slug}/cadastro`)}
                         >
                           <UserPlus2 />
@@ -644,6 +666,7 @@ export default function CustomLandingPage() {
       )}
       {customization?.header_position === 'relative' && (
         <header 
+          style={getBackgroundStyles((customization as any).header)}
           className={`relative top-0 left-0 right-0 z-50  backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
           <div className="max-w-7xl  mx-auto  px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center  justify-between">
@@ -660,7 +683,10 @@ export default function CustomLandingPage() {
                 ) : (
                   <BookingLogo showText={false} className="pt-0" />
                 )}
-                <h1 className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}>
+                <h1 
+                  style={getTypographyStyles((customization as any).header?.typography, (customization as any).body)}
+                  className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
+                >
                   {company.name}
                 </h1>
                 <div className="flex items-center">
@@ -727,7 +753,9 @@ export default function CustomLandingPage() {
         <CampaignHeroBanner companyId={company?.id} />
 
         {/* Hero Section with Custom Styling */}
-        <section className={`relative ${customization?.hero_content_position === 'absolute' ? 'h-[500px]' : ''} flex ${customization?.hero_content_position === 'below' ? 'flex-col' : customization?.hero_content_position === 'above' ? 'flex-col-reverse' : 'items-center justify-center'} overflow-hidden ${customization?.hero_background_type ? 'hero-custom-bg' : 'bg-gradient-hero'}`}>
+        <section 
+          style={getBackgroundStyles((customization as any).hero)}
+          className={`relative ${customization?.hero_content_position === 'absolute' ? 'h-[500px]' : ''} flex ${customization?.hero_content_position === 'below' ? 'flex-col' : customization?.hero_content_position === 'above' ? 'flex-col-reverse' : 'items-center justify-center'} overflow-hidden ${customization?.hero_background_type ? 'hero-custom-bg' : 'bg-gradient-hero'}`}>
           {/* Background Elements */}
           {customization?.hero_content_position === 'absolute' && (
             <div className="absolute inset-0">
@@ -747,7 +775,12 @@ export default function CustomLandingPage() {
                         type="button"
                         onClick={() => handleHeroCtaClick(item)}
                         className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
-                        style={{ zIndex: 25 }}
+                        style={{ 
+                          zIndex: 25,
+                          ...getBackgroundStyles((customization as any).buttons),
+                          ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                          borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                        }}
                       >
                         {item.cfg.label ?? 'Saiba mais'}
                       </button>
@@ -791,7 +824,12 @@ export default function CustomLandingPage() {
                     type="button"
                     onClick={() => handleHeroCtaClick(item)}
                     className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
-                    style={{ zIndex: 25 }}
+                    style={{ 
+                      zIndex: 25,
+                      ...getBackgroundStyles((customization as any).buttons),
+                      ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                      borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                    }}
                   >
                     {item.cfg.label ?? 'Saiba mais'}
                   </button>
@@ -817,11 +855,17 @@ export default function CustomLandingPage() {
 
           <div className={`${customization?.hero_content_position === 'absolute' ? 'relative z-10' : 'py-16'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`}>
             <div className="text-center">
-              <h1 className={`text-5xl lg:text-7xl font-bold mb-6 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : ''}`}>
+              <h1 
+                style={getTypographyStyles((customization as any).hero?.title_typography, (customization as any).body)}
+                className={`text-5xl lg:text-7xl font-bold mb-6 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : ''}`}
+              >
                 {customization?.hero_title || ''}
               </h1>
               
-              <p className={`text-xl mb-8 max-w-2xl mx-auto ${customization?.font_color ? 'text-custom-color' : 'text-muted-foreground'}`}>
+              <p 
+                style={getTypographyStyles((customization as any).hero?.description_typography, (customization as any).body)}
+                className={`text-xl mb-8 max-w-2xl mx-auto ${customization?.font_color ? 'text-custom-color' : 'text-muted-foreground'}`}
+              >
                 {customization?.hero_description || ''}
               </p>
             </div>
@@ -841,10 +885,16 @@ export default function CustomLandingPage() {
         <section className="py-16 bg-card/30  border-2 border-green-600">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className={`text-3xl font-bold mb-4 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}>
+              <h2 
+                style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                className={`text-3xl font-bold mb-4 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
+              >
                 Nossos Serviços
               </h2>
-              <p className={`max-w-2xl mx-auto custom-font ${customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'}`}>
+              <p 
+                style={getTypographyStyles((customization as any).cards?.description_typography, (customization as any).body)}
+                className={`max-w-2xl mx-auto custom-font ${customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'}`}
+              >
                 Conheça todos os serviços que oferecemos para você
               </p>
               
@@ -861,6 +911,10 @@ export default function CustomLandingPage() {
                 return (
                   <div
                     key={combo.id}
+                    style={{
+                      ...getBackgroundStyles((customization as any).cards),
+                      ...getTypographyStyles((customization as any).cards?.typography, (customization as any).body)
+                    }}
                     className={`rounded-lg border border-primary/20 p-6 transition-colors custom-font flex flex-col h-full ${
                       customization?.cards_layout === 'horizontal' ? 'sm:flex-row sm:items-center sm:gap-6' : ''
                     } ${customization?.cards_color_type === 'gradient' ? 'cards-custom-bg' : 'bg-card'}`}
@@ -877,9 +931,12 @@ export default function CustomLandingPage() {
                       />
                     )}
                     <div className="flex-1 flex flex-col">
-                      <h3 className={`text-xl font-semibold mb-2 custom-font ${
-                        customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
-                      }`}>
+                      <h3 
+                        style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                        className={`text-xl font-semibold mb-2 custom-font ${
+                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
+                        }`}
+                      >
                         {combo.name}
                       </h3>
                       {combo.items && combo.items.length > 0 && (
@@ -890,9 +947,12 @@ export default function CustomLandingPage() {
                         </div>
                       )}
                       {combo.description && (
-                        <p className={`mb-4 text-sm custom-font ${
-                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
-                        }`}>
+                        <p 
+                          style={getTypographyStyles((customization as any).cards?.description_typography, (customization as any).body)}
+                          className={`mb-4 text-sm custom-font ${
+                            customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
+                          }`}
+                        >
                           {combo.description}
                         </p>
                       )}
@@ -925,6 +985,10 @@ export default function CustomLandingPage() {
               {services.slice(0, visibleServices).map((service) => (
                 <div 
                   key={service.id} 
+                  style={{
+                    ...getBackgroundStyles((customization as any).cards),
+                    ...getTypographyStyles((customization as any).cards?.typography, (customization as any).body)
+                  }}
                   className={`rounded-lg border border-primary/20 p-6 hover:border-primary/40 transition-colors custom-font flex flex-col h-full ${
                     customization?.cards_layout === 'horizontal' ? 'sm:flex-row sm:gap-6 sm:items-center' : ''
                   } ${
@@ -945,15 +1009,21 @@ export default function CustomLandingPage() {
                     />
                   )}
                   <div className="flex-1 flex flex-col">
-                    <h3 className={`text-xl font-semibold mb-2 custom-font ${
-                      customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
-                    }`}>
+                    <h3 
+                      style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                      className={`text-xl font-semibold mb-2 custom-font ${
+                        customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
+                      }`}
+                    >
                       {service.name}
                     </h3>
                     {service.description && (
-                      <p className={`mb-4 custom-font ${
-                        customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
-                      }`}>
+                      <p 
+                        style={getTypographyStyles((customization as any).cards?.description_typography, (customization as any).body)}
+                        className={`mb-4 custom-font ${
+                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
+                        }`}
+                      >
                         {service.description}
                       </p>
                     )}
@@ -995,6 +1065,11 @@ export default function CustomLandingPage() {
             <div className="text-center mt-12">
               <button 
                 onClick={() => navigate(`/${slug}/agendar`)}
+                style={{
+                  ...getBackgroundStyles((customization as any).buttons),
+                  ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                  borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                }}
                 className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors button-custom-bg"
               >
                 Agendar Agora
@@ -1005,10 +1080,15 @@ export default function CustomLandingPage() {
 
         {/* Profissionais */}
         {employees.length > 0 && (
-          <section className="py-16">
+          <section 
+            style={getBackgroundStyles((customization as any).cards)}
+            className="py-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12">
-                <h2 className={`text-3xl font-bold mb-4 ${customization?.cards_font_family ? 'cards-custom-font' : ''} ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}>
+                <h2 
+                  style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                  className={`text-3xl font-bold mb-4 ${customization?.cards_font_family ? 'cards-custom-font' : ''} ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
+                >
                   Nossa Equipe
                 </h2>
                 <p className={`max-w-2xl mx-auto ${customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'}`}>
@@ -1027,6 +1107,10 @@ export default function CustomLandingPage() {
                   return (
                     <div 
                       key={employee.id} 
+                      style={{
+                        ...getBackgroundStyles((customization as any).cards),
+                        ...getTypographyStyles((customization as any).cards?.typography, (customization as any).body)
+                      }}
                       className={`rounded-lg border border-primary/20 p-6 hover:border-primary/40 transition-colors ${
                         customization?.cards_layout === 'horizontal' ? 'flex gap-6 items-center' : ''
                       } ${
@@ -1059,9 +1143,12 @@ export default function CustomLandingPage() {
                         )
                       )}
                       <div className={`flex-1 ${customization?.cards_layout === 'horizontal' ? '' : 'text-center'}`}>
-                        <h3 className={`text-xl font-semibold mb-2 ${
-                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
-                        }`}>
+                        <h3 
+                          style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                          className={`text-xl font-semibold mb-2 ${
+                            customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
+                          }`}
+                        >
                           {employee.name}
                         </h3>
                         {employeeServiceNames.length > 0 && (
@@ -1132,6 +1219,11 @@ export default function CustomLandingPage() {
                 <div className="mt-6">
                   <button 
                     onClick={() => navigate(`/${slug}/agendar`)}
+                    style={{
+                      ...getBackgroundStyles((customization as any).buttons),
+                      ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                      borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                    }}
                     className="w-full bg-neon-violet text-white px-6 py-3 rounded-lg font-semibold hover:bg-neon-violet/90 transition-colors"
                   >
                     Fazer Agendamento
@@ -1143,7 +1235,12 @@ export default function CustomLandingPage() {
         </section>
 
         {/* Footer Simples */}
-        <footer className={`py-8 border-t border-primary/20 ${customization?.footer_background_type ? 'footer-custom-bg' : 'bg-card/30'}`}>
+        <footer 
+          style={{
+            ...getBackgroundStyles((customization as any).footer),
+            ...getTypographyStyles((customization as any).footer?.typography, (customization as any).body)
+          }}
+          className={`py-8 border-t border-primary/20 ${customization?.footer_background_type ? 'footer-custom-bg' : 'bg-card/30'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <p className="text-muted-foreground">
@@ -1154,6 +1251,7 @@ export default function CustomLandingPage() {
         </footer>
 
         {/* Chatbot Widget removido — gerenciado pelo builder externo (TalkMap). */}
+      </div>
       </div>
     </div>
   );
