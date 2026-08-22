@@ -246,12 +246,19 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
     setSaving(true);
     try {
       const hero_banner_urls = customization.hero_banner_urls.filter(url => url.trim() !== "");
+      
+      // Separate theme data for the JSONB column
+      const { body, header, hero, buttons, cards, footer, ...baseData } = customization;
+      const theme = { body, header, hero, buttons, cards, footer };
+
       const { error } = await supabase
         .from('company_customizations')
         .upsert({
+          ...baseData,
           company_id: companyId,
-          ...customization,
-          hero_banner_urls
+          hero_banner_urls,
+          theme,
+          updated_at: new Date().toISOString()
         });
 
       if (error) throw error;
