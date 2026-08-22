@@ -306,61 +306,16 @@ export default function CustomLandingPage() {
       .filter(Boolean);
   };
 
-  const generateCardsStyles = () => {
-    if (!customization) return {};
-    
-    const styles: any = {};
-    
-    if (customization.cards_color_type === 'gradient' && customization.cards_gradient) {
-      styles['--cards-background'] = generateGradient(customization.cards_gradient);
-    } else if (customization.cards_color) {
-      styles['--cards-color'] = customization.cards_color;
-    }
-    
-    return styles;
-  };
-
-  const generateButtonStyles = () => {
-    if (!customization) return {};
-
-    const styles: any = {};
-
-    if (customization.button_color_type === 'gradient' && customization.button_gradient) {
-      styles['--button-background'] = generateGradient(customization.button_gradient);
-    } else if (customization.button_color) {
-      styles['--button-background'] = customization.button_color;
-    }
-
-    return styles;
-  };
-
-
   const applyCustomStyles = () => {
     if (!customization) return {};
 
     const styles: any = {};
-    const bodyCfg = (customization as any).body;
+    const bodyCfg = customization.body;
 
-    // Body Fallback Styles
+    // Body Styles
     if (bodyCfg) {
-      const bodyStyles = getBackgroundStyles(bodyCfg);
-      Object.assign(styles, bodyStyles);
-      
-      if (bodyCfg.default_font_family) styles['--font-family'] = bodyCfg.default_font_family;
-      if (bodyCfg.default_font_size) styles['--font-size-base'] = `${bodyCfg.default_font_size}px`;
-      if (bodyCfg.default_text_color) styles['--text-color'] = bodyCfg.default_text_color;
-      if (bodyCfg.max_width) styles['--max-width'] = `${bodyCfg.max_width}px`;
-    } else {
-      // Legacy Font settings as fallback for body
-      if (customization.font_family) {
-        styles['--font-family'] = customization.font_family;
-      }
-      if (customization.font_size_base) {
-        styles['--font-size-base'] = `${customization.font_size_base}px`;
-      }
-      if (customization.font_color) {
-        styles['--text-color'] = customization.font_color;
-      }
+      if (bodyCfg.background_color) styles.backgroundColor = bodyCfg.background_color;
+      if (bodyCfg.font_family) styles['--font-family'] = bodyCfg.font_family;
     }
 
     return styles;
