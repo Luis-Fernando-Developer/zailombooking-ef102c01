@@ -224,7 +224,15 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data) {
-        setCustomization({...defaultData, ...data});
+        const themeData = typeof data.theme === 'object' && data.theme !== null 
+          ? data.theme as Record<string, any>
+          : {};
+        
+        setCustomization({
+          ...defaultData,
+          ...data,
+          ...themeData
+        });
       } else {
         setCustomization(defaultData);
       }
