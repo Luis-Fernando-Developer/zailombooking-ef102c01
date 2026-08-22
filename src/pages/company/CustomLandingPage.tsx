@@ -465,8 +465,13 @@ export default function CustomLandingPage() {
   return (
     <div 
       className="min-h-screen"
-      style={customStyles}
+      style={{
+        ...customStyles,
+        fontFamily: customStyles['--font-family'] ? `${customStyles['--font-family']}, system-ui, sans-serif` : undefined,
+        color: customStyles['--text-color'] || undefined
+      }}
     >
+      <div className="mx-auto" style={{ maxWidth: customStyles['--max-width'] || '100%' }}>
       {customization?.header_position !== 'fixed' && (
         <CampaignTopBar companyId={company?.id} />
       )}
@@ -1143,6 +1148,7 @@ export default function CustomLandingPage() {
         </footer>
 
         {/* Chatbot Widget removido — gerenciado pelo builder externo (TalkMap). */}
+      </div>
       </div>
     </div>
   );
