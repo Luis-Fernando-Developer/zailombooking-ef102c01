@@ -51,7 +51,7 @@ export function HeaderSettings({ config, onChange, disabled }: HeaderSettingsPro
             <TypographySettings
               label="Itens do Menu"
               config={config.menu_typography || defaultTypography}
-              onChange={(val) => updateConfig("menu_typography", { ...config.menu_typography, ...val })}
+              onChange={(val) => updateConfig("menu_typography", { ...val })}
               disabled={disabled}
             />
           </AccordionContent>
