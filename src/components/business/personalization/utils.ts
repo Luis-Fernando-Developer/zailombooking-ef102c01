@@ -13,14 +13,16 @@ export function getTypographyStyles(
   try {
     const styles: React.CSSProperties = {};
 
-    // Logging to catch invalid data
-    if (typeof config === 'object' && config !== null) {
-      Object.entries(config).forEach(([key, value]) => {
-        if (typeof value === 'object' && value !== null && !Array.isArray(value) && key !== 'gradient') {
-          console.warn(`[Typography] Found nested object in field "${key}":`, value);
-        }
-      });
-    }
+    // Strict primitive extraction to prevent React #310
+    const getSafeValue = (val: any) => {
+      if (val === null || val === undefined) return undefined;
+      // If we got an object where we expect a primitive, it's corrupt data
+      if (typeof val === 'object') {
+        console.error("[Typography] Corrupt object found where primitive expected:", val);
+        return undefined;
+      }
+      return val;
+    };
 
     // Strict value retrieval with object detection
     const getSafeValue = (val: any) => {

@@ -25,11 +25,16 @@ export function TypographySettings({
   const [isOpen, setIsOpen] = useState(false);
 
   const updateConfig = (field: keyof TypographyConfig, value: any) => {
-    // Basic validation to prevent nesting objects in simple fields
-    if (value && typeof value === 'object' && !Array.isArray(value) && field !== 'gradient') {
-      console.warn(`[TypographySettings] Attempted to set nested object to field "${field}":`, value);
-      return;
+    // Strict primitive validation to prevent React #310 error
+    const primitiveFields = ['text', 'family', 'size', 'weight', 'colorType', 'color', 'alignment', 'lineHeight', 'letterSpacing'];
+    
+    if (primitiveFields.includes(field as string)) {
+      if (value !== null && typeof value === 'object') {
+        console.error(`[TypographySettings] CRITICAL: Blocked object injection into primitive field "${field}":`, value);
+        return;
+      }
     }
+
     onChange({ ...config, [field]: value });
   };
 
