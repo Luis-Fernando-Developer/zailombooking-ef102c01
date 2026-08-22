@@ -11,53 +11,9 @@ import { custom } from "zod";
 import { CampaignTopBar, CampaignPopup, CampaignHeroBanner } from "@/components/marketing/CampaignSlots";
 import { useActiveCampaigns, type CampaignWithMaterials } from "@/hooks/use-active-campaigns";
 import { trackCampaignClick, type PlacementCTA } from "@/lib/api/marketing";
-import { getTypographyStyles, getBackgroundStyles } from "@/components/business/personalization/utils";
+import { getTypographyStyles, getBackgroundStyles, getButtonStyles, getCardStyles } from "@/components/business/personalization/utils";
 
-interface CustomizationData {
-  company_id: string;
-  id: string;
-  logo_type?: string | null;
-  logo_url?: string | null;
-  logo_upload_path?: string | null;
-  primary_color?: string | null;
-  secondary_color?: string | null;
-  theme?: any;
-  created_at: string;
-  updated_at: string;
-  // Extended theme properties (stored in theme JSON)
-  header_position?: string;
-  header_background_type?: string;
-  header_background_color?: string;
-  header_background_gradient?: any;
-  font_family?: string;
-  font_size_base?: number;
-  font_color_type?: string;
-  font_color?: string;
-  font_gradient?: any;
-  hero_banner_type?: string;
-  hero_banner_urls?: string[];
-  hero_background_type?: string;
-  hero_background_color?: string;
-  hero_background_gradient?: any;
-  hero_title?: string;
-  hero_description?: string;
-  hero_content_position?: string;
-  button_color_type?: string;
-  button_color?: string;
-  button_gradient?: any;
-  cards_show_images?: boolean;
-  cards_layout?: string;
-  cards_font_family?: string;
-  cards_color_type?: string;
-  cards_color?: string;
-  cards_gradient?: any;
-  extra_section_enabled?: boolean;
-  extra_section_code?: string;
-  footer_background_type?: string;
-  footer_background_color?: string;
-  footer_background_gradient?: any;
-  footer_font_family?: string;
-}
+import { type CustomizationData } from "@/components/business/personalization/types";
 
 interface Combo {
   id: string;
@@ -79,7 +35,7 @@ export default function CustomLandingPage() {
   const [services, setServices] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [employeeServices, setEmployeeServices] = useState<any[]>([]);
-  const [customization, setCustomization] = useState<CustomizationData | null>(null);
+  const [customization, setCustomization] = useState<CustomizationData | any>(null);
   const [combos, setCombos] = useState<Combo[]>([]);
   const [loading, setLoading] = useState(true);
   const [businessHours, setBusinessHours] = useState<any[]>([]);
