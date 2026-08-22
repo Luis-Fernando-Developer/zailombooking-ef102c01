@@ -25,7 +25,12 @@ interface ButtonSettingsProps {
 
 export function ButtonSettings({ label, config, onChange, disabled }: ButtonSettingsProps) {
   const updateConfig = (field: keyof ButtonConfig, value: any) => {
-    console.log(`[ButtonSettings] Updating field "${field}":`, value);
+    // Strict validation for ButtonConfig primitives
+    const primitiveFields = ['background_type', 'background_color', 'border_radius', 'padding_v', 'padding_h', 'hover_background_color', 'hover_text_color'];
+    if (primitiveFields.includes(field as string) && value && typeof value === 'object') {
+      console.error(`[ButtonSettings] React #310 Prevention: Blocked object for field "${field}":`, value);
+      return;
+    }
     onChange({ ...config, [field]: value });
   };
 

@@ -27,7 +27,12 @@ interface CardSettingsProps {
 
 export function CardSettings({ label, config, onChange, disabled }: CardSettingsProps) {
   const updateConfig = (field: keyof CardConfig, value: any) => {
-    console.log(`[CardSettings] Updating field "${field}":`, value);
+    // Strict validation for CardConfig primitives
+    const primitiveFields = ['background_type', 'background_color', 'border_radius', 'has_border', 'border_color', 'has_shadow'];
+    if (primitiveFields.includes(field as string) && value && typeof value === 'object') {
+      console.error(`[CardSettings] React #310 Prevention: Blocked object for field "${field}":`, value);
+      return;
+    }
     onChange({ ...config, [field]: value });
   };
 

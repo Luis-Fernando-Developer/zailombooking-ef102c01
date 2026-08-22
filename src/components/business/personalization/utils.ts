@@ -16,10 +16,10 @@ export function getTypographyStyles(
     // Strict primitive extraction to prevent React #310
     const getSafeValue = (val: any) => {
       if (val === null || val === undefined) return undefined;
-      // If we got an object (and it's not an array, which shouldn't happen for primitives anyway)
-      // we treat it as corrupt data to avoid React #310
-      if (typeof val === 'object' && !Array.isArray(val)) {
-        console.error("[Typography] Corrupt object found where primitive expected:", val);
+      // If we got an object, it's corrupt data (React #310)
+      if (typeof val === 'object') {
+        // Log specifically what we found to help debugging
+        console.warn("[Typography Styles] React #310 Prevention: Object found instead of string/number:", val);
         return undefined;
       }
       return val;
