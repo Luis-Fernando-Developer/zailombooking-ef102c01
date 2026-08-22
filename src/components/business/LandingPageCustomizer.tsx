@@ -254,24 +254,48 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
     const sanitized = { ...theme };
     const fieldsToSanitize = ['body', 'header', 'hero', 'buttons', 'cards', 'footer'];
     
+    // Explicit lists of fields that ARE allowed to be objects
+    const validObjectFields = [
+      'gradient', 
+      'background_gradient', 
+      'cta_button', 
+      'menu_typography', 
+      'typography', 
+      'title_typography', 
+      'description_typography', 
+      'text_typography', 
+      'price_typography', 
+      'links_typography', 
+      'banner_urls'
+    ];
+
+    const sanitizeObject = (obj: any, path: string = ''): any => {
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+      
+      const cleanObj: any = { ...obj };
+      
+      Object.keys(cleanObj).forEach(key => {
+        const val = cleanObj[key];
+        const currentPath = path ? `${path}.${key}` : key;
+        
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          // If it's a known object container, recurse
+          if (validObjectFields.includes(key)) {
+            cleanObj[key] = sanitizeObject(val, currentPath);
+          } else {
+            // CRITICAL: This is a primitive field (string/number) that somehow got an object
+            console.error(`[Sanitize] CRITICAL React #310 Prevention: Deleting invalid nested object at "${currentPath}"`, val);
+            delete cleanObj[key];
+          }
+        }
+      });
+      
+      return cleanObj;
+    };
+    
     fieldsToSanitize.forEach(sectionKey => {
       if (sanitized[sectionKey] && typeof sanitized[sectionKey] === 'object') {
-        Object.keys(sanitized[sectionKey]).forEach(fieldKey => {
-          const value = sanitized[sectionKey][fieldKey];
-          // If a field that should be a primitive (string, number, boolean) is an object, reset it
-          // Exceptions are specific config objects like 'gradient', 'cta_button', 'menu_typography', 'typography', 'title_typography', 'description_typography', 'text_typography'
-          const objectFields = ['gradient', 'background_gradient', 'cta_button', 'menu_typography', 'typography', 'title_typography', 'description_typography', 'text_typography', 'price_typography', 'links_typography', 'banner_urls'];
-          
-          if (value && typeof value === 'object' && !Array.isArray(value) && !objectFields.includes(fieldKey)) {
-            console.error(`[Sanitize] CRITICAL: Deleting invalid object in ${sectionKey}.${fieldKey}`, value);
-            delete sanitized[sectionKey][fieldKey];
-          }
-
-          // Recursively sanitize typography objects
-          if (objectFields.includes(fieldKey) && value && typeof value === 'object' && !Array.isArray(value)) {
-            sanitized[sectionKey][fieldKey] = sanitizeTheme(value);
-          }
-        });
+        sanitized[sectionKey] = sanitizeObject(sanitized[sectionKey], sectionKey);
       }
     });
 

@@ -22,7 +22,12 @@ interface FooterSettingsProps {
 
 export function FooterSettings({ config, onChange, disabled }: FooterSettingsProps) {
   const updateConfig = (field: keyof FooterConfig, value: any) => {
-    console.log(`[FooterSettings] Updating field "${field}":`, value);
+    // Strict validation for FooterConfig primitives
+    const primitiveFields = ['background_type', 'background_color'];
+    if (primitiveFields.includes(field as string) && value && typeof value === 'object') {
+      console.error(`[FooterSettings] React #310 Prevention: Blocked object for field "${field}":`, value);
+      return;
+    }
     onChange({ ...config, [field]: value });
   };
 
