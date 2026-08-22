@@ -95,7 +95,7 @@ export function ColorPicker({
             <div className="flex gap-2">
               <Input
                 type="color"
-                value={typeof solidColor === 'string' && solidColor.startsWith("hsl") ? "#8b5cf6" : (typeof solidColor === 'string' ? solidColor : "#ffffff")}
+                value={typeof solidColor === 'string' && solidColor.startsWith("hsl") ? "#8b5cf6" : (typeof solidColor === 'string' && solidColor.startsWith("#") ? solidColor : "#ffffff")}
                 onChange={(e) => onSolidColorChange(e.target.value)}
                 className="w-12 h-10 p-1 border rounded"
               />
@@ -150,7 +150,7 @@ export function ColorPicker({
                   <div key={index} className="flex gap-2 items-center">
                     <Input
                       type="color"
-                      value={typeof color === 'string' && color.startsWith("hsl") ? "#8b5cf6" : (typeof color === 'string' ? color : "#ffffff")}
+                      value={typeof color === 'string' && color.startsWith("hsl") ? "#8b5cf6" : (typeof color === 'string' && color.startsWith("#") ? color : "#ffffff")}
                       onChange={(e) => updateColor(index, e.target.value)}
                       className="w-12 h-8 p-1 border rounded"
                     />
@@ -177,7 +177,7 @@ export function ColorPicker({
                 <div className="flex gap-2">
                   <Input
                     type="color"
-                    value={typeof newColor === 'string' && newColor.startsWith("hsl") ? "#8b5cf6" : (typeof newColor === 'string' ? newColor : "#ffffff")}
+                    value={typeof newColor === 'string' && newColor.startsWith("hsl") ? "#8b5cf6" : (typeof newColor === 'string' && newColor.startsWith("#") ? newColor : "#ffffff")}
                     onChange={(e) => setNewColor(e.target.value)}
                     className="w-12 h-8 p-1 border rounded"
                   />

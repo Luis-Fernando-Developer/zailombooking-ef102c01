@@ -155,7 +155,7 @@ export function TypographySettings({
           <ColorPicker
             type={config.colorType}
             solidColor={config.color}
-            gradientSettings={config.gradient}
+            gradientSettings={config.gradient || { type: "linear", angle: 45, colors: ["#8b5cf6", "#d8b4fe"] }}
             onTypeChange={(type) => updateConfig("colorType", type)}
             onSolidColorChange={(color) => updateConfig("color", color)}
             onGradientChange={(gradient) => updateConfig("gradient", gradient)}

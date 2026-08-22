@@ -17,10 +17,10 @@ export function getTypographyStyles(
     return configVal !== undefined ? configVal : fallbackVal;
   };
 
-  const family = config?.family || fallbackConfig?.family || fallbackConfig?.default_font_family;
+  const family = config?.family || fallbackConfig?.family || (fallbackConfig as any)?.default_font_family;
   if (family) styles.fontFamily = `${family}, system-ui, sans-serif`;
 
-  const size = config?.size || fallbackConfig?.size || fallbackConfig?.default_font_size;
+  const size = config?.size || fallbackConfig?.size || (fallbackConfig as any)?.default_font_size;
   if (size) styles.fontSize = `${size}px`;
 
   const weight = config?.weight || fallbackConfig?.weight;
@@ -36,7 +36,8 @@ export function getTypographyStyles(
   if (letterSpacing !== undefined) styles.letterSpacing = `${letterSpacing}px`;
 
   // Cores
-  const colorType = config?.colorType || fallbackConfig?.colorType || (fallbackConfig?.default_text_color ? 'solid' : undefined);
+  const colorType = config?.colorType || fallbackConfig?.colorType || ((fallbackConfig as any)?.default_text_color ? 'solid' : undefined);
+  
   
   if (colorType === 'gradient') {
     const grad = config?.gradient || fallbackConfig?.gradient;
@@ -57,7 +58,8 @@ export function getTypographyStyles(
     }
   }
 
-  const color = config?.color || fallbackConfig?.color || fallbackConfig?.default_text_color;
+  const color = config?.color || fallbackConfig?.color || (fallbackConfig as any)?.default_text_color;
+  
   if (color) styles.color = color;
 
   return styles;
