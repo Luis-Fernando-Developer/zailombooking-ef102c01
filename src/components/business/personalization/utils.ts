@@ -58,7 +58,7 @@ export function getTypographyStyles(
       const grad = config?.gradient || fallbackConfig?.gradient;
       if (grad && typeof grad === 'object' && Array.isArray(grad.colors)) {
         const { type, angle, colors } = grad;
-        const colorString = colors.filter(c => typeof c === 'string').join(', ');
+        const colorString = colors.filter((c: any) => typeof c === 'string').join(', ');
         const gradient = type === 'linear' 
           ? `linear-gradient(${angle || 0}deg, ${colorString})`
           : `radial-gradient(circle, ${colorString})`;
