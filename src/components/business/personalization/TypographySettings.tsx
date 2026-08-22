@@ -34,12 +34,14 @@ export function TypographySettings({
       onOpenChange={setIsOpen}
       className="border rounded-md p-2 bg-card"
     >
-      <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-muted/50 rounded-sm transition-colors">
-        <div className="flex items-center gap-2">
-          <Type className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">{label}</span>
-        </div>
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      <CollapsibleTrigger asChild>
+        <button className="flex items-center justify-between w-full p-2 hover:bg-muted/50 rounded-sm transition-colors text-left">
+          <div className="flex items-center gap-2">
+            <Type className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{label}</span>
+          </div>
+          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        </button>
       </CollapsibleTrigger>
       
       <CollapsibleContent className="pt-4 pb-2 px-2 space-y-4">

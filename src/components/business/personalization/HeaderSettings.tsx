@@ -35,8 +35,8 @@ export function HeaderSettings({ config, onChange, disabled }: HeaderSettingsPro
           <AccordionContent className="pt-4 space-y-4">
             <ColorPicker
               type={config.background_type || "solid"}
-              solidColor={config.background_color}
-              gradientSettings={config.background_gradient}
+              solidColor={config.background_color || "hsl(251, 91%, 65%)"}
+              gradientSettings={config.background_gradient || { type: "linear", angle: 45, colors: ["hsl(251, 91%, 65%)", "hsl(308, 56%, 85%)"] }}
               onTypeChange={(type) => updateConfig("background_type", type)}
               onSolidColorChange={(color) => updateConfig("background_color", color)}
               onGradientChange={(gradient) => updateConfig("background_gradient", gradient)}

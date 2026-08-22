@@ -37,7 +37,7 @@ export function CardSettings({ label, config, onChange, disabled }: CardSettings
       <ColorPicker
         type={config.background_type || "solid"}
         solidColor={config.background_color || "#ffffff"}
-        gradientSettings={config.background_gradient}
+        gradientSettings={config.background_gradient || { type: "linear", angle: 45, colors: ["#ffffff", "#f8fafc"] }}
         onTypeChange={(type) => updateConfig("background_type", type)}
         onSolidColorChange={(color) => updateConfig("background_color", color)}
         onGradientChange={(gradient) => updateConfig("background_gradient", gradient)}

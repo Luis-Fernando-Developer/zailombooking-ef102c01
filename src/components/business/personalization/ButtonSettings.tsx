@@ -39,7 +39,7 @@ export function ButtonSettings({ label, config, onChange, disabled }: ButtonSett
       <ColorPicker
         type={config.background_type || "solid"}
         solidColor={config.background_color || "#3b82f6"}
-        gradientSettings={config.background_gradient}
+        gradientSettings={config.background_gradient || { type: "linear", angle: 45, colors: ["#3b82f6", "#2563eb"] }}
         onTypeChange={(type) => updateConfig("background_type", type)}
         onSolidColorChange={(color) => updateConfig("background_color", color)}
         onGradientChange={(gradient) => updateConfig("background_gradient", gradient)}

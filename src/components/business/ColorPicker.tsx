@@ -26,7 +26,7 @@ interface ColorPickerProps {
 export function ColorPicker({
   type,
   solidColor = "hsl(251, 91%, 65%)",
-  gradientSettings = { type: "linear", angle: 45, colors: ["hsl(251, 91%, 65%)", "hsl(308, 56%, 85%)"] },
+  gradientSettings = { type: "linear", angle: 45, colors: ["#8b5cf6", "#d8b4fe"] },
   onTypeChange,
   onSolidColorChange,
   onGradientChange,
