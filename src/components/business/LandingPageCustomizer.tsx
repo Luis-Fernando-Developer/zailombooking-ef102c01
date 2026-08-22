@@ -248,16 +248,46 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
     }
   };
 
+  const sanitizeTheme = (theme: any) => {
+    if (!theme || typeof theme !== 'object') return theme;
+    
+    const sanitized = { ...theme };
+    const fieldsToSanitize = ['body', 'header', 'hero', 'buttons', 'cards', 'footer'];
+    
+    fieldsToSanitize.forEach(sectionKey => {
+      if (sanitized[sectionKey] && typeof sanitized[sectionKey] === 'object') {
+        Object.keys(sanitized[sectionKey]).forEach(fieldKey => {
+          const value = sanitized[sectionKey][fieldKey];
+          // If a field that should be a primitive (string, number, boolean) is an object, reset it
+          // Exceptions are specific config objects like 'gradient', 'cta_button', 'menu_typography', 'typography', 'title_typography', 'description_typography', 'text_typography'
+          const objectFields = ['gradient', 'background_gradient', 'cta_button', 'menu_typography', 'typography', 'title_typography', 'description_typography', 'text_typography', 'banner_urls'];
+          
+          if (value && typeof value === 'object' && !Array.isArray(value) && !objectFields.includes(fieldKey)) {
+            console.warn(`[Sanitize] Detected invalid object in ${sectionKey}.${fieldKey}, resetting.`, value);
+            delete sanitized[sectionKey][fieldKey];
+          }
+
+          // Recursively sanitize typography objects
+          if (objectFields.includes(fieldKey) && value && typeof value === 'object' && !Array.isArray(value)) {
+            sanitized[sectionKey][fieldKey] = sanitizeTheme(value);
+          }
+        });
+      }
+    });
+
+    return sanitized;
+  };
+
   const saveCustomization = async () => {
     if (!customization) return;
 
     setSaving(true);
     try {
-      const hero_banner_urls = customization.hero_banner_urls.filter(url => url.trim() !== "");
+      const hero_banner_urls = customization.hero_banner_urls.filter(url => typeof url === 'string' && url.trim() !== "");
       
       // Separate theme data for the JSONB column
       const { body, header, hero, buttons, cards, footer, ...baseData } = customization;
-      const theme = { body, header, hero, buttons, cards, footer };
+      const theme = sanitizeTheme({ body, header, hero, buttons, cards, footer });
 
       const { error } = await supabase
         .from('company_customizations')
@@ -275,6 +305,12 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
         title: "Sucesso",
         description: "Personalização salva com sucesso!",
       });
+      
+      // Refresh local state with sanitized data
+      setCustomization({
+        ...customization,
+        ...theme
+      });
     } catch (error) {
       console.error('Error saving customization:', error);
       toast({
@@ -289,6 +325,13 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
 
   const updateCustomization = (field: keyof CustomizationData, value: any) => {
     if (!customization) return;
+    
+    // Safety check for objects passed to primitive fields
+    if (value && typeof value === 'object' && !Array.isArray(value) && !['body', 'header', 'hero', 'buttons', 'cards', 'footer', 'hero_banner_urls', 'font_gradient', 'header_background_gradient', 'button_gradient', 'cards_gradient', 'footer_background_gradient'].includes(field)) {
+      console.error(`[LandingPageCustomizer] Prevented invalid object update for field "${field}":`, value);
+      return;
+    }
+
     setCustomization({ ...customization, [field]: value });
   };
 

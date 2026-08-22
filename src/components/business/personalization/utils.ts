@@ -22,36 +22,43 @@ export function getTypographyStyles(
       });
     }
 
-    const family = config?.family || fallbackConfig?.family || (fallbackConfig as any)?.default_font_family;
+    // Strict value retrieval with object detection
+    const getSafeValue = (val: any) => {
+      if (val === null || val === undefined) return undefined;
+      if (typeof val === 'object' && !Array.isArray(val)) return undefined;
+      return val;
+    };
+
+    const family = getSafeValue(config?.family) || getSafeValue(fallbackConfig?.family) || getSafeValue((fallbackConfig as any)?.default_font_family);
     if (family && typeof family === 'string') styles.fontFamily = `${family}, system-ui, sans-serif`;
 
-    const size = config?.size || fallbackConfig?.size || (fallbackConfig as any)?.default_font_size;
+    const size = getSafeValue(config?.size) || getSafeValue(fallbackConfig?.size) || getSafeValue((fallbackConfig as any)?.default_font_size);
     if (size) styles.fontSize = `${size}px`;
 
-    const weight = config?.weight || fallbackConfig?.weight;
+    const weight = getSafeValue(config?.weight) || getSafeValue(fallbackConfig?.weight);
     if (weight && (typeof weight === 'string' || typeof weight === 'number')) {
       styles.fontWeight = weight as any;
     }
 
-    const alignment = config?.alignment || fallbackConfig?.alignment;
+    const alignment = getSafeValue(config?.alignment) || getSafeValue(fallbackConfig?.alignment);
     if (alignment && typeof alignment === 'string') {
       styles.textAlign = alignment as any;
     }
 
-    const lineHeight = config?.lineHeight || fallbackConfig?.lineHeight;
+    const lineHeight = getSafeValue(config?.lineHeight) || getSafeValue(fallbackConfig?.lineHeight);
     if (lineHeight) styles.lineHeight = lineHeight;
 
-    const letterSpacing = config?.letterSpacing || fallbackConfig?.letterSpacing;
+    const letterSpacing = getSafeValue(config?.letterSpacing) ?? getSafeValue(fallbackConfig?.letterSpacing);
     if (letterSpacing !== undefined) styles.letterSpacing = `${letterSpacing}px`;
 
     // Cores
-    const colorType = config?.colorType || fallbackConfig?.colorType || ((fallbackConfig as any)?.default_text_color ? 'solid' : undefined);
+    const colorType = getSafeValue(config?.colorType) || getSafeValue(fallbackConfig?.colorType) || (getSafeValue((fallbackConfig as any)?.default_text_color) ? 'solid' : undefined);
     
     if (colorType === 'gradient') {
       const grad = config?.gradient || fallbackConfig?.gradient;
       if (grad && typeof grad === 'object' && Array.isArray(grad.colors)) {
         const { type, angle, colors } = grad;
-        const colorString = colors.join(', ');
+        const colorString = colors.filter(c => typeof c === 'string').join(', ');
         const gradient = type === 'linear' 
           ? `linear-gradient(${angle || 0}deg, ${colorString})`
           : `radial-gradient(circle, ${colorString})`;
@@ -66,7 +73,7 @@ export function getTypographyStyles(
       }
     }
 
-    const color = config?.color || fallbackConfig?.color || (fallbackConfig as any)?.default_text_color;
+    const color = getSafeValue(config?.color) || getSafeValue(fallbackConfig?.color) || getSafeValue((fallbackConfig as any)?.default_text_color);
     if (color && typeof color === 'string') styles.color = color;
 
     return styles;
