@@ -1,97 +1,109 @@
-import { type TypographyConfig, type ButtonConfig, type CardConfig } from "./types";
+import { 
+  TypographyConfig, 
+  BackgroundConfig, 
+  ButtonConfig, 
+  CardConfig,
+  CustomizationData 
+} from "./types";
 
-/**
- * Generates CSS custom properties for typography configuration.
- */
-export const getTypographyStyles = (config?: TypographyConfig, fallback?: any): React.CSSProperties => {
+export const getTypographyStyles = (
+  config?: TypographyConfig, 
+  bodyFallback?: { font_family?: string }
+): React.CSSProperties => {
   if (!config) return {};
+
+  const styles: React.CSSProperties = {};
+
+  if (config.font_family) styles.fontFamily = config.font_family;
+  else if (bodyFallback?.font_family) styles.fontFamily = bodyFallback.font_family;
+
+  if (config.font_size) styles.fontSize = `${config.font_size}px`;
+  if (config.font_weight) styles.fontWeight = config.font_weight;
   
-  const styles: any = {};
-  
-  if (config.family) styles.fontFamily = `${config.family}, system-ui, sans-serif`;
-  if (config.size) styles.fontSize = `${config.size}px`;
-  if (config.weight) styles.fontWeight = config.weight;
-  
-  if (config.colorType === 'gradient' && config.gradient) {
-    const { type, angle, colors } = config.gradient;
-    const colorString = colors.join(', ');
-    styles.backgroundImage = type === 'linear' 
-      ? `linear-gradient(${angle}deg, ${colorString})`
-      : `radial-gradient(${colorString})`;
+  if (config.color_type === 'gradient' && config.gradient) {
+    styles.backgroundImage = `linear-gradient(${config.gradient.angle || 0}deg, ${config.gradient.colors.join(', ')})`;
     styles.WebkitBackgroundClip = 'text';
     styles.WebkitTextFillColor = 'transparent';
     styles.backgroundClip = 'text';
-    styles.color = 'transparent';
   } else if (config.color) {
     styles.color = config.color;
-    styles.backgroundImage = 'none';
-    styles.WebkitBackgroundClip = 'initial';
-    styles.WebkitTextFillColor = 'initial';
+    styles.WebkitTextFillColor = 'initial'; // Reset gradient if color is solid
   }
 
-  if (config.alignment) styles.textAlign = config.alignment;
-  if (config.lineHeight) styles.lineHeight = config.lineHeight;
-  if (config.letterSpacing !== undefined) styles.letterSpacing = `${config.letterSpacing}px`;
-  
   return styles;
 };
 
-/**
- * Generates CSS custom properties for background configuration (solid or gradient).
- */
-export const getBackgroundStyles = (config?: { 
-  background_type?: "solid" | "gradient", 
-  background_color?: string, 
-  background_gradient?: any 
-}): React.CSSProperties => {
+export const getBackgroundStyles = (config?: BackgroundConfig): React.CSSProperties => {
   if (!config) return {};
-  
-  const styles: any = {};
-  
-  if (config.background_type === 'gradient' && config.background_gradient) {
-    const { type, angle, colors } = config.background_gradient;
-    const colorString = colors.join(', ');
-    styles.background = type === 'linear' 
-      ? `linear-gradient(${angle}deg, ${colorString})`
-      : `radial-gradient(${colorString})`;
+
+  const styles: React.CSSProperties = {};
+
+  if (config.background_type === 'gradient' && config.gradient) {
+    styles.background = `linear-gradient(${config.gradient.angle || 0}deg, ${config.gradient.colors.join(', ')})`;
   } else if (config.background_color) {
     styles.backgroundColor = config.background_color;
   }
-  
+
+  if (config.opacity !== undefined) {
+    styles.opacity = config.opacity / 100;
+  }
+
   return styles;
 };
 
-/**
- * Generates CSS styles for a button based on its configuration.
- */
-export const getButtonStyles = (config?: ButtonConfig, fallbackBody?: any): React.CSSProperties => {
+export const getButtonStyles = (config?: ButtonConfig): React.CSSProperties => {
   if (!config) return {};
-  
-  const bgStyles = getBackgroundStyles(config as any);
-  const typographyStyles = getTypographyStyles(config.typography, fallbackBody);
-  
-  return {
-    ...bgStyles,
-    ...typographyStyles,
-    borderRadius: config.border_radius !== undefined ? `${config.border_radius}px` : undefined,
-    padding: config.padding_v !== undefined && config.padding_h !== undefined 
-      ? `${config.padding_v}px ${config.padding_h}px` 
-      : undefined
-  };
+
+  const styles: React.CSSProperties = {};
+
+  if (config.background_type === 'gradient' && config.gradient) {
+    styles.background = `linear-gradient(${config.gradient.angle || 0}deg, ${config.gradient.colors.join(', ')})`;
+    styles.border = 'none';
+  } else if (config.background_color) {
+    styles.backgroundColor = config.background_color;
+    styles.borderColor = config.background_color;
+  }
+
+  if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
+  if (config.padding_vertical !== undefined) {
+    styles.paddingTop = `${config.padding_vertical}px`;
+    styles.paddingBottom = `${config.padding_vertical}px`;
+  }
+  if (config.padding_horizontal !== undefined) {
+    styles.paddingLeft = `${config.padding_horizontal}px`;
+    styles.paddingRight = `${config.padding_horizontal}px`;
+  }
+
+  if (config.typography) {
+    const typo = getTypographyStyles(config.typography);
+    Object.assign(styles, typo);
+  }
+
+  return styles;
 };
 
-/**
- * Generates CSS styles for a card based on its configuration.
- */
 export const getCardStyles = (config?: CardConfig): React.CSSProperties => {
   if (!config) return {};
+
+  const styles: React.CSSProperties = {};
+
+  if (config.background_type === 'gradient' && config.gradient) {
+    styles.background = `linear-gradient(${config.gradient.angle || 0}deg, ${config.gradient.colors.join(', ')})`;
+  } else if (config.background_color) {
+    styles.backgroundColor = config.background_color;
+  }
+
+  if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
   
-  const bgStyles = getBackgroundStyles(config as any);
-  
-  return {
-    ...bgStyles,
-    borderRadius: config.border_radius !== undefined ? `${config.border_radius}px` : undefined,
-    border: config.has_border ? `1px solid ${config.border_color || '#e2e8f0'}` : 'none',
-    boxShadow: config.has_shadow ? '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' : 'none'
-  };
+  if (config.show_border) {
+    styles.border = `1px solid ${config.border_color || 'rgba(255,255,255,0.1)'}`;
+  } else {
+    styles.border = 'none';
+  }
+
+  if (config.show_shadow) {
+    styles.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+  }
+
+  return styles;
 };
