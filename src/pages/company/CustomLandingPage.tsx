@@ -556,7 +556,8 @@ export default function CustomLandingPage() {
         <div className="sticky top-0 left-0 right-0 z-50">
           <CampaignTopBar companyId={company?.id} />
           <header
-          className={`backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
+            style={getBackgroundStyles((customization as any).header)}
+            className={`backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
           <div className="max-w-7xl  mx-auto  px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center  justify-between">
               <div className="w-full justify-between flex items-center gap-4 ">
@@ -572,7 +573,10 @@ export default function CustomLandingPage() {
                 ) : (
                   <BookingLogo showText={false} className="pt-0" />
                 )}
-                <h1 className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}>
+                <h1 
+                  style={getTypographyStyles((customization as any).header?.typography, (customization as any).body)}
+                  className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
+                >
                   {company.name} 
                 </h1>
                 <div className="flex items-center">
@@ -638,6 +642,7 @@ export default function CustomLandingPage() {
       )}
       {customization?.header_position === 'relative' && (
         <header 
+          style={getBackgroundStyles((customization as any).header)}
           className={`relative top-0 left-0 right-0 z-50  backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
           <div className="max-w-7xl  mx-auto  px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center  justify-between">
@@ -654,7 +659,10 @@ export default function CustomLandingPage() {
                 ) : (
                   <BookingLogo showText={false} className="pt-0" />
                 )}
-                <h1 className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}>
+                <h1 
+                  style={getTypographyStyles((customization as any).header?.typography, (customization as any).body)}
+                  className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
+                >
                   {company.name}
                 </h1>
                 <div className="flex items-center">
@@ -721,7 +729,9 @@ export default function CustomLandingPage() {
         <CampaignHeroBanner companyId={company?.id} />
 
         {/* Hero Section with Custom Styling */}
-        <section className={`relative ${customization?.hero_content_position === 'absolute' ? 'h-[500px]' : ''} flex ${customization?.hero_content_position === 'below' ? 'flex-col' : customization?.hero_content_position === 'above' ? 'flex-col-reverse' : 'items-center justify-center'} overflow-hidden ${customization?.hero_background_type ? 'hero-custom-bg' : 'bg-gradient-hero'}`}>
+        <section 
+          style={getBackgroundStyles((customization as any).hero)}
+          className={`relative ${customization?.hero_content_position === 'absolute' ? 'h-[500px]' : ''} flex ${customization?.hero_content_position === 'below' ? 'flex-col' : customization?.hero_content_position === 'above' ? 'flex-col-reverse' : 'items-center justify-center'} overflow-hidden ${customization?.hero_background_type ? 'hero-custom-bg' : 'bg-gradient-hero'}`}>
           {/* Background Elements */}
           {customization?.hero_content_position === 'absolute' && (
             <div className="absolute inset-0">
@@ -811,11 +821,17 @@ export default function CustomLandingPage() {
 
           <div className={`${customization?.hero_content_position === 'absolute' ? 'relative z-10' : 'py-16'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`}>
             <div className="text-center">
-              <h1 className={`text-5xl lg:text-7xl font-bold mb-6 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : ''}`}>
+              <h1 
+                style={getTypographyStyles((customization as any).hero?.title_typography, (customization as any).body)}
+                className={`text-5xl lg:text-7xl font-bold mb-6 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : ''}`}
+              >
                 {customization?.hero_title || ''}
               </h1>
               
-              <p className={`text-xl mb-8 max-w-2xl mx-auto ${customization?.font_color ? 'text-custom-color' : 'text-muted-foreground'}`}>
+              <p 
+                style={getTypographyStyles((customization as any).hero?.description_typography, (customization as any).body)}
+                className={`text-xl mb-8 max-w-2xl mx-auto ${customization?.font_color ? 'text-custom-color' : 'text-muted-foreground'}`}
+              >
                 {customization?.hero_description || ''}
               </p>
             </div>
