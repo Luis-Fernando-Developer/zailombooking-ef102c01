@@ -59,3 +59,71 @@ export const defaultTypography: TypographyConfig = {
   letterSpacing: 0
 };
 
+export interface ButtonConfig {
+  background_type?: "solid" | "gradient";
+  background_color?: string;
+  background_gradient?: any;
+  typography?: TypographyConfig;
+  border_radius?: number;
+  padding_v?: number;
+  padding_h?: number;
+  hover_background_color?: string;
+  hover_text_color?: string;
+}
+
+export interface CardConfig {
+  background_type?: "solid" | "gradient";
+  background_color?: string;
+  background_gradient?: any;
+  title_typography?: TypographyConfig;
+  description_typography?: TypographyConfig;
+  price_typography?: TypographyConfig;
+  border_radius?: number;
+  has_border?: boolean;
+  border_color?: string;
+  has_shadow?: boolean;
+}
+
+export interface SectionConfig {
+  background_type?: "solid" | "gradient";
+  background_color?: string;
+  background_gradient?: any;
+  title_typography?: TypographyConfig;
+  buttons?: ButtonConfig;
+  cards?: CardConfig;
+}
+
+export interface CustomizationData {
+  body: {
+    font_family: string;
+    background_color: string;
+  };
+  header: {
+    position: "fixed" | "relative";
+    background_type: "solid" | "gradient";
+    background_color: string;
+    background_gradient: any;
+    menu_typography: TypographyConfig;
+    buttons: ButtonConfig;
+  };
+  hero: {
+    background_type: "solid" | "gradient";
+    background_color: string;
+    background_gradient: any;
+    title_typography: TypographyConfig;
+    description_typography: TypographyConfig;
+    buttons: ButtonConfig;
+  };
+  services: SectionConfig;
+  professionals: SectionConfig;
+  about: SectionConfig;
+  footer: {
+    background_type: "solid" | "gradient";
+    background_color: string;
+    background_gradient: any;
+    typography: TypographyConfig;
+  };
+  extra: {
+    custom_css: string;
+  };
+}

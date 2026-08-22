@@ -1,115 +1,111 @@
-import { TypographyConfig } from "./types";
+import { 
+  TypographyConfig, 
+  ButtonConfig, 
+  CardConfig,
+  SectionConfig
+} from "./types";
 
-/**
- * Utilitário para gerar estilos CSS a partir de uma configuração de tipografia.
- * @param config Configuração de tipografia do elemento.
- * @param fallbackConfig Configuração de fallback (seção ou body).
- * @returns Um objeto de estilo CSS.
- */
-export function getTypographyStyles(
-  config?: TypographyConfig,
-  fallbackConfig?: TypographyConfig | any
-): React.CSSProperties {
-  try {
-    const styles: React.CSSProperties = {};
+export const getTypographyStyles = (
+  config?: TypographyConfig, 
+  bodyFallback?: { font_family?: string }
+): React.CSSProperties => {
+  if (!config) return {};
 
-    // Strict primitive extraction to prevent React #310
-    const getSafeValue = (val: any) => {
-      if (val === null || val === undefined) return undefined;
-      // If we got an object, it's corrupt data (React #310)
-      if (typeof val === 'object') {
-        // Log specifically what we found to help debugging
-        console.warn("[Typography Styles] React #310 Prevention: Object found instead of string/number:", val);
-        return undefined;
-      }
-      return val;
-    };
+  const styles: React.CSSProperties = {};
 
-    const family = getSafeValue(config?.family) || getSafeValue(fallbackConfig?.family) || getSafeValue((fallbackConfig as any)?.default_font_family);
-    if (family && typeof family === 'string') styles.fontFamily = `${family}, system-ui, sans-serif`;
+  if (config.family) styles.fontFamily = config.family;
+  else if (bodyFallback?.font_family) styles.fontFamily = bodyFallback.font_family;
 
-    const size = getSafeValue(config?.size) || getSafeValue(fallbackConfig?.size) || getSafeValue((fallbackConfig as any)?.default_font_size);
-    if (size) styles.fontSize = `${size}px`;
-
-    const weight = getSafeValue(config?.weight) || getSafeValue(fallbackConfig?.weight);
-    if (weight && (typeof weight === 'string' || typeof weight === 'number')) {
-      styles.fontWeight = weight as any;
-    }
-
-    const alignment = getSafeValue(config?.alignment) || getSafeValue(fallbackConfig?.alignment);
-    if (alignment && typeof alignment === 'string') {
-      styles.textAlign = alignment as any;
-    }
-
-    const lineHeight = getSafeValue(config?.lineHeight) || getSafeValue(fallbackConfig?.lineHeight);
-    if (lineHeight) styles.lineHeight = lineHeight;
-
-    const letterSpacing = getSafeValue(config?.letterSpacing) ?? getSafeValue(fallbackConfig?.letterSpacing);
-    if (letterSpacing !== undefined) styles.letterSpacing = `${letterSpacing}px`;
-
-    // Cores
-    const colorType = getSafeValue(config?.colorType) || getSafeValue(fallbackConfig?.colorType) || (getSafeValue((fallbackConfig as any)?.default_text_color) ? 'solid' : undefined);
-    
-    if (colorType === 'gradient') {
-      const grad = config?.gradient || fallbackConfig?.gradient;
-      if (grad && typeof grad === 'object' && Array.isArray(grad.colors)) {
-        const { type, angle, colors } = grad;
-        const colorString = colors.filter((c: any) => typeof c === 'string').join(', ');
-        const gradient = type === 'linear' 
-          ? `linear-gradient(${angle || 0}deg, ${colorString})`
-          : `radial-gradient(circle, ${colorString})`;
-        
-        return {
-          ...styles,
-          background: gradient,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          display: 'inline-block'
-        };
-      }
-    }
-
-    const color = getSafeValue(config?.color) || getSafeValue(fallbackConfig?.color) || getSafeValue((fallbackConfig as any)?.default_text_color);
-    if (color && typeof color === 'string') styles.color = color;
-
-    return styles;
-  } catch (error) {
-    console.error("Error in getTypographyStyles:", error, { config, fallbackConfig });
-    return {};
+  if (config.size) styles.fontSize = `${config.size}px`;
+  if (config.weight) styles.fontWeight = config.weight;
+  
+  if (config.colorType === 'gradient' && config.gradient) {
+    styles.backgroundImage = `linear-gradient(${config.gradient.angle || 0}deg, ${config.gradient.colors.join(', ')})`;
+    styles.WebkitBackgroundClip = 'text';
+    styles.WebkitTextFillColor = 'transparent';
+    styles.backgroundClip = 'text';
+  } else if (config.color) {
+    styles.color = config.color;
+    styles.WebkitTextFillColor = 'initial';
   }
-}
 
-/**
- * Gera estilo de fundo (solid ou gradient)
- */
-export function getBackgroundStyles(config: any): React.CSSProperties {
-  try {
-    if (!config || typeof config !== 'object' || Array.isArray(config)) return {};
+  if (config.lineHeight) styles.lineHeight = config.lineHeight;
+  if (config.letterSpacing !== undefined) styles.letterSpacing = `${config.letterSpacing}px`;
+  if (config.alignment) styles.textAlign = config.alignment;
 
-    const type = config.background_type || config.type;
-    
-    if (type === 'gradient') {
-      const grad = config.background_gradient || config.gradient;
-      if (grad && typeof grad === 'object' && Array.isArray(grad.colors)) {
-        const { type: gradType, angle, colors } = grad;
-        // Filter out non-string colors to prevent crashes
-        const colorString = colors.filter((c: any) => typeof c === 'string').join(', ');
-        if (!colorString) return {};
-        
-        return {
-          background: gradType === 'linear' 
-            ? `linear-gradient(${angle || 0}deg, ${colorString})`
-            : `radial-gradient(circle, ${colorString})`
-        };
-      }
-    }
+  return styles;
+};
 
-    const color = config.background_color || config.solidColor || config.color;
-    if (color && typeof color === 'string') return { backgroundColor: color };
+export const getBackgroundStyles = (config?: any): React.CSSProperties => {
+  if (!config) return {};
 
-    return {};
-  } catch (error) {
-    console.error("Error in getBackgroundStyles:", error, { config });
-    return {};
+  const styles: React.CSSProperties = {};
+
+  if (config.background_type === 'gradient' && config.background_gradient) {
+    const g = config.background_gradient;
+    styles.background = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
+  } else if (config.background_color) {
+    styles.backgroundColor = config.background_color;
   }
-}
+
+  return styles;
+};
+
+export const getButtonStyles = (config?: ButtonConfig): React.CSSProperties => {
+  if (!config) return {};
+
+  const styles: React.CSSProperties = {};
+
+  if (config.background_type === 'gradient' && config.background_gradient) {
+    const g = config.background_gradient;
+    styles.background = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
+    styles.border = 'none';
+  } else if (config.background_color) {
+    styles.backgroundColor = config.background_color;
+    styles.borderColor = config.background_color;
+  }
+
+  if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
+  if (config.padding_v !== undefined) {
+    styles.paddingTop = `${config.padding_v}px`;
+    styles.paddingBottom = `${config.padding_v}px`;
+  }
+  if (config.padding_h !== undefined) {
+    styles.paddingLeft = `${config.padding_h}px`;
+    styles.paddingRight = `${config.padding_h}px`;
+  }
+
+  if (config.typography) {
+    const typo = getTypographyStyles(config.typography);
+    Object.assign(styles, typo);
+  }
+
+  return styles;
+};
+
+export const getCardStyles = (config?: CardConfig): React.CSSProperties => {
+  if (!config) return {};
+
+  const styles: React.CSSProperties = {};
+
+  if (config.background_type === 'gradient' && config.background_gradient) {
+    const g = config.background_gradient;
+    styles.background = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
+  } else if (config.background_color) {
+    styles.backgroundColor = config.background_color;
+  }
+
+  if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
+  
+  if (config.has_border) {
+    styles.border = `1px solid ${config.border_color || 'rgba(255,255,255,0.1)'}`;
+  } else {
+    styles.border = 'none';
+  }
+
+  if (config.has_shadow) {
+    styles.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+  }
+
+  return styles;
+};
