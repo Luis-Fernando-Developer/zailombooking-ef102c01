@@ -11,6 +11,7 @@ import { custom } from "zod";
 import { CampaignTopBar, CampaignPopup, CampaignHeroBanner } from "@/components/marketing/CampaignSlots";
 import { useActiveCampaigns, type CampaignWithMaterials } from "@/hooks/use-active-campaigns";
 import { trackCampaignClick, type PlacementCTA } from "@/lib/api/marketing";
+import { getTypographyStyles, getBackgroundStyles } from "@/components/business/personalization/utils";
 
 interface CustomizationData {
   company_id: string;
@@ -263,6 +264,8 @@ export default function CustomLandingPage() {
         const themeData = typeof customizationData.theme === 'object' && customizationData.theme !== null 
           ? customizationData.theme as Record<string, any>
           : {};
+        
+        // Deep merge logic could be added here if needed, for now flat merge
         setCustomization({
           ...customizationData,
           ...themeData
@@ -285,6 +288,7 @@ export default function CustomLandingPage() {
       setLoading(false);
     }
   };
+
 
   const generateGradient = (gradientData: any) => {
     if (!gradientData) return '';
@@ -379,44 +383,29 @@ export default function CustomLandingPage() {
     if (!customization) return {};
 
     const styles: any = {};
+    const bodyCfg = (customization as any).body;
 
-    // Apply font settings
-    if (customization.font_family) {
-      styles['--font-family'] = customization.font_family;
+    // Body Fallback Styles
+    if (bodyCfg) {
+      const bodyStyles = getBackgroundStyles(bodyCfg);
+      Object.assign(styles, bodyStyles);
+      
+      if (bodyCfg.default_font_family) styles['--font-family'] = bodyCfg.default_font_family;
+      if (bodyCfg.default_font_size) styles['--font-size-base'] = `${bodyCfg.default_font_size}px`;
+      if (bodyCfg.default_text_color) styles['--text-color'] = bodyCfg.default_text_color;
+      if (bodyCfg.max_width) styles['--max-width'] = `${bodyCfg.max_width}px`;
+    } else {
+      // Legacy Font settings as fallback for body
+      if (customization.font_family) {
+        styles['--font-family'] = customization.font_family;
+      }
+      if (customization.font_size_base) {
+        styles['--font-size-base'] = `${customization.font_size_base}px`;
+      }
+      if (customization.font_color) {
+        styles['--text-color'] = customization.font_color;
+      }
     }
-    if (customization.font_size_base) {
-      styles['--font-size-base'] = `${customization.font_size_base}px`;
-    }
-
-    // Apply color settings
-    if (customization.font_color_type === 'gradient' && customization.font_gradient) {
-      styles['--text-gradient'] = generateGradient(customization.font_gradient);
-    } else if (customization.font_color) {
-      styles['--text-color'] = customization.font_color;
-    }
-
-    // Apply hero background
-    if (customization.hero_background_type === 'gradient' && customization.hero_background_gradient) {
-      styles['--hero-background'] = generateGradient(customization.hero_background_gradient);
-    } else if (customization.hero_background_color) {
-      styles['--hero-background'] = customization.hero_background_color;
-    }
-
-    // Apply header background
-    if (customization.header_background_type === 'gradient' && customization.header_background_gradient) {
-      styles['--header-background'] = generateGradient(customization.header_background_gradient);
-    } else if (customization.header_background_color) {
-      styles['--header-background'] = customization.header_background_color;
-    }
-
-    // Apply footer background
-    if (customization.footer_background_type === 'gradient' && customization.footer_background_gradient) {
-      styles['--footer-background'] = generateGradient(customization.footer_background_gradient);
-    } else if (customization.footer_background_color) {
-      styles['--footer-background'] = customization.footer_background_color;
-    }
-
-    
 
     return styles;
   };
