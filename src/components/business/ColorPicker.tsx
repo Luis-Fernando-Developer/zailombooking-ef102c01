@@ -95,17 +95,17 @@ export function ColorPicker({
             <div className="flex gap-2">
               <Input
                 type="color"
-                value={typeof solidColor === 'string' && solidColor.startsWith("#") ? solidColor : "#8b5cf6"}
+                value={typeof solidColor === 'string' && solidColor.startsWith("#") && solidColor.length === 7 ? solidColor : "#8b5cf6"}
                 onChange={(e) => {
                   console.log(`[ColorPicker] Solid color change: ${e.target.value}`);
                   onSolidColorChange(e.target.value);
                 }}
-                className="w-12 h-10 p-1 border rounded"
+                className="w-12 h-10 p-1 border rounded cursor-pointer"
               />
               <Input
                 value={typeof solidColor === 'string' ? solidColor : ""}
                 onChange={(e) => onSolidColorChange(e.target.value)}
-                placeholder="hsl(251, 91%, 65%)"
+                placeholder="hsl(251, 91%, 65%) ou #8b5cf6"
                 className="flex-1"
               />
             </div>
@@ -153,14 +153,14 @@ export function ColorPicker({
                   <div key={index} className="flex gap-2 items-center">
                     <Input
                       type="color"
-                      value={typeof color === 'string' && color.startsWith("hsl") ? "#8b5cf6" : (typeof color === 'string' && color.startsWith("#") ? color : "#ffffff")}
+                      value={typeof color === 'string' && color.startsWith("#") && color.length === 7 ? color : "#8b5cf6"}
                       onChange={(e) => updateColor(index, e.target.value)}
-                      className="w-12 h-8 p-1 border rounded"
+                      className="w-12 h-8 p-1 border rounded cursor-pointer"
                     />
                     <Input
                       value={typeof color === 'string' ? color : ""}
                       onChange={(e) => updateColor(index, e.target.value)}
-                      placeholder="hsl(251, 91%, 65%)"
+                      placeholder="Ex: #8b5cf6"
                       className="flex-1"
                     />
                     {gradientSettings.colors.length > 2 && (
