@@ -163,8 +163,8 @@ export default function ClientBooking() {
       if (bodyCfg) {
         // Apply body background
         const bgStyles = getBackgroundStyles(bodyCfg);
-        if (bgStyles.backgroundColor) root.style.backgroundColor = bgStyles.backgroundColor;
-        if (bgStyles.background) root.style.background = bgStyles.background;
+        if (bgStyles.backgroundColor) root.style.backgroundColor = bgStyles.backgroundColor as string;
+        if (bgStyles.background) root.style.background = bgStyles.background as string;
         
         // Apply default typography variables
         if (bodyCfg.default_font_family) root.style.setProperty('--font-primary', bodyCfg.default_font_family);
