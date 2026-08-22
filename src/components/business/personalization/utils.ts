@@ -29,10 +29,14 @@ export function getTypographyStyles(
     if (size) styles.fontSize = `${size}px`;
 
     const weight = config?.weight || fallbackConfig?.weight;
-    if (weight && typeof weight === 'string') styles.fontWeight = weight;
+    if (weight && (typeof weight === 'string' || typeof weight === 'number')) {
+      styles.fontWeight = weight as any;
+    }
 
     const alignment = config?.alignment || fallbackConfig?.alignment;
-    if (alignment && typeof alignment === 'string') styles.textAlign = alignment;
+    if (alignment && typeof alignment === 'string') {
+      styles.textAlign = alignment as any;
+    }
 
     const lineHeight = config?.lineHeight || fallbackConfig?.lineHeight;
     if (lineHeight) styles.lineHeight = lineHeight;
