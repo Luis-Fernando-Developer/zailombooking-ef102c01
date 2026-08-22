@@ -1029,10 +1029,15 @@ export default function CustomLandingPage() {
 
         {/* Profissionais */}
         {employees.length > 0 && (
-          <section className="py-16">
+          <section 
+            style={getBackgroundStyles((customization as any).cards)}
+            className="py-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12">
-                <h2 className={`text-3xl font-bold mb-4 ${customization?.cards_font_family ? 'cards-custom-font' : ''} ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}>
+                <h2 
+                  style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                  className={`text-3xl font-bold mb-4 ${customization?.cards_font_family ? 'cards-custom-font' : ''} ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
+                >
                   Nossa Equipe
                 </h2>
                 <p className={`max-w-2xl mx-auto ${customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'}`}>
@@ -1051,6 +1056,10 @@ export default function CustomLandingPage() {
                   return (
                     <div 
                       key={employee.id} 
+                      style={{
+                        ...getBackgroundStyles((customization as any).cards),
+                        ...getTypographyStyles((customization as any).cards?.typography, (customization as any).body)
+                      }}
                       className={`rounded-lg border border-primary/20 p-6 hover:border-primary/40 transition-colors ${
                         customization?.cards_layout === 'horizontal' ? 'flex gap-6 items-center' : ''
                       } ${
@@ -1167,7 +1176,12 @@ export default function CustomLandingPage() {
         </section>
 
         {/* Footer Simples */}
-        <footer className={`py-8 border-t border-primary/20 ${customization?.footer_background_type ? 'footer-custom-bg' : 'bg-card/30'}`}>
+        <footer 
+          style={{
+            ...getBackgroundStyles((customization as any).footer),
+            ...getTypographyStyles((customization as any).footer?.typography, (customization as any).body)
+          }}
+          className={`py-8 border-t border-primary/20 ${customization?.footer_background_type ? 'footer-custom-bg' : 'bg-card/30'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <p className="text-muted-foreground">
