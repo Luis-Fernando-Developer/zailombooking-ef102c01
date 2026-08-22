@@ -603,9 +603,23 @@ export default function CustomLandingPage() {
                               {loggedClient.name.charAt(0).toUpperCase()}
                             </div>
                           )}
-                          <span className="font-bold text-sm">{loggedClient.name.split(' ')[0]}</span>
+                          <span 
+                            style={getTypographyStyles((customization as any).header?.menu_typography, (customization as any).body)}
+                            className="font-bold text-sm"
+                          >
+                            {loggedClient.name.split(' ')[0]}
+                          </span>
                         </div>
-                        <Button variant="neon" className="h-[30px] p-2 font-bold" onClick={() => navigate(`/${slug}/client/dashboard`)}>
+                        <Button 
+                          variant="neon" 
+                          style={{
+                            ...getBackgroundStyles((customization as any).buttons),
+                            ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                            borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                          }}
+                          className="h-[30px] p-2 font-bold" 
+                          onClick={() => navigate(`/${slug}/client/dashboard`)}
+                        >
                           Meu Painel
                         </Button>
                         <Button variant="ghost" className="h-[30px] p-2 font-bold" onClick={handleClientLogout}>
@@ -617,6 +631,11 @@ export default function CustomLandingPage() {
                         <Button 
                           variant="neon" 
                           className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
+                          style={{
+                            ...getBackgroundStyles((customization as any).buttons),
+                            ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                            borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                          }}
                           onClick={() => navigate(`/${slug}/entrar`)}
                         >
                           <LogInIcon />
@@ -625,6 +644,11 @@ export default function CustomLandingPage() {
                         <Button 
                           variant="neon" 
                           className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
+                          style={{
+                            ...getBackgroundStyles((customization as any).buttons),
+                            ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                            borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                          }}
                           onClick={() => navigate(`/${slug}/cadastro`)}
                         >
                           <UserPlus2 />
@@ -751,7 +775,12 @@ export default function CustomLandingPage() {
                         type="button"
                         onClick={() => handleHeroCtaClick(item)}
                         className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
-                        style={{ zIndex: 25 }}
+                        style={{ 
+                          zIndex: 25,
+                          ...getBackgroundStyles((customization as any).buttons),
+                          ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                          borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                        }}
                       >
                         {item.cfg.label ?? 'Saiba mais'}
                       </button>
@@ -795,7 +824,12 @@ export default function CustomLandingPage() {
                     type="button"
                     onClick={() => handleHeroCtaClick(item)}
                     className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
-                    style={{ zIndex: 25 }}
+                    style={{ 
+                      zIndex: 25,
+                      ...getBackgroundStyles((customization as any).buttons),
+                      ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                      borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                    }}
                   >
                     {item.cfg.label ?? 'Saiba mais'}
                   </button>
@@ -1031,6 +1065,11 @@ export default function CustomLandingPage() {
             <div className="text-center mt-12">
               <button 
                 onClick={() => navigate(`/${slug}/agendar`)}
+                style={{
+                  ...getBackgroundStyles((customization as any).buttons),
+                  ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                  borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                }}
                 className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors button-custom-bg"
               >
                 Agendar Agora
@@ -1180,6 +1219,11 @@ export default function CustomLandingPage() {
                 <div className="mt-6">
                   <button 
                     onClick={() => navigate(`/${slug}/agendar`)}
+                    style={{
+                      ...getBackgroundStyles((customization as any).buttons),
+                      ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
+                      borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
+                    }}
                     className="w-full bg-neon-violet text-white px-6 py-3 rounded-lg font-semibold hover:bg-neon-violet/90 transition-colors"
                   >
                     Fazer Agendamento
