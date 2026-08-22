@@ -95,12 +95,12 @@ export function ColorPicker({
             <div className="flex gap-2">
               <Input
                 type="color"
-                value={solidColor.startsWith("hsl") ? "#8b5cf6" : solidColor}
+                value={typeof solidColor === 'string' && solidColor.startsWith("hsl") ? "#8b5cf6" : (typeof solidColor === 'string' ? solidColor : "#ffffff")}
                 onChange={(e) => onSolidColorChange(e.target.value)}
                 className="w-12 h-10 p-1 border rounded"
               />
               <Input
-                value={solidColor}
+                value={typeof solidColor === 'string' ? solidColor : ""}
                 onChange={(e) => onSolidColorChange(e.target.value)}
                 placeholder="hsl(251, 91%, 65%)"
                 className="flex-1"
@@ -129,7 +129,7 @@ export function ColorPicker({
 
             {gradientSettings.type === "linear" && (
               <div className="space-y-2">
-                <Label>Ângulo: {gradientSettings.angle}°</Label>
+                <Label>Ângulo: {String(gradientSettings.angle)}°</Label>
                 <Slider
                   value={[gradientSettings.angle]}
                   onValueChange={([angle]) => 
@@ -150,12 +150,12 @@ export function ColorPicker({
                   <div key={index} className="flex gap-2 items-center">
                     <Input
                       type="color"
-                      value={color.startsWith("hsl") ? "#8b5cf6" : color}
+                      value={typeof color === 'string' && color.startsWith("hsl") ? "#8b5cf6" : (typeof color === 'string' ? color : "#ffffff")}
                       onChange={(e) => updateColor(index, e.target.value)}
                       className="w-12 h-8 p-1 border rounded"
                     />
                     <Input
-                      value={color}
+                      value={typeof color === 'string' ? color : ""}
                       onChange={(e) => updateColor(index, e.target.value)}
                       placeholder="hsl(251, 91%, 65%)"
                       className="flex-1"
@@ -177,12 +177,12 @@ export function ColorPicker({
                 <div className="flex gap-2">
                   <Input
                     type="color"
-                    value={newColor.startsWith("hsl") ? "#8b5cf6" : newColor}
+                    value={typeof newColor === 'string' && newColor.startsWith("hsl") ? "#8b5cf6" : (typeof newColor === 'string' ? newColor : "#ffffff")}
                     onChange={(e) => setNewColor(e.target.value)}
                     className="w-12 h-8 p-1 border rounded"
                   />
                   <Input
-                    value={newColor}
+                    value={typeof newColor === 'string' ? newColor : ""}
                     onChange={(e) => setNewColor(e.target.value)}
                     placeholder="hsl(251, 91%, 65%)"
                     className="flex-1"
