@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Save, Lock, Monitor, Smartphone, Tablet, Palette, Type, Image, Layout, Code, Footer } from "lucide-react";
+import { Save, Lock, Monitor, Smartphone, Tablet, Palette, Type, Image, Layout, Code } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { BodySettings } from "./personalization/BodySettings";
@@ -161,7 +161,7 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
           <TabsContent value="professionals" className="pt-4"><ProfessionalsSettings config={customization.professionals} onChange={(val) => setCustomization({ ...customization, professionals: val })} disabled={isLocked} /></TabsContent>
           <TabsContent value="about" className="pt-4"><AboutSettings config={customization.about} onChange={(val) => setCustomization({ ...customization, about: val })} disabled={isLocked} /></TabsContent>
           <TabsContent value="footer" className="pt-4"><FooterSettings config={customization.footer as any} onChange={(val) => setCustomization({ ...customization, footer: val as any })} disabled={isLocked} /></TabsContent>
-          <TabsContent value="extra" className="pt-4"><CodeEditor value={customization.extra.custom_css} onChange={(val) => setCustomization({ ...customization, extra: { ...customization.extra, custom_css: val } })} disabled={isLocked} /></TabsContent>
+          <TabsContent value="extra" className="pt-4"><CodeEditor code={customization.extra.custom_css} onChange={(val) => setCustomization({ ...customization, extra: { ...customization.extra, custom_css: val } })} onSave={saveCustomization} /></TabsContent>
         </Tabs>
       </CardContent>
     </Card>
