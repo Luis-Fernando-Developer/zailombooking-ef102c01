@@ -6,13 +6,10 @@ import { BookingLogo } from "@/components/BookingLogo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Divide as Hamburger } from 'hamburger-react';
-import { custom } from "zod";
-// ChatWidget removido — o chatbot agora é gerenciado pelo builder externo (TalkMap).
 import { CampaignTopBar, CampaignPopup, CampaignHeroBanner } from "@/components/marketing/CampaignSlots";
 import { useActiveCampaigns, type CampaignWithMaterials } from "@/hooks/use-active-campaigns";
 import { trackCampaignClick, type PlacementCTA } from "@/lib/api/marketing";
 import { getTypographyStyles, getBackgroundStyles, getButtonStyles, getCardStyles } from "@/components/business/personalization/utils";
-
 import { type CustomizationData } from "@/components/business/personalization/types";
 
 interface Combo {
@@ -44,10 +41,7 @@ export default function CustomLandingPage() {
   const [visibleServices, setVisibleServices] = useState(4);
   const [visibleEmployees, setVisibleEmployees] = useState(4);
   const [loggedClient, setLoggedClient] = useState<{ id: string; name: string; avatar_url?: string | null } | null>(null);
-  // activeFlowId removido — chatbot agora é gerenciado pelo builder externo (TalkMap).
 
-  // Campanhas com placement "carrossel do hero" — injeta materiais como banners adicionais
-  // dentro da Hero da Landing Page, respeitando tipo de banner e posição do conteúdo.
   const { campaigns: heroCarouselCampaigns } = useActiveCampaigns(company?.id, "hero_carousel");
   type HeroBannerItem = { url: string; campaign?: CampaignWithMaterials; cfg?: PlacementCTA };
   const campaignHeroItems: HeroBannerItem[] = heroCarouselCampaigns.flatMap((c) => {
@@ -56,7 +50,7 @@ export default function CustomLandingPage() {
       .filter((m) => !!m.file_url)
       .map((m) => ({ url: m.file_url as string, campaign: c, cfg }));
   });
-  const customBannerItems: HeroBannerItem[] = ((customization?.hero_banner_urls as string[] | undefined) ?? []).map((url) => ({ url }));
+  const customBannerItems: HeroBannerItem[] = ((customization?.hero?.banner_urls as string[] | undefined) ?? []).map((url) => ({ url }));
   const heroBannerItems: HeroBannerItem[] = [...customBannerItems, ...campaignHeroItems];
   const heroBannerUrls = heroBannerItems.map((i) => i.url);
 
@@ -79,14 +73,10 @@ export default function CustomLandingPage() {
     else window.open(href, "_blank", "noopener,noreferrer");
   };
 
-
   useEffect(() => {
-    if ( slug) {
-      fetchData();
-    }
+    if (slug) fetchData();
   }, [slug]);
 
-  // Detecta cliente logado e mantém em estado (sem deslogar ao navegar de volta).
   useEffect(() => {
     let active = true;
     const loadClient = async (companyId?: string) => {
@@ -114,7 +104,6 @@ export default function CustomLandingPage() {
 
   const fetchData = async () => {
     try {
-      // Fetch company data
       const { data: companyData, error: companyError } = await supabaseClient
         .from('companies')
         .select('*')
@@ -126,118 +115,47 @@ export default function CustomLandingPage() {
         setLoading(false);
         return;
       }
-
       setCompany(companyData);
 
-      // Fetch services data
       const { data: servicesData } = await supabaseClient
         .from('services')
         .select('*')
         .eq('company_id', companyData.id)
         .eq('is_active', true);
-
       setServices(servicesData || []);
 
-      // Buscar combos e mapear services para cada item (caso não haja FKs)
-      const { data: combosData, error: combosError } = await supabaseClient
+      const { data: combosData } = await supabaseClient
         .from('service_combos')
         .select('*, items:service_combo_items(*)')
         .eq('company_id', companyData.id)
         .eq('is_active', true)
         .order('name');
-
-      if (combosError) {
-        console.error('Error fetching combos:', combosError);
-        setCombos([]);
-      } else {
-        // coletar ids de serviços usados nos combos
-        const serviceIds = Array.from(
-          new Set(
-            (combosData || [])
-              .flatMap((c: any) => (c.items || []).map((it: any) => it.service_id))
-              .filter(Boolean)
-          )
-        );
-
+      
+      if (combosData) {
+        const serviceIds = Array.from(new Set(combosData.flatMap((c: any) => (c.items || []).map((it: any) => it.service_id)).filter(Boolean)));
         let servicesMap: Record<string, any> = {};
         if (serviceIds.length > 0) {
-          const { data: servicesList } = await supabaseClient
-            .from('services')
-            .select('id, name, price, image_url')
-            .in('id', serviceIds);
-          servicesMap = (servicesList || []).reduce((acc: any, s: any) => {
-            acc[s.id] = s;
-            return acc;
-          }, {});
+          const { data: servicesList } = await supabaseClient.from('services').select('id, name, price, image_url').in('id', serviceIds);
+          servicesMap = (servicesList || []).reduce((acc: any, s: any) => ({ ...acc, [s.id]: s }), {});
         }
-
-        const combosWithServices = (combosData || []).map((c: any) => ({
-          ...c,
-          items: (c.items || []).map((it: any) => ({
-            ...it,
-            service: servicesMap[it.service_id] || null,
-          })),
-        }));
-
-      setCombos(combosWithServices);
+        setCombos(combosData.map((c: any) => ({ ...c, items: (c.items || []).map((it: any) => ({ ...it, service: servicesMap[it.service_id] || null })) })));
       }
 
-      // Fetch employees data - apenas funcionários ativos
-      const { data: employeesData } = await supabaseClient
-        .from('employees')
-        .select('*')
-        .eq('company_id', companyData.id)
-        .eq('is_active', true);
-
+      const { data: employeesData } = await supabaseClient.from('employees').select('*').eq('company_id', companyData.id).eq('is_active', true);
       setEmployees(employeesData || []);
 
-      // Fetch employee services relationship
       if (employeesData && employeesData.length > 0) {
-        const { data: employeeServicesData } = await supabaseClient
-          .from('employee_services')
-          .select(`
-            employee_id,
-            service_id,
-            services (
-              id,
-              name
-            )
-          `)
-          .in('employee_id', employeesData.map(emp => emp.id));
-
+        const { data: employeeServicesData } = await supabaseClient.from('employee_services').select('employee_id, service_id, services(id, name)').in('employee_id', employeesData.map(emp => emp.id));
         setEmployeeServices(employeeServicesData || []);
       }
 
-      // Fetch customization data
-      const { data: customizationData } = await supabaseClient
-        .from('company_customizations')
-        .select('*')
-        .eq('company_id', companyData.id)
-        .maybeSingle();
-
-      // Merge base customization with theme data
+      const { data: customizationData } = await supabaseClient.from('company_customizations').select('*').eq('company_id', companyData.id).maybeSingle();
       if (customizationData) {
-        const themeData = typeof customizationData.theme === 'object' && customizationData.theme !== null 
-          ? customizationData.theme as Record<string, any>
-          : {};
-        
-        // Deep merge logic could be added here if needed, for now flat merge
-        setCustomization({
-          ...customizationData,
-          ...themeData
-        } as CustomizationData);
-      } else {
-        setCustomization(null);
+        setCustomization({ ...customizationData, ...(customizationData.theme || {}) });
       }
-      // Fetch business hours
-      const { data: hoursData } = await supabaseClient
-        .from('business_hours')
-        .select('*')
-        .eq('company_id', companyData.id)
-        .order('day_of_week');
 
+      const { data: hoursData } = await supabaseClient.from('business_hours').select('*').eq('company_id', companyData.id).order('day_of_week');
       setBusinessHours(hoursData || []);
-
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -245,925 +163,159 @@ export default function CustomLandingPage() {
     }
   };
 
-
-  const generateGradient = (gradientData: any) => {
-    if (!gradientData) return '';
-    const { type, angle, colors } = gradientData;
-    const colorString = colors.join(', ');
-    return type === 'linear' 
-      ? `linear-gradient(${angle}deg, ${colorString})`
-      : `radial-gradient(${colorString})`;
-  };
-
-  // const handlerOptionsHeader = () => {
-  //   setOptionHeader(true);
-  // }
-
-  const nextBanner = () => {
-    const urls = heroBannerUrls;
-    if (urls.length > 1) {
-      setBannerIndex((prevIndex) => (prevIndex + 1) % urls.length);
-    }
-  };
-
-  const prevBanner = () => {
-    const urls = heroBannerUrls;
-    if (urls.length > 1) {
-      setBannerIndex((prevIndex) => (prevIndex - 1 + urls.length) % urls.length);
-    }
-  };
-
+  const nextBanner = () => { if (heroBannerUrls.length > 1) setBannerIndex((prev) => (prev + 1) % heroBannerUrls.length); };
+  const prevBanner = () => { if (heroBannerUrls.length > 1) setBannerIndex((prev) => (prev - 1 + heroBannerUrls.length) % heroBannerUrls.length); };
 
   const getLogoUrl = () => {
     if (!customization) return null;
-    
     if (customization.logo_type === 'upload' && customization.logo_upload_path) {
-      const { data } = supabaseClient.storage
-        .from('company-logos')
-        .getPublicUrl(customization.logo_upload_path);
-      return data.publicUrl;
+      return supabaseClient.storage.from('company-logos').getPublicUrl(customization.logo_upload_path).data.publicUrl;
     }
-    
-    if (customization.logo_type === 'url' && customization.logo_url) {
-      return customization.logo_url;
-    }
-    
-    return null;
+    return customization.logo_url || null;
   };
 
-  const loadMoreServices = () => {
-    setVisibleServices(prev => Math.min(prev + 2, services.length));
-  };
+  const getEmployeeServices = (employeeId: string) => employeeServices.filter(es => es.employee_id === employeeId).map(es => es.services?.name).filter(Boolean);
 
-  const loadMoreEmployees = () => {
-    setVisibleEmployees(prev => Math.min(prev + 2, employees.length));
-  };
+  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Carregando...</div>;
+  if (!company) return <div className="min-h-screen bg-black flex items-center justify-center text-white"><h1>Empresa não encontrada</h1></div>;
 
-  const getEmployeeServices = (employeeId: string) => {
-    return employeeServices
-      .filter(es => es.employee_id === employeeId)
-      .map(es => es.services?.name)
-      .filter(Boolean);
-  };
-
-  const applyCustomStyles = () => {
-    if (!customization) return {};
-
-    const styles: any = {};
-    const bodyCfg = customization.body;
-
-    // Body Styles
-    if (bodyCfg) {
-      if (bodyCfg.background_color) styles.backgroundColor = bodyCfg.background_color;
-      if (bodyCfg.font_family) styles['--font-family'] = bodyCfg.font_family;
-    }
-
-    return styles;
-  };
-
-  const formatBusinessHours = () => {
-    if (!businessHours || businessHours.length === 0) {
-      return (
-        <div className="space-y-2 text-muted-foreground">
-          <p>Segunda a Sexta: 8:00 - 18:00</p>
-          <p>Sábado: 8:00 - 16:00</p>
-          <p>Domingo: Fechado</p>
-        </div>
-      );
-    }
-
-    const DAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-
-    return (
-      <div className="space-y-2 text-muted-foreground">
-        {businessHours.map((hour) => (
-          <p key={hour.day_of_week}>
-            {DAYS[hour.day_of_week]}: {hour.is_open ? (
-              <>
-                {hour.open_time} - {hour.close_time}
-              </>
-            ) : 'Fechado'}
-          </p>
-        ))}
-      </div>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!company) {
-    return (
-      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gradient mb-4">Empresa não encontrada</h1>
-          <p className="text-muted-foreground mb-8">A empresa que você procura não existe ou está inativa.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const customStyles = applyCustomStyles();
+  const bodyStyles = getBackgroundStyles(customization?.body);
+  const headerStyles = { ...getBackgroundStyles(customization?.header), ...getTypographyStyles(customization?.header?.menu_typography) };
+  const heroStyles = getBackgroundStyles(customization?.hero);
+  const servicesStyles = getBackgroundStyles(customization?.services);
+  const professionalsStyles = getBackgroundStyles(customization?.professionals);
+  const aboutStyles = getBackgroundStyles(customization?.about);
+  const footerStyles = { ...getBackgroundStyles(customization?.footer), ...getTypographyStyles(customization?.footer?.typography) };
 
   return (
-    <div 
-      className="min-h-screen"
-      style={{
-        ...customStyles,
-        fontFamily: customStyles['--font-family'] ? `${customStyles['--font-family']}, system-ui, sans-serif` : undefined,
-        color: customStyles['--text-color'] || undefined
-      }}
-    >
-      <div className="mx-auto" style={{ maxWidth: customStyles['--max-width'] || '100%' }}>
-      {customization?.header_position !== 'fixed' && (
-        <CampaignTopBar companyId={company?.id} />
-      )}
+    <div className="min-h-screen" style={{ ...bodyStyles, fontFamily: customization?.body?.font_family }}>
+      {customization?.header?.position !== 'fixed' && <CampaignTopBar companyId={company?.id} />}
       <CampaignPopup companyId={company?.id} />
-      {/* Apply custom CSS for dynamic styling */}
-      <style>
-        {`
-          :root {
-            ${customStyles['--font-family'] ? `--font-primary: ${customStyles['--font-family']};` : ''}
-            ${customStyles['--font-size-base'] ? `--font-size-base: ${customStyles['--font-size-base']};` : ''}
-          }
-          
-          ${customStyles['--hero-background'] ? `
-          .hero-custom-bg {
-            background: ${customStyles['--hero-background']} !important;
-          }
-          ` : ''}
-          
-          ${customStyles['--header-background'] ? `
-          .header-custom-bg {
-            background: ${customStyles['--header-background']} !important;
-          }
-          ` : ''}
-          
-          ${customStyles['--footer-background'] ? `
-          .footer-custom-bg {
-            background: ${customStyles['--footer-background']} !important;
-          }
-          ` : ''}
-          
-          ${customStyles['--text-gradient'] ? `
-          .text-custom-gradient {
-            background: ${customStyles['--text-gradient']};
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-          }
-          ` : ''}
-          
-          ${customStyles['--text-color'] ? `
-          .text-custom-color {
-            color: ${customStyles['--text-color']} !important;
-          }
-          ` : ''}
-          
-          ${generateCardsStyles()['--cards-background'] ? `
-          .cards-custom-bg {
-            background: ${generateCardsStyles()['--cards-background']} !important;
-          }
-          ` : ''}
-          
-          ${generateCardsStyles()['--cards-color'] ? `
-          .cards-custom-color {
-            color: ${generateCardsStyles()['--cards-color']} !important;
-          }
-          ` : ''}
-
-          ${generateButtonStyles()['--button-background'] ? `
-          .button-custom-bg {
-            background: ${generateButtonStyles()['--button-background']} !important;
-            border-color: ${generateButtonStyles()['--button-background']} !important;
-          }
-          ` : ''}
-          
-          ${customization?.font_family ? `
-          .custom-font {
-            font-family: ${customization.font_family}, system-ui, sans-serif !important;
-          }
-          ` : ''}
-
-      
-          
-          ${customization?.cards_font_family && customization.cards_font_family !== 'Inter' ? `
-          .cards-custom-font {
-            font-family: ${customization.cards_font_family}, system-ui, sans-serif !important;
-          }
-          ` : ''}
-        `}
-      </style>
 
       {/* Header */}
-      {customization?.header_position === 'fixed' && (
-        <div className="sticky top-0 left-0 right-0 z-50">
-          <CampaignTopBar companyId={company?.id} />
-          <header
-            style={getBackgroundStyles((customization as any).header)}
-            className={`backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
-          <div className="max-w-7xl  mx-auto  px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center  justify-between">
-              <div className="w-full justify-between flex items-center gap-4 ">
-                {getLogoUrl() ? (
-                  
-                    <img
-                      src={getLogoUrl()!}
-                      alt={`Logo ${company.name}`}
-                      className="w-8 h-8 object-contain"
-                    />
-                    
-                  
-                ) : (
-                  <BookingLogo showText={false} className="pt-0" />
-                )}
-                <h1 
-                  style={getTypographyStyles((customization as any).header?.typography, (customization as any).body)}
-                  className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
-                >
-                  {company.name} 
-                </h1>
-                <div className="flex items-center">
-                    {/* <Button variant={optionHeader ? "none2" : "none"} onClick={() => setOptionHeader(!optionHeader)} className={`p-0 font-bold  ${customization?.button_color ? 'bg-black/20' : 'button-custom-bg'} ${optionHeader  ? 'bg-black/20' : 'bg-black/20'}`}> */}
-                  <Button variant={optionHeader ? "none2" : "none"} onClick={() => setOptionHeader(!optionHeader)} 
-                    className={`p-0 font-bold  
-                      `}>
-                    {/* style={optionHeader ? { background: 'button-custom-bg', opacity: .89, color: 'black' } : { background: customization?.button_color, color: 'black' }}> */}
-                    <Hamburger size={20} duration={1} toggled={optionHeader} toggle={setOptionHeader} color="white" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-              {optionHeader && (
-                <div className={`flex ${customization?.header_background_type ? 'p-0 mt-2 border-t border-primary/40 pt-2' : ''}`}>
-                  <div className="flex gap-2 justify-end items-center w-full ">
-                    {loggedClient ? (
-                      <>
-                        <div className="flex items-center gap-2 mr-2">
-                          {loggedClient.avatar_url ? (
-                            <img src={loggedClient.avatar_url} alt={loggedClient.name} className="w-8 h-8 rounded-full object-cover border border-primary/30" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-white">
-                              {loggedClient.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <span 
-                            style={getTypographyStyles((customization as any).header?.menu_typography, (customization as any).body)}
-                            className="font-bold text-sm"
-                          >
-                            {loggedClient.name.split(' ')[0]}
-                          </span>
-                        </div>
-                        <Button 
-                          variant="neon" 
-                          style={{
-                            ...getBackgroundStyles((customization as any).buttons),
-                            ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
-                            borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
-                          }}
-                          className="h-[30px] p-2 font-bold" 
-                          onClick={() => navigate(`/${slug}/client/dashboard`)}
-                        >
-                          Meu Painel
-                        </Button>
-                        <Button variant="ghost" className="h-[30px] p-2 font-bold" onClick={handleClientLogout}>
-                          Sair
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button 
-                          variant="neon" 
-                          className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
-                          style={{
-                            ...getBackgroundStyles((customization as any).buttons),
-                            ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
-                            borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
-                          }}
-                          onClick={() => navigate(`/${slug}/entrar`)}
-                        >
-                          <LogInIcon />
-                          Entrar
-                        </Button>
-                        <Button 
-                          variant="neon" 
-                          className={`item-center flex font-bold h-[30px] p-2 gap-1  ${customization?.button_color ? 'button-custom-bg' : 'bg-black/20'}`}
-                          style={{
-                            ...getBackgroundStyles((customization as any).buttons),
-                            ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
-                            borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
-                          }}
-                          onClick={() => navigate(`/${slug}/cadastro`)}
-                        >
-                          <UserPlus2 />
-                          Cadastrar
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  
-                </div>
-              )}
+      <header style={headerStyles} className={`${customization?.header?.position === 'fixed' ? 'sticky top-0 z-50' : 'relative'} backdrop-blur-sm p-4`}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/${slug}`)}>
+            {getLogoUrl() ? <img src={getLogoUrl()!} alt={company.name} className="w-8 h-8 object-contain" /> : <BookingLogo showText={false} />}
+            <h1 className="text-xl font-bold">{company.name}</h1>
           </div>
-        </header>
+          <div className="flex items-center gap-2">
+            {loggedClient ? (
+              <Button variant="ghost" size="sm" onClick={() => navigate(`/${slug}/client/dashboard`)}>Painel</Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => navigate(`/${slug}/entrar`)}>Entrar</Button>
+                <Button size="sm" onClick={() => navigate(`/${slug}/cadastro`)} style={getButtonStyles(customization?.header?.buttons)}>Cadastrar</Button>
+              </>
+            )}
+            <Hamburger size={20} toggled={optionHeader} toggle={setOptionHeader} />
+          </div>
         </div>
-      )}
-      {customization?.header_position === 'relative' && (
-        <header 
-          style={getBackgroundStyles((customization as any).header)}
-          className={`relative top-0 left-0 right-0 z-50  backdrop-blur-sm ${customization.header_background_type ? 'header-custom-bg' : 'bg-card/30'}`}>
-          <div className="max-w-7xl  mx-auto  px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center  justify-between">
-              <div className="w-full justify-between flex items-center gap-4 ">
-                {getLogoUrl() ? (
-                  <>
-                    <img 
-                      src={getLogoUrl()!} 
-                      alt={`Logo ${company.name}`}
-                      className="w-8 h-8 object-contain"
-                    />
-                    
-                  </>
-                ) : (
-                  <BookingLogo showText={false} className="pt-0" />
-                )}
-                <h1 
-                  style={getTypographyStyles((customization as any).header?.typography, (customization as any).body)}
-                  className={`text-2xl font-bold ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
-                >
-                  {company.name}
-                </h1>
-                <div className="flex items-center">
-                    <Button variant={optionHeader ? "none2" : "none"} onClick={() => setOptionHeader(!optionHeader)}
-                      className={`p-0 font-bold `}>
-                      <Hamburger size={20} duration={1} toggled={optionHeader} toggle={setOptionHeader} color="white" />
-                    </Button>
-                </div>
-              </div>
-            </div>
-              {optionHeader && (
-                <div className={`flex ${customization?.header_background_type ? 'p-0 mt-2 border-t border-primary/40 pt-2' : ''}`}>
-                  <div className="flex gap-1 justify-end items-center w-full ">
-                    {loggedClient ? (
-                      <>
-                        <div className="flex items-center gap-2 mr-2">
-                          {loggedClient.avatar_url ? (
-                            <img src={loggedClient.avatar_url} alt={loggedClient.name} className="w-8 h-8 rounded-full object-cover border border-primary/30" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-white">
-                              {loggedClient.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <span className="font-bold text-sm">{loggedClient.name.split(' ')[0]}</span>
-                        </div>
-                        <Button variant="ghost" className="bg-black/20 font-bold button-custom-bg" onClick={() => navigate(`/${slug}/client/dashboard`)}>
-                          MEU PAINEL
-                        </Button>
-                        <Button variant="ghost" className="bg-black/20 font-bold button-custom-bg" onClick={handleClientLogout}>
-                          SAIR
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button 
-                          variant="ghost" 
-                          className="bg-black/20 font-bold custom-font button-custom-bg"
-                          onClick={() => navigate(`/${slug}/entrar`)}
-                        >
-                          <LogInIcon />
-                          ENTRAR
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          className="bg-black/20 font-bold custom-font button-custom-bg"
-                          onClick={() => navigate(`/${slug}/cadastro`)}
-                        >
-                          <UserPlus2 />
-                          CADASTRAR
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  
-                </div>
-              )}
-          </div>
-        </header>
-      )}
+      </header>
 
       {/* Main Content */}
-      <div>
-        {/* Banner extra de campanha (placement "hero da Landing Page") — section adicional acima da hero */}
+      <main>
         <CampaignHeroBanner companyId={company?.id} />
-
-        {/* Hero Section with Custom Styling */}
-        <section 
-          style={getBackgroundStyles((customization as any).hero)}
-          className={`relative ${customization?.hero_content_position === 'absolute' ? 'h-[500px]' : ''} flex ${customization?.hero_content_position === 'below' ? 'flex-col' : customization?.hero_content_position === 'above' ? 'flex-col-reverse' : 'items-center justify-center'} overflow-hidden ${customization?.hero_background_type ? 'hero-custom-bg' : 'bg-gradient-hero'}`}>
-          {/* Background Elements */}
-          {customization?.hero_content_position === 'absolute' && (
-            <div className="absolute inset-0">
-              {heroBannerItems.length > 0 && (() => {
-                const item = heroBannerItems[bannerIndex % heroBannerItems.length];
-                const fullClickable = item.campaign && item.cfg?.buttonPosition === 'full' && item.cfg?.url;
-                return (
-                  <div className="absolute inset-0">
-                    <img
-                      src={item.url}
-                      alt="Hero banner"
-                      onClick={fullClickable ? () => handleHeroBannerClick(item) : undefined}
-                      className={`w-full h-full object-fit opacity-50 ${fullClickable ? 'cursor-pointer' : ''}`}
-                    />
-                    {item.campaign && item.cfg?.url && item.cfg?.buttonPosition !== 'full' && (
-                      <button
-                        type="button"
-                        onClick={() => handleHeroCtaClick(item)}
-                        className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
-                        style={{ 
-                          zIndex: 25,
-                          ...getBackgroundStyles((customization as any).buttons),
-                          ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
-                          borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
-                        }}
-                      >
-                        {item.cfg.label ?? 'Saiba mais'}
-                      </button>
-                    )}
-                    {heroBannerItems.length > 1 && (
-                      <>
-                        <button
-                          onClick={prevBanner}
-                          className=" absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                          style={{ zIndex: 20 }}
-                        >&#8592;</button>
-                        <button
-                          onClick={nextBanner}
-                          className=" absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                          style={{ zIndex: 20 }}
-                        >&#8594;</button>
-                      </>
-                    )}
-                  </div>
-                );
-              })()}
-              <div className="absolute top-20 left-10 w-72 h-72 bg-neon-violet/10 rounded-full blur-3xl animate-pulse-glow"></div>
-              <div className="absolute bottom-20 right-10 w-96 h-96 bg-neon-pink/10 rounded-full blur-3xl animate-float"></div>
-            </div>
-          )}
-
-          {/* Banner Section for below/above positions */}
-          {(customization?.hero_content_position === 'below' || customization?.hero_content_position === 'above') && heroBannerItems.length > 0 && (() => {
-            const item = heroBannerItems[bannerIndex % heroBannerItems.length];
-            const fullClickable = item.campaign && item.cfg?.buttonPosition === 'full' && item.cfg?.url;
-            return (
-              <div className="relative w-full h-[400px]">
-                <img
-                  src={item.url}
-                  alt="Hero banner"
-                  onClick={fullClickable ? () => handleHeroBannerClick(item) : undefined}
-                  className={`w-full h-full object-cover ${fullClickable ? 'cursor-pointer' : ''}`}
-                />
-                {item.campaign && item.cfg?.url && item.cfg?.buttonPosition !== 'full' && (
-                  <button
-                    type="button"
-                    onClick={() => handleHeroCtaClick(item)}
-                    className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
-                    style={{ 
-                      zIndex: 25,
-                      ...getBackgroundStyles((customization as any).buttons),
-                      ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
-                      borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
-                    }}
-                  >
-                    {item.cfg.label ?? 'Saiba mais'}
-                  </button>
-                )}
-                {heroBannerItems.length > 1 && (
-                  <>
-                    <button
-                      onClick={prevBanner}
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                      style={{ zIndex: 20 }}
-                    >&#8592;</button>
-                    <button
-                      onClick={nextBanner}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition"
-                      style={{ zIndex: 20 }}
-                    >&#8594;</button>
-                  </>
-                )}
-              </div>
-            );
-          })()}
-
-
-          <div className={`${customization?.hero_content_position === 'absolute' ? 'relative z-10' : 'py-16'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`}>
-            <div className="text-center">
-              <h1 
-                style={getTypographyStyles((customization as any).hero?.title_typography, (customization as any).body)}
-                className={`text-5xl lg:text-7xl font-bold mb-6 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : ''}`}
-              >
-                {customization?.hero_title || ''}
-              </h1>
-              
-              <p 
-                style={getTypographyStyles((customization as any).hero?.description_typography, (customization as any).body)}
-                className={`text-xl mb-8 max-w-2xl mx-auto ${customization?.font_color ? 'text-custom-color' : 'text-muted-foreground'}`}
-              >
-                {customization?.hero_description || ''}
-              </p>
-            </div>
+        
+        {/* Hero */}
+        <section style={heroStyles} className="relative py-20 px-4 text-center">
+          <div className="max-w-3xl mx-auto">
+            <h1 style={getTypographyStyles(customization?.hero?.title_typography)} className="text-4xl md:text-6xl font-bold mb-6">
+              {customization?.hero?.title_typography?.text || 'Seja Bem-vindo'}
+            </h1>
+            <p style={getTypographyStyles(customization?.hero?.description_typography)} className="text-lg md:text-xl mb-8">
+              {customization?.hero?.description_typography?.text || 'Encontre os melhores serviços aqui.'}
+            </p>
+            <Button size="lg" onClick={() => navigate(`/${slug}/agendar`)} style={getButtonStyles(customization?.hero?.buttons)}>
+              {customization?.hero?.buttons?.typography?.text || 'Agendar Agora'}
+            </Button>
           </div>
         </section>
 
-        {/* Extra Section */}
-        {customization?.extra_section_enabled && customization.extra_section_code && (
-          <section className="py-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
-              <div dangerouslySetInnerHTML={{ __html: customization.extra_section_code }} />
-            </div>
-          </section>
-        )}
-
         {/* Serviços */}
-        <section className="py-16 bg-card/30  border-2 border-green-600">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 
-                style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
-                className={`text-3xl font-bold mb-4 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
-              >
-                Nossos Serviços
-              </h2>
-              <p 
-                style={getTypographyStyles((customization as any).cards?.description_typography, (customization as any).body)}
-                className={`max-w-2xl mx-auto custom-font ${customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'}`}
-              >
-                Conheça todos os serviços que oferecemos para você
-              </p>
-              
-            </div>
-            
-            <div className={`grid gap-6 items-stretch ${
-              customization?.cards_layout === 'horizontal' 
-                ? 'grid-cols-1' 
-                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-            }`}>
-              {combos.length > 0 && combos.map((combo) => {
-                const comboPrice = combo.price ?? combo.combo_price ?? 0;
-                const originalPrice = combo.original_total_price ?? 0;
-                return (
-                  <div
-                    key={combo.id}
-                    style={{
-                      ...getBackgroundStyles((customization as any).cards),
-                      ...getTypographyStyles((customization as any).cards?.typography, (customization as any).body)
-                    }}
-                    className={`rounded-lg border border-primary/20 p-6 transition-colors custom-font flex flex-col h-full ${
-                      customization?.cards_layout === 'horizontal' ? 'sm:flex-row sm:items-center sm:gap-6' : ''
-                    } ${customization?.cards_color_type === 'gradient' ? 'cards-custom-bg' : 'bg-card'}`}
-                  >
-                    {customization?.cards_show_images && combo.image_url && (
-                      <img
-                        src={combo.image_url}
-                        alt={combo.name}
-                        className={`object-cover rounded-lg ${
-                          customization?.cards_layout === 'horizontal'
-                            ? 'w-32 h-32 flex-shrink-0'
-                            : 'w-full h-48 mb-4'
-                        }`}
-                      />
-                    )}
-                    <div className="flex-1 flex flex-col">
-                      <h3 
-                        style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
-                        className={`text-xl font-semibold mb-2 custom-font ${
-                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
-                        }`}
-                      >
-                        {combo.name}
-                      </h3>
-                      {combo.items && combo.items.length > 0 && (
-                        <div className="mb-2 flex flex-wrap gap-1">
-                          <span className="inline-flex items-center rounded-md bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium custom-font">
-                            {combo.items.map((it) => it.service?.name || 'Serviço').join(' + ')}
-                          </span>
-                        </div>
-                      )}
-                      {combo.description && (
-                        <p 
-                          style={getTypographyStyles((customization as any).cards?.description_typography, (customization as any).body)}
-                          className={`mb-4 text-sm custom-font ${
-                            customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
-                          }`}
-                        >
-                          {combo.description}
-                        </p>
-                      )}
-                      <div className="mt-auto pt-3">
-                        <div className="flex justify-between items-end">
-                          <div className="flex flex-col">
-                            <span className="text-2xl font-bold text-primary custom-font">
-                              R$ {Number(comboPrice).toFixed(2)}
-                            </span>
-                            {originalPrice > 0 && originalPrice > Number(comboPrice) && (
-                              <span className="text-sm line-through text-muted-foreground custom-font">
-                                R$ {Number(originalPrice).toFixed(2)}
-                              </span>
-                            )}
-                          </div>
-                          <span className={`text-sm custom-font ${
-                            customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
-                          }`}>
-                            <div className='flex items-center justify-end gap-0.5'>
-                              <TimerIcon />
-                              <p className='pt-1'>{combo.total_duration_minutes} min</p>
-                            </div>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {services.slice(0, visibleServices).map((service) => (
-                <div 
-                  key={service.id} 
-                  style={{
-                    ...getBackgroundStyles((customization as any).cards),
-                    ...getTypographyStyles((customization as any).cards?.typography, (customization as any).body)
-                  }}
-                  className={`rounded-lg border border-primary/20 p-6 hover:border-primary/40 transition-colors custom-font flex flex-col h-full ${
-                    customization?.cards_layout === 'horizontal' ? 'sm:flex-row sm:gap-6 sm:items-center' : ''
-                  } ${
-                    customization?.cards_color_type === 'gradient' ? 'cards-custom-bg' : 'bg-card'
-                  } ${
-                    customization?.cards_font_family ? 'cards-custom-font' : ''
-                  }`}
-                >
-                  {customization?.cards_show_images && service.image_url && (
-                    <img 
-                      src={service.image_url} 
-                      alt={service.name}
-                      className={`object-cover rounded-lg ${
-                        customization?.cards_layout === 'horizontal' 
-                          ? 'w-32 h-32 flex-shrink-0' 
-                          : 'w-full h-48 mb-4'
-                      }`}
-                    />
-                  )}
-                  <div className="flex-1 flex flex-col">
-                    <h3 
-                      style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
-                      className={`text-xl font-semibold mb-2 custom-font ${
-                        customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
-                      }`}
-                    >
-                      {service.name}
-                    </h3>
-                    {service.description && (
-                      <p 
-                        style={getTypographyStyles((customization as any).cards?.description_typography, (customization as any).body)}
-                        className={`mb-4 custom-font ${
-                          customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {service.description}
-                      </p>
-                    )}
-                    <div className={`mt-auto pt-3 flex justify-between items-center`}>
-                      <span className="text-2xl font-bold text-primary custom-font">
-                        R$ {(service.price != null && !isNaN(Number(service.price))) 
-                            ? Number(service.price).toFixed(2) 
-                            : '0.00'}
-                      </span>
-                      <span className={`text-sm custom-font ${
-                        customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'
-                      }`}>
-                        <div className='flex items-center justify-end gap-0.5'>
-                          <TimerIcon />
-                          <p className='pt-1'>{service.duration_minutes} min</p>
-                        </div>
-                      
-                      </span>
-                    </div>
+        <section style={servicesStyles} className="py-20 px-4">
+          <div className="max-w-7xl mx-auto text-center">
+            <h2 style={getTypographyStyles(customization?.services?.title_typography)} className="text-3xl font-bold mb-12">
+              {customization?.services?.title_typography?.text || 'Serviços'}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {services.slice(0, visibleServices).map(service => (
+                <div key={service.id} style={getCardStyles(customization?.services?.cards)} className="p-6 bg-card rounded-xl">
+                  {service.image_url && <img src={service.image_url} alt={service.name} className="w-full h-48 object-cover rounded-lg mb-4" />}
+                  <h3 style={getTypographyStyles(customization?.services?.cards?.title_typography)} className="text-xl font-bold mb-2">{service.name}</h3>
+                  <p style={getTypographyStyles(customization?.services?.cards?.description_typography)} className="text-muted-foreground mb-4">{service.description}</p>
+                  <div className="flex justify-between items-center mt-4">
+                    <span style={getTypographyStyles(customization?.services?.cards?.price_typography)} className="text-xl font-bold">R$ {Number(service.price).toFixed(2)}</span>
+                    <Button size="sm" onClick={() => navigate(`/${slug}/agendar`)} style={getButtonStyles(customization?.services?.buttons)}>Agendar</Button>
                   </div>
                 </div>
               ))}
             </div>
-
-
-            
-            {visibleServices < services.length && (
-              <div className="text-center mt-8">
-                <Button 
-                  variant="outline" 
-                  onClick={loadMoreServices}
-                  className={`px-6 py-2 custom-font button-custom-bg ${customization?.button_color || 'green-600'}`}
-                >
-                  Carregar mais serviços <ChevronRight className="ml-2 w-4 h-4" />
-                </Button>
-              </div>
-            )}
-            
-            <div className="text-center mt-12">
-              <button 
-                onClick={() => navigate(`/${slug}/agendar`)}
-                style={{
-                  ...getBackgroundStyles((customization as any).buttons),
-                  ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
-                  borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
-                }}
-                className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors button-custom-bg"
-              >
-                Agendar Agora
-              </button>
-            </div>
+            {visibleServices < services.length && <Button variant="outline" className="mt-8" onClick={() => setVisibleServices(v => v + 3)}>Ver mais</Button>}
           </div>
         </section>
 
         {/* Profissionais */}
-        {employees.length > 0 && (
-          <section 
-            style={getBackgroundStyles((customization as any).cards)}
-            className="py-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-12">
-                <h2 
-                  style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
-                  className={`text-3xl font-bold mb-4 ${customization?.cards_font_family ? 'cards-custom-font' : ''} ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
-                >
-                  Nossa Equipe
-                </h2>
-                <p className={`max-w-2xl mx-auto ${customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'}`}>
-                  Conheça nossos profissionais especializados
-                </p>
-              </div>
-              
-              <div className={`grid gap-6 ${
-                customization?.cards_layout === 'horizontal' 
-                  ? 'grid-cols-1' 
-                  : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-              }`}>
-                {employees.slice(0, visibleEmployees).map((employee) => {
-                  const employeeServiceNames = getEmployeeServices(employee.id);
-                  
-                  return (
-                    <div 
-                      key={employee.id} 
-                      style={{
-                        ...getBackgroundStyles((customization as any).cards),
-                        ...getTypographyStyles((customization as any).cards?.typography, (customization as any).body)
-                      }}
-                      className={`rounded-lg border border-primary/20 p-6 hover:border-primary/40 transition-colors ${
-                        customization?.cards_layout === 'horizontal' ? 'flex gap-6 items-center' : ''
-                      } ${
-                        customization?.cards_color_type === 'gradient' ? 'cards-custom-bg' : 'bg-card'
-                      } ${
-                        customization?.cards_font_family ? 'cards-custom-font' : ''
-                      }`}
-                    >
-                      {customization?.cards_show_images && (
-                        employee.avatar_url ? (
-                          <img 
-                            src={employee.avatar_url} 
-                            alt={employee.name}
-                            className={`object-cover rounded-full ${
-                              customization?.cards_layout === 'horizontal' 
-                                ? 'w-20 h-20 flex-shrink-0' 
-                                : 'w-24 h-24 mx-auto mb-4'
-                            }`}
-                          />
-                        ) : (
-                          <div
-                            className={`rounded-full bg-muted flex items-center justify-center text-muted-foreground ${
-                              customization?.cards_layout === 'horizontal'
-                                ? 'w-20 h-20 flex-shrink-0'
-                                : 'w-24 h-24 mx-auto mb-4'
-                            }`}
-                          >
-                            <User className={customization?.cards_layout === 'horizontal' ? 'w-10 h-10' : 'w-12 h-12'} />
-                          </div>
-                        )
-                      )}
-                      <div className={`flex-1 ${customization?.cards_layout === 'horizontal' ? '' : 'text-center'}`}>
-                        <h3 
-                          style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
-                          className={`text-xl font-semibold mb-2 ${
-                            customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : ''
-                          }`}
-                        >
-                          {employee.name}
-                        </h3>
-                        {employeeServiceNames.length > 0 && (
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            {employeeServiceNames.map((serviceName, index) => (
-                              <Badge 
-                                key={index}
-                                variant="secondary"
-                                className="text-xs custom-font"
-                              >
-                                {serviceName}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {visibleEmployees < employees.length && (
-                <div className="text-center mt-8">
-                  <Button 
-                    variant="outline" 
-                    onClick={loadMoreEmployees}
-                    className="px-6 py-2"
-                  >
-                    Carregar mais profissionais <ChevronRight className="ml-2 w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* Informações da Empresa */}
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-3xl font-bold text-gradient mb-6">Sobre {company.name}</h2>
-                <div className="space-y-4">
-                  {company.address && (
-                    <div className="flex items-center gap-3">
-                      <MapPin className="w-5 h-5 text-primary" />
-                      <span>{company.address}, {company.city} - {company.state}</span>
-                    </div>
-                  )}
-                  {company.phone && (
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-5 h-5 text-primary" />
-                      <span>{company.phone}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-primary" />
-                    <span>{company.owner_email}</span>
+        <section style={professionalsStyles} className="py-20 px-4">
+          <div className="max-w-7xl mx-auto text-center">
+            <h2 style={getTypographyStyles(customization?.professionals?.title_typography)} className="text-3xl font-bold mb-12">
+              {customization?.professionals?.title_typography?.text || 'Nossa Equipe'}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {employees.slice(0, visibleEmployees).map(emp => (
+                <div key={emp.id} style={getCardStyles(customization?.professionals?.cards)} className="p-6 bg-card rounded-xl text-center">
+                  <div className="w-24 h-24 mx-auto rounded-full bg-muted mb-4 overflow-hidden">
+                    {emp.avatar_url ? <img src={emp.avatar_url} alt={emp.name} className="w-full h-full object-cover" /> : <User className="w-full h-full p-6 text-muted-foreground" />}
+                  </div>
+                  <h3 style={getTypographyStyles(customization?.professionals?.cards?.title_typography)} className="text-xl font-bold mb-2">{emp.name}</h3>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {getEmployeeServices(emp.id).map((s, i) => <Badge key={i} variant="secondary">{s}</Badge>)}
                   </div>
                 </div>
-              </div>
-              
-              <div className="bg-card/50 rounded-lg p-8 border border-primary/20">
-                <h3 className="text-xl font-semibold mb-4">Horário de Funcionamento</h3>
-                <div className="space-y-2 text-muted-foreground">
-                  {formatBusinessHours()}
-                </div>
-                <div className="mt-6">
-                  <button 
-                    onClick={() => navigate(`/${slug}/agendar`)}
-                    style={{
-                      ...getBackgroundStyles((customization as any).buttons),
-                      ...getTypographyStyles((customization as any).buttons?.typography, (customization as any).body),
-                      borderRadius: (customization as any).buttons?.border_radius ? `${(customization as any).buttons.border_radius}px` : undefined
-                    }}
-                    className="w-full bg-neon-violet text-white px-6 py-3 rounded-lg font-semibold hover:bg-neon-violet/90 transition-colors"
-                  >
-                    Fazer Agendamento
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Footer Simples */}
-        <footer 
-          style={{
-            ...getBackgroundStyles((customization as any).footer),
-            ...getTypographyStyles((customization as any).footer?.typography, (customization as any).body)
-          }}
-          className={`py-8 border-t border-primary/20 ${customization?.footer_background_type ? 'footer-custom-bg' : 'bg-card/30'}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <p className="text-muted-foreground">
-                © {new Date().getFullYear()} {company.name}. Todos os direitos reservados.
-              </p>
+        {/* Sobre */}
+        <section style={aboutStyles} className="py-20 px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 style={getTypographyStyles(customization?.about?.title_typography)} className="text-3xl font-bold mb-6">
+              {customization?.about?.title_typography?.text || 'Sobre Nós'}
+            </h2>
+            <p className="text-lg text-muted-foreground">{company.description || 'Uma empresa dedicada à excelência.'}</p>
+          </div>
+        </section>
+
+        {/* Custom Code */}
+        {customization?.extra?.custom_css && <style>{customization.extra.custom_css}</style>}
+      </main>
+
+      {/* Footer */}
+      <footer style={footerStyles} className="py-12 px-4 border-t">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <h3 className="font-bold mb-4">{company.name}</h3>
+            <p className="text-sm opacity-70">{company.address || 'Endereço não informado'}</p>
+          </div>
+          <div>
+            <h4 className="font-bold mb-4">Contato</h4>
+            <div className="space-y-2 text-sm opacity-70">
+              <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {company.phone}</p>
+              <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {company.email}</p>
             </div>
           </div>
-        </footer>
-
-        {/* Chatbot Widget removido — gerenciado pelo builder externo (TalkMap). */}
-      </div>
-      </div>
+          <div>
+            <h4 className="font-bold mb-4">Redes Sociais</h4>
+            <div className="flex gap-4">
+              {/* Social Icons Placeholder */}
+            </div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t text-center text-xs opacity-50">
+          © {new Date().getFullYear()} {company.name}. Todos os direitos reservados.
+        </div>
+      </footer>
     </div>
   );
 }
