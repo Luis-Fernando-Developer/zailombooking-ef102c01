@@ -27,6 +27,7 @@ interface CardSettingsProps {
 
 export function CardSettings({ label, config, onChange, disabled }: CardSettingsProps) {
   const updateConfig = (field: keyof CardConfig, value: any) => {
+    console.log(`[CardSettings] Updating field "${field}":`, value);
     onChange({ ...config, [field]: value });
   };
 

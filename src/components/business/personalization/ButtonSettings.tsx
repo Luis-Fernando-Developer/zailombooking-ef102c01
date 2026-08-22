@@ -25,6 +25,7 @@ interface ButtonSettingsProps {
 
 export function ButtonSettings({ label, config, onChange, disabled }: ButtonSettingsProps) {
   const updateConfig = (field: keyof ButtonConfig, value: any) => {
+    console.log(`[ButtonSettings] Updating field "${field}":`, value);
     onChange({ ...config, [field]: value });
   };
 
