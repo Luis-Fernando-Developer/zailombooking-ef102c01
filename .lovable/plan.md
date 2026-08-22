@@ -1,30 +1,31 @@
-# Plano de Correção: Erro React #310 (Objects as Children)
+# Plano de Refatoração: Personalização Granular da Landing Page (Multi-Tenant)
 
-O erro "React #310" ocorre quando um objeto é passado como filho no React em vez de um texto, número ou elemento. No contexto da personalização da Landing Page, isso geralmente acontece devido a dados corrompidos no JSON persistido no banco de dados, onde propriedades que deveriam ser strings (como `family` ou `color`) acabaram recebendo objetos aninhados.
+O objetivo é permitir que cada empresa controle visualmente suas seções da Landing Page de forma independente, desacoplando as configurações globais de "Botões" e "Cards" e integrando-as em cada seção (Serviços, Profissionais, Sobre, etc.). Também corrigiremos falhas na renderização do Hero e do Header.
 
-## Ações Propostas
+## 1. Mudança na Estrutura de Dados (Supabase)
+Migração para adicionar suporte às novas seções e configurações granulares no JSONB `theme` da tabela `company_customizations`.
 
-### 1. Robustez na Sanitização (LandingPageCustomizer.tsx)
-Aumentar o rigor da função `sanitizeTheme` para detectar e corrigir proativamente qualquer aninhamento de objeto em campos que devem ser primitivos, garantindo que o estado do React nunca receba esses objetos.
+## 2. Refatoração do Customizer (Admin)
+- **LandingPageCustomizer.tsx**: Atualizar a estrutura de abas e seções.
+- **HeroSettings.tsx**: Corrigir a injeção de `title_typography.text` e `description_typography.text`.
+- **HeaderSettings.tsx**: Adicionar configuração individual para botões do header.
+- **Novos Componentes de Configuração**:
+  - `ServicesSettings.tsx`: Controle de aparência da seção, botões de serviço e cards de serviço.
+  - `ProfessionalsSettings.tsx`: Controle de aparência e cards de profissionais.
+  - `AboutSettings.tsx`: Controle de aparência da seção "Sobre".
+- **Refatoração de Botões e Cards**: Transformar `ButtonSettings` e `CardSettings` em componentes reutilizáveis que podem ser instanciados dentro de cada seção.
 
-### 2. Proteção nos Componentes de Configuração
-Adicionar validações "strict" em cada componente de configuração (`BodySettings`, `HeaderSettings`, `HeroSettings`, etc.) para impedir que novas atualizações de estado injetem objetos em campos de texto ou números.
-
-### 3. Fallbacks Seguros no ColorPicker e Typography
-Garantir que os inputs nativos (como `<input type="color">`) recebam apenas strings válidas e que a função `getTypographyStyles` ignore qualquer valor que não seja um primitivo.
+## 3. Implementação na Landing Page Pública
+- **CustomLandingPage.tsx**: Atualizar para injetar variáveis CSS específicas para cada seção no DOM.
+- **Componentes de Seção**:
+  - `Hero.tsx`: Corrigir a exibição do título e descrição a partir do objeto `typography.text`.
+  - `Header.tsx`: Aplicar estilos únicos aos botões.
+  - `Services.tsx`, `Professionals.tsx`, `About.tsx`: Atualizar para ler as configurações granulares de fundo, títulos, cards e botões.
 
 ## Detalhes Técnicos
-
-- **LandingPageCustomizer.tsx**: Refatorar `sanitizeTheme` para ser recursiva e deletar chaves que não correspondam aos tipos esperados.
-- **utils.ts**: Fortalecer `getSafeValue` para garantir que `styles` CSS não recebam objetos.
-- **ColorPicker.tsx**: Adicionar verificação de tipo antes de renderizar os inputs de cor.
+- Utilização de variáveis CSS escopadas (ex: `--section-bg`, `--card-radius`) para evitar vazamento de estilos entre seções.
+- Manutenção da retrocompatibilidade com o objeto `theme` atual, usando fallbacks hierárquicos (Seção > Global > Default).
+- Correção do erro de renderização do Hero garantindo que `typography.text` seja exibido prioritariamente sobre os campos legados.
 
 ---
-
-### 📊 Relatório de Execução (Planejamento)
-
-**Sub-agentes ativados:**
-- 🎨 **UI Architect** — ✅ Planejado
-- 🔍 **Code Auditor** — ✅ Planejado
-- 🧪 **Testing Agent** — ✅ Planejado
-- 🗄️ **Supabase Engineer** — ➖ Não necessário
+**Solicitação do Usuário:** Gerar SQL das configurações para deploy manual.
