@@ -121,6 +121,7 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
   const [customization, setCustomization] = useState<CustomizationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const { toast } = useToast();
   const [employee, setEmployee] = useState<Employee>({ id: '1', name: 'Luis Fernando', avatar_url: null });
   
@@ -440,8 +441,6 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
   //   };
   //   input.click();
   // }
-
-  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
 
   return (
     <Card className={className}>
