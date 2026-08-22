@@ -851,10 +851,16 @@ export default function CustomLandingPage() {
         <section className="py-16 bg-card/30  border-2 border-green-600">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className={`text-3xl font-bold mb-4 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}>
+              <h2 
+                style={getTypographyStyles((customization as any).cards?.title_typography, (customization as any).body)}
+                className={`text-3xl font-bold mb-4 ${customization?.font_color_type === 'gradient' ? 'text-custom-gradient' : customization?.font_color ? 'text-custom-color' : 'text-gradient'}`}
+              >
                 Nossos Serviços
               </h2>
-              <p className={`max-w-2xl mx-auto custom-font ${customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'}`}>
+              <p 
+                style={getTypographyStyles((customization as any).cards?.description_typography, (customization as any).body)}
+                className={`max-w-2xl mx-auto custom-font ${customization?.cards_color_type === 'gradient' ? 'cards-custom-color' : customization?.cards_color ? 'cards-custom-color' : 'text-muted-foreground'}`}
+              >
                 Conheça todos os serviços que oferecemos para você
               </p>
               
@@ -871,6 +877,10 @@ export default function CustomLandingPage() {
                 return (
                   <div
                     key={combo.id}
+                    style={{
+                      ...getBackgroundStyles((customization as any).cards),
+                      ...getTypographyStyles((customization as any).cards?.typography, (customization as any).body)
+                    }}
                     className={`rounded-lg border border-primary/20 p-6 transition-colors custom-font flex flex-col h-full ${
                       customization?.cards_layout === 'horizontal' ? 'sm:flex-row sm:items-center sm:gap-6' : ''
                     } ${customization?.cards_color_type === 'gradient' ? 'cards-custom-bg' : 'bg-card'}`}
@@ -935,6 +945,10 @@ export default function CustomLandingPage() {
               {services.slice(0, visibleServices).map((service) => (
                 <div 
                   key={service.id} 
+                  style={{
+                    ...getBackgroundStyles((customization as any).cards),
+                    ...getTypographyStyles((customization as any).cards?.typography, (customization as any).body)
+                  }}
                   className={`rounded-lg border border-primary/20 p-6 hover:border-primary/40 transition-colors custom-font flex flex-col h-full ${
                     customization?.cards_layout === 'horizontal' ? 'sm:flex-row sm:gap-6 sm:items-center' : ''
                   } ${
