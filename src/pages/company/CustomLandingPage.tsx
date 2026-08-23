@@ -287,21 +287,20 @@ export default function CustomLandingPage() {
                 </div>
               ))}
             </div>
-            </div>
           </section>
-        )}
         )}
 
         {/* Sobre */}
         {customization?.about?.show !== false && (
           <section style={aboutStyles} className="py-20 px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 style={getTypographyStyles(customization?.about?.title_typography)} className="text-3xl font-bold mb-6">
-              {customization?.about?.title_typography?.text || 'Sobre Nós'}
-            </h2>
-            <p className="text-lg text-muted-foreground">{company.description || 'Uma empresa dedicada à excelência.'}</p>
-          </div>
-        </section>
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 style={getTypographyStyles(customization?.about?.title_typography)} className="text-3xl font-bold mb-6">
+                {customization?.about?.title_typography?.text || 'Sobre Nós'}
+              </h2>
+              <p className="text-lg text-muted-foreground">{company.description || 'Uma empresa dedicada à excelência.'}</p>
+            </div>
+          </section>
+        )}
 
         {/* Custom Code */}
         {customization?.extra?.custom_css && <style>{customization.extra.custom_css}</style>}
