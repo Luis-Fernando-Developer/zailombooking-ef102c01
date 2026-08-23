@@ -232,7 +232,8 @@ export default function CustomLandingPage() {
         )}
 
         {/* Serviços */}
-        <section style={servicesStyles} className="py-20 px-4">
+        {customization?.services?.show !== false && (
+          <section style={servicesStyles} className="py-20 px-4">
           <div className="max-w-7xl mx-auto text-center">
             <h2 style={getTypographyStyles(customization?.services?.title_typography)} className="text-3xl font-bold mb-12">
               {customization?.services?.title_typography?.text || 'Serviços'}
@@ -262,11 +263,13 @@ export default function CustomLandingPage() {
                 {customization?.hero?.buttons?.typography?.text || 'Agendar Agora'}
               </Button>
             </div>
-          </div>
-        </section>
+            </div>
+          </section>
+        )}
 
         {/* Profissionais */}
-        <section style={professionalsStyles} className="py-20 px-4">
+        {customization?.professionals?.show !== false && (
+          <section style={professionalsStyles} className="py-20 px-4">
           <div className="max-w-7xl mx-auto text-center">
             <h2 style={getTypographyStyles(customization?.professionals?.title_typography)} className="text-3xl font-bold mb-12">
               {customization?.professionals?.title_typography?.text || 'Nossa Equipe'}
@@ -284,11 +287,14 @@ export default function CustomLandingPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
+            </div>
+          </section>
+        )}
+        )}
 
         {/* Sobre */}
-        <section style={aboutStyles} className="py-20 px-4">
+        {customization?.about?.show !== false && (
+          <section style={aboutStyles} className="py-20 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h2 style={getTypographyStyles(customization?.about?.title_typography)} className="text-3xl font-bold mb-6">
               {customization?.about?.title_typography?.text || 'Sobre Nós'}
