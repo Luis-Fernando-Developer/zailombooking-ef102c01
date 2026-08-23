@@ -12,9 +12,12 @@ export const getTypographyStyles = (
   if (!config) return {};
 
   const styles: React.CSSProperties = {};
-
-  if (config.family) styles.fontFamily = config.family;
-  else if (bodyFallback?.font_family) styles.fontFamily = bodyFallback.font_family;
+  
+  if (config.family) {
+    styles.fontFamily = `'${config.family}', sans-serif`;
+  } else if (bodyFallback?.font_family) {
+    styles.fontFamily = `'${bodyFallback.font_family}', sans-serif`;
+  }
 
   if (config.size) styles.fontSize = `${config.size}px`;
   if (config.weight) styles.fontWeight = config.weight;
