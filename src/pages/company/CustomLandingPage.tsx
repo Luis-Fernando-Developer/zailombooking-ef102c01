@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MapPin, Phone, Mail, Menu, LogInIcon, UserPlus2, ChevronDown, DoorClosedIcon, X, ChevronRight, TimerIcon, User } from "lucide-react";
+import { MapPin, Phone, Mail, Menu, LogInIcon, UserPlus2, ChevronDown, DoorClosedIcon, X, ChevronRight, TimerIcon, User, Clock } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
 import { BookingLogo } from "@/components/BookingLogo";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { CampaignTopBar, CampaignPopup, CampaignHeroBanner } from "@/components/
 import { useActiveCampaigns, type CampaignWithMaterials } from "@/hooks/use-active-campaigns";
 import { trackCampaignClick, type PlacementCTA } from "@/lib/api/marketing";
 import { getTypographyStyles, getBackgroundStyles, getButtonStyles, getCardStyles } from "@/components/business/personalization/utils";
-import { type CustomizationData } from "@/components/business/personalization/types";
+import { type CustomizationData, fontOptions } from "@/components/business/personalization/types";
 
 interface Combo {
   id: string;
@@ -188,7 +188,19 @@ export default function CustomLandingPage() {
   const footerStyles = { ...getBackgroundStyles(customization?.footer), ...getTypographyStyles(customization?.footer?.typography) };
 
   return (
-    <div className="min-h-screen" style={{ ...bodyStyles, fontFamily: customization?.body?.font_family }}>
+    <div className="min-h-screen" style={{ ...bodyStyles }}>
+      <style>
+        {`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400;500;600;700&family=Berkshire+Swash&family=My+Soul&family=Bebas+Neue&family=Rubik+Puddles&family=Henny+Penny&family=Londrina+Shadow&family=Lavishly+Yours&family=Fleur+De+Leah&family=Tangerine:wght@400;700&family=Ballet&family=Mea+Culpa&family=Imperial+Script&display=swap');
+          
+          :root {
+            --font-main: ${customization?.body?.font_family || 'Inter'};
+          }
+          body {
+            font-family: var(--font-main), sans-serif !important;
+          }
+        `}
+      </style>
       {customization?.header?.position !== 'fixed' && <CampaignTopBar companyId={company?.id} />}
       <CampaignPopup companyId={company?.id} />
 
@@ -294,11 +306,109 @@ export default function CustomLandingPage() {
         {/* Sobre */}
         {customization?.about?.show !== false && (
           <section style={aboutStyles} className="py-20 px-4">
-            <div className="max-w-3xl mx-auto text-center">
-              <h2 style={getTypographyStyles(customization?.about?.title_typography)} className="text-3xl font-bold mb-6">
-                {customization?.about?.title_typography?.text || 'Sobre Nós'}
-              </h2>
-              <p className="text-lg text-muted-foreground">{company.description || 'Uma empresa dedicada à excelência.'}</p>
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-12">
+                <h2 style={getTypographyStyles(customization?.about?.title_typography)} className="text-3xl font-bold mb-6">
+                  {customization?.about?.title_typography?.text || 'Sobre Nós'}
+                </h2>
+                {customization?.about?.show_description !== false && (
+                  <p style={getTypographyStyles(customization?.about?.description_typography)} className="text-lg max-w-3xl mx-auto">
+                    {company.description || 'Uma empresa dedicada à excelência.'}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                {/* Horários de Funcionamento */}
+                {customization?.about?.show_business_hours !== false && (
+                  <div style={getCardStyles(customization?.about?.cards)} className="p-6 bg-card rounded-xl shadow-sm border">
+                    <div className="flex items-center gap-2 mb-4 border-b pb-2">
+                      <Clock className="w-5 h-5 text-primary" />
+                      <h3 style={getTypographyStyles(customization?.about?.cards?.title_typography)} className="font-bold">Horário de Funcionamento</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {businessHours.length > 0 ? (
+                        businessHours.map((h, i) => (
+                          <div key={i} className="flex justify-between text-sm py-1 border-b border-white/5 last:border-0">
+                            <span className="font-medium">
+                              {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][h.day_of_week]}
+                            </span>
+                            <span style={getTypographyStyles(customization?.about?.cards?.description_typography)}>
+                              {h.is_closed ? 'Fechado' : `${h.open_time?.substring(0, 5)} - ${h.close_time?.substring(0, 5)}`}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm opacity-60">Horários não informados</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Localização e Contato */}
+                <div style={getCardStyles(customization?.about?.cards)} className="p-6 bg-card rounded-xl shadow-sm border">
+                  <div className="flex items-center gap-2 mb-4 border-b pb-2">
+                    <MapPin className="w-5 h-5 text-primary" />
+                    <h3 style={getTypographyStyles(customization?.about?.cards?.title_typography)} className="font-bold">Localização</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <p style={getTypographyStyles(customization?.about?.cards?.description_typography)} className="text-sm">
+                      {company.address || 'Endereço não informado'}
+                      {company.neighborhood && `, ${company.neighborhood}`}
+                      {company.city && ` - ${company.city}`}
+                      {company.state && ` / ${company.state}`}
+                    </p>
+                    {company.zip_code && (
+                      <p className="text-sm opacity-70">CEP: {company.zip_code}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contato Rápido */}
+                <div style={getCardStyles(customization?.about?.cards)} className="p-6 bg-card rounded-xl shadow-sm border">
+                  <div className="flex items-center gap-2 mb-4 border-b pb-2">
+                    <Phone className="w-5 h-5 text-primary" />
+                    <h3 style={getTypographyStyles(customization?.about?.cards?.title_typography)} className="font-bold">Contato</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-full">
+                        <Phone className="w-4 h-4 text-primary" />
+                      </div>
+                      <span style={getTypographyStyles(customization?.about?.cards?.description_typography)} className="text-sm">{company.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-full">
+                        <Mail className="w-4 h-4 text-primary" />
+                      </div>
+                      <span style={getTypographyStyles(customization?.about?.cards?.description_typography)} className="text-sm">{company.email}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mapa Google Maps */}
+              {customization?.about?.show_map && company.zip_code && (
+                <div className="w-full h-[400px] rounded-2xl overflow-hidden shadow-lg border">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.google.com/maps/embed/v1/place?key=REPLACE_WITH_YOUR_API_KEY&q=${encodeURIComponent(company.zip_code + ' ' + (company.address || ''))}`}
+                    allowFullScreen
+                  ></iframe>
+                  {/* Note: Fallback URL if API Key is not present or user prefers free embed */}
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(company.zip_code + ' ' + (company.address || ''))}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              )}
             </div>
           </section>
         )}
