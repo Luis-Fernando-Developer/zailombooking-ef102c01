@@ -2,6 +2,8 @@ import { TypographySettings } from "./TypographySettings";
 import { type SectionConfig, defaultTypography } from "./types";
 import { ColorPicker } from "../ColorPicker";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface AboutSettingsProps {
   config: SectionConfig;
@@ -16,6 +18,18 @@ export function AboutSettings({ config, onChange, disabled }: AboutSettingsProps
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+        <div className="space-y-0.5">
+          <Label>Exibir Section Sobre</Label>
+          <p className="text-sm text-muted-foreground">Ative para mostrar a seção "Sobre a Empresa" na landing page</p>
+        </div>
+        <Switch
+          checked={config.show !== false}
+          onCheckedChange={(val) => updateConfig("show", val)}
+          disabled={disabled}
+        />
+      </div>
+
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="appearance">
           <AccordionTrigger>Aparência da Seção</AccordionTrigger>

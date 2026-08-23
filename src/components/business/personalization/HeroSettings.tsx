@@ -3,8 +3,11 @@ import { type TypographyConfig, defaultTypography } from "./types";
 import { ColorPicker } from "../ColorPicker";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ButtonSettings, type ButtonConfig } from "./ButtonSettings";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export interface HeroConfig {
+  show?: boolean;
   banner_type?: string;
   banner_urls?: string[];
   background_type?: "solid" | "gradient";
@@ -43,6 +46,18 @@ export function HeroSettings({ config, onChange, disabled }: HeroSettingsProps) 
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+        <div className="space-y-0.5">
+          <Label>Exibir Section Hero</Label>
+          <p className="text-sm text-muted-foreground">Ative para mostrar a seção hero na landing page</p>
+        </div>
+        <Switch
+          checked={config.show !== false}
+          onCheckedChange={(val) => updateConfig("show", val)}
+          disabled={disabled}
+        />
+      </div>
+
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="background">
           <AccordionTrigger>Fundo do Hero</AccordionTrigger>

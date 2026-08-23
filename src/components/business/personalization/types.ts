@@ -85,6 +85,7 @@ export interface CardConfig {
 }
 
 export interface SectionConfig {
+  show?: boolean;
   background_type?: "solid" | "gradient";
   background_color?: string;
   background_gradient?: any;
@@ -107,6 +108,7 @@ export interface CustomizationData {
     buttons: ButtonConfig;
   };
   hero: {
+    show?: boolean;
     background_type: "solid" | "gradient";
     background_color: string;
     background_gradient: any;

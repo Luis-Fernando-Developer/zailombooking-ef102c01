@@ -4,6 +4,8 @@ import { ColorPicker } from "../ColorPicker";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ButtonSettings } from "./ButtonSettings";
 import { CardSettings } from "./CardSettings";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface ServicesSettingsProps {
   config: SectionConfig;
@@ -18,6 +20,18 @@ export function ServicesSettings({ config, onChange, disabled }: ServicesSetting
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+        <div className="space-y-0.5">
+          <Label>Exibir Section Serviços</Label>
+          <p className="text-sm text-muted-foreground">Ative para mostrar a seção de serviços na landing page</p>
+        </div>
+        <Switch
+          checked={config.show !== false}
+          onCheckedChange={(val) => updateConfig("show", val)}
+          disabled={disabled}
+        />
+      </div>
+
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="appearance">
           <AccordionTrigger>Aparência da Seção</AccordionTrigger>

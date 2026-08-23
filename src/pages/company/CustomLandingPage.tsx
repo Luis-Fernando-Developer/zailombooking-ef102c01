@@ -218,22 +218,22 @@ export default function CustomLandingPage() {
         <CampaignHeroBanner companyId={company?.id} />
         
         {/* Hero */}
-        <section style={heroStyles} className="relative py-20 px-4 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h1 style={getTypographyStyles(customization?.hero?.title_typography)} className="text-4xl md:text-6xl font-bold mb-6">
-              {customization?.hero?.title_typography?.text || 'Seja Bem-vindo'}
-            </h1>
-            <p style={getTypographyStyles(customization?.hero?.description_typography)} className="text-lg md:text-xl mb-8">
-              {customization?.hero?.description_typography?.text || 'Encontre os melhores serviços aqui.'}
-            </p>
-            <Button size="lg" onClick={() => navigate(`/${slug}/agendar`)} style={getButtonStyles(customization?.hero?.buttons)}>
-              {customization?.hero?.buttons?.typography?.text || 'Agendar Agora'}
-            </Button>
-          </div>
-        </section>
+        {customization?.hero?.show !== false && (
+          <section style={heroStyles} className="relative py-20 px-4 text-center">
+            <div className="max-w-3xl mx-auto">
+              <h1 style={getTypographyStyles(customization?.hero?.title_typography)} className="text-4xl md:text-6xl font-bold mb-6">
+                {customization?.hero?.title_typography?.text || 'Seja Bem-vindo'}
+              </h1>
+              <p style={getTypographyStyles(customization?.hero?.description_typography)} className="text-lg md:text-xl mb-8">
+                {customization?.hero?.description_typography?.text || 'Encontre os melhores serviços aqui.'}
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* Serviços */}
-        <section style={servicesStyles} className="py-20 px-4">
+        {customization?.services?.show !== false && (
+          <section style={servicesStyles} className="py-20 px-4">
           <div className="max-w-7xl mx-auto text-center">
             <h2 style={getTypographyStyles(customization?.services?.title_typography)} className="text-3xl font-bold mb-12">
               {customization?.services?.title_typography?.text || 'Serviços'}
@@ -252,40 +252,56 @@ export default function CustomLandingPage() {
               ))}
             </div>
             {visibleServices < services.length && <Button variant="outline" className="mt-8" onClick={() => setVisibleServices(v => v + 3)}>Ver mais</Button>}
-          </div>
-        </section>
+            
+            <div className="mt-16 text-center">
+              <Button 
+                size="lg" 
+                onClick={() => navigate(`/${slug}/agendar`)} 
+                style={getButtonStyles(customization?.hero?.buttons)}
+                className="px-8 py-6 text-lg"
+              >
+                {customization?.hero?.buttons?.typography?.text || 'Agendar Agora'}
+              </Button>
+            </div>
+            </div>
+          </section>
+        )}
 
         {/* Profissionais */}
-        <section style={professionalsStyles} className="py-20 px-4">
-          <div className="max-w-7xl mx-auto text-center">
-            <h2 style={getTypographyStyles(customization?.professionals?.title_typography)} className="text-3xl font-bold mb-12">
-              {customization?.professionals?.title_typography?.text || 'Nossa Equipe'}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {employees.slice(0, visibleEmployees).map(emp => (
-                <div key={emp.id} style={getCardStyles(customization?.professionals?.cards)} className="p-6 bg-card rounded-xl text-center">
-                  <div className="w-24 h-24 mx-auto rounded-full bg-muted mb-4 overflow-hidden">
-                    {emp.avatar_url ? <img src={emp.avatar_url} alt={emp.name} className="w-full h-full object-cover" /> : <User className="w-full h-full p-6 text-muted-foreground" />}
+        {customization?.professionals?.show !== false && (
+          <section style={professionalsStyles} className="py-20 px-4">
+            <div className="max-w-7xl mx-auto text-center">
+              <h2 style={getTypographyStyles(customization?.professionals?.title_typography)} className="text-3xl font-bold mb-12">
+                {customization?.professionals?.title_typography?.text || 'Nossa Equipe'}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {employees.slice(0, visibleEmployees).map(emp => (
+                  <div key={emp.id} style={getCardStyles(customization?.professionals?.cards)} className="p-6 bg-card rounded-xl text-center">
+                    <div className="w-24 h-24 mx-auto rounded-full bg-muted mb-4 overflow-hidden">
+                      {emp.avatar_url ? <img src={emp.avatar_url} alt={emp.name} className="w-full h-full object-cover" /> : <User className="w-full h-full p-6 text-muted-foreground" />}
+                    </div>
+                    <h3 style={getTypographyStyles(customization?.professionals?.cards?.title_typography)} className="text-xl font-bold mb-2">{emp.name}</h3>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {getEmployeeServices(emp.id).map((s, i) => <Badge key={i} variant="secondary">{s}</Badge>)}
+                    </div>
                   </div>
-                  <h3 style={getTypographyStyles(customization?.professionals?.cards?.title_typography)} className="text-xl font-bold mb-2">{emp.name}</h3>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {getEmployeeServices(emp.id).map((s, i) => <Badge key={i} variant="secondary">{s}</Badge>)}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Sobre */}
-        <section style={aboutStyles} className="py-20 px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 style={getTypographyStyles(customization?.about?.title_typography)} className="text-3xl font-bold mb-6">
-              {customization?.about?.title_typography?.text || 'Sobre Nós'}
-            </h2>
-            <p className="text-lg text-muted-foreground">{company.description || 'Uma empresa dedicada à excelência.'}</p>
-          </div>
-        </section>
+        {customization?.about?.show !== false && (
+          <section style={aboutStyles} className="py-20 px-4">
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 style={getTypographyStyles(customization?.about?.title_typography)} className="text-3xl font-bold mb-6">
+                {customization?.about?.title_typography?.text || 'Sobre Nós'}
+              </h2>
+              <p className="text-lg text-muted-foreground">{company.description || 'Uma empresa dedicada à excelência.'}</p>
+            </div>
+          </section>
+        )}
 
         {/* Custom Code */}
         {customization?.extra?.custom_css && <style>{customization.extra.custom_css}</style>}

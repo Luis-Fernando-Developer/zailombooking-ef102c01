@@ -49,7 +49,8 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
       background_gradient: { type: 'linear', angle: 135, colors: ['#3b82f6', '#8b5cf6'] },
       title_typography: { ...defaultTypography, size: 48, weight: '700', color: '#ffffff', text: 'Agendamentos Inteligentes' },
       description_typography: { ...defaultTypography, size: 18, color: '#e2e8f0', text: 'Transforme seu negócio com nossa plataforma.' },
-      buttons: { background_color: '#ffffff', typography: { ...defaultTypography, color: '#3b82f6', text: 'Começar Agora' } }
+      buttons: { background_color: '#ffffff', typography: { ...defaultTypography, color: '#3b82f6', text: 'Agendar Agora' } },
+      show: true
     },
     services: {
       background_color: '#f8fafc',
