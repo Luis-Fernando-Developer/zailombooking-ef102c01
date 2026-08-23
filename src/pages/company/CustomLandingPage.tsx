@@ -218,19 +218,18 @@ export default function CustomLandingPage() {
         <CampaignHeroBanner companyId={company?.id} />
         
         {/* Hero */}
-        <section style={heroStyles} className="relative py-20 px-4 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h1 style={getTypographyStyles(customization?.hero?.title_typography)} className="text-4xl md:text-6xl font-bold mb-6">
-              {customization?.hero?.title_typography?.text || 'Seja Bem-vindo'}
-            </h1>
-            <p style={getTypographyStyles(customization?.hero?.description_typography)} className="text-lg md:text-xl mb-8">
-              {customization?.hero?.description_typography?.text || 'Encontre os melhores serviços aqui.'}
-            </p>
-            <Button size="lg" onClick={() => navigate(`/${slug}/agendar`)} style={getButtonStyles(customization?.hero?.buttons)}>
-              {customization?.hero?.buttons?.typography?.text || 'Agendar Agora'}
-            </Button>
-          </div>
-        </section>
+        {customization?.hero?.show !== false && (
+          <section style={heroStyles} className="relative py-20 px-4 text-center">
+            <div className="max-w-3xl mx-auto">
+              <h1 style={getTypographyStyles(customization?.hero?.title_typography)} className="text-4xl md:text-6xl font-bold mb-6">
+                {customization?.hero?.title_typography?.text || 'Seja Bem-vindo'}
+              </h1>
+              <p style={getTypographyStyles(customization?.hero?.description_typography)} className="text-lg md:text-xl mb-8">
+                {customization?.hero?.description_typography?.text || 'Encontre os melhores serviços aqui.'}
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* Serviços */}
         <section style={servicesStyles} className="py-20 px-4">
@@ -252,6 +251,17 @@ export default function CustomLandingPage() {
               ))}
             </div>
             {visibleServices < services.length && <Button variant="outline" className="mt-8" onClick={() => setVisibleServices(v => v + 3)}>Ver mais</Button>}
+            
+            <div className="mt-16 text-center">
+              <Button 
+                size="lg" 
+                onClick={() => navigate(`/${slug}/agendar`)} 
+                style={getButtonStyles(customization?.hero?.buttons)}
+                className="px-8 py-6 text-lg"
+              >
+                {customization?.hero?.buttons?.typography?.text || 'Agendar Agora'}
+              </Button>
+            </div>
           </div>
         </section>
 
