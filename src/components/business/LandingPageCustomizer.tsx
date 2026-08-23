@@ -105,11 +105,14 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
     try {
       const { error } = await supabase
         .from('company_customizations')
-        .upsert({
-          company_id: companyId,
-          theme: customization,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(
+          {
+            company_id: companyId,
+            theme: customization,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'company_id' }
+        );
 
       if (error) throw error;
       toast({ title: "Sucesso", description: "Personalização salva!" });
