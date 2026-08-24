@@ -917,17 +917,18 @@ export default function ClientBooking() {
                           />
                         )}
                         <div className="min-w-0">
-                          <h3 className="font-semibold text-lg">{service.name}</h3>
-                          <p className="text-muted-foreground text-sm mb-2">{service.description}</p>
+                          <h3 style={stepCardTypography("services", "title_typography")} className="font-semibold text-lg">{service.name}</h3>
+                          <p style={stepCardTypography("services", "description_typography")} className="text-muted-foreground text-sm mb-2">{service.description}</p>
                           <div className="flex gap-4 text-sm flex-wrap">
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
                               {service.duration_minutes} min
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1" style={stepCardTypography("services", "price_typography")}>
                               <DollarSign className="w-4 h-4" />
                               R$ {service.price.toFixed(2)}
                             </div>
+
                           </div>
                         </div>
                       </div>
