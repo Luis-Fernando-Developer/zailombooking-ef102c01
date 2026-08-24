@@ -273,7 +273,14 @@ export default function ClientBooking() {
         .eq('company_id', companyData.id)
         .maybeSingle();
 
-      setCustomization(customizationData);
+      // Mescla o objeto `theme` (personalização V3) na raiz para que
+      // os steps usem exatamente a mesma configuração da landing page.
+      setCustomization(
+        customizationData
+          ? { ...customizationData, ...((customizationData as any).theme || {}) }
+          : null
+      );
+
 
       const { data: servicesData, error: servicesError } = await supabase
         .from('services')
