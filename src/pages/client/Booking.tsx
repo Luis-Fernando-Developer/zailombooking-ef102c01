@@ -26,7 +26,7 @@ import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { BookingPaymentDialog } from "@/components/booking/BookingPaymentDialog";
 import { getAvailability, AVAILABILITY_REASON_LABELS } from "@/lib/api/availability";
 import { applyTheme, getInitialTheme } from "@/components/ThemeToggle";
-import { getTypographyStyles, getBackgroundStyles } from "@/components/business/personalization/utils";
+import { getTypographyStyles, getBackgroundStyles, getCardStyles } from "@/components/business/personalization/utils";
 
 
 interface Service {
@@ -273,7 +273,14 @@ export default function ClientBooking() {
         .eq('company_id', companyData.id)
         .maybeSingle();
 
-      setCustomization(customizationData);
+      // Mescla o objeto `theme` (personalização V3) na raiz para que
+      // os steps usem exatamente a mesma configuração da landing page.
+      setCustomization(
+        customizationData
+          ? { ...customizationData, ...((customizationData as any).theme || {}) }
+          : null
+      );
+
 
       const { data: servicesData, error: servicesError } = await supabase
         .from('services')
@@ -791,7 +798,30 @@ export default function ClientBooking() {
     }
   };
 
-  
+  /**
+   * Aplica ao card do step exatamente a configuração salva em Personalização
+   * para a section correspondente (services / professionals).
+   * A borda do card só é sobrescrita quando a empresa habilitou "Exibir Borda",
+   * preservando o destaque visual do item selecionado.
+   */
+  const stepCardStyles = (section: "services" | "professionals"): Record<string, any> => {
+    const cfg = customization?.[section]?.cards;
+    const styles: Record<string, any> = { ...getCardStyles(cfg) };
+    if (!cfg?.has_border) delete styles.border;
+    if (!styles.background && !styles.backgroundColor) {
+      styles.background = customStyles["--cards-background"];
+    }
+    if (!styles.fontFamily && customStyles["--font-family"]) {
+      styles.fontFamily = customStyles["--font-family"];
+    }
+    return styles;
+  };
+
+  const stepCardTypography = (
+    section: "services" | "professionals",
+    key: "title_typography" | "description_typography" | "price_typography"
+  ) => getTypographyStyles(customization?.[section]?.cards?.[key], customization?.body);
+
 
   const renderStep = () => {
     switch (step) {
@@ -829,7 +859,7 @@ export default function ClientBooking() {
                     <div
                       key={`combo-${combo.id}`}
                       className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedService?.id === synthetic.id ? "border-primary bg-primary/10" : "border-primary/20 hover:border-primary/50"}`}
-                      style={{ background: customStyles["--cards-background"] }}
+                      style={stepCardStyles("services")}
                       onClick={() => handleSelectCombo(combo)}
                     >
                       <div className="flex justify-between items-start gap-3">
@@ -842,17 +872,19 @@ export default function ClientBooking() {
                             />
                           )}
                           <div className="min-w-0">
-                            <h3 className="font-semibold text-lg">{combo.name}</h3>
-                            <p className="text-muted-foreground text-sm mb-2">{combo.description}</p>
+                            <h3 style={stepCardTypography("services", "title_typography")} className="font-semibold text-lg">{combo.name}</h3>
+                            <p style={stepCardTypography("services", "description_typography")} className="text-muted-foreground text-sm mb-2">{combo.description}</p>
+
                             <div className="flex gap-4 text-sm flex-wrap">
                               <div className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
                                 {synthetic.duration_minutes} min
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1" style={stepCardTypography("services", "price_typography")}>
                                 <DollarSign className="w-4 h-4" />
                                 R$ {synthetic.price.toFixed(2)}
                               </div>
+
                             </div>
                           </div>
                         </div>
@@ -871,9 +903,8 @@ export default function ClientBooking() {
                         ? "border-primary bg-primary/10"
                         : "border-primary/20 hover:border-primary/50"
                     } `}
-                    style={{
-                      background: customStyles["--cards-background"]
-                    }}
+                    style={stepCardStyles("services")}
+
                     onClick={() => setSelectedService(service)}
                   >
                     <div className="flex justify-between items-start gap-3">
@@ -886,17 +917,18 @@ export default function ClientBooking() {
                           />
                         )}
                         <div className="min-w-0">
-                          <h3 className="font-semibold text-lg">{service.name}</h3>
-                          <p className="text-muted-foreground text-sm mb-2">{service.description}</p>
+                          <h3 style={stepCardTypography("services", "title_typography")} className="font-semibold text-lg">{service.name}</h3>
+                          <p style={stepCardTypography("services", "description_typography")} className="text-muted-foreground text-sm mb-2">{service.description}</p>
                           <div className="flex gap-4 text-sm flex-wrap">
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
                               {service.duration_minutes} min
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1" style={stepCardTypography("services", "price_typography")}>
                               <DollarSign className="w-4 h-4" />
                               R$ {service.price.toFixed(2)}
                             </div>
+
                           </div>
                         </div>
                       </div>
@@ -938,10 +970,8 @@ export default function ClientBooking() {
                   employees.map((employee) => (
                     <div
                       key={employee.id}
-                      style={{
-                        background: customStyles["--cards-background"],
-                        fontFamily: customStyles["--font-family"],
-                      }}
+                      style={stepCardStyles("professionals")}
+
                       className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
                         selectedEmployee?.id === employee.id
                           ? "border-primary bg-primary/10"
@@ -959,7 +989,7 @@ export default function ClientBooking() {
                             )}
                           </div>
                           <div>
-                            <h3 className="font-semibold text-lg">{employee.name}</h3>
+                            <h3 style={stepCardTypography("professionals", "title_typography")} className="font-semibold text-lg">{employee.name}</h3>
                           </div>
                         </div>
                         {selectedEmployee?.id === employee.id && (
@@ -1348,6 +1378,7 @@ export default function ClientBooking() {
   }
 
   const customStyles = generateCustomStyles();
+
 
   let logoSrc = customStyles.logoUrl;
   if (!logoSrc && customization?.logo_upload_path) {

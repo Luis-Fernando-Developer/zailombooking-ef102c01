@@ -251,6 +251,34 @@ export default function CustomLandingPage() {
               {customization?.services?.title_typography?.text || 'Serviços'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Combos (também são serviços) */}
+              {combos.map(combo => {
+                const comboPrice = Number(combo.combo_price ?? combo.price ?? 0);
+                const comboImage = combo.image_url || combo.items?.[0]?.service?.image_url;
+                return (
+                  <div key={`combo-${combo.id}`} style={getCardStyles(customization?.services?.cards)} className="p-6 bg-card rounded-xl">
+                    {comboImage && <img src={comboImage} alt={combo.name} className="w-full h-48 object-cover rounded-lg mb-4" />}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary">Combo</Badge>
+                      {combo.total_duration_minutes ? (
+                        <span className="text-xs opacity-70 flex items-center gap-1"><TimerIcon className="w-3 h-3" />{combo.total_duration_minutes} min</span>
+                      ) : null}
+                    </div>
+                    <h3 style={getTypographyStyles(customization?.services?.cards?.title_typography)} className="text-xl font-bold mb-2">{combo.name}</h3>
+                    <p style={getTypographyStyles(customization?.services?.cards?.description_typography)} className="text-muted-foreground mb-4">{combo.description}</p>
+                    <div className="flex justify-between items-center mt-4">
+                      <div className="flex flex-col items-start">
+                        {combo.original_total_price && Number(combo.original_total_price) > comboPrice && (
+                          <span className="text-xs line-through opacity-60">R$ {Number(combo.original_total_price).toFixed(2)}</span>
+                        )}
+                        <span style={getTypographyStyles(customization?.services?.cards?.price_typography)} className="text-xl font-bold">R$ {comboPrice.toFixed(2)}</span>
+                      </div>
+                      <Button size="sm" onClick={() => navigate(`/${slug}/agendar`)} style={getButtonStyles(customization?.services?.buttons)}>Agendar</Button>
+                    </div>
+                  </div>
+                );
+              })}
+
               {services.slice(0, visibleServices).map(service => (
                 <div key={service.id} style={getCardStyles(customization?.services?.cards)} className="p-6 bg-card rounded-xl">
                   {service.image_url && <img src={service.image_url} alt={service.name} className="w-full h-48 object-cover rounded-lg mb-4" />}
