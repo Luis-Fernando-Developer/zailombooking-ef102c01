@@ -541,8 +541,8 @@ export default function CustomLandingPage() {
       </main>
 
       {/* Footer - Versão Simplificada */}
-      <footer style={footerStyles} className="px-4">
-        <div className="max-w-7xl mx-auto py-6 text-center text-xl">
+      <footer style={footerStyles} className="px-4 py-6">
+        <div className="max-w-7xl mx-auto text-center text-xl">
           © {new Date().getFullYear()} {company.name}. Todos os direitos reservados.
         </div>
       </footer>
