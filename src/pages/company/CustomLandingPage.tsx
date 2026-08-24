@@ -542,19 +542,6 @@ export default function CustomLandingPage() {
 
       {/* Footer - Versão Simplificada */}
       <footer style={footerStyles} className="py-12 px-4 border-t">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div>
-            <h3 className="font-bold mb-4">{company.name}</h3>
-            <p className="text-sm opacity-70">{company.address || 'Endereço não informado'}</p>
-          </div>
-          <div>
-            <h4 className="font-bold mb-4">Contato</h4>
-            <div className="space-y-2 text-sm opacity-70">
-              {contactPhone && <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {contactPhone}</p>}
-              {contactEmail && <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {contactEmail}</p>}
-            </div>
-          </div>
-        </div>
         <div className="max-w-7xl mx-auto pt-8 border-t text-center text-xs opacity-50">
           © {new Date().getFullYear()} {company.name}. Todos os direitos reservados.
         </div>
