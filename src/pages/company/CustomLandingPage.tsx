@@ -185,6 +185,7 @@ export default function CustomLandingPage() {
       }
 
       const { data: hoursData } = await supabaseClient.from('business_hours').select('*').eq('company_id', companyData.id).order('day_of_week');
+      console.log('Business Hours Fetched:', hoursData);
       setBusinessHours(hoursData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -453,7 +454,7 @@ export default function CustomLandingPage() {
                       <h3 style={getTypographyStyles(customization?.about?.cards?.title_typography)} className="font-bold">Horário de Funcionamento</h3>
                     </div>
                     <div className="space-y-2">
-                      {businessHours.length > 0 ? (
+                      {businessHours && businessHours.length > 0 ? (
                         businessHours.map((h, i) => (
                           <div key={i} className="flex justify-between text-sm py-1 border-b border-white/5 last:border-0">
                             <span className="font-medium">
@@ -517,25 +518,17 @@ export default function CustomLandingPage() {
                 </div>
               </div>
 
-              {/* Mapa Google Maps */}
-              {customization?.about?.show_map && company.zip_code && (
+              {/* Mapa Google Maps - Sempre mostrar se tiver CEP e endereço */}
+              {company.zip_code && (
                 <div className="w-full h-[400px] rounded-2xl overflow-hidden shadow-lg border">
                   <iframe
                     width="100%"
                     height="100%"
                     frameBorder="0"
                     style={{ border: 0 }}
-                    src={`https://www.google.com/maps/embed/v1/place?key=REPLACE_WITH_YOUR_API_KEY&q=${encodeURIComponent(company.zip_code + ' ' + (company.address || ''))}`}
-                    allowFullScreen
-                  ></iframe>
-                  {/* Note: Fallback URL if API Key is not present or user prefers free embed */}
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    frameBorder="0"
-                    style={{ border: 0 }}
                     src={`https://maps.google.com/maps?q=${encodeURIComponent(company.zip_code + ' ' + (company.address || ''))}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                    allowFullScreen
+                    allowFullScreen={true}
+                    loading="lazy"
                   ></iframe>
                 </div>
               )}
@@ -547,9 +540,9 @@ export default function CustomLandingPage() {
         {customization?.extra?.custom_css && <style>{customization.extra.custom_css}</style>}
       </main>
 
-      {/* Footer */}
+      {/* Footer - Versão Simplificada */}
       <footer style={footerStyles} className="py-12 px-4 border-t">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           <div>
             <h3 className="font-bold mb-4">{company.name}</h3>
             <p className="text-sm opacity-70">{company.address || 'Endereço não informado'}</p>
@@ -561,14 +554,8 @@ export default function CustomLandingPage() {
               {contactEmail && <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {contactEmail}</p>}
             </div>
           </div>
-          <div>
-            <h4 className="font-bold mb-4">Redes Sociais</h4>
-            <div className="flex gap-4">
-              {/* Social Icons Placeholder */}
-            </div>
-          </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t text-center text-xs opacity-50">
+        <div className="max-w-7xl mx-auto pt-8 border-t text-center text-xs opacity-50">
           © {new Date().getFullYear()} {company.name}. Todos os direitos reservados.
         </div>
       </footer>
