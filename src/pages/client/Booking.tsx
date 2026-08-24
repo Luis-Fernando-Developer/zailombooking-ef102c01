@@ -903,9 +903,8 @@ export default function ClientBooking() {
                         ? "border-primary bg-primary/10"
                         : "border-primary/20 hover:border-primary/50"
                     } `}
-                    style={{
-                      background: customStyles["--cards-background"]
-                    }}
+                    style={stepCardStyles("services")}
+
                     onClick={() => setSelectedService(service)}
                   >
                     <div className="flex justify-between items-start gap-3">
