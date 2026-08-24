@@ -26,7 +26,7 @@ import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { BookingPaymentDialog } from "@/components/booking/BookingPaymentDialog";
 import { getAvailability, AVAILABILITY_REASON_LABELS } from "@/lib/api/availability";
 import { applyTheme, getInitialTheme } from "@/components/ThemeToggle";
-import { getTypographyStyles, getBackgroundStyles } from "@/components/business/personalization/utils";
+import { getTypographyStyles, getBackgroundStyles, getCardStyles } from "@/components/business/personalization/utils";
 
 
 interface Service {
