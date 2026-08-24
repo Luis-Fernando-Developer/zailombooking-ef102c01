@@ -989,7 +989,7 @@ export default function ClientBooking() {
                             )}
                           </div>
                           <div>
-                            <h3 className="font-semibold text-lg">{employee.name}</h3>
+                            <h3 style={stepCardTypography("professionals", "title_typography")} className="font-semibold text-lg">{employee.name}</h3>
                           </div>
                         </div>
                         {selectedEmployee?.id === employee.id && (
