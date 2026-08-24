@@ -880,10 +880,11 @@ export default function ClientBooking() {
                                 <Clock className="w-4 h-4" />
                                 {synthetic.duration_minutes} min
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1" style={stepCardTypography("services", "price_typography")}>
                                 <DollarSign className="w-4 h-4" />
                                 R$ {synthetic.price.toFixed(2)}
                               </div>
+
                             </div>
                           </div>
                         </div>
