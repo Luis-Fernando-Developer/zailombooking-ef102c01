@@ -970,10 +970,8 @@ export default function ClientBooking() {
                   employees.map((employee) => (
                     <div
                       key={employee.id}
-                      style={{
-                        background: customStyles["--cards-background"],
-                        fontFamily: customStyles["--font-family"],
-                      }}
+                      style={stepCardStyles("professionals")}
+
                       className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
                         selectedEmployee?.id === employee.id
                           ? "border-primary bg-primary/10"
