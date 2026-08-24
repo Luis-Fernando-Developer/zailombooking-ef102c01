@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Save, Building, Globe, Clock, Bell, Palette, Wallet } from "lucide-react";
+import { Save, Building, Globe, Clock, Bell, Palette, Wallet, FileText } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { LandingPageCustomizer } from "@/components/business/LandingPageCustomizer";
@@ -22,6 +22,7 @@ interface Company {
   owner_email: string | null;
   owner_phone: string | null;
   address: string | null;
+  description: string | null;
   status: string | null;
   plan_id?: string | null;
   billing_period?: string | null;
@@ -47,6 +48,7 @@ export default function BusinessSettings() {
   const [companyData, setCompanyData] = useState({
     name: "",
     address: "",
+    description: "",
   });
 
   const [businessSettings, setBusinessSettings] = useState({
@@ -111,6 +113,7 @@ export default function BusinessSettings() {
       setCompanyData({
         name: companyData.name || "",
         address: companyData.address || "",
+        description: companyData.description || "",
       });
 
       // Carrega configurações de agendamento persistidas
@@ -159,7 +162,11 @@ export default function BusinessSettings() {
     try {
       const { error } = await supabase
         .from('companies')
-        .update(companyData)
+        .update({
+          name: companyData.name,
+          address: companyData.address,
+          description: companyData.description,
+        })
         .eq('id', company.id);
 
       if (error) throw error;
@@ -290,6 +297,19 @@ export default function BusinessSettings() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição da Empresa (Sobre)</Label>
+              <Textarea
+                id="description"
+                value={companyData.description}
+                onChange={(e) => setCompanyData(prev => ({...prev, description: e.target.value}))}
+                placeholder="Digite a descrição da sua empresa que será exibida na landing page..."
+                disabled={!canEditSettings}
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">Esta descrição será exibida na seção 'Sobre a Empresa' da landing page</p>
+            </div>
+
             {canEditSettings && (
               <Button onClick={handleSaveCompanyInfo} disabled={saving} className="gap-2">
                 <Save className="w-4 h-4" />
@@ -351,7 +371,7 @@ export default function BusinessSettings() {
               <div className="space-y-0.5">
                 <Label>Enviar Lembretes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Envia lembretes automáticos via WhatsApp (usa o template “Lembrete de agendamento”).
+                  Envia lembretes automáticos via WhatsApp (usa o template "Lembrete de agendamento").
                 </p>
               </div>
               <Switch
