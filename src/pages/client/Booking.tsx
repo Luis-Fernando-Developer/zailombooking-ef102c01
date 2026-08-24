@@ -798,7 +798,30 @@ export default function ClientBooking() {
     }
   };
 
-  
+  /**
+   * Aplica ao card do step exatamente a configuração salva em Personalização
+   * para a section correspondente (services / professionals).
+   * A borda do card só é sobrescrita quando a empresa habilitou "Exibir Borda",
+   * preservando o destaque visual do item selecionado.
+   */
+  const stepCardStyles = (section: "services" | "professionals"): Record<string, any> => {
+    const cfg = customization?.[section]?.cards;
+    const styles: Record<string, any> = { ...getCardStyles(cfg) };
+    if (!cfg?.has_border) delete styles.border;
+    if (!styles.background && !styles.backgroundColor) {
+      styles.background = customStyles["--cards-background"];
+    }
+    if (!styles.fontFamily && customStyles["--font-family"]) {
+      styles.fontFamily = customStyles["--font-family"];
+    }
+    return styles;
+  };
+
+  const stepCardTypography = (
+    section: "services" | "professionals",
+    key: "title_typography" | "description_typography" | "price_typography"
+  ) => getTypographyStyles(customization?.[section]?.cards?.[key], customization?.body);
+
 
   const renderStep = () => {
     switch (step) {
