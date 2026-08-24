@@ -872,8 +872,9 @@ export default function ClientBooking() {
                             />
                           )}
                           <div className="min-w-0">
-                            <h3 className="font-semibold text-lg">{combo.name}</h3>
-                            <p className="text-muted-foreground text-sm mb-2">{combo.description}</p>
+                            <h3 style={stepCardTypography("services", "title_typography")} className="font-semibold text-lg">{combo.name}</h3>
+                            <p style={stepCardTypography("services", "description_typography")} className="text-muted-foreground text-sm mb-2">{combo.description}</p>
+
                             <div className="flex gap-4 text-sm flex-wrap">
                               <div className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
