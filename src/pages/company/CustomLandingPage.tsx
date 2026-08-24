@@ -25,10 +25,24 @@ interface Combo {
   items?: { service_id: string; service?: { id?: string; name?: string; price?: number; image_url?: string } }[];
 }
 
+interface CompanyData {
+  id: string;
+  name: string;
+  slug: string;
+  address?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  phone?: string;
+  email?: string;
+  description?: string;
+}
+
 export default function CustomLandingPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const [company, setCompany] = useState<any>(null);
+  const [company, setCompany] = useState<CompanyData | null>(null);
   const [services, setServices] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [employeeServices, setEmployeeServices] = useState<any[]>([]);
@@ -41,6 +55,7 @@ export default function CustomLandingPage() {
   const [visibleServices, setVisibleServices] = useState(4);
   const [visibleEmployees, setVisibleEmployees] = useState(4);
   const [loggedClient, setLoggedClient] = useState<{ id: string; name: string; avatar_url?: string | null } | null>(null);
+  const [ownerData, setOwnerData] = useState<{ phone?: string; email?: string } | null>(null);
 
   const { campaigns: heroCarouselCampaigns } = useActiveCampaigns(company?.id, "hero_carousel");
   type HeroBannerItem = { url: string; campaign?: CampaignWithMaterials; cfg?: PlacementCTA };
@@ -144,6 +159,21 @@ export default function CustomLandingPage() {
       const { data: employeesData } = await supabaseClient.from('employees').select('*').eq('company_id', companyData.id).eq('is_active', true);
       setEmployees(employeesData || []);
 
+      // Buscar dados do proprietário (role = 'owner')
+      const { data: ownerEmployeeData } = await supabaseClient
+        .from('employees')
+        .select('phone, email')
+        .eq('company_id', companyData.id)
+        .eq('role', 'owner')
+        .maybeSingle();
+      
+      if (ownerEmployeeData) {
+        setOwnerData({
+          phone: ownerEmployeeData.phone,
+          email: ownerEmployeeData.email
+        });
+      }
+
       if (employeesData && employeesData.length > 0) {
         const { data: employeeServicesData } = await supabaseClient.from('employee_services').select('employee_id, service_id, services(id, name)').in('employee_id', employeesData.map(emp => emp.id));
         setEmployeeServices(employeeServicesData || []);
@@ -187,11 +217,15 @@ export default function CustomLandingPage() {
   const aboutStyles = getBackgroundStyles(customization?.about);
   const footerStyles = { ...getBackgroundStyles(customization?.footer), ...getTypographyStyles(customization?.footer?.typography) };
 
+  // Dados para contato - prioriza owner data, fallback para company data
+  const contactPhone = ownerData?.phone || company.phone;
+  const contactEmail = ownerData?.email || company.email;
+
   return (
     <div className="min-h-screen" style={{ ...bodyStyles }}>
       <style>
         {`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400;500;600;700&family=Berkshire+Swash&family=My+Soul&family=Bebas+Neue&family=Rubik+Puddles&family=Henny+Penny&family=Londrina+Shadow&family=Lavishly+Yours&family=Fleur+De+Leah&family=Tangerine:wght@400;700&family=Ballet&family=Mea+Culpa&family=Imperial+Script&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
           
           :root {
             --font-main: ${customization?.body?.font_family || 'Inter'};
@@ -211,7 +245,9 @@ export default function CustomLandingPage() {
             {getLogoUrl() ? <img src={getLogoUrl()!} alt={company.name} className="w-8 h-8 object-contain" /> : <BookingLogo showText={false} />}
             <h1 className="text-xl font-bold">{company.name}</h1>
           </div>
-          <div className="flex items-center gap-2">
+          
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center gap-2">
             {loggedClient ? (
               <Button variant="ghost" size="sm" onClick={() => navigate(`/${slug}/client/dashboard`)}>Painel</Button>
             ) : (
@@ -220,9 +256,71 @@ export default function CustomLandingPage() {
                 <Button size="sm" onClick={() => navigate(`/${slug}/cadastro`)} style={getButtonStyles(customization?.header?.buttons)}>Cadastrar</Button>
               </>
             )}
-            <Hamburger size={20} toggled={optionHeader} toggle={setOptionHeader} />
           </div>
+
+          {/* Mobile Hamburger Menu */}
+          <Hamburger size={20} toggled={optionHeader} toggle={setOptionHeader} />
         </div>
+
+        {/* Mobile Menu Expandido */}
+        {optionHeader && (
+          <div className="md:hidden mt-4 py-4 border-t border-border/30 space-y-3 animate-in fade-in duration-200">
+            {loggedClient ? (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    navigate(`/${slug}/client/dashboard`);
+                    setOptionHeader(false);
+                  }}
+                  className="w-full justify-start"
+                >
+                  Painel
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    handleClientLogout();
+                    setOptionHeader(false);
+                  }}
+                  className="w-full justify-start text-destructive"
+                >
+                  <LogInIcon className="w-4 h-4 mr-2" />
+                  Sair
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    navigate(`/${slug}/entrar`);
+                    setOptionHeader(false);
+                  }}
+                  className="w-full justify-start"
+                >
+                  <LogInIcon className="w-4 h-4 mr-2" />
+                  Entrar
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={() => {
+                    navigate(`/${slug}/cadastro`);
+                    setOptionHeader(false);
+                  }}
+                  style={getButtonStyles(customization?.header?.buttons)}
+                  className="w-full justify-start"
+                >
+                  <UserPlus2 className="w-4 h-4 mr-2" />
+                  Cadastrar
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
@@ -373,7 +471,7 @@ export default function CustomLandingPage() {
                   </div>
                 )}
 
-                {/* Localização e Contato */}
+                {/* Localização */}
                 <div style={getCardStyles(customization?.about?.cards)} className="p-6 bg-card rounded-xl shadow-sm border">
                   <div className="flex items-center gap-2 mb-4 border-b pb-2">
                     <MapPin className="w-5 h-5 text-primary" />
@@ -399,18 +497,22 @@ export default function CustomLandingPage() {
                     <h3 style={getTypographyStyles(customization?.about?.cards?.title_typography)} className="font-bold">Contato</h3>
                   </div>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-primary/10 rounded-full">
-                        <Phone className="w-4 h-4 text-primary" />
+                    {contactPhone && (
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-full">
+                          <Phone className="w-4 h-4 text-primary" />
+                        </div>
+                        <span style={getTypographyStyles(customization?.about?.cards?.description_typography)} className="text-sm">{contactPhone}</span>
                       </div>
-                      <span style={getTypographyStyles(customization?.about?.cards?.description_typography)} className="text-sm">{company.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-primary/10 rounded-full">
-                        <Mail className="w-4 h-4 text-primary" />
+                    )}
+                    {contactEmail && (
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-full">
+                          <Mail className="w-4 h-4 text-primary" />
+                        </div>
+                        <span style={getTypographyStyles(customization?.about?.cards?.description_typography)} className="text-sm">{contactEmail}</span>
                       </div>
-                      <span style={getTypographyStyles(customization?.about?.cards?.description_typography)} className="text-sm">{company.email}</span>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -455,8 +557,8 @@ export default function CustomLandingPage() {
           <div>
             <h4 className="font-bold mb-4">Contato</h4>
             <div className="space-y-2 text-sm opacity-70">
-              <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {company.phone}</p>
-              <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {company.email}</p>
+              {contactPhone && <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {contactPhone}</p>}
+              {contactEmail && <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {contactEmail}</p>}
             </div>
           </div>
           <div>
