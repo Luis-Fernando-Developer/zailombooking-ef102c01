@@ -1356,6 +1356,7 @@ export default function ClientBooking() {
 
   const customStyles = generateCustomStyles();
 
+
   let logoSrc = customStyles.logoUrl;
   if (!logoSrc && customization?.logo_upload_path) {
     logoSrc = supabase.storage
