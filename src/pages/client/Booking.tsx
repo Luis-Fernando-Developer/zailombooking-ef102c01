@@ -859,7 +859,7 @@ export default function ClientBooking() {
                     <div
                       key={`combo-${combo.id}`}
                       className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedService?.id === synthetic.id ? "border-primary bg-primary/10" : "border-primary/20 hover:border-primary/50"}`}
-                      style={{ background: customStyles["--cards-background"] }}
+                      style={stepCardStyles("services")}
                       onClick={() => handleSelectCombo(combo)}
                     >
                       <div className="flex justify-between items-start gap-3">
