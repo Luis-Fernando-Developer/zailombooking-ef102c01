@@ -226,11 +226,12 @@ export default function CustomLandingPage() {
     <div className="min-h-screen" style={{ ...bodyStyles }}>
       <style>
         {`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
-          
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;600;700;800;900&family=Open+Sans:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800;900&family=Berkshire+Swash&family=Bebas+Neue&family=Rubik+Puddles&family=Henny+Penny&family=Londrina+Shadow&family=Lavishly+Yours&family=Fleur+De+Leah&family=Tangerine:wght@400;700&family=Ballet&family=Mea+Culpa&family=Imperial+Script&family=Manufacturing+Consent&display=swap');
+
           :root {
             --font-main: ${customization?.body?.font_family || 'Inter'};
           }
+
           body {
             font-family: var(--font-main), sans-serif !important;
           }
@@ -248,81 +249,81 @@ export default function CustomLandingPage() {
           </div>
           
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center gap-2">
-            {loggedClient ? (
-              <Button variant="ghost" size="sm" onClick={() => navigate(`/${slug}/client/dashboard`)}>Painel</Button>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/${slug}/entrar`)}>Entrar</Button>
-                <Button size="sm" onClick={() => navigate(`/${slug}/cadastro`)} style={getButtonStyles(customization?.header?.buttons)}>Cadastrar</Button>
-              </>
-            )}
+          <div className='border border-green-500'>
+
+          {/* Menu */}
+          <div className=" absolute right-4 top-4 md:hidden w-full">
+            <Hamburger
+              size={20}
+              toggled={optionHeader}
+              toggle={setOptionHeader}
+            />
           </div>
 
-          {/* Mobile Hamburger Menu */}
-          <Hamburger size={20} toggled={optionHeader} toggle={setOptionHeader} />
+          {/* Menu Expandido */}
+          {optionHeader && (
+            <div className="mt-4 flex justify-center items-center py-4 border border-red-600  space-y-3 animate-in fade-in duration-200">
+              {loggedClient ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigate(`/${slug}/client/dashboard`);
+                      setOptionHeader(false);
+                    }}
+                    className="w-full justify-start"
+                  >
+                    Painel
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      handleClientLogout();
+                      setOptionHeader(false);
+                    }}
+                    className="w-full justify-start text-destructive"
+                  >
+                    <LogInIcon className="w-4 h-4 mr-2" />
+                    Sair
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigate(`/${slug}/entrar`);
+                      setOptionHeader(false);
+                    }}
+                    className="w-full justify-start"
+                  >
+                    <LogInIcon className="w-4 h-4 mr-2" />
+                    Entrar
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      navigate(`/${slug}/cadastro`);
+                      setOptionHeader(false);
+                    }}
+                    style={getButtonStyles(customization?.header?.buttons)}
+                    className="w-full justify-start"
+                  >
+                    <UserPlus2 className="w-4 h-4 mr-2" />
+                    Cadastrar
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+          </div>
         </div>
-
-        {/* Mobile Menu Expandido */}
-        {optionHeader && (
-          <div className="md:hidden mt-4 py-4 border-t border-border/30 space-y-3 animate-in fade-in duration-200">
-            {loggedClient ? (
-              <>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    navigate(`/${slug}/client/dashboard`);
-                    setOptionHeader(false);
-                  }}
-                  className="w-full justify-start"
-                >
-                  Painel
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    handleClientLogout();
-                    setOptionHeader(false);
-                  }}
-                  className="w-full justify-start text-destructive"
-                >
-                  <LogInIcon className="w-4 h-4 mr-2" />
-                  Sair
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    navigate(`/${slug}/entrar`);
-                    setOptionHeader(false);
-                  }}
-                  className="w-full justify-start"
-                >
-                  <LogInIcon className="w-4 h-4 mr-2" />
-                  Entrar
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => {
-                    navigate(`/${slug}/cadastro`);
-                    setOptionHeader(false);
-                  }}
-                  style={getButtonStyles(customization?.header?.buttons)}
-                  className="w-full justify-start"
-                >
-                  <UserPlus2 className="w-4 h-4 mr-2" />
-                  Cadastrar
-                </Button>
-              </>
-            )}
-          </div>
-        )}
-      </header>
+      </header> 
 
       {/* Main Content */}
       <main>
@@ -432,7 +433,7 @@ export default function CustomLandingPage() {
 
         {/* Sobre */}
         {customization?.about?.show !== false && (
-          <section style={aboutStyles} className="py-20 px-4">
+          <section style={aboutStyles} className="py-6 px-4">
             <div className="max-w-7xl mx-auto">
               <div className="text-center mb-12">
                 <h2 style={getTypographyStyles(customization?.about?.title_typography)} className="text-3xl font-bold mb-6">
@@ -440,7 +441,7 @@ export default function CustomLandingPage() {
                 </h2>
                 {customization?.about?.show_description !== false && (
                   <p style={getTypographyStyles(customization?.about?.description_typography)} className="text-lg max-w-3xl mx-auto">
-                    {company.description || 'Uma empresa dedicada à excelência.'}
+                    {customization?.about?.description_typography?.text || 'Uma empresa dedicada à excelência.'}
                   </p>
                 )}
               </div>
@@ -461,7 +462,7 @@ export default function CustomLandingPage() {
                               {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][h.day_of_week]}
                             </span>
                             <span style={getTypographyStyles(customization?.about?.cards?.description_typography)}>
-                              {h.is_closed ? 'Fechado' : `${h.open_time?.substring(0, 5)} - ${h.close_time?.substring(0, 5)}`}
+                              {!h.is_open ? 'Fechado'  : `${h.open_time?.substring(0, 5)} - ${h.close_time?.substring(0, 5)}`}
                             </span>
                           </div>
                         ))

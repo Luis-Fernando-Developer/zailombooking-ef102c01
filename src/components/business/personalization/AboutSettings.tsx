@@ -92,6 +92,7 @@ export function AboutSettings({ config, onChange, disabled }: AboutSettingsProps
               label="Tipografia da Descrição"
               config={config.description_typography || { ...defaultTypography, size: 16, color: "#666666", alignment: "center" }}
               onChange={(val) => updateConfig("description_typography", val)}
+              showText
               disabled={disabled}
             />
           </AccordionContent>
