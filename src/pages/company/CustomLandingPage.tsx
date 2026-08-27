@@ -242,27 +242,26 @@ export default function CustomLandingPage() {
 
       {/* Header */}
       <header style={headerStyles} className={`${customization?.header?.position === 'fixed' ? 'sticky top-0 z-50' : 'relative'} backdrop-blur-sm p-4`}>
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/${slug}`)}>
-            {getLogoUrl() ? <img src={getLogoUrl()!} alt={company.name} className="w-8 h-8 object-contain" /> : <BookingLogo showText={false} />}
-            <h1 className="text-xl font-bold">{company.name}</h1>
-          </div>
-          
-          {/* Desktop Menu */}
-          <div className='border border-green-500'>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/${slug}`)}>
+              {getLogoUrl() ? <img src={getLogoUrl()!} alt={company.name} className="w-8 h-8 object-contain" /> : <BookingLogo showText={false} />}
+              <h1 className="text-xl font-bold">{company.name}</h1>
+            </div>
 
-          {/* Menu */}
-          <div className=" absolute right-4 top-4 md:hidden w-full">
-            <Hamburger
-              size={20}
-              toggled={optionHeader}
-              toggle={setOptionHeader}
-            />
+            {/* Menu Hamburger */}
+            <div className="flex items-center">
+              <Hamburger
+                size={22}
+                toggled={optionHeader}
+                toggle={setOptionHeader}
+              />
+            </div>
           </div>
 
           {/* Menu Expandido */}
           {optionHeader && (
-            <div className="mt-4 flex justify-center items-center py-4 border border-red-600  space-y-3 animate-in fade-in duration-200">
+            <div className="mt-4 flex flex-col justify-center items-center py-4 gap-3 animate-in fade-in duration-200">
               {loggedClient ? (
                 <>
                   <Button
@@ -321,7 +320,6 @@ export default function CustomLandingPage() {
               )}
             </div>
           )}
-          </div>
         </div>
       </header> 
 
