@@ -227,21 +227,34 @@ export default function CustomLandingPage() {
     if (!buttonConfig) return {};
 
     const hoverDuration = buttonConfig.hover_duration ?? 0.3;
-    // Pega cor base do botão para usar como fallback no hover
     const baseButtonStyle = getButtonStyles(buttonConfig, false);
-    const baseBackground = baseButtonStyle.backgroundColor || buttonConfig.background_color;
+    const hoverButtonStyle = getButtonStyles(buttonConfig, true);
+
+    // Usa background (gradiente) ou backgroundColor (cor sólida)
+    const baseBg = baseButtonStyle.background || baseButtonStyle.backgroundColor;
+    const hoverBg = hoverButtonStyle.background || hoverButtonStyle.backgroundColor;
     const baseColor = baseButtonStyle.color || buttonConfig.typography?.color;
+    const hoverColor = hoverButtonStyle.color || buttonConfig.hover_text_color;
 
     const baseStyle: React.CSSProperties = {
-      transition: `background-color ${hoverDuration}s ease, color ${hoverDuration}s ease, opacity ${hoverDuration}s ease`,
+      transition: `all ${hoverDuration}s ease`,
       borderRadius: buttonConfig.border_radius !== undefined ? `${buttonConfig.border_radius}px` : '6px',
       paddingTop: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
       paddingBottom: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
       paddingLeft: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
       paddingRight: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
       opacity: 1,
-      backgroundColor: isHovering ? (buttonConfig.hover_background_color || baseBackground) : baseBackground,
-      color: isHovering ? (buttonConfig.hover_text_color || baseColor) : baseColor,
+      ...(isHovering
+        ? {
+            background: hoverBg || baseBg,
+            backgroundColor: hoverBg || baseBg,
+            color: hoverColor || baseColor,
+          }
+        : {
+            background: baseBg,
+            backgroundColor: baseBg,
+            color: baseColor,
+          }),
     };
 
     return baseStyle;
@@ -337,35 +350,35 @@ export default function CustomLandingPage() {
                 </>
               ) : (
                 <>
-                  <Button
-                    size="sm"
+                  <button
+                    type="button"
                     onClick={() => {
                       navigate(`/${slug}/entrar`);
                       setOptionHeader(false);
                     }}
-                    className="w-full justify-start"
                     style={headerLoginStyle}
                     onMouseEnter={() => setHeaderLoginHover(true)}
                     onMouseLeave={() => setHeaderLoginHover(false)}
+                    className="w-full flex items-center justify-start gap-2 px-3 py-1.5 text-sm font-medium cursor-pointer"
                   >
-                    <LogInIcon className="w-4 h-4 mr-2" />
+                    <LogInIcon className="w-4 h-4" />
                     Entrar
-                  </Button>
+                  </button>
 
-                  <Button
-                    size="sm"
+                  <button
+                    type="button"
                     onClick={() => {
                       navigate(`/${slug}/cadastro`);
                       setOptionHeader(false);
                     }}
-                    className="w-full justify-start"
                     style={headerCadastrarStyle}
                     onMouseEnter={() => setHeaderCadastrarHover(true)}
                     onMouseLeave={() => setHeaderCadastrarHover(false)}
+                    className="w-full flex items-center justify-start gap-2 px-3 py-1.5 text-sm font-medium cursor-pointer"
                   >
-                    <UserPlus2 className="w-4 h-4 mr-2" />
+                    <UserPlus2 className="w-4 h-4" />
                     Cadastrar
-                  </Button>
+                  </button>
                 </>
               )}
             </div>
@@ -453,29 +466,29 @@ export default function CustomLandingPage() {
               ))}
             </div>
             {visibleServices < services.length && (
-              <Button 
-                size="lg" 
-                className="mt-8" 
+              <button
+                type="button"
                 onClick={() => setVisibleServices(v => v + 3)}
                 style={servicesVerMaisStyle}
                 onMouseEnter={() => setServicesVerMaisHover(true)}
                 onMouseLeave={() => setServicesVerMaisHover(false)}
+                className="mt-8 px-6 py-3 text-base font-semibold cursor-pointer"
               >
                 Ver mais
-              </Button>
+              </button>
             )}
             
             <div className="mt-16 text-center">
-              <Button 
-                size="lg" 
-                onClick={() => navigate(`/${slug}/agendar`)} 
+              <button
+                type="button"
+                onClick={() => navigate(`/${slug}/agendar`)}
                 style={servicesAgendarStyle}
                 onMouseEnter={() => setServicesAgendarHover(true)}
                 onMouseLeave={() => setServicesAgendarHover(false)}
-                className="px-8 py-6 text-lg"
+                className="px-8 py-6 text-lg font-semibold cursor-pointer"
               >
                 {customization?.services?.buttons?.typography?.text || 'Agendar Agora'}
-              </Button>
+              </button>
             </div>
             </div>
           </section>
