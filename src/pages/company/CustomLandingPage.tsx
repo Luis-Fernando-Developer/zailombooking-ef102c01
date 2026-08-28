@@ -361,7 +361,7 @@ export default function CustomLandingPage() {
               {/* Combos (também são serviços) */}
               {combos.map(combo => {
                 const comboPrice = Number(combo.combo_price ?? combo.price ?? 0);
-                const comboImage = combo.image_url || combo.items?.[0]?.service?.image_url;
+                const comboImage = combo.image_url || undefined;
                 const comboServiceNames = (combo.items || [])
                   .map((it) => it.service?.name)
                   .filter(Boolean) as string[];
