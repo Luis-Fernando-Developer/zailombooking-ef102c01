@@ -10,6 +10,15 @@ import { CampaignTopBar, CampaignPopup, CampaignHeroBanner } from "@/components/
 import { useActiveCampaigns, type CampaignWithMaterials } from "@/hooks/use-active-campaigns";
 import { trackCampaignClick, type PlacementCTA } from "@/lib/api/marketing";
 import { getTypographyStyles, getBackgroundStyles, getButtonStyles, getCardStyles } from "@/components/business/personalization/utils";
+
+const ComboServiceChip = ({ children, buttonStyles }: { children: React.ReactNode; buttonStyles: React.CSSProperties }) => (
+  <span
+    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
+    style={buttonStyles}
+  >
+    {children}
+  </span>
+);
 import { type CustomizationData, fontOptions } from "@/components/business/personalization/types";
 
 interface Combo {
@@ -353,6 +362,10 @@ export default function CustomLandingPage() {
               {combos.map(combo => {
                 const comboPrice = Number(combo.combo_price ?? combo.price ?? 0);
                 const comboImage = combo.image_url || combo.items?.[0]?.service?.image_url;
+                const comboServiceNames = (combo.items || [])
+                  .map((it) => it.service?.name)
+                  .filter(Boolean) as string[];
+                const servicesButtonStyle = getButtonStyles(customization?.services?.buttons);
                 return (
                   <div key={`combo-${combo.id}`} style={getCardStyles(customization?.services?.cards)} className="p-6 bg-card rounded-xl">
                     {comboImage && <img src={comboImage} alt={combo.name} className="w-full h-48 object-cover rounded-lg mb-4" />}
@@ -363,6 +376,16 @@ export default function CustomLandingPage() {
                       ) : null}
                     </div>
                     <h3 style={getTypographyStyles(customization?.services?.cards?.title_typography)} className="text-xl font-bold mb-2">{combo.name}</h3>
+                    {comboServiceNames.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        {comboServiceNames.map((name, idx) => (
+                          <span key={idx} className="flex items-center gap-2">
+                            <ComboServiceChip buttonStyles={servicesButtonStyle}>{name}</ComboServiceChip>
+                            {idx < comboServiceNames.length - 1 && <span className="text-sm font-bold opacity-70">+</span>}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <p style={getTypographyStyles(customization?.services?.cards?.description_typography)} className="text-muted-foreground mb-4">{combo.description}</p>
                     <div className="flex justify-between items-center mt-4">
                       <div className="flex flex-col items-start">
@@ -371,7 +394,6 @@ export default function CustomLandingPage() {
                         )}
                         <span style={getTypographyStyles(customization?.services?.cards?.price_typography)} className="text-xl font-bold">R$ {comboPrice.toFixed(2)}</span>
                       </div>
-                      <Button size="sm" onClick={() => navigate(`/${slug}/agendar`)} style={getButtonStyles(customization?.services?.buttons)}>Agendar</Button>
                     </div>
                   </div>
                 );
@@ -384,7 +406,6 @@ export default function CustomLandingPage() {
                   <p style={getTypographyStyles(customization?.services?.cards?.description_typography)} className="text-muted-foreground mb-4">{service.description}</p>
                   <div className="flex justify-between items-center mt-4">
                     <span style={getTypographyStyles(customization?.services?.cards?.price_typography)} className="text-xl font-bold">R$ {Number(service.price).toFixed(2)}</span>
-                    <Button size="sm" onClick={() => navigate(`/${slug}/agendar`)} style={getButtonStyles(customization?.services?.buttons)}>Agendar</Button>
                   </div>
                 </div>
               ))}
