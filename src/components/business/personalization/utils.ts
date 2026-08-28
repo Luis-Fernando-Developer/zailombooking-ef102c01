@@ -151,6 +151,7 @@ export const getBadgeStyles = (config?: ButtonConfig): React.CSSProperties => {
 
   const styles: React.CSSProperties = {};
 
+  // Background
   if (config.background_type === 'gradient' && config.background_gradient) {
     const g = config.background_gradient;
     styles.background = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
@@ -158,30 +159,29 @@ export const getBadgeStyles = (config?: ButtonConfig): React.CSSProperties => {
     styles.backgroundColor = config.background_color;
   }
 
+  // Arredondamento
   if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
 
-  // Lê a tipografia completa do badge. typography.color é a cor do texto do Badge Combos.
+  // Tipografia (fonte, peso, tamanho, etc) - exceto cor/gradiente
   if (config.typography) {
-    if (config.typography.color) {
-      styles.color = config.typography.color;
-      styles.WebkitTextFillColor = config.typography.color;
-    }
     if (config.typography.size) styles.fontSize = `${config.typography.size}px`;
     if (config.typography.weight) styles.fontWeight = config.typography.weight;
     if (config.typography.family) styles.fontFamily = `'${config.typography.family}', sans-serif`;
     if (config.typography.lineHeight) styles.lineHeight = config.typography.lineHeight;
     if (config.typography.letterSpacing !== undefined) styles.letterSpacing = `${config.typography.letterSpacing}px`;
     if (config.typography.alignment) styles.textAlign = config.typography.alignment;
-    if (config.typography.colorType === 'gradient' && config.typography.gradient) {
-      const g = config.typography.gradient;
-      styles.backgroundImage = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
-      styles.WebkitBackgroundClip = 'text';
-      styles.WebkitTextFillColor = 'transparent';
-      styles.backgroundClip = 'text';
+    
+    // Cor do texto: prioriza typography.color, com fallback para text_color
+    // Aplicado diretamente sem WebkitTextFillColor para garantir visibilidade
+    const textColor = config.typography.color || config.text_color;
+    if (textColor) {
+      styles.color = textColor;
+      // Garante que o text-fill-color não esteja mascarando o color
+      styles.WebkitTextFillColor = textColor;
     }
   } else if (config.text_color) {
-    // Fallback: cor direta em text_color
     styles.color = config.text_color;
+    styles.WebkitTextFillColor = config.text_color;
   }
 
   return styles;
