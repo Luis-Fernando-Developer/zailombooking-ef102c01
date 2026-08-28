@@ -66,9 +66,12 @@ export default function CustomLandingPage() {
   const [loggedClient, setLoggedClient] = useState<{ id: string; name: string; avatar_url?: string | null } | null>(null);
   const [ownerData, setOwnerData] = useState<{ phone?: string; email?: string } | null>(null);
   
-  // Hover states para botões
-  const [headerButtonHover, setHeaderButtonHover] = useState(false);
-  const [servicesButtonHover, setServicesButtonHover] = useState(false);
+  // Hover states para botões do header (individual por botão)
+  const [headerLoginHover, setHeaderLoginHover] = useState(false);
+  const [headerCadastrarHover, setHeaderCadastrarHover] = useState(false);
+  // Hover states para botões de serviços (individual por botão)
+  const [servicesVerMaisHover, setServicesVerMaisHover] = useState(false);
+  const [servicesAgendarHover, setServicesAgendarHover] = useState(false);
 
   const { campaigns: heroCarouselCampaigns } = useActiveCampaigns(company?.id, "hero_carousel");
   type HeroBannerItem = { url: string; campaign?: CampaignWithMaterials; cfg?: PlacementCTA };
@@ -219,7 +222,7 @@ export default function CustomLandingPage() {
 
   const getEmployeeServices = (employeeId: string) => employeeServices.filter(es => es.employee_id === employeeId).map(es => es.services?.name).filter(Boolean);
 
-  // Helper para obter estilo do botão com suporte a hover
+  // Helper para obter estilo do botão com suporte a hover individual
   const getButtonStyleWithHover = (buttonConfig: any, isHovering: boolean) => {
     const baseStyle = getButtonStyles(buttonConfig);
     
@@ -228,10 +231,14 @@ export default function CustomLandingPage() {
         ...baseStyle,
         backgroundColor: buttonConfig.hover_background_color,
         color: buttonConfig.hover_text_color || baseStyle.color,
+        transition: `all ${buttonConfig.hover_duration ?? 0.3}s ease`,
       };
     }
     
-    return baseStyle;
+    return {
+      ...baseStyle,
+      transition: `all ${buttonConfig.hover_duration ?? 0.3}s ease`,
+    };
   };
 
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Carregando...</div>;
@@ -248,10 +255,12 @@ export default function CustomLandingPage() {
   const contactPhone = ownerData?.phone || company.phone;
   const contactEmail = ownerData?.email || company.email;
 
-  // Estilos de botão com hover para header
-  const headerButtonStyle = getButtonStyleWithHover(customization?.header?.cta_button, headerButtonHover);
-  // Estilos de botão com hover para serviços
-  const servicesButtonStyle = getButtonStyleWithHover(customization?.services?.buttons, servicesButtonHover);
+  // Estilos de botão com hover para header (individual)
+  const headerLoginStyle = getButtonStyleWithHover(customization?.header?.cta_button, headerLoginHover);
+  const headerCadastrarStyle = getButtonStyleWithHover(customization?.header?.cta_button, headerCadastrarHover);
+  // Estilos de botão com hover para serviços (individual)
+  const servicesVerMaisStyle = getButtonStyleWithHover(customization?.services?.buttons, servicesVerMaisHover);
+  const servicesAgendarStyle = getButtonStyleWithHover(customization?.services?.buttons, servicesAgendarHover);
 
   return (
     <div className="min-h-screen" style={{ ...bodyStyles }}>
@@ -328,10 +337,10 @@ export default function CustomLandingPage() {
                       navigate(`/${slug}/entrar`);
                       setOptionHeader(false);
                     }}
-                    style={headerButtonStyle}
+                    style={headerLoginStyle}
                     className="w-full justify-start"
-                    onMouseEnter={() => setHeaderButtonHover(true)}
-                    onMouseLeave={() => setHeaderButtonHover(false)}
+                    onMouseEnter={() => setHeaderLoginHover(true)}
+                    onMouseLeave={() => setHeaderLoginHover(false)}
                   >
                     <LogInIcon className="w-4 h-4 mr-2" />
                     Entrar
@@ -343,10 +352,10 @@ export default function CustomLandingPage() {
                       navigate(`/${slug}/cadastro`);
                       setOptionHeader(false);
                     }}
-                    style={headerButtonStyle}
+                    style={headerCadastrarStyle}
                     className="w-full justify-start"
-                    onMouseEnter={() => setHeaderButtonHover(true)}
-                    onMouseLeave={() => setHeaderButtonHover(false)}
+                    onMouseEnter={() => setHeaderCadastrarHover(true)}
+                    onMouseLeave={() => setHeaderCadastrarHover(false)}
                   >
                     <UserPlus2 className="w-4 h-4 mr-2" />
                     Cadastrar
@@ -441,9 +450,9 @@ export default function CustomLandingPage() {
                 size="lg" 
                 className="mt-8" 
                 onClick={() => setVisibleServices(v => v + 3)}
-                style={servicesButtonStyle}
-                onMouseEnter={() => setServicesButtonHover(true)}
-                onMouseLeave={() => setServicesButtonHover(false)}
+                style={servicesVerMaisStyle}
+                onMouseEnter={() => setServicesVerMaisHover(true)}
+                onMouseLeave={() => setServicesVerMaisHover(false)}
               >
                 Ver mais
               </Button>
@@ -453,9 +462,9 @@ export default function CustomLandingPage() {
               <Button 
                 size="lg" 
                 onClick={() => navigate(`/${slug}/agendar`)} 
-                style={servicesButtonStyle}
-                onMouseEnter={() => setServicesButtonHover(true)}
-                onMouseLeave={() => setServicesButtonHover(false)}
+                style={servicesAgendarStyle}
+                onMouseEnter={() => setServicesAgendarHover(true)}
+                onMouseLeave={() => setServicesAgendarHover(false)}
                 className="px-8 py-6 text-lg"
               >
                 {customization?.services?.buttons?.typography?.text || 'Agendar Agora'}

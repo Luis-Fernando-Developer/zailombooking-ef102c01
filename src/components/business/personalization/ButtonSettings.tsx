@@ -14,6 +14,7 @@ export interface ButtonConfig {
   padding_h?: number;
   hover_background_color?: string;
   hover_text_color?: string;
+  hover_duration?: number;
 }
 
 interface ButtonSettingsProps {
@@ -105,6 +106,21 @@ export function ButtonSettings({ label, config, onChange, disabled }: ButtonSett
             type="color"
             value={config.hover_text_color || "#ffffff"}
             onChange={(e) => updateConfig("hover_text_color", e.target.value)}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Duração do Hover (segundos)</Label>
+          <Input
+            type="number"
+            step="0.1"
+            min="0"
+            max="5"
+            value={config.hover_duration ?? 0.3}
+            onChange={(e) => updateConfig("hover_duration", parseFloat(e.target.value) || 0.3)}
             disabled={disabled}
           />
         </div>
