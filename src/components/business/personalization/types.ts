@@ -92,6 +92,7 @@ export interface SectionConfig {
   title_typography?: TypographyConfig;
   buttons?: ButtonConfig;
   cards?: CardConfig;
+  badge_combos?: ButtonConfig;
   show_map?: boolean;
   show_business_hours?: boolean;
   show_description?: boolean;

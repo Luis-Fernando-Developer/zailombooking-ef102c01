@@ -162,7 +162,7 @@ export const getBadgeStyles = (config?: ButtonConfig): React.CSSProperties => {
   // Arredondamento
   if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
 
-  // Tipografia (fonte, peso, tamanho, etc) - exceto cor/gradiente
+  // Tipografia (fonte, peso, tamanho, etc)
   if (config.typography) {
     if (config.typography.size) styles.fontSize = `${config.typography.size}px`;
     if (config.typography.weight) styles.fontWeight = config.typography.weight;
@@ -170,19 +170,26 @@ export const getBadgeStyles = (config?: ButtonConfig): React.CSSProperties => {
     if (config.typography.lineHeight) styles.lineHeight = config.typography.lineHeight;
     if (config.typography.letterSpacing !== undefined) styles.letterSpacing = `${config.typography.letterSpacing}px`;
     if (config.typography.alignment) styles.textAlign = config.typography.alignment;
-    
-    // Cor do texto: prioriza typography.color, com fallback para text_color
-    // Aplicado diretamente sem WebkitTextFillColor para garantir visibilidade
-    const textColor = config.typography.color || config.text_color;
-    if (textColor) {
-      styles.color = textColor;
-      // Garante que o text-fill-color não esteja mascarando o color
-      styles.WebkitTextFillColor = textColor;
+
+    // Cor do texto: typography.color é a fonte da verdade
+    if (config.typography.color) {
+      styles.color = config.typography.color;
+    } else if (config.typography.colorType === 'gradient' && config.typography.gradient) {
+      // Gradiente de texto
+      const g = config.typography.gradient;
+      styles.backgroundImage = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
+      styles.WebkitBackgroundClip = 'text';
+      styles.WebkitTextFillColor = 'transparent';
+      styles.backgroundClip = 'text';
+      styles.color = 'transparent';
     }
-  } else if (config.text_color) {
-    styles.color = config.text_color;
-    styles.WebkitTextFillColor = config.text_color;
   }
+
+  // Padding padrão para badges
+  styles.paddingTop = config.padding_v !== undefined ? `${config.padding_v}px` : '4px';
+  styles.paddingBottom = config.padding_v !== undefined ? `${config.padding_v}px` : '4px';
+  styles.paddingLeft = config.padding_h !== undefined ? `${config.padding_h}px` : '8px';
+  styles.paddingRight = config.padding_h !== undefined ? `${config.padding_h}px` : '8px';
 
   return styles;
 };
