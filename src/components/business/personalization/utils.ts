@@ -147,49 +147,72 @@ export const getCardStyles = (config?: CardConfig): React.CSSProperties => {
 };
 
 export const getBadgeStyles = (config?: ButtonConfig): React.CSSProperties => {
-  if (!config) return {};
+  if (!config) return {
+    backgroundColor: '#1e293b',
+    color: '#ffffff',
+    borderRadius: '6px',
+    padding: '4px 8px',
+    fontSize: '12px',
+    fontWeight: '600',
+    fontFamily: "'Inter', sans-serif",
+  };
 
   const styles: React.CSSProperties = {};
 
-  // Background
+  // Background — respeita o que está salvo ou fallback
   if (config.background_type === 'gradient' && config.background_gradient) {
     const g = config.background_gradient;
     styles.background = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
   } else if (config.background_color) {
     styles.backgroundColor = config.background_color;
+  } else {
+    styles.backgroundColor = '#1e293b';
   }
 
   // Arredondamento
-  if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
+  styles.borderRadius = config.border_radius !== undefined ? `${config.border_radius}px` : '6px';
 
-  // Tipografia (fonte, peso, tamanho, etc)
+  // Padding
+  styles.paddingTop = config.padding_v !== undefined ? `${config.padding_v}px` : '4px';
+  styles.paddingBottom = config.padding_v !== undefined ? `${config.padding_v}px` : '4px';
+  styles.paddingLeft = config.padding_h !== undefined ? `${config.padding_h}px` : '8px';
+  styles.paddingRight = config.padding_h !== undefined ? `${config.padding_h}px` : '8px';
+
+  // Tipografia
   if (config.typography) {
     if (config.typography.size) styles.fontSize = `${config.typography.size}px`;
+    else styles.fontSize = '12px';
+
     if (config.typography.weight) styles.fontWeight = config.typography.weight;
+    else styles.fontWeight = '600';
+
     if (config.typography.family) styles.fontFamily = `'${config.typography.family}', sans-serif`;
+    else styles.fontFamily = "'Inter', sans-serif";
+
     if (config.typography.lineHeight) styles.lineHeight = config.typography.lineHeight;
     if (config.typography.letterSpacing !== undefined) styles.letterSpacing = `${config.typography.letterSpacing}px`;
     if (config.typography.alignment) styles.textAlign = config.typography.alignment;
 
-    // Cor do texto: typography.color é a fonte da verdade
+    // COR DO TEXTO — a correção principal: usa typography.color diretamente
     if (config.typography.color) {
       styles.color = config.typography.color;
     } else if (config.typography.colorType === 'gradient' && config.typography.gradient) {
-      // Gradiente de texto
       const g = config.typography.gradient;
       styles.backgroundImage = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
       styles.WebkitBackgroundClip = 'text';
       styles.WebkitTextFillColor = 'transparent';
       styles.backgroundClip = 'text';
       styles.color = 'transparent';
+    } else {
+      styles.color = '#ffffff';
     }
+  } else {
+    // Fallback completo se não houver tipografia configurada
+    styles.fontSize = '12px';
+    styles.fontWeight = '600';
+    styles.fontFamily = "'Inter', sans-serif";
+    styles.color = '#ffffff';
   }
-
-  // Padding padrão para badges
-  styles.paddingTop = config.padding_v !== undefined ? `${config.padding_v}px` : '4px';
-  styles.paddingBottom = config.padding_v !== undefined ? `${config.padding_v}px` : '4px';
-  styles.paddingLeft = config.padding_h !== undefined ? `${config.padding_h}px` : '8px';
-  styles.paddingRight = config.padding_h !== undefined ? `${config.padding_h}px` : '8px';
 
   return styles;
 };

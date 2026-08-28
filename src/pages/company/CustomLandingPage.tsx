@@ -439,16 +439,16 @@ export default function CustomLandingPage() {
                       ) : null}
                     </div>
                     <h3 style={getTypographyStyles(customization?.services?.cards?.title_typography)} className="text-xl font-bold mb-2">{combo.name}</h3>
-                    {comboServiceNames.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {comboServiceNames.map((name, idx) => (
-                          <span key={idx} className="flex items-center gap-2">
-                            <ComboServiceChip badgeStyles={badgeComboStyle}>{name}</ComboServiceChip>
-                            {idx < comboServiceNames.length - 1 && <span className="text-sm font-bold opacity-70">+</span>}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                                            {comboServiceNames.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            {comboServiceNames.map((name, idx) => (
+                              <span key={idx} className="flex items-center gap-2">
+                                <ComboServiceChip badgeStyles={badgeComboStyle}>{name}</ComboServiceChip>
+                                {idx < comboServiceNames.length - 1 && <span className="text-sm font-bold opacity-70">+</span>}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                     <p style={getTypographyStyles(customization?.services?.cards?.description_typography)} className="text-muted-foreground mb-4">{combo.description}</p>
                     <div className="flex justify-between items-center mt-4">
                       <div className="flex flex-col items-start">
