@@ -54,18 +54,29 @@ export const getBackgroundStyles = (config?: any): React.CSSProperties => {
   return styles;
 };
 
-export const getButtonStyles = (config?: ButtonConfig): React.CSSProperties => {
+export const getButtonStyles = (config?: ButtonConfig, hover = false): React.CSSProperties => {
   if (!config) return {};
 
   const styles: React.CSSProperties = {};
 
-  if (config.background_type === 'gradient' && config.background_gradient) {
+  const bgColor = hover && config.hover_background_color 
+    ? config.hover_background_color 
+    : (config.background_type === 'gradient' && config.background_gradient 
+      ? undefined 
+      : config.background_color);
+
+  if (config.background_type === 'gradient' && config.background_gradient && !hover) {
     const g = config.background_gradient;
     styles.background = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
     styles.border = 'none';
-  } else if (config.background_color) {
-    styles.backgroundColor = config.background_color;
-    styles.borderColor = config.background_color;
+  } else if (bgColor) {
+    styles.backgroundColor = bgColor;
+    if (!hover) styles.borderColor = bgColor;
+  }
+
+  const textColor = hover && config.hover_text_color ? config.hover_text_color : config.typography?.color;
+  if (textColor) {
+    styles.color = textColor;
   }
 
   if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
@@ -78,7 +89,7 @@ export const getButtonStyles = (config?: ButtonConfig): React.CSSProperties => {
     styles.paddingRight = `${config.padding_h}px`;
   }
 
-  if (config.typography) {
+  if (config.typography && !hover) {
     const typo = getTypographyStyles(config.typography);
     Object.assign(styles, typo);
   }
@@ -101,13 +112,59 @@ export const getCardStyles = (config?: CardConfig): React.CSSProperties => {
   if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
   
   if (config.has_border) {
-    styles.border = `1px solid ${config.border_color || 'rgba(255,255,255,0.1)'}`;
+    const borderWidth = config.border_width ?? 1;
+    const borderColor = config.border_color || 'rgba(0,0,0,0.1)';
+    const sides = config.border_sides || ['top', 'right', 'bottom', 'left'];
+    
+    if (sides.length === 4) {
+      styles.border = `${borderWidth}px solid ${borderColor}`;
+    } else {
+      const borderMap: Record<string, string> = {
+        top: `borderTop`,
+        right: `borderRight`,
+        bottom: `borderBottom`,
+        left: `borderLeft`
+      };
+      sides.forEach(side => {
+        if (borderMap[side]) {
+          styles[borderMap[side] as keyof React.CSSProperties] = `${borderWidth}px solid ${borderColor}`;
+        }
+      });
+    }
   } else {
     styles.border = 'none';
   }
 
-  if (config.has_shadow) {
-    styles.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+  if (config.has_shadow && config.shadow_color) {
+    const offsetX = config.shadow_offset_x ?? 0;
+    const offsetY = config.shadow_offset_y ?? 4;
+    const blurRadius = config.shadow_blur ?? 6;
+    const spreadRadius = config.shadow_spread ?? 0;
+    styles.boxShadow = `${offsetX}px ${offsetY}px ${blurRadius}px ${spreadRadius}px ${config.shadow_color}`;
+  }
+
+  return styles;
+};
+
+export const getBadgeStyles = (config?: ButtonConfig): React.CSSProperties => {
+  if (!config) return {};
+
+  const styles: React.CSSProperties = {};
+
+  if (config.background_type === 'gradient' && config.background_gradient) {
+    const g = config.background_gradient;
+    styles.background = `linear-gradient(${g.angle || 0}deg, ${g.colors?.join(', ') || ''})`;
+  } else if (config.background_color) {
+    styles.backgroundColor = config.background_color;
+  }
+
+  if (config.border_radius !== undefined) styles.borderRadius = `${config.border_radius}px`;
+
+  if (config.typography) {
+    if (config.typography.color) styles.color = config.typography.color;
+    if (config.typography.size) styles.fontSize = `${config.typography.size}px`;
+    if (config.typography.weight) styles.fontWeight = config.typography.weight;
+    if (config.typography.family) styles.fontFamily = `'${config.typography.family}', sans-serif`;
   }
 
   return styles;

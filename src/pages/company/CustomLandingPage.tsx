@@ -9,12 +9,12 @@ import { Divide as Hamburger } from 'hamburger-react';
 import { CampaignTopBar, CampaignPopup, CampaignHeroBanner } from "@/components/marketing/CampaignSlots";
 import { useActiveCampaigns, type CampaignWithMaterials } from "@/hooks/use-active-campaigns";
 import { trackCampaignClick, type PlacementCTA } from "@/lib/api/marketing";
-import { getTypographyStyles, getBackgroundStyles, getButtonStyles, getCardStyles } from "@/components/business/personalization/utils";
+import { getTypographyStyles, getBackgroundStyles, getButtonStyles, getCardStyles, getBadgeStyles } from "@/components/business/personalization/utils";
 
-const ComboServiceChip = ({ children, buttonStyles }: { children: React.ReactNode; buttonStyles: React.CSSProperties }) => (
+const ComboServiceChip = ({ children, badgeStyles }: { children: React.ReactNode; badgeStyles: React.CSSProperties }) => (
   <span
     className="inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold shadow-sm"
-    style={buttonStyles}
+    style={badgeStyles}
   >
     {children}
   </span>
