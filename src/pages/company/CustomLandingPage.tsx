@@ -13,7 +13,7 @@ import { getTypographyStyles, getBackgroundStyles, getButtonStyles, getCardStyle
 
 const ComboServiceChip = ({ children, buttonStyles }: { children: React.ReactNode; buttonStyles: React.CSSProperties }) => (
   <span
-    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
+    className="inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold shadow-sm"
     style={buttonStyles}
   >
     {children}
