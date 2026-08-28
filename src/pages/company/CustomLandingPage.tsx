@@ -222,28 +222,36 @@ export default function CustomLandingPage() {
 
   const getEmployeeServices = (employeeId: string) => employeeServices.filter(es => es.employee_id === employeeId).map(es => es.services?.name).filter(Boolean);
 
-  // Helper para obter estilo do botão com suporte a hover individual
-  const getButtonStyleWithHover = (buttonConfig: any, isHovering: boolean) => {
+  // Helper para construir estilo de botão com hover individual mantendo estilos base
+  const getHeaderButtonStyle = (buttonConfig: any, isHovering: boolean): React.CSSProperties => {
     if (!buttonConfig) return {};
-    
-    const baseStyle = getButtonStyles(buttonConfig, false);
+
     const hoverDuration = buttonConfig.hover_duration ?? 0.3;
-    
+    const baseStyle: React.CSSProperties = {
+      transition: `background-color ${hoverDuration}s ease, color ${hoverDuration}s ease, opacity ${hoverDuration}s ease`,
+      // Garante que estilos base sejam preservados durante o hover
+      borderRadius: buttonConfig.border_radius !== undefined ? `${buttonConfig.border_radius}px` : undefined,
+      paddingTop: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
+      paddingBottom: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
+      paddingLeft: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
+      paddingRight: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
+      opacity: 1,
+    };
+
     if (isHovering) {
-      const hoverBg = buttonConfig.hover_background_color;
-      const hoverText = buttonConfig.hover_text_color || buttonConfig.typography?.color || '#ffffff';
-      
+      // Estado hover: aplica cor de fundo hover e cor de texto hover
       return {
-        backgroundColor: hoverBg || baseStyle.backgroundColor,
-        color: hoverText,
-        transition: `all ${hoverDuration}s ease`,
-        background: hoverBg ? undefined : baseStyle.background,
+        ...baseStyle,
+        backgroundColor: buttonConfig.hover_background_color || undefined,
+        color: buttonConfig.hover_text_color || buttonConfig.typography?.color || undefined,
       };
     }
-    
+
+    // Estado normal: aplica estilos base do botão
+    const normalStyle = getButtonStyles(buttonConfig, false);
     return {
+      ...normalStyle,
       ...baseStyle,
-      transition: `all ${hoverDuration}s ease`,
     };
   };
 
@@ -261,12 +269,12 @@ export default function CustomLandingPage() {
   const contactPhone = ownerData?.phone || company.phone;
   const contactEmail = ownerData?.email || company.email;
 
-  // Estilos de botão com hover para header (individual)
-  const headerLoginStyle = getButtonStyleWithHover(customization?.header?.cta_button, headerLoginHover);
-  const headerCadastrarStyle = getButtonStyleWithHover(customization?.header?.cta_button, headerCadastrarHover);
+  // Estilos de botão com hover para header (individual) - mantém estilos base
+  const headerLoginStyle = getHeaderButtonStyle(customization?.header?.cta_button, headerLoginHover);
+  const headerCadastrarStyle = getHeaderButtonStyle(customization?.header?.cta_button, headerCadastrarHover);
   // Estilos de botão com hover para serviços (individual)
-  const servicesVerMaisStyle = getButtonStyleWithHover(customization?.services?.buttons, servicesVerMaisHover);
-  const servicesAgendarStyle = getButtonStyleWithHover(customization?.services?.buttons, servicesAgendarHover);
+  const servicesVerMaisStyle = getHeaderButtonStyle(customization?.services?.buttons, servicesVerMaisHover);
+  const servicesAgendarStyle = getHeaderButtonStyle(customization?.services?.buttons, servicesAgendarHover);
 
   return (
     <div className="min-h-screen" style={{ ...bodyStyles }}>
