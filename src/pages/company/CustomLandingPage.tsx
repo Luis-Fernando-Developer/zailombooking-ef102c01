@@ -66,10 +66,7 @@ export default function CustomLandingPage() {
   const [loggedClient, setLoggedClient] = useState<{ id: string; name: string; avatar_url?: string | null } | null>(null);
   const [ownerData, setOwnerData] = useState<{ phone?: string; email?: string } | null>(null);
   
-  // Hover states para botões do header (individual por botão)
-  const [headerLoginHover, setHeaderLoginHover] = useState(false);
-  const [headerCadastrarHover, setHeaderCadastrarHover] = useState(false);
-  // Hover states para botões de serviços (individual por botão)
+  // Hover states individuais por botão de serviços (header fica como antes)
   const [servicesVerMaisHover, setServicesVerMaisHover] = useState(false);
   const [servicesAgendarHover, setServicesAgendarHover] = useState(false);
 
@@ -222,42 +219,47 @@ export default function CustomLandingPage() {
 
   const getEmployeeServices = (employeeId: string) => employeeServices.filter(es => es.employee_id === employeeId).map(es => es.services?.name).filter(Boolean);
 
-  // Helper para construir estilo de botão com hover individual mantendo estilos base
-  const getHeaderButtonStyle = (buttonConfig: any, isHovering: boolean): React.CSSProperties => {
+  // Constrói estilo inline com hover, mantendo estilos base sempre ativos.
+  const getServiceButtonStyle = (buttonConfig: any, isHovering: boolean): React.CSSProperties => {
     if (!buttonConfig) return {};
 
     const hoverDuration = buttonConfig.hover_duration ?? 0.3;
-    const baseButtonStyle = getButtonStyles(buttonConfig, false);
-    const hoverButtonStyle = getButtonStyles(buttonConfig, true);
+    const isGradient = buttonConfig.background_type === 'gradient' && buttonConfig.background_gradient;
+    const baseBgImage = isGradient
+      ? `linear-gradient(${buttonConfig.background_gradient.angle || 0}deg, ${buttonConfig.background_gradient.colors?.join(', ') || ''})`
+      : undefined;
+    const baseBgColor = !isGradient ? buttonConfig.background_color : undefined;
 
-    // Usa background (gradiente) ou backgroundColor (cor sólida)
-    const baseBg = baseButtonStyle.background || baseButtonStyle.backgroundColor;
-    const hoverBg = hoverButtonStyle.background || hoverButtonStyle.backgroundColor;
-    const baseColor = baseButtonStyle.color || buttonConfig.typography?.color;
-    const hoverColor = hoverButtonStyle.color || buttonConfig.hover_text_color;
+    const hoverBgImage = isGradient && buttonConfig.hover_background_color
+      ? undefined
+      : (isGradient ? baseBgImage : buttonConfig.hover_background_color);
+    const hoverBgColor = !isGradient
+      ? (buttonConfig.hover_background_color || buttonConfig.background_color)
+      : (buttonConfig.hover_background_color || undefined);
 
-    const baseStyle: React.CSSProperties = {
-      transition: `all ${hoverDuration}s ease`,
-      borderRadius: buttonConfig.border_radius !== undefined ? `${buttonConfig.border_radius}px` : '6px',
+    const baseColor = buttonConfig.typography?.color;
+    const hoverColor = isHovering ? buttonConfig.hover_text_color : baseColor;
+
+    return {
+      transition: `background-color ${hoverDuration}s ease, background-image ${hoverDuration}s ease, color ${hoverDuration}s ease, opacity ${hoverDuration}s ease, border-radius ${hoverDuration}s ease`,
+      borderRadius: buttonConfig.border_radius !== undefined ? `${buttonConfig.border_radius}px` : undefined,
       paddingTop: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
       paddingBottom: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
       paddingLeft: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
       paddingRight: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
-      opacity: 1,
-      ...(isHovering
-        ? {
-            background: hoverBg || baseBg,
-            backgroundColor: hoverBg || baseBg,
-            color: hoverColor || baseColor,
-          }
-        : {
-            background: baseBg,
-            backgroundColor: baseBg,
-            color: baseColor,
-          }),
+      backgroundImage: isHovering ? (hoverBgImage || baseBgImage) : baseBgImage,
+      backgroundColor: isHovering ? hoverBgColor : baseBgColor,
+      color: hoverColor,
+      fontFamily: buttonConfig.typography?.family ? `'${buttonConfig.typography.family}', sans-serif` : undefined,
+      fontSize: buttonConfig.typography?.size ? `${buttonConfig.typography.size}px` : undefined,
+      fontWeight: buttonConfig.typography?.weight || undefined,
+      textAlign: buttonConfig.typography?.alignment || undefined,
+      border: 'none',
+      cursor: 'pointer',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
     };
-
-    return baseStyle;
   };
 
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Carregando...</div>;
@@ -274,12 +276,9 @@ export default function CustomLandingPage() {
   const contactPhone = ownerData?.phone || company.phone;
   const contactEmail = ownerData?.email || company.email;
 
-  // Estilos de botão com hover para header (individual) - mantém estilos base
-  const headerLoginStyle = getHeaderButtonStyle(customization?.header?.cta_button, headerLoginHover);
-  const headerCadastrarStyle = getHeaderButtonStyle(customization?.header?.cta_button, headerCadastrarHover);
-  // Estilos de botão com hover para serviços (individual)
-  const servicesVerMaisStyle = getHeaderButtonStyle(customization?.services?.buttons, servicesVerMaisHover);
-  const servicesAgendarStyle = getHeaderButtonStyle(customization?.services?.buttons, servicesAgendarHover);
+  // Botões de serviços com hover individual (mantém estado original do header)
+  const servicesVerMaisStyle = getServiceButtonStyle(customization?.services?.buttons, servicesVerMaisHover);
+  const servicesAgendarStyle = getServiceButtonStyle(customization?.services?.buttons, servicesAgendarHover);
 
   return (
     <div className="min-h-screen" style={{ ...bodyStyles }}>
@@ -299,7 +298,7 @@ export default function CustomLandingPage() {
       {customization?.header?.position !== 'fixed' && <CampaignTopBar companyId={company?.id} />}
       <CampaignPopup companyId={company?.id} />
 
-      {/* Header */}
+      {/* Header - estado original, sem mudanças nesta edição */}
       <header style={headerStyles} className={`${customization?.header?.position === 'fixed' ? 'sticky top-0 z-50' : 'relative'} backdrop-blur-sm p-4`}>
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
@@ -350,35 +349,31 @@ export default function CustomLandingPage() {
                 </>
               ) : (
                 <>
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       navigate(`/${slug}/entrar`);
                       setOptionHeader(false);
                     }}
-                    style={headerLoginStyle}
-                    onMouseEnter={() => setHeaderLoginHover(true)}
-                    onMouseLeave={() => setHeaderLoginHover(false)}
-                    className="w-full flex items-center justify-start gap-2 px-3 py-1.5 text-sm font-medium cursor-pointer"
+                    className="w-full justify-start"
                   >
-                    <LogInIcon className="w-4 h-4" />
+                    <LogInIcon className="w-4 h-4 mr-2" />
                     Entrar
-                  </button>
+                  </Button>
 
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       navigate(`/${slug}/cadastro`);
                       setOptionHeader(false);
                     }}
-                    style={headerCadastrarStyle}
-                    onMouseEnter={() => setHeaderCadastrarHover(true)}
-                    onMouseLeave={() => setHeaderCadastrarHover(false)}
-                    className="w-full flex items-center justify-start gap-2 px-3 py-1.5 text-sm font-medium cursor-pointer"
+                    className="w-full justify-start"
                   >
-                    <UserPlus2 className="w-4 h-4" />
+                    <UserPlus2 className="w-4 h-4 mr-2" />
                     Cadastrar
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
