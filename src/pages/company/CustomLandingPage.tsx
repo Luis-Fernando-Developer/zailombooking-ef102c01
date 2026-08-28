@@ -329,7 +329,7 @@ export default function CustomLandingPage() {
 
           {/* Menu Expandido */}
           {optionHeader && (
-            <div className="mt-4 flex flex-col justify-center items-center py-6 gap-4 animate-in fade-in duration-200">
+            <div className="mt-4 flex flex-col md:flex-row w-full justify-center items-stretch py-6 gap-4 animate-in fade-in duration-200">
               {loggedClient ? (
                 <>
                   <button
@@ -341,7 +341,7 @@ export default function CustomLandingPage() {
                     style={headerLoginStyle}
                     onMouseEnter={() => setHeaderLoginHover(true)}
                     onMouseLeave={() => setHeaderLoginHover(false)}
-                    className="w-full max-w-xs text-center"
+                    className="w-full grow flex-1 text-center"
                   >
                     Painel
                   </button>
@@ -354,7 +354,7 @@ export default function CustomLandingPage() {
                     style={headerCadastrarStyle}
                     onMouseEnter={() => setHeaderCadastrarHover(true)}
                     onMouseLeave={() => setHeaderCadastrarHover(false)}
-                    className="w-full max-w-xs text-center"
+                    className="w-full grow flex-1 text-center"
                   >
                     Sair
                   </button>
@@ -370,7 +370,7 @@ export default function CustomLandingPage() {
                     style={headerLoginStyle}
                     onMouseEnter={() => setHeaderLoginHover(true)}
                     onMouseLeave={() => setHeaderLoginHover(false)}
-                    className="w-full max-w-xs text-center"
+                    className="w-full grow flex-1 text-center"
                   >
                     Entrar
                   </button>
@@ -383,7 +383,7 @@ export default function CustomLandingPage() {
                     style={headerCadastrarStyle}
                     onMouseEnter={() => setHeaderCadastrarHover(true)}
                     onMouseLeave={() => setHeaderCadastrarHover(false)}
-                    className="w-full max-w-xs text-center"
+                    className="w-full grow flex-1 text-center"
                   >
                     Cadastrar
                   </button>
