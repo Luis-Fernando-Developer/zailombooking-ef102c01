@@ -301,12 +301,12 @@ export default function CustomLandingPage() {
               ) : (
                 <>
                   <Button
-                    variant="ghost"
                     size="sm"
                     onClick={() => {
                       navigate(`/${slug}/entrar`);
                       setOptionHeader(false);
                     }}
+                    style={getButtonStyles(customization?.header?.buttons)}
                     className="w-full justify-start"
                   >
                     <LogInIcon className="w-4 h-4 mr-2" />
@@ -410,16 +410,25 @@ export default function CustomLandingPage() {
                 </div>
               ))}
             </div>
-            {visibleServices < services.length && <Button variant="outline" className="mt-8" onClick={() => setVisibleServices(v => v + 3)}>Ver mais</Button>}
+            {visibleServices < services.length && (
+              <Button 
+                size="lg" 
+                className="mt-8" 
+                onClick={() => setVisibleServices(v => v + 3)}
+                style={getButtonStyles(customization?.services?.buttons)}
+              >
+                Ver mais
+              </Button>
+            )}
             
             <div className="mt-16 text-center">
               <Button 
                 size="lg" 
                 onClick={() => navigate(`/${slug}/agendar`)} 
-                style={getButtonStyles(customization?.hero?.buttons)}
+                style={getButtonStyles(customization?.services?.buttons)}
                 className="px-8 py-6 text-lg"
               >
-                {customization?.hero?.buttons?.typography?.text || 'Agendar Agora'}
+                {customization?.services?.buttons?.typography?.text || 'Agendar Agora'}
               </Button>
             </div>
             </div>
