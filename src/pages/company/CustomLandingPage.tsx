@@ -66,7 +66,9 @@ export default function CustomLandingPage() {
   const [loggedClient, setLoggedClient] = useState<{ id: string; name: string; avatar_url?: string | null } | null>(null);
   const [ownerData, setOwnerData] = useState<{ phone?: string; email?: string } | null>(null);
   
-  // Hover states individuais por botão de serviços (header fica como antes)
+  // Hover states individuais por botão (header e serviços)
+  const [headerLoginHover, setHeaderLoginHover] = useState(false);
+  const [headerCadastrarHover, setHeaderCadastrarHover] = useState(false);
   const [servicesVerMaisHover, setServicesVerMaisHover] = useState(false);
   const [servicesAgendarHover, setServicesAgendarHover] = useState(false);
 
@@ -219,46 +221,50 @@ export default function CustomLandingPage() {
 
   const getEmployeeServices = (employeeId: string) => employeeServices.filter(es => es.employee_id === employeeId).map(es => es.services?.name).filter(Boolean);
 
-  // Constrói estilo inline com hover, mantendo estilos base sempre ativos.
-  const getServiceButtonStyle = (buttonConfig: any, isHovering: boolean): React.CSSProperties => {
+  // Constrói estilo inline com hover para botões (header e serviços)
+  const getButtonStyle = (buttonConfig: any, isHovering: boolean): React.CSSProperties => {
     if (!buttonConfig) return {};
 
     const hoverDuration = buttonConfig.hover_duration ?? 0.3;
     const isGradient = buttonConfig.background_type === 'gradient' && buttonConfig.background_gradient;
-    const baseBgImage = isGradient
-      ? `linear-gradient(${buttonConfig.background_gradient.angle || 0}deg, ${buttonConfig.background_gradient.colors?.join(', ') || ''})`
-      : undefined;
-    const baseBgColor = !isGradient ? buttonConfig.background_color : undefined;
 
-    const hoverBgImage = isGradient && buttonConfig.hover_background_color
-      ? undefined
-      : (isGradient ? baseBgImage : buttonConfig.hover_background_color);
-    const hoverBgColor = !isGradient
-      ? (buttonConfig.hover_background_color || buttonConfig.background_color)
-      : (buttonConfig.hover_background_color || undefined);
+    // Background base
+    let baseBg: string | undefined;
+    let hoverBg: string | undefined;
+    if (isGradient) {
+      baseBg = `linear-gradient(${buttonConfig.background_gradient.angle || 0}deg, ${buttonConfig.background_gradient.colors?.join(', ') || ''})`;
+      // Hover de gradiente: usa hover_background_color se definido, senão mantém gradiente
+      hoverBg = buttonConfig.hover_background_color
+        ? buttonConfig.hover_background_color
+        : baseBg;
+    } else {
+      baseBg = buttonConfig.background_color;
+      hoverBg = buttonConfig.hover_background_color || buttonConfig.background_color;
+    }
 
+    // Cor do texto
     const baseColor = buttonConfig.typography?.color;
-    const hoverColor = isHovering ? buttonConfig.hover_text_color : baseColor;
+    const hoverColor = buttonConfig.hover_text_color || buttonConfig.typography?.color;
 
     return {
-      transition: `background-color ${hoverDuration}s ease, background-image ${hoverDuration}s ease, color ${hoverDuration}s ease, opacity ${hoverDuration}s ease, border-radius ${hoverDuration}s ease`,
-      borderRadius: buttonConfig.border_radius !== undefined ? `${buttonConfig.border_radius}px` : undefined,
-      paddingTop: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
-      paddingBottom: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
-      paddingLeft: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
-      paddingRight: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
-      backgroundImage: isHovering ? (hoverBgImage || baseBgImage) : baseBgImage,
-      backgroundColor: isHovering ? hoverBgColor : baseBgColor,
-      color: hoverColor,
+      transition: `background ${hoverDuration}s ease, color ${hoverDuration}s ease, box-shadow ${hoverDuration}s ease`,
+      borderRadius: buttonConfig.border_radius !== undefined ? `${buttonConfig.border_radius}px` : '6px',
+      paddingTop: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : '8px',
+      paddingBottom: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : '8px',
+      paddingLeft: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : '16px',
+      paddingRight: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : '16px',
+      background: isHovering ? hoverBg : baseBg,
+      color: isHovering ? hoverColor : baseColor,
       fontFamily: buttonConfig.typography?.family ? `'${buttonConfig.typography.family}', sans-serif` : undefined,
-      fontSize: buttonConfig.typography?.size ? `${buttonConfig.typography.size}px` : undefined,
-      fontWeight: buttonConfig.typography?.weight || undefined,
-      textAlign: buttonConfig.typography?.alignment || undefined,
+      fontSize: buttonConfig.typography?.size ? `${buttonConfig.typography.size}px` : '14px',
+      fontWeight: buttonConfig.typography?.weight || '600',
+      textAlign: buttonConfig.typography?.alignment || 'center',
       border: 'none',
       cursor: 'pointer',
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
+      outline: 'none',
     };
   };
 
@@ -276,9 +282,13 @@ export default function CustomLandingPage() {
   const contactPhone = ownerData?.phone || company.phone;
   const contactEmail = ownerData?.email || company.email;
 
-  // Botões de serviços com hover individual (mantém estado original do header)
-  const servicesVerMaisStyle = getServiceButtonStyle(customization?.services?.buttons, servicesVerMaisHover);
-  const servicesAgendarStyle = getServiceButtonStyle(customization?.services?.buttons, servicesAgendarHover);
+  // Botões de serviços com hover individual
+  const servicesVerMaisStyle = getButtonStyle(customization?.services?.buttons, servicesVerMaisHover);
+  const servicesAgendarStyle = getButtonStyle(customization?.services?.buttons, servicesAgendarHover);
+
+  // Botões do header com hover individual
+  const headerLoginStyle = getButtonStyle(customization?.header?.cta_button, headerLoginHover);
+  const headerCadastrarStyle = getButtonStyle(customization?.header?.cta_button, headerCadastrarHover);
 
   return (
     <div className="min-h-screen" style={{ ...bodyStyles }}>
@@ -298,7 +308,7 @@ export default function CustomLandingPage() {
       {customization?.header?.position !== 'fixed' && <CampaignTopBar companyId={company?.id} />}
       <CampaignPopup companyId={company?.id} />
 
-      {/* Header - estado original, sem mudanças nesta edição */}
+      {/* Header */}
       <header style={headerStyles} className={`${customization?.header?.position === 'fixed' ? 'sticky top-0 z-50' : 'relative'} backdrop-blur-sm p-4`}>
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
@@ -307,13 +317,63 @@ export default function CustomLandingPage() {
               <h1 className="text-xl font-bold">{company.name}</h1>
             </div>
 
-            {/* Menu Hamburger */}
-            <div className="flex items-center">
-              <Hamburger
-                size={22}
-                toggled={optionHeader}
-                toggle={setOptionHeader}
-              />
+            {/* Botões de ação do header */}
+            <div className="flex items-center gap-3">
+              {loggedClient ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/${slug}/client/dashboard`)}
+                    style={headerLoginStyle}
+                    onMouseEnter={() => setHeaderLoginHover(true)}
+                    onMouseLeave={() => setHeaderLoginHover(false)}
+                  >
+                    Painel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleClientLogout();
+                      setOptionHeader(false);
+                    }}
+                    style={headerCadastrarStyle}
+                    onMouseEnter={() => setHeaderCadastrarHover(true)}
+                    onMouseLeave={() => setHeaderCadastrarHover(false)}
+                  >
+                    Sair
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/${slug}/entrar`)}
+                    style={headerLoginStyle}
+                    onMouseEnter={() => setHeaderLoginHover(true)}
+                    onMouseLeave={() => setHeaderLoginHover(false)}
+                  >
+                    Entrar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/${slug}/cadastro`)}
+                    style={headerCadastrarStyle}
+                    onMouseEnter={() => setHeaderCadastrarHover(true)}
+                    onMouseLeave={() => setHeaderCadastrarHover(false)}
+                  >
+                    Cadastrar
+                  </button>
+                </>
+              )}
+
+              {/* Menu Hamburger para loggedClient */}
+              <div className="flex items-center md:hidden">
+                <Hamburger
+                  size={22}
+                  toggled={optionHeader}
+                  toggle={setOptionHeader}
+                />
+              </div>
             </div>
           </div>
 
@@ -321,60 +381,30 @@ export default function CustomLandingPage() {
           {optionHeader && (
             <div className="mt-4 flex flex-col justify-center items-center py-4 gap-3 animate-in fade-in duration-200">
               {loggedClient ? (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      navigate(`/${slug}/client/dashboard`);
-                      setOptionHeader(false);
-                    }}
-                    className="w-full justify-start"
-                  >
-                    Painel
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      handleClientLogout();
-                      setOptionHeader(false);
-                    }}
-                    className="w-full justify-start text-destructive"
-                  >
-                    <LogInIcon className="w-4 h-4 mr-2" />
-                    Sair
-                  </Button>
-                </>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigate(`/${slug}/client/dashboard`);
+                    setOptionHeader(false);
+                  }}
+                  className="w-full justify-start"
+                >
+                  Painel
+                </Button>
               ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      navigate(`/${slug}/entrar`);
-                      setOptionHeader(false);
-                    }}
-                    className="w-full justify-start"
-                  >
-                    <LogInIcon className="w-4 h-4 mr-2" />
-                    Entrar
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      navigate(`/${slug}/cadastro`);
-                      setOptionHeader(false);
-                    }}
-                    className="w-full justify-start"
-                  >
-                    <UserPlus2 className="w-4 h-4 mr-2" />
-                    Cadastrar
-                  </Button>
-                </>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigate(`/${slug}/entrar`);
+                    setOptionHeader(false);
+                  }}
+                  className="w-full justify-start"
+                >
+                  <LogInIcon className="w-4 h-4 mr-2" />
+                  Entrar
+                </Button>
               )}
             </div>
           )}
