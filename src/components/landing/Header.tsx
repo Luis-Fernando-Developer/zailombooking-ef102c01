@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { BookingLogo } from "@/components/BookingLogo";
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import { BookingLogo } from "@/components/BookingLogo";
 import { Menu, X } from "lucide-react";
 
 export function Header() {
@@ -9,9 +9,7 @@ export function Header() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -32,17 +30,13 @@ export function Header() {
   // Fecha menu ao redimensionar para desktop
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setMenuOpen(false);
-      }
+      if (window.innerWidth >= 768) setMenuOpen(false);
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const handleNavClick = () => {
-    setMenuOpen(false);
-  };
+  const handleNavClick = () => setMenuOpen(false);
 
   return (
     <header
@@ -56,66 +50,21 @@ export function Header() {
         {/* Logo */}
         <BookingLogo />
 
-        {/* Hamburger Button - visível em todas as telas */}
+        {/* Hamburger Button — visível em TODAS as telas */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="p-2 rounded-lg hover:bg-accent transition-colors md:hidden"
+          className="p-2 rounded-lg hover:bg-accent transition-colors"
           aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
         >
-          {menuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
+          {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
-
-        {/* Desktop: Menu expandido sempre visível */}
-        <nav className="hidden md:flex items-center gap-8">
-          <a
-            href="#features"
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-          >
-            Recursos
-          </a>
-          <a
-            href="#pricing"
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-          >
-            Preços
-          </a>
-          <a
-            href="#faq"
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-          >
-            Dúvidas
-          </a>
-        </nav>
-
-        {/* Desktop: Botões sempre visíveis */}
-        <div className="hidden md:flex items-center gap-4">
-          <Button
-            variant="ghost"
-            className="text-sm font-bold"
-            onClick={() => (window.location.href = "/login")}
-          >
-            Entrar
-          </Button>
-          <Button
-            variant="neon"
-            size="sm"
-            className="font-bold shadow-neon"
-            onClick={() => (window.location.href = "/signup")}
-          >
-            Assinar Agora
-          </Button>
-        </div>
       </div>
 
-      {/* Menu Mobile Expandido */}
+      {/* Menu Expandido — sempre visível quando aberto */}
       {menuOpen && (
         <div
           ref={menuRef}
-          className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-primary/10 shadow-lg md:hidden"
+          className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-primary/10 shadow-lg"
         >
           <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-4">
             {/* Links de navegação */}
@@ -148,27 +97,20 @@ export function Header() {
 
             {/* Botões */}
             <div className="flex flex-col gap-2 pb-2">
-              <Button
-                variant="ghost"
-                className="text-sm font-bold justify-start w-full"
-                onClick={() => {
-                  window.location.href = "/login";
-                  handleNavClick();
-                }}
+              <Link
+                to="/login"
+                onClick={handleNavClick}
+                className="inline-flex items-center justify-center rounded-md text-sm font-bold px-4 py-2 bg-transparent hover:bg-accent text-foreground transition-colors"
               >
                 Entrar
-              </Button>
-              <Button
-                variant="neon"
-                size="sm"
-                className="font-bold w-full"
-                onClick={() => {
-                  window.location.href = "/signup";
-                  handleNavClick();
-                }}
+              </Link>
+              <Link
+                to="/signup"
+                onClick={handleNavClick}
+                className="inline-flex items-center justify-center rounded-md text-sm font-bold px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 Assinar Agora
-              </Button>
+              </Link>
             </div>
           </div>
         </div>
