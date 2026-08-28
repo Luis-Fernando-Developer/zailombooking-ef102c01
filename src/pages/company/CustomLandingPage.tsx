@@ -317,16 +317,31 @@ export default function CustomLandingPage() {
               <h1 className="text-xl font-bold">{company.name}</h1>
             </div>
 
-            {/* Botões de ação do header */}
-            <div className="flex items-center gap-3">
+            {/* Menu Hamburger em todas as telas */}
+            <div className="flex items-center">
+              <Hamburger
+                size={22}
+                toggled={optionHeader}
+                toggle={setOptionHeader}
+              />
+            </div>
+          </div>
+
+          {/* Menu Expandido */}
+          {optionHeader && (
+            <div className="mt-4 flex flex-col justify-center items-center py-6 gap-4 animate-in fade-in duration-200">
               {loggedClient ? (
                 <>
                   <button
                     type="button"
-                    onClick={() => navigate(`/${slug}/client/dashboard`)}
+                    onClick={() => {
+                      navigate(`/${slug}/client/dashboard`);
+                      setOptionHeader(false);
+                    }}
                     style={headerLoginStyle}
                     onMouseEnter={() => setHeaderLoginHover(true)}
                     onMouseLeave={() => setHeaderLoginHover(false)}
+                    className="w-full max-w-xs text-center"
                   >
                     Painel
                   </button>
@@ -339,6 +354,7 @@ export default function CustomLandingPage() {
                     style={headerCadastrarStyle}
                     onMouseEnter={() => setHeaderCadastrarHover(true)}
                     onMouseLeave={() => setHeaderCadastrarHover(false)}
+                    className="w-full max-w-xs text-center"
                   >
                     Sair
                   </button>
@@ -347,64 +363,31 @@ export default function CustomLandingPage() {
                 <>
                   <button
                     type="button"
-                    onClick={() => navigate(`/${slug}/entrar`)}
+                    onClick={() => {
+                      navigate(`/${slug}/entrar`);
+                      setOptionHeader(false);
+                    }}
                     style={headerLoginStyle}
                     onMouseEnter={() => setHeaderLoginHover(true)}
                     onMouseLeave={() => setHeaderLoginHover(false)}
+                    className="w-full max-w-xs text-center"
                   >
                     Entrar
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate(`/${slug}/cadastro`)}
+                    onClick={() => {
+                      navigate(`/${slug}/cadastro`);
+                      setOptionHeader(false);
+                    }}
                     style={headerCadastrarStyle}
                     onMouseEnter={() => setHeaderCadastrarHover(true)}
                     onMouseLeave={() => setHeaderCadastrarHover(false)}
+                    className="w-full max-w-xs text-center"
                   >
                     Cadastrar
                   </button>
                 </>
-              )}
-
-              {/* Menu Hamburger para loggedClient */}
-              <div className="flex items-center md:hidden">
-                <Hamburger
-                  size={22}
-                  toggled={optionHeader}
-                  toggle={setOptionHeader}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Menu Expandido */}
-          {optionHeader && (
-            <div className="mt-4 flex flex-col justify-center items-center py-4 gap-3 animate-in fade-in duration-200">
-              {loggedClient ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    navigate(`/${slug}/client/dashboard`);
-                    setOptionHeader(false);
-                  }}
-                  className="w-full justify-start"
-                >
-                  Painel
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    navigate(`/${slug}/entrar`);
-                    setOptionHeader(false);
-                  }}
-                  className="w-full justify-start"
-                >
-                  <LogInIcon className="w-4 h-4 mr-2" />
-                  Entrar
-                </Button>
               )}
             </div>
           )}
