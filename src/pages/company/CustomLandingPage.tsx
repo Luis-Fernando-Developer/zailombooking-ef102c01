@@ -306,7 +306,7 @@ export default function CustomLandingPage() {
                       navigate(`/${slug}/entrar`);
                       setOptionHeader(false);
                     }}
-                    style={getButtonStyles(customization?.header?.buttons)}
+                    style={getButtonStyles(customization?.header?.cta_button)}
                     className="w-full justify-start"
                   >
                     <LogInIcon className="w-4 h-4 mr-2" />
@@ -319,7 +319,7 @@ export default function CustomLandingPage() {
                       navigate(`/${slug}/cadastro`);
                       setOptionHeader(false);
                     }}
-                    style={getButtonStyles(customization?.header?.buttons)}
+                    style={getButtonStyles(customization?.header?.cta_button)}
                     className="w-full justify-start"
                   >
                     <UserPlus2 className="w-4 h-4 mr-2" />
