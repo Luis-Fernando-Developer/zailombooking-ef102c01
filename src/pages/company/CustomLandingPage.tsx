@@ -227,32 +227,24 @@ export default function CustomLandingPage() {
     if (!buttonConfig) return {};
 
     const hoverDuration = buttonConfig.hover_duration ?? 0.3;
+    // Pega cor base do botão para usar como fallback no hover
+    const baseButtonStyle = getButtonStyles(buttonConfig, false);
+    const baseBackground = baseButtonStyle.backgroundColor || buttonConfig.background_color;
+    const baseColor = baseButtonStyle.color || buttonConfig.typography?.color;
+
     const baseStyle: React.CSSProperties = {
       transition: `background-color ${hoverDuration}s ease, color ${hoverDuration}s ease, opacity ${hoverDuration}s ease`,
-      // Garante que estilos base sejam preservados durante o hover
-      borderRadius: buttonConfig.border_radius !== undefined ? `${buttonConfig.border_radius}px` : undefined,
+      borderRadius: buttonConfig.border_radius !== undefined ? `${buttonConfig.border_radius}px` : '6px',
       paddingTop: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
       paddingBottom: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : undefined,
       paddingLeft: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
       paddingRight: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : undefined,
       opacity: 1,
+      backgroundColor: isHovering ? (buttonConfig.hover_background_color || baseBackground) : baseBackground,
+      color: isHovering ? (buttonConfig.hover_text_color || baseColor) : baseColor,
     };
 
-    if (isHovering) {
-      // Estado hover: aplica cor de fundo hover e cor de texto hover
-      return {
-        ...baseStyle,
-        backgroundColor: buttonConfig.hover_background_color || undefined,
-        color: buttonConfig.hover_text_color || buttonConfig.typography?.color || undefined,
-      };
-    }
-
-    // Estado normal: aplica estilos base do botão
-    const normalStyle = getButtonStyles(buttonConfig, false);
-    return {
-      ...normalStyle,
-      ...baseStyle,
-    };
+    return baseStyle;
   };
 
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Carregando...</div>;
@@ -414,7 +406,8 @@ export default function CustomLandingPage() {
                 const comboServiceNames = (combo.items || [])
                   .map((it) => it.service?.name)
                   .filter(Boolean) as string[];
-                const servicesButtonStyle = getButtonStyles(customization?.services?.buttons);
+                // Badge Combos usa configuração separada de badge_combos
+                const badgeComboStyle = getBadgeStyles(customization?.services?.badge_combos);
                 return (
                   <div key={`combo-${combo.id}`} style={getCardStyles(customization?.services?.cards)} className="p-6 bg-card rounded-xl">
                     {comboImage && <img src={comboImage} alt={combo.name} className="w-full h-48 object-cover rounded-lg mb-4" />}
@@ -429,7 +422,7 @@ export default function CustomLandingPage() {
                       <div className="flex flex-wrap items-center gap-2 mb-3">
                         {comboServiceNames.map((name, idx) => (
                           <span key={idx} className="flex items-center gap-2">
-                            <ComboServiceChip badgeStyles={servicesButtonStyle}>{name}</ComboServiceChip>
+                            <ComboServiceChip badgeStyles={badgeComboStyle}>{name}</ComboServiceChip>
                             {idx < comboServiceNames.length - 1 && <span className="text-sm font-bold opacity-70">+</span>}
                           </span>
                         ))}
