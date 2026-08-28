@@ -224,20 +224,26 @@ export default function CustomLandingPage() {
 
   // Helper para obter estilo do botão com suporte a hover individual
   const getButtonStyleWithHover = (buttonConfig: any, isHovering: boolean) => {
-    const baseStyle = getButtonStyles(buttonConfig);
+    if (!buttonConfig) return {};
     
-    if (isHovering && buttonConfig?.hover_background_color) {
+    const baseStyle = getButtonStyles(buttonConfig, false);
+    const hoverDuration = buttonConfig.hover_duration ?? 0.3;
+    
+    if (isHovering) {
+      const hoverBg = buttonConfig.hover_background_color;
+      const hoverText = buttonConfig.hover_text_color || buttonConfig.typography?.color || '#ffffff';
+      
       return {
-        ...baseStyle,
-        backgroundColor: buttonConfig.hover_background_color,
-        color: buttonConfig.hover_text_color || baseStyle.color,
-        transition: `all ${buttonConfig.hover_duration ?? 0.3}s ease`,
+        backgroundColor: hoverBg || baseStyle.backgroundColor,
+        color: hoverText,
+        transition: `all ${hoverDuration}s ease`,
+        background: hoverBg ? undefined : baseStyle.background,
       };
     }
     
     return {
       ...baseStyle,
-      transition: `all ${buttonConfig.hover_duration ?? 0.3}s ease`,
+      transition: `all ${hoverDuration}s ease`,
     };
   };
 
@@ -337,8 +343,8 @@ export default function CustomLandingPage() {
                       navigate(`/${slug}/entrar`);
                       setOptionHeader(false);
                     }}
-                    style={headerLoginStyle}
                     className="w-full justify-start"
+                    style={headerLoginStyle}
                     onMouseEnter={() => setHeaderLoginHover(true)}
                     onMouseLeave={() => setHeaderLoginHover(false)}
                   >
@@ -352,8 +358,8 @@ export default function CustomLandingPage() {
                       navigate(`/${slug}/cadastro`);
                       setOptionHeader(false);
                     }}
-                    style={headerCadastrarStyle}
                     className="w-full justify-start"
+                    style={headerCadastrarStyle}
                     onMouseEnter={() => setHeaderCadastrarHover(true)}
                     onMouseLeave={() => setHeaderCadastrarHover(false)}
                   >
@@ -415,7 +421,7 @@ export default function CustomLandingPage() {
                       <div className="flex flex-wrap items-center gap-2 mb-3">
                         {comboServiceNames.map((name, idx) => (
                           <span key={idx} className="flex items-center gap-2">
-                            <ComboServiceChip buttonStyles={servicesButtonStyle}>{name}</ComboServiceChip>
+                            <ComboServiceChip badgeStyles={servicesButtonStyle}>{name}</ComboServiceChip>
                             {idx < comboServiceNames.length - 1 && <span className="text-sm font-bold opacity-70">+</span>}
                           </span>
                         ))}
