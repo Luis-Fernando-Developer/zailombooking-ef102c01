@@ -182,6 +182,7 @@ export interface CustomizationData {
     font_family: string;
     background_color: string;
   };
+  steps?: StepsConfig;
   header: {
     position: "fixed" | "relative";
     background_type: "solid" | "gradient";

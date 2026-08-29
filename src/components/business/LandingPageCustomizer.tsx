@@ -14,7 +14,8 @@ import { ProfessionalsSettings } from "./personalization/ProfessionalsSettings";
 import { AboutSettings } from "./personalization/AboutSettings";
 import { FooterSettings } from "./personalization/FooterSettings";
 import { CodeEditor } from "./CodeEditor";
-import { type CustomizationData, defaultTypography } from "./personalization/types";
+import { StepsSettings } from "./personalization/StepsSettings";
+import { type CustomizationData, defaultTypography, defaultStepsConfig } from "./personalization/types";
 
 interface LandingPageCustomizerProps {
   companyId: string;
@@ -70,7 +71,8 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
       background_gradient: null,
       typography: { ...defaultTypography, color: '#ffffff' }
     },
-    extra: { custom_css: '' }
+    extra: { custom_css: '' },
+    steps: defaultStepsConfig
   };
 
   useEffect(() => {
@@ -155,6 +157,7 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
             <TabsTrigger value="professionals">Profissionais</TabsTrigger>
             <TabsTrigger value="about">Sobre</TabsTrigger>
             <TabsTrigger value="footer">Rodapé</TabsTrigger>
+            <TabsTrigger value="steps">Steps</TabsTrigger>
             <TabsTrigger value="extra">CSS</TabsTrigger>
           </TabsList>
 
@@ -165,6 +168,7 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
           <TabsContent value="professionals" className="pt-4"><ProfessionalsSettings config={customization.professionals} onChange={(val) => setCustomization({ ...customization, professionals: val })} disabled={isLocked} /></TabsContent>
           <TabsContent value="about" className="pt-4"><AboutSettings config={customization.about} onChange={(val) => setCustomization({ ...customization, about: val })} disabled={isLocked} /></TabsContent>
           <TabsContent value="footer" className="pt-4"><FooterSettings config={customization.footer as any} onChange={(val) => setCustomization({ ...customization, footer: val as any })} disabled={isLocked} /></TabsContent>
+          <TabsContent value="steps" className="pt-4"><StepsSettings config={customization.steps || defaultStepsConfig} onChange={(val) => setCustomization({ ...customization, steps: val })} disabled={isLocked} /></TabsContent>
           <TabsContent value="extra" className="pt-4"><CodeEditor code={customization.extra.custom_css} onChange={(val) => setCustomization({ ...customization, extra: { ...customization.extra, custom_css: val } })} onSave={saveCustomization} /></TabsContent>
         </Tabs>
       </CardContent>
