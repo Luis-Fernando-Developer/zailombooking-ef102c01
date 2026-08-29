@@ -193,8 +193,8 @@ export const getBadgeStyles = (config?: ButtonConfig): React.CSSProperties => {
     if (config.typography.letterSpacing !== undefined) styles.letterSpacing = `${config.typography.letterSpacing}px`;
     if (config.typography.alignment) styles.textAlign = config.typography.alignment;
 
-    // COR DO TEXTO — a correção principal: usa typography.color diretamente
-    if (config.typography.color) {
+    // COR DO TEXTO — usa typography.color diretamente (string hex)
+    if (config.typography.color && config.typography.color !== '#000000' && config.typography.color !== '#000') {
       styles.color = config.typography.color;
     } else if (config.typography.colorType === 'gradient' && config.typography.gradient) {
       const g = config.typography.gradient;

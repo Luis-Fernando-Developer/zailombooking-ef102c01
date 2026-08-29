@@ -2,7 +2,6 @@ import { TypographySettings } from "./TypographySettings";
 import { type SectionConfig, defaultTypography } from "./types";
 import { ColorPicker } from "../ColorPicker";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ButtonSettings } from "./ButtonSettings";
 import { CardSettings } from "./CardSettings";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -57,20 +56,8 @@ export function ServicesSettings({ config, onChange, disabled }: ServicesSetting
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="buttons">
-          <AccordionTrigger>Botões de Serviços</AccordionTrigger>
-          <AccordionContent className="pt-4">
-            <ButtonSettings
-              label="Estilo dos Botões"
-              config={config.buttons || {}}
-              onChange={(val) => updateConfig("buttons", val)}
-              disabled={disabled}
-            />
-          </AccordionContent>
-        </AccordionItem>
-
         <AccordionItem value="badge-combos">
-          <AccordionTrigger>Badge Combos</AccordionTrigger>
+          <AccordionTrigger>Badge Profissionais</AccordionTrigger>
           <AccordionContent className="pt-4 space-y-4">
             <ColorPicker
               type={config.badge_combos?.background_type || "solid"}

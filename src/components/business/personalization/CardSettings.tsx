@@ -4,15 +4,12 @@ import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "../ColorPicker";
 import { TypographySettings } from "./TypographySettings";
 import { type TypographyConfig, defaultTypography } from "./types";
-import { ButtonSettings } from "./ButtonSettings";
 
 export interface CardConfig {
   background_type?: "solid" | "gradient";
   background_color?: string;
   background_gradient?: any;
   title_typography?: TypographyConfig;
-  description_typography?: TypographyConfig;
-  price_typography?: TypographyConfig;
   border_radius?: number;
   has_border?: boolean;
   border_width?: number;
@@ -44,11 +41,6 @@ const ALL_SIDES = ['top', 'right', 'bottom', 'left'];
 
 export function CardSettings({ label, config, onChange, disabled }: CardSettingsProps) {
   const updateConfig = (field: keyof CardConfig, value: any) => {
-    const primitiveFields = ['background_type', 'background_color', 'border_radius', 'has_border', 'border_width', 'border_sides', 'border_color', 'has_shadow', 'shadow_offset_x', 'shadow_offset_y', 'shadow_blur', 'shadow_spread', 'shadow_color'];
-    if (primitiveFields.includes(field as string) && value && typeof value === 'object' && !Array.isArray(value)) {
-      console.error(`[CardSettings] React #310 Prevention: Blocked object for field "${field}":`, value);
-      return;
-    }
     onChange({ ...config, [field]: value });
   };
 
@@ -89,25 +81,18 @@ export function CardSettings({ label, config, onChange, disabled }: CardSettings
       />
 
       <TypographySettings 
-        label="Tipografia da Descrição"
-        config={config.description_typography || defaultTypography}
-        onChange={(val) => updateConfig("description_typography", val)}
-        disabled={disabled}
-      />
-
-      <TypographySettings 
-        label="Badge Combos"
+        label="Tipografia do Badge Profissionais"
         config={config.badge_combos?.typography || defaultTypography}
         onChange={(val) => updateBadge("typography", val)}
         disabled={disabled}
       />
 
       <div className="space-y-3 p-3 bg-muted/30 rounded-md">
-        <Label className="text-xs font-semibold">Estilo do Badge Combo</Label>
+        <Label className="text-xs font-semibold">Estilo do Badge Profissionais</Label>
         <ColorPicker
           type={config.badge_combos?.background_type || "solid"}
-          solidColor={config.badge_combos?.background_color || "#3b82f6"}
-          gradientSettings={config.badge_combos?.background_gradient || { type: "linear", angle: 45, colors: ["#3b82f6", "#2563eb"] }}
+          solidColor={config.badge_combos?.background_color || "#1e293b"}
+          gradientSettings={config.badge_combos?.background_gradient || { type: "linear", angle: 45, colors: ["#1e293b", "#0f172a"] }}
           onTypeChange={(type) => updateBadge("background_type", type)}
           onSolidColorChange={(color) => updateBadge("background_color", color)}
           onGradientChange={(gradient) => updateBadge("background_gradient", gradient)}
@@ -125,13 +110,6 @@ export function CardSettings({ label, config, onChange, disabled }: CardSettings
           </div>
         </div>
       </div>
-
-      <TypographySettings 
-        label="Tipografia do Preço"
-        config={config.price_typography || defaultTypography}
-        onChange={(val) => updateConfig("price_typography", val)}
-        disabled={disabled}
-      />
 
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
