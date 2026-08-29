@@ -1,152 +1,333 @@
-import { TypographySettings } from "./TypographySettings";
-import { type SectionConfig, defaultTypography } from "./types";
-import { ColorPicker } from "../ColorPicker";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CardSettings } from "./CardSettings";
-import { Switch } from "@/components/ui/switch";
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ColorPicker } from "@/components/business/ColorPicker";
+import { cn } from "@/lib/utils";
 
-interface ProfessionalsSettingsProps {
-  config: SectionConfig;
-  onChange: (config: SectionConfig) => void;
-  disabled?: boolean;
+interface TypographyConfig {
+  fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: string;
+  color?: string;
+  textAlign?: "left" | "center" | "right";
 }
 
-export function ProfessionalsSettings({ config, onChange, disabled }: ProfessionalsSettingsProps) {
-  const updateConfig = (field: keyof SectionConfig, value: any) => {
-    onChange({ ...config, [field]: value });
+interface BadgeConfig {
+  enabled: boolean;
+  backgroundColor: string;
+  textColor: string;
+  borderRadius: number;
+  typography: {
+    fontFamily?: string;
+    fontSize?: number;
+    fontWeight?: string;
   };
+}
+
+interface ProfessionalsSettingsProps {
+  config: {
+    cards: {
+      backgroundColor: string;
+      borderColor: string;
+      borderWidth: number;
+      borderRadius: number;
+      shadow: string;
+      titleTypography: TypographyConfig;
+      subtitleTypography: TypographyConfig;
+      badge: BadgeConfig;
+    };
+  };
+  onChange: (path: string, value: any) => void;
+}
+
+export function ProfessionalsSettings({ config, onChange }: ProfessionalsSettingsProps) {
+  const [activeTab, setActiveTab] = useState("cards");
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-        <div className="space-y-0.5">
-          <Label>Exibir Section Profissionais</Label>
-          <p className="text-sm text-muted-foreground">Ative para mostrar a seção de profissionais na landing page</p>
-        </div>
-        <Switch
-          checked={config.show !== false}
-          onCheckedChange={(val) => updateConfig("show", val)}
-          disabled={disabled}
-        />
-      </div>
+    <div className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="cards">Cards de Profissionais</TabsTrigger>
+          <TabsTrigger value="typography">Tipografia</TabsTrigger>
+        </TabsList>
 
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="appearance">
-          <AccordionTrigger>Aparência da Seção</AccordionTrigger>
-          <AccordionContent className="pt-4 space-y-4">
+        <TabsContent value="cards" className="space-y-6 pt-4">
+          {/* Background */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">Cor de Fundo</Label>
             <ColorPicker
-              type={config.background_type || "solid"}
-              solidColor={config.background_color || "transparent"}
-              gradientSettings={config.background_gradient || { type: "linear", angle: 135, colors: ["#ffffff", "#f8fafc"] }}
-              onTypeChange={(type) => updateConfig("background_type", type)}
-              onSolidColorChange={(color) => updateConfig("background_color", color)}
-              onGradientChange={(gradient) => updateConfig("background_gradient", gradient)}
-              label="Fundo da Seção"
+              value={config.cards.backgroundColor}
+              onChange={(v) => onChange("cards.backgroundColor", v)}
             />
-            <TypographySettings
-              label="Título da Seção"
-              config={config.title_typography || { ...defaultTypography, size: 32, weight: "700", alignment: "center" }}
-              onChange={(val) => updateConfig("title_typography", val)}
-              showText
-              disabled={disabled}
-            />
-          </AccordionContent>
-        </AccordionItem>
+          </div>
 
-        <AccordionItem value="badge-combos">
-          <AccordionTrigger>Badge Profissionais</AccordionTrigger>
-          <AccordionContent className="pt-4 space-y-4">
+          {/* Border */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">Cor da Borda</Label>
             <ColorPicker
-              type={config.badge_combos?.background_type || "solid"}
-              solidColor={config.badge_combos?.background_color || "#1e293b"}
-              gradientSettings={config.badge_combos?.background_gradient || { type: "linear", angle: 135, colors: ["#1e293b", "#0f172a"] }}
-              onTypeChange={(type) => updateConfig("badge_combos", { ...config.badge_combos, background_type: type })}
-              onSolidColorChange={(color) => updateConfig("badge_combos", { ...config.badge_combos, background_color: color })}
-              onGradientChange={(gradient) => updateConfig("badge_combos", { ...config.badge_combos, background_gradient: gradient })}
-              label="Fundo do Badge"
+              value={config.cards.borderColor}
+              onChange={(v) => onChange("cards.borderColor", v)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">
+              Espessura da Borda: {config.cards.borderWidth}px
+            </Label>
+            <Slider
+              value={[config.cards.borderWidth]}
+              onValueChange={([v]) => onChange("cards.borderWidth", v)}
+              min={0}
+              max={5}
+              step={1}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">
+              Arredondamento: {config.cards.borderRadius}px
+            </Label>
+            <Slider
+              value={[config.cards.borderRadius]}
+              onValueChange={([v]) => onChange("cards.borderRadius", v)}
+              min={0}
+              max={24}
+              step={2}
+            />
+          </div>
+
+          {/* Shadow */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">Sombra</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {["none", "sm", "md", "lg"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => onChange("cards.shadow", s)}
+                  className={cn(
+                    "rounded-md border p-2 text-xs capitalize transition-colors",
+                    config.cards.shadow === s
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:border-primary/50"
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Badge Config */}
+          <div className="space-y-4 border-t pt-4">
+            <Label className="text-xs font-medium text-muted-foreground">Badge Profissionais</Label>
+
             <div className="space-y-2">
-              <Label>Cor do Texto</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  type="color"
-                  value={config.badge_combos?.typography?.color || "#ffffff"}
-                  onChange={(e) => updateConfig("badge_combos", {
-                    ...config.badge_combos,
-                    typography: { ...config.badge_combos?.typography, color: e.target.value }
-                  })}
-                  className="w-12 h-10 p-1 cursor-pointer"
+                <input
+                  type="checkbox"
+                  id="badge-enabled"
+                  checked={config.cards.badge.enabled}
+                  onChange={(e) => onChange("cards.badge.enabled", e.target.checked)}
+                  className="rounded"
                 />
-                <Input
-                  type="text"
-                  value={config.badge_combos?.typography?.color || "#ffffff"}
-                  onChange={(e) => updateConfig("badge_combos", {
-                    ...config.badge_combos,
-                    typography: { ...config.badge_combos?.typography, color: e.target.value }
-                  })}
-                  placeholder="#ffffff"
-                  className="flex-1"
-                />
+                <Label htmlFor="badge-enabled" className="text-xs font-normal">Habilitar Badge</Label>
               </div>
             </div>
-            <TypographySettings
-              label="Tipografia"
-              config={config.badge_combos?.typography || { ...defaultTypography, color: "#ffffff", family: "Inter", size: 12, weight: "600", alignment: "left" }}
-              onChange={(val) => updateConfig("badge_combos", { ...config.badge_combos, typography: val })}
-              showText={false}
-              disabled={disabled}
-            />
-            <div className="space-y-2">
-              <Label>Arredondamento: {config.badge_combos?.border_radius ?? 6}px</Label>
-              <Slider
-                value={[config.badge_combos?.border_radius ?? 6]}
-                onValueChange={([v]) => updateConfig("badge_combos", { ...config.badge_combos, border_radius: v })}
-                min={0}
-                max={24}
-                step={1}
-                disabled={disabled}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Padding Vertical: {config.badge_combos?.padding_v ?? 4}px</Label>
-              <Slider
-                value={[config.badge_combos?.padding_v ?? 4]}
-                onValueChange={([v]) => updateConfig("badge_combos", { ...config.badge_combos, padding_v: v })}
-                min={0}
-                max={16}
-                step={1}
-                disabled={disabled}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Padding Horizontal: {config.badge_combos?.padding_h ?? 8}px</Label>
-              <Slider
-                value={[config.badge_combos?.padding_h ?? 8]}
-                onValueChange={([v]) => updateConfig("badge_combos", { ...config.badge_combos, padding_h: v })}
-                min={0}
-                max={24}
-                step={1}
-                disabled={disabled}
-              />
-            </div>
-          </AccordionContent>
-        </AccordionItem>
 
-        <AccordionItem value="cards">
-          <AccordionTrigger>Cards de Profissionais</AccordionTrigger>
-          <AccordionContent className="pt-4">
-            <CardSettings
-              label="Estilo dos Cards"
-              config={config.cards || {}}
-              onChange={(val) => updateConfig("cards", val)}
-              disabled={disabled}
-            />
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+            {config.cards.badge.enabled && (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Cor do Fundo</Label>
+                  <ColorPicker
+                    value={config.cards.badge.backgroundColor}
+                    onChange={(v) => onChange("cards.badge.backgroundColor", v)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Cor do Texto</Label>
+                  <ColorPicker
+                    value={config.cards.badge.textColor}
+                    onChange={(v) => onChange("cards.badge.textColor", v)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Arredondamento: {config.cards.badge.borderRadius}px
+                  </Label>
+                  <Slider
+                    value={[config.cards.badge.borderRadius]}
+                    onValueChange={([v]) => onChange("cards.badge.borderRadius", v)}
+                    min={0}
+                    max={16}
+                    step={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Família da Fonte</Label>
+                  <Input
+                    value={config.cards.badge.typography.fontFamily || ""}
+                    onChange={(e) => onChange("cards.badge.typography.fontFamily", e.target.value)}
+                    placeholder="Ex: Inter, sans-serif"
+                    className="h-9 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Tamanho da Fonte: {config.cards.badge.typography.fontSize || 12}px
+                  </Label>
+                  <Slider
+                    value={[config.cards.badge.typography.fontSize || 12]}
+                    onValueChange={([v]) => onChange("cards.badge.typography.fontSize", v)}
+                    min={8}
+                    max={20}
+                    step={1}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Peso da Fonte</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {["400", "500", "600", "700"].map((w) => (
+                      <button
+                        key={w}
+                        onClick={() => onChange("cards.badge.typography.fontWeight", w)}
+                        className={cn(
+                          "rounded-md border p-2 text-xs transition-colors",
+                          config.cards.badge.typography.fontWeight === w
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        {w === "400" ? "Normal" : w === "500" ? "Medium" : w === "600" ? "Semibold" : "Bold"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="typography" className="space-y-6 pt-4">
+          {/* Title */}
+          <div className="space-y-4">
+            <Label className="text-xs font-semibold text-muted-foreground">Título do Profissional</Label>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-normal text-muted-foreground">Família da Fonte</Label>
+              <Input
+                value={config.cards.titleTypography.fontFamily || ""}
+                onChange={(e) => onChange("cards.titleTypography.fontFamily", e.target.value)}
+                placeholder="Ex: Inter, sans-serif"
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-normal text-muted-foreground">
+                Tamanho: {config.cards.titleTypography.fontSize || 16}px
+              </Label>
+              <Slider
+                value={[config.cards.titleTypography.fontSize || 16]}
+                onValueChange={([v]) => onChange("cards.titleTypography.fontSize", v)}
+                min={12}
+                max={32}
+                step={1}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-normal text-muted-foreground">Cor</Label>
+              <ColorPicker
+                value={config.cards.titleTypography.color || "#000000"}
+                onChange={(v) => onChange("cards.titleTypography.color", v)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-normal text-muted-foreground">Peso</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {["400", "500", "600", "700"].map((w) => (
+                  <button
+                    key={w}
+                    onClick={() => onChange("cards.titleTypography.fontWeight", w)}
+                    className={cn(
+                      "rounded-md border p-2 text-xs transition-colors",
+                      config.cards.titleTypography.fontWeight === w
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    {w === "400" ? "Normal" : w === "500" ? "Medium" : w === "600" ? "Semibold" : "Bold"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Subtitle */}
+          <div className="space-y-4">
+            <Label className="text-xs font-semibold text-muted-foreground">Subtítulo do Profissional</Label>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-normal text-muted-foreground">Família da Fonte</Label>
+              <Input
+                value={config.cards.subtitleTypography.fontFamily || ""}
+                onChange={(e) => onChange("cards.subtitleTypography.fontFamily", e.target.value)}
+                placeholder="Ex: Inter, sans-serif"
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-normal text-muted-foreground">
+                Tamanho: {config.cards.subtitleTypography.fontSize || 14}px
+              </Label>
+              <Slider
+                value={[config.cards.subtitleTypography.fontSize || 14]}
+                onValueChange={([v]) => onChange("cards.subtitleTypography.fontSize", v)}
+                min={10}
+                max={24}
+                step={1}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-normal text-muted-foreground">Cor</Label>
+              <ColorPicker
+                value={config.cards.subtitleTypography.color || "#666666"}
+                onChange={(v) => onChange("cards.subtitleTypography.color", v)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-normal text-muted-foreground">Peso</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {["400", "500", "600", "700"].map((w) => (
+                  <button
+                    key={w}
+                    onClick={() => onChange("cards.subtitleTypography.fontWeight", w)}
+                    className={cn(
+                      "rounded-md border p-2 text-xs transition-colors",
+                      config.cards.subtitleTypography.fontWeight === w
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    {w === "400" ? "Normal" : w === "500" ? "Medium" : w === "600" ? "Semibold" : "Bold"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
