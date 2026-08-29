@@ -99,6 +99,84 @@ export interface SectionConfig {
   description_typography?: TypographyConfig;
 }
 
+export interface StepConfig {
+  // Container
+  container_background_type?: "solid" | "gradient";
+  container_background_color?: string;
+  container_background_gradient?: any;
+  container_border_radius?: number;
+  // Título do container
+  title_typography?: TypographyConfig;
+  // Descrição do container
+  description_typography?: TypographyConfig;
+  // Check
+  check_color?: string;
+  // Botões (continuar, voltar, etc)
+  continue_button?: ButtonConfig;
+  back_button?: ButtonConfig;
+  // Step Calendário — datas
+  available_date_color?: string;
+  current_date_color?: string;
+  unavailable_date_color?: string;
+  calendar_header_color?: string;
+  weekday_color?: string;
+  calendar_nav_button_color?: string;
+  // Step Slots
+  slot_selected_color?: string;
+  slot_border_radius?: number;
+  // Step Login
+  secondary_button?: ButtonConfig;
+}
+
+export interface StepsConfig {
+  services: StepConfig;
+  professional: StepConfig;
+  calendar: StepConfig;
+  slots: StepConfig;
+  login: StepConfig;
+  confirmation: StepConfig;
+}
+
+export const defaultStepConfig: StepConfig = {
+  container_background_type: "solid",
+  container_background_color: "#ffffff",
+  container_border_radius: 12,
+  check_color: "#3b82f6",
+  continue_button: {
+    background_type: "solid",
+    background_color: "#3b82f6",
+    typography: { family: "Inter", size: 14, weight: "600", colorType: "solid", color: "#ffffff", alignment: "center" },
+    border_radius: 8,
+    padding_v: 10,
+    padding_h: 24,
+  },
+  back_button: {
+    background_type: "solid",
+    background_color: "#e2e8f0",
+    typography: { family: "Inter", size: 14, weight: "600", colorType: "solid", color: "#475569", alignment: "center" },
+    border_radius: 8,
+    padding_v: 10,
+    padding_h: 24,
+  },
+  available_date_color: "#3b82f6",
+  current_date_color: "#8b5cf6",
+  unavailable_date_color: "#cbd5e1",
+  calendar_header_color: "#1e293b",
+  weekday_color: "#64748b",
+  calendar_nav_button_color: "#3b82f6",
+  slot_selected_color: "#3b82f6",
+  slot_border_radius: 8,
+};
+
+export const defaultStepsConfig: StepsConfig = {
+  services: { ...defaultStepConfig },
+  professional: { ...defaultStepConfig },
+  calendar: { ...defaultStepConfig },
+  slots: { ...defaultStepConfig },
+  login: { ...defaultStepConfig, secondary_button: { background_type: "solid", background_color: "#f1f5f9", typography: { family: "Inter", size: 14, weight: "600", colorType: "solid", color: "#3b82f6", alignment: "center" }, border_radius: 8, padding_v: 10, padding_h: 24 } },
+  confirmation: { ...defaultStepConfig },
+};
+
 export interface CustomizationData {
   body: {
     font_family: string;
