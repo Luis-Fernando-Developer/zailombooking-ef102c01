@@ -228,19 +228,18 @@ export default function CustomLandingPage() {
     const hoverDuration = buttonConfig.hover_duration ?? 0.3;
     const isGradient = buttonConfig.background_type === 'gradient' && buttonConfig.background_gradient;
 
-    // Background base
-    let baseBg: string | undefined;
-    let hoverBg: string | undefined;
+    // Background
+    let bgColor: string | undefined;
+    let bgImage: string | undefined;
+
     if (isGradient) {
-      baseBg = `linear-gradient(${buttonConfig.background_gradient.angle || 0}deg, ${buttonConfig.background_gradient.colors?.join(', ') || ''})`;
-      // Hover de gradiente: usa hover_background_color se definido, senão mantém gradiente
-      hoverBg = buttonConfig.hover_background_color
-        ? buttonConfig.hover_background_color
-        : baseBg;
+      bgImage = `linear-gradient(${buttonConfig.background_gradient.angle || 0}deg, ${buttonConfig.background_gradient.colors?.join(', ') || ''})`;
     } else {
-      baseBg = buttonConfig.background_color;
-      hoverBg = buttonConfig.hover_background_color || buttonConfig.background_color;
+      bgColor = buttonConfig.background_color;
     }
+
+    // Hover: se hover_background_color definido, usa cor sólida; senão mantém gradiente original
+    const hoverBg = buttonConfig.hover_background_color;
 
     // Cor do texto
     const baseColor = buttonConfig.typography?.color;
@@ -253,8 +252,8 @@ export default function CustomLandingPage() {
       paddingBottom: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : '8px',
       paddingLeft: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : '16px',
       paddingRight: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : '16px',
-      backgroundColor: isHovering ? (isGradient ? undefined : hoverBg) : (isGradient ? undefined : baseBg),
-      backgroundImage: isGradient ? (isHovering && buttonConfig.hover_background_color ? 'none' : baseBg) : undefined,
+      backgroundColor: isHovering ? (hoverBg || bgColor) : bgColor,
+      backgroundImage: isHovering && hoverBg ? 'none' : (isGradient ? bgImage : undefined),
       color: isHovering ? hoverColor : baseColor,
       fontFamily: buttonConfig.typography?.family ? `'${buttonConfig.typography.family}', sans-serif` : undefined,
       fontSize: buttonConfig.typography?.size ? `${buttonConfig.typography.size}px` : '14px',
