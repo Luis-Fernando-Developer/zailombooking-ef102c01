@@ -10,6 +10,8 @@ export interface CardConfig {
   background_color?: string;
   background_gradient?: any;
   title_typography?: TypographyConfig;
+  description_typography?: TypographyConfig;
+  price_typography?: TypographyConfig;
   border_radius?: number;
   has_border?: boolean;
   border_width?: number;
@@ -81,14 +83,21 @@ export function CardSettings({ label, config, onChange, disabled }: CardSettings
       />
 
       <TypographySettings 
-        label="Tipografia do Badge Profissionais"
-        config={config.badge_combos?.typography || defaultTypography}
-        onChange={(val) => updateBadge("typography", val)}
+        label="Tipografia da Descrição"
+        config={config.description_typography || defaultTypography}
+        onChange={(val) => updateConfig("description_typography", val)}
+        disabled={disabled}
+      />
+
+      <TypographySettings 
+        label="Tipografia do Preço"
+        config={config.price_typography || defaultTypography}
+        onChange={(val) => updateConfig("price_typography", val)}
         disabled={disabled}
       />
 
       <div className="space-y-3 p-3 bg-muted/30 rounded-md">
-        <Label className="text-xs font-semibold">Estilo do Badge Profissionais</Label>
+        <Label className="text-xs font-semibold">Estilo do Badge Serviços</Label>
         <ColorPicker
           type={config.badge_combos?.background_type || "solid"}
           solidColor={config.badge_combos?.background_color || "#1e293b"}

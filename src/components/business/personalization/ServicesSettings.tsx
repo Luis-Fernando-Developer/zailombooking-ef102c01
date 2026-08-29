@@ -68,30 +68,6 @@ export function ServicesSettings({ config, onChange, disabled }: ServicesSetting
               onGradientChange={(gradient) => updateConfig("badge_combos", { ...config.badge_combos, background_gradient: gradient })}
               label="Fundo do Badge"
             />
-            <div className="space-y-2">
-              <Label>Cor do Texto</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="color"
-                  value={config.badge_combos?.typography?.color || "#ffffff"}
-                  onChange={(e) => updateConfig("badge_combos", {
-                    ...config.badge_combos,
-                    typography: { ...config.badge_combos?.typography, color: e.target.value }
-                  })}
-                  className="w-12 h-10 p-1 cursor-pointer"
-                />
-                <Input
-                  type="text"
-                  value={config.badge_combos?.typography?.color || "#ffffff"}
-                  onChange={(e) => updateConfig("badge_combos", {
-                    ...config.badge_combos,
-                    typography: { ...config.badge_combos?.typography, color: e.target.value }
-                  })}
-                  placeholder="#ffffff"
-                  className="flex-1"
-                />
-              </div>
-            </div>
             <TypographySettings
               label="Tipografia"
               config={config.badge_combos?.typography || { ...defaultTypography, color: "#ffffff", family: "Inter", size: 12, weight: "600", alignment: "left" }}
