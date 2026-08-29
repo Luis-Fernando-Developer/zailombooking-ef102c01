@@ -247,13 +247,14 @@ export default function CustomLandingPage() {
     const hoverColor = buttonConfig.hover_text_color || buttonConfig.typography?.color;
 
     return {
-      transition: `background ${hoverDuration}s ease, color ${hoverDuration}s ease, box-shadow ${hoverDuration}s ease`,
+      transition: `background-color ${hoverDuration}s ease, color ${hoverDuration}s ease, box-shadow ${hoverDuration}s ease`,
       borderRadius: buttonConfig.border_radius !== undefined ? `${buttonConfig.border_radius}px` : '6px',
       paddingTop: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : '8px',
       paddingBottom: buttonConfig.padding_v !== undefined ? `${buttonConfig.padding_v}px` : '8px',
       paddingLeft: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : '16px',
       paddingRight: buttonConfig.padding_h !== undefined ? `${buttonConfig.padding_h}px` : '16px',
-      background: isHovering ? hoverBg : baseBg,
+      backgroundColor: isHovering ? (isGradient ? undefined : hoverBg) : (isGradient ? undefined : baseBg),
+      backgroundImage: isGradient ? (isHovering && buttonConfig.hover_background_color ? 'none' : baseBg) : undefined,
       color: isHovering ? hoverColor : baseColor,
       fontFamily: buttonConfig.typography?.family ? `'${buttonConfig.typography.family}', sans-serif` : undefined,
       fontSize: buttonConfig.typography?.size ? `${buttonConfig.typography.size}px` : '14px',
