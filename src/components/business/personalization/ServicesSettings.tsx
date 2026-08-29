@@ -57,7 +57,7 @@ export function ServicesSettings({ config, onChange, disabled }: ServicesSetting
         </AccordionItem>
 
         <AccordionItem value="badge-combos">
-          <AccordionTrigger>Badge Profissionais</AccordionTrigger>
+          <AccordionTrigger>Badge Combos</AccordionTrigger>
           <AccordionContent className="pt-4 space-y-4">
             <ColorPicker
               type={config.badge_combos?.background_type || "solid"}
