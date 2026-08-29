@@ -480,7 +480,7 @@ export default function CustomLandingPage() {
                 style={servicesVerMaisStyle}
                 onMouseEnter={() => setServicesVerMaisHover(true)}
                 onMouseLeave={() => setServicesVerMaisHover(false)}
-                className="mt-8 px-6 py-3 text-base font-semibold cursor-pointer"
+                className="mt-8 px-6 py-3 text-base font-semibold cursor-pointer bg-transparent"
               >
                 Ver mais
               </button>
@@ -493,7 +493,7 @@ export default function CustomLandingPage() {
                 style={servicesAgendarStyle}
                 onMouseEnter={() => setServicesAgendarHover(true)}
                 onMouseLeave={() => setServicesAgendarHover(false)}
-                className="px-8 py-6 text-lg font-semibold cursor-pointer"
+                className="px-8 py-6 text-lg font-semibold cursor-pointer bg-transparent"
               >
                 {customization?.services?.buttons?.typography?.text || 'Agendar Agora'}
               </button>
