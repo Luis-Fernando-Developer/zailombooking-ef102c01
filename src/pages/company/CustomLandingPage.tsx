@@ -510,17 +510,25 @@ export default function CustomLandingPage() {
                 {customization?.professionals?.title_typography?.text || 'Nossa Equipe'}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {employees.slice(0, visibleEmployees).map(emp => (
-                  <div key={emp.id} style={getCardStyles(customization?.professionals?.cards)} className="p-6 bg-card rounded-xl text-center">
-                    <div className="w-24 h-24 mx-auto rounded-full bg-muted mb-4 overflow-hidden">
-                      {emp.avatar_url ? <img src={emp.avatar_url} alt={emp.name} className="w-full h-full object-cover" /> : <User className="w-full h-full p-6 text-muted-foreground" />}
+                {employees.slice(0, visibleEmployees).map(emp => {
+                  const empServices = getEmployeeServices(emp.id);
+                  const badgeEmpStyle = getBadgeStyles(customization?.professionals?.badge_combos);
+                  return (
+                    <div key={emp.id} style={getCardStyles(customization?.professionals?.cards)} className="p-6 bg-card rounded-xl text-center">
+                      <div className="w-24 h-24 mx-auto rounded-full bg-muted mb-4 overflow-hidden">
+                        {emp.avatar_url ? <img src={emp.avatar_url} alt={emp.name} className="w-full h-full object-cover" /> : <User className="w-full h-full p-6 text-muted-foreground" />}
+                      </div>
+                      <h3 style={getTypographyStyles(customization?.professionals?.cards?.title_typography)} className="text-xl font-bold mb-2">{emp.name}</h3>
+                      {empServices.length > 0 && (
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {empServices.map((s, i) => (
+                            <ComboServiceChip key={i} badgeStyles={badgeEmpStyle}>{s}</ComboServiceChip>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <h3 style={getTypographyStyles(customization?.professionals?.cards?.title_typography)} className="text-xl font-bold mb-2">{emp.name}</h3>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {getEmployeeServices(emp.id).map((s, i) => <Badge key={i} variant="secondary">{s}</Badge>)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </section>
