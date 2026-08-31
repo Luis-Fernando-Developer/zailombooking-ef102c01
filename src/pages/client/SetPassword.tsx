@@ -86,6 +86,16 @@ export default function SetPassword() {
       const { error: updateError } = await supabase.auth.updateUser({ password: values.password });
       if (updateError) throw updateError;
 
+      // Salva o password_hash na tabela clients para validar via validate_client_password
+      const { error: hashError } = await supabase.rpc('set_client_password_hash', {
+        p_company_slug: slug,
+        p_password: values.password,
+      });
+      if (hashError) {
+        console.error('Erro ao salvar password_hash na clients:', hashError);
+        // Não bloqueia o fluxo — a senha já foi definida no Auth
+      }
+
       toast({ title: "Sucesso!", description: "Sua senha foi definida com sucesso. Agora você pode entrar." });
       navigate(`/${slug}/entrar${returnToParam ? `?returnTo=${returnToParam}` : ''}`);
     } catch (error: any) {
