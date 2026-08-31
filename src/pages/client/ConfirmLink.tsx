@@ -28,10 +28,22 @@ export default function ConfirmLink() {
         setStatus('success');
         setMessage("Identidade confirmada com sucesso! Redirecionando...");
         
-        // Se temos uma sessão, precisamos saber para qual empresa o usuário deve ir.
-        // O slug geralmente vem da URL query parameter que injetamos no redirectTo.
-        const currentSlug = searchParams.get('slug');
+        // Extrai token do hash (Supabase injeta após confirmação de email)
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+        const hashToken = hashParams.get('access_token') || hashParams.get('token') || token;
+        const currentSlug = slug || searchParams.get('slug');
+        const returnTo = searchParams.get('returnTo');
         
+        // Se e 1o cadastro (type=signup), redireciona para criar senha
+        if (type === 'signup') {
+          setTimeout(() => {
+            const passwordUrl = `/${currentSlug || 'client'}/criar-senha?token=${hashToken || ''}${returnTo ? `&returnTo=${returnTo}` : ''}`;
+            navigate(passwordUrl);
+          }, 1500);
+          return;
+        }
+        
+        // Demais casos: vai para agendamentos
         setTimeout(() => {
           navigate(`/${currentSlug || 'client'}/agendamentos`);
         }, 1500);
