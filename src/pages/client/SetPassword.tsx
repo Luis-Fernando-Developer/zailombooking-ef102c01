@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,7 +26,8 @@ export default function SetPassword() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  
+  const [ready, setReady] = useState(false);
+
   const searchParams = new URLSearchParams(window.location.search);
   const urlToken = searchParams.get("token");
   const returnToParam = searchParams.get("returnTo");
@@ -35,31 +36,57 @@ export default function SetPassword() {
     resolver: zodResolver(passwordSchema),
   });
 
-  const onSubmit = async (values: PasswordFormValues) => {
-    setLoading(true);
-    try {
-      // Valida token antes de criar senha (fluxo via link customizado)
-      if (!urlToken) {
-        toast({
-          title: "Erro",
-          description: "Link de confirmação inválido ou expirado.",
-          variant: "destructive",
-        });
-        setLoading(false);
+  // Verifica sessão ativa na carga (fluxo 1º cadastro via hash do Supabase)
+  useEffect(() => {
+    (async () => {
+      // Se tem token na URL, não precisa verificar sessão
+      if (urlToken) {
+        setReady(true);
         return;
       }
 
-      const { data, error } = await supabase.rpc("confirm_client_company_link", {
-        p_token: urlToken,
-        p_password: values.password
-      });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Erro ao definir senha.");
+      // Caso contrário, tenta pegar a sessão ativa (Supabase injeta via hash após confirmação de email)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setReady(true);
+      } else {
+        // Espera um pouco caso o Supabase ainda vá injetar o hash
+        const timer = setTimeout(async () => {
+          const { data: { session: retrySession } } = await supabase.auth.getSession();
+          setReady(!!retrySession);
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
+    })();
+  }, [urlToken]);
 
-      toast({
-        title: "Sucesso!",
-        description: "Sua senha foi definida com sucesso. Agora você pode entrar.",
-      });
+  const onSubmit = async (values: PasswordFormValues) => {
+    setLoading(true);
+    try {
+      // Fluxo COM token na URL (link customizado)
+      if (urlToken) {
+        const { data, error } = await supabase.rpc("confirm_client_company_link", {
+          p_token: urlToken,
+          p_password: values.password
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || "Erro ao definir senha.");
+
+        toast({ title: "Sucesso!", description: "Sua senha foi definida com sucesso. Agora você pode entrar." });
+        navigate(`/${slug}/entrar${returnToParam ? `?returnTo=${returnToParam}` : ''}`);
+        return;
+      }
+
+      // Fluxo SEM token — usa sessão ativa via hash do Supabase (1º cadastro)
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error("Sessão não encontrada. Tente confirmar o link de confirmação novamente.");
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: values.password });
+      if (updateError) throw updateError;
+
+      toast({ title: "Sucesso!", description: "Sua senha foi definida com sucesso. Agora você pode entrar." });
       navigate(`/${slug}/entrar${returnToParam ? `?returnTo=${returnToParam}` : ''}`);
     } catch (error: any) {
       console.error("Error setting password:", error);
@@ -72,6 +99,23 @@ export default function SetPassword() {
       setLoading(false);
     }
   };
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
+        <Card className="w-full max-w-md card-glow bg-card/50 backdrop-blur-sm border-primary/30">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl text-gradient">Crie sua Senha</CardTitle>
+            <CardDescription>Validando link de confirmação...</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center py-8">
+            <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            <p className="text-sm text-muted-foreground mt-4">Aguarde um momento...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
