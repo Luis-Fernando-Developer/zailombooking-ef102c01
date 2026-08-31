@@ -98,7 +98,7 @@ export default function ClientSignup() {
       });
 
       if (userIdData) {
-        // Solicitamos vínculo via Resend/WhatsApp. A SENHA será criada após a confirmação.
+        // Usuário existente: solicita vínculo via Resend/WhatsApp (fluxo original)
         try {
           const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
             body: {
@@ -133,69 +133,39 @@ export default function ClientSignup() {
         }
       }
 
-      // 2. Se NÃO existe, criamos a identidade global no Supabase Auth.
-      // NOTA: Para o primeiro cadastro, usamos login sem senha (identidade pura).
-      // Como o Supabase Auth exige uma senha no signUp tradicional, 
-      // o fluxo correto para "apenas identidade" sem senha no Auth é usar o Admin API 
-      // ou um fluxo de convite/link que não defina credencial global.
-      // Entretanto, para manter a compatibilidade com o client SDK sem Lovable Cloud,
-      // usaremos um fluxo onde a senha global é irrelevante e não utilizada.
-      
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: validatedData.email,
-        password: Math.random().toString(36).slice(-16) + Math.random().toString(36).toUpperCase().slice(-16), // Senha "lixo" técnica nunca usada
-        options: {
-          emailRedirectTo: `${window.location.origin}/confirmar-vincular?slug=${slug}&type=signup${returnTo ? `&returnTo=${returnTo}` : ''}`,
-          data: {
-            first_name: validatedData.firstName,
-            last_name: validatedData.lastName,
-            full_name: fullName,
-            phone: validatedData.phone,
-            company_id: companyData.id,
-            role: "client",
-          },
-        },
-      });
-
-      if (authError) {
-        toast({
-          title: "Erro no cadastro",
-          description: authError.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // 3. Usuário novo no Supabase Auth. O vínculo inicial é criado imediatamente.
-      if (authData.user) {
-        const { error: clientError } = await supabase
-          .from("clients")
-          .insert({
-            user_id: authData.user.id,
+      // 2. Usuário NOVO (não existe no banco): usa fluxo de confirmação via token
+      // (não usa supabase.auth.signUp para evitar email automático + sessão automática do Supabase)
+      try {
+        const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
+          body: {
+            signup_flow: true,
             company_id: companyData.id,
             name: fullName,
             email: validatedData.email,
             phone: validatedData.phone,
             cpf: cleanedCpf || null,
-            // A senha será definida via link de confirmação
-          });
-
-        if (clientError) {
-          console.error("Error creating client profile:", clientError);
-          toast({
-            title: "Erro no cadastro",
-            description: "A conta foi criada, mas o vínculo com a empresa falhou.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        toast({
-          title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu e-mail para confirmar a conta.",
+            redirectTo: `${window.location.origin}/confirmar-vincular?slug=${slug}&type=signup`,
+            returnTo: returnTo,
+          }
         });
 
-        navigate(`/${slug}/entrar${returnTo ? `?returnTo=${returnTo}` : ''}`);
+        if (funcError) throw funcError;
+
+        const msg = funcData?.whatsapp_sent 
+          ? `Enviamos um link de confirmação para seu WhatsApp (${validatedData.phone}) para ativar sua conta na empresa ${companyData.name}.`
+          : `Um link de confirmação foi enviado para seu e-mail para validar seu acesso à empresa ${companyData.name}.`;
+
+        toast({ title: "Cadastro iniciado", description: msg });
+        navigate(`/${slug}/entrar`);
+        return;
+      } catch (error) {
+        console.error("Erro no cadastro de novo usuário:", error);
+        toast({
+          title: "Erro no cadastro",
+          description: "Ocorreu um erro ao processar seu cadastro. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
     } catch (error) {

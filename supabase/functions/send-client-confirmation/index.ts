@@ -16,16 +16,173 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { user_id, company_id, name, email, phone, cpf, password, redirectTo, returnTo } = await req.json();
+    const { user_id, company_id, name, email, phone, cpf, password, signup_flow, redirectTo, returnTo } = await req.json();
 
-    if (!user_id || !company_id || !email) {
+    // Validação mínima
+    if (!company_id || !email) {
       return new Response(JSON.stringify({ error: "Parâmetros obrigatórios ausentes" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 1. Criar ou atualizar registro de confirmação
+    // ─────────────────────────────────────────────
+    // FLUXO 1: Primeiro cadastro (usuário novo)
+    // Cria usuário no Auth via Admin API + envia link nosso
+    // ─────────────────────────────────────────────
+    if (signup_flow === true) {
+      // 1a. Criar usuário no Supabase Auth via Admin API (sem enviar email automático)
+      const { data: authUser, error: createUserError } = await supabaseClient.auth.admin.createUser({
+        email: email,
+        email_confirm: true,
+        user_metadata: {
+          name,
+          phone,
+          role: "client",
+        },
+      });
+
+      if (createUserError || !authUser?.user) {
+        console.error("Erro ao criar usuário no Auth:", createUserError);
+        return new Response(JSON.stringify({ error: createUserError?.message || "Erro ao criar usuário" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const newUserId = authUser.user.id;
+
+      // 1b. Inserir vínculo na tabela clients
+      const { error: clientError } = await supabaseClient
+        .from("clients")
+        .insert({
+          user_id: newUserId,
+          company_id,
+          name,
+          email,
+          phone,
+          cpf: cpf || null,
+        });
+
+      if (clientError) {
+        console.error("Erro ao criar perfil do cliente:", clientError);
+      }
+
+      // 1c. Buscar empresa para o link
+      const { data: company } = await supabaseClient
+        .from("companies")
+        .select("name, slug")
+        .eq("id", company_id)
+        .single();
+
+      // 1d. Criar registro de confirmação com token
+      const { data: confData, error: confError } = await supabaseClient
+        .from("client_confirmations")
+        .upsert({
+          user_id: newUserId,
+          company_id,
+          email,
+          name,
+          phone,
+          cpf,
+          password_hash: null,
+          confirmed_at: null,
+        }, {
+          onConflict: 'user_id,company_id'
+        })
+        .select("confirmation_token")
+        .single();
+
+      if (confError) {
+        console.error("Erro ao criar confirmação:", confError);
+      }
+
+      const confirmationLink = `${new URL(redirectTo).origin}/confirmar-vincular?token=${confData?.confirmation_token}&slug=${company?.slug}&type=signup${returnTo ? `&returnTo=${returnTo}` : ''}`;
+
+      // 1e. Enviar link via WhatsApp ou e-mail
+      let whatsapp_sent = false;
+      let email_sent = false;
+
+      const sendMessage = async (msg: string) => {
+        if (channel && channel !== "none") {
+          try {
+            const { data: integRow } = await supabaseClient.from("whatsapp_integration")
+              .select("wa_api_key").eq("company_id", company_id).maybeSingle();
+            const { data: inst } = await supabaseClient.from("whatsapp_instances")
+              .select("wa_instance_id")
+              .eq("company_id", company_id).eq("status", "connected")
+              .order("is_default", { ascending: false }).limit(1).maybeSingle();
+            if (integRow?.wa_api_key && inst?.wa_instance_id && phone) {
+              const WA_BASE = (Deno.env.get("WA_SERVICE_BASE_URL") ?? "https://wa.zailom.com").replace(/\/$/, "");
+              const cleanTo = String(phone).replace(/\D/g, "");
+              const waRes = await fetch(`${WA_BASE}/v1/instances/${inst.wa_instance_id}/message/sendText`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${integRow.wa_api_key}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ number: cleanTo, text: msg }),
+              });
+              whatsapp_sent = waRes.ok;
+            }
+          } catch (e) {
+            console.error("Erro WhatsApp:", e);
+          }
+        }
+
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        if (resendKey) {
+          try {
+            const emailRes = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${resendKey}` },
+              body: JSON.stringify({
+                from: "Zailom Booking <atendimento@suport-mail.booking.zailom.com>",
+                to: [email],
+                subject: `Confirme seu cadastro em ${company?.name}`,
+                html: `<div style="font-family: sans-serif; padding: 20px;"><h2>Olá ${name}!</h2><p>Você criou uma conta na empresa <strong>${company?.name}</strong>.</p><p>Clique no botão abaixo para confirmar e criar sua senha:</p><a href="${confirmationLink}" style="display:inline-block;background:#8B5CF6;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;margin:20px 0;">Confirmar Cadastro</a></div>`,
+              }),
+            });
+            email_sent = emailRes.ok;
+          } catch (e) {
+            console.error("Erro e-mail:", e);
+          }
+        }
+      };
+
+      const channel = await supabaseClient.rpc("resolve_whatsapp_channel", { p_company: company_id });
+      const message = `🎉 Olá ${name}!
+
+Seu cadastro na empresa *${company?.name}* foi iniciado.
+
+Clique no link abaixo para confirmar e criar sua senha:
+
+🔗 ${confirmationLink}
+
+Se não foi você, ignore esta mensagem.`;
+      await sendMessage(message);
+
+      console.log(`[SIGNUP_FLOW] Novo usuário: ${email}, Link: ${confirmationLink}`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: whatsapp_sent || email_sent ? "Link de confirmação enviado." : "Link de confirmação gerado.",
+        whatsapp_sent,
+        email_sent,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // ─────────────────────────────────────────────
+    // FLUXO 2: Vínculo de usuário existente a empresa
+    // (fluxo original)
+    // ─────────────────────────────────────────────
+    if (!user_id || !company_id) {
+      return new Response(JSON.stringify({ error: "Parâmetros user_id e company_id obrigatórios para vínculo" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: confData, error: confError } = await supabaseClient
       .from("client_confirmations")
       .upsert({
@@ -35,18 +192,13 @@ serve(async (req) => {
         name,
         phone,
         cpf,
-        password_hash: password, // Senha específica desta empresa
+        password_hash: password,
         confirmed_at: null,
       }, {
         onConflict: 'user_id,company_id'
       })
       .select("confirmation_token")
       .single();
-
-    if (confError) {
-      console.error("Erro ao criar confirmação:", confError);
-      throw confError;
-    }
 
     // 2. Buscar dados da empresa para o e-mail
     const { data: company, error: companyError } = await supabaseClient
@@ -61,7 +213,7 @@ serve(async (req) => {
 
     const confirmationLink = `${new URL(redirectTo).origin}/confirmar-vincular?token=${confData.confirmation_token}&slug=${company.slug}${returnTo ? `&returnTo=${returnTo}` : ''}`;
 
-    // 3. Lógica de envio: WhatsApp e/ou E-mail (Resend fallback planejado)
+    // 2. Lógica de envio: WhatsApp e/ou E-mail
     const { data: channel } = await supabaseClient.rpc("resolve_whatsapp_channel", { p_company: company_id });
     
     let whatsapp_sent = false;

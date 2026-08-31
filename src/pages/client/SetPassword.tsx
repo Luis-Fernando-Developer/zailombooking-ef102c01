@@ -38,37 +38,23 @@ export default function SetPassword() {
   const onSubmit = async (values: PasswordFormValues) => {
     setLoading(true);
     try {
-      // Fluxo COM token (vínculo multi-empresa via link customizado)
-      if (urlToken) {
-        const { data, error } = await supabase.rpc("confirm_client_company_link", {
-          p_token: urlToken,
-          p_password: values.password
-        });
-        if (error) throw error;
-        if (!data?.success) throw new Error(data?.error || "Erro ao definir senha.");
-        toast({
-          title: "Sucesso!",
-          description: "Sua senha foi definida com sucesso. Agora você pode entrar.",
-        });
-        navigate(`/${slug}/entrar${returnToParam ? `?returnTo=${returnToParam}` : ''}`);
-        return;
-      }
-
-      // Fluxo SEM token (1º cadastro via confirmação de email do Supabase Auth — sessão já ativa)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session?.user) {
+      // Valida token antes de criar senha (fluxo via link customizado)
+      if (!urlToken) {
         toast({
           title: "Erro",
-          description: "Sessão não encontrada. Tente fazer login novamente.",
+          description: "Link de confirmação inválido ou expirado.",
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: values.password
+      const { data, error } = await supabase.rpc("confirm_client_company_link", {
+        p_token: urlToken,
+        p_password: values.password
       });
-      if (updateError) throw updateError;
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao definir senha.");
 
       toast({
         title: "Sucesso!",
