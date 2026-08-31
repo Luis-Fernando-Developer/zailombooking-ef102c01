@@ -26,7 +26,7 @@ import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { BookingPaymentDialog } from "@/components/booking/BookingPaymentDialog";
 import { getAvailability, AVAILABILITY_REASON_LABELS } from "@/lib/api/availability";
 import { applyTheme, getInitialTheme } from "@/components/ThemeToggle";
-import { getTypographyStyles, getBackgroundStyles, getCardStyles } from "@/components/business/personalization/utils";
+import { getTypographyStyles, getBackgroundStyles, getCardStyles, getButtonStyles } from "@/components/business/personalization/utils";
 
 
 interface Service {
@@ -827,21 +827,14 @@ export default function ClientBooking() {
     switch (step) {
       case 1:
         return (
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20"
-            >
+          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20" style={stepContainerBase(cfgServices)}>
             <CardHeader>
-              <CardTitle
-                style={{
-                  fontFamily: customStyles["--font-family"] || "inherit",
-                  color: !customStyles["--font-gradient"] ? customStyles["--font-color"] : undefined,
-                  background: customStyles["--font-gradient"] ? customStyles["--font-color"] : undefined,
-                  WebkitBackgroundClip: customStyles["--font-gradient"] ? "text" : undefined,
-                  WebkitTextFillColor: customStyles["--font-gradient"] ? "transparent" : undefined,
-                }}
-              >
-                Escolha o Serviço
+              <CardTitle style={stepTitleStyle(cfgServices.title_typography)}>
+                {cfgServices.title_typography?.text || 'Escolha o Serviço'}
               </CardTitle>
-              <CardDescription>Selecione o serviço desejado</CardDescription>
+              <CardDescription style={stepTitleStyle(cfgServices.description_typography)}>
+                {cfgServices.description_typography?.text || 'Selecione o serviço desejado'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4" >
@@ -889,7 +882,7 @@ export default function ClientBooking() {
                           </div>
                         </div>
                         {selectedService?.id === synthetic.id && (
-                          <Check className="w-6 h-6 text-primary flex-shrink-0" />
+                          <Check className="w-6 h-6 flex-shrink-0" style={{ color: stepCheckColor(cfgServices) }} />
                         )}
                       </div>
                     </div>
@@ -933,15 +926,15 @@ export default function ClientBooking() {
                         </div>
                       </div>
                       {selectedService?.id === service.id && (
-                        <Check className="w-6 h-6 text-primary flex-shrink-0" />
+                        <Check className="w-6 h-6 flex-shrink-0" style={{ color: stepCheckColor(cfgServices) }} />
                       )}
                     </div>
                   </div>
                 ))}
               </div>
               {selectedService && (
-                <Button onClick={() => setStep(2)} className="w-full mt-4" variant="neon">
-                  Continuar
+                <Button onClick={() => setStep(2)} className="w-full mt-4" style={stepBtnStyle(cfgServices.continue_button)}>
+                  {cfgServices.continue_button?.typography?.text || 'Continuar'}
                 </Button>
               )}
             </CardContent>
@@ -950,15 +943,14 @@ export default function ClientBooking() {
 
       case 2:
         return (
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20"
-          
-          >
+          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20" style={stepContainerBase(cfgProfessional)}>
             <CardHeader>
-              <CardTitle className="text-gradient"   
-              style={{
-              fontFamily: customStyles["--font-family"],
-            }} >Escolha o Profissional</CardTitle>
-              <CardDescription>Selecione quem irá realizar o atendimento</CardDescription>
+              <CardTitle style={stepTitleStyle(cfgProfessional.title_typography)}>
+                {cfgProfessional.title_typography?.text || 'Escolha o Profissional'}
+              </CardTitle>
+              <CardDescription style={stepTitleStyle(cfgProfessional.description_typography)}>
+                {cfgProfessional.description_typography?.text || 'Selecione quem irá realizar o atendimento'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
@@ -993,7 +985,7 @@ export default function ClientBooking() {
                           </div>
                         </div>
                         {selectedEmployee?.id === employee.id && (
-                          <Check className="w-6 h-6 text-primary" />
+                          <Check className="w-6 h-6" style={{ color: stepCheckColor(cfgProfessional) }} />
                         )}
                       </div>
                     </div>
@@ -1010,12 +1002,12 @@ export default function ClientBooking() {
                   setAvailableTimes([]);
                   setSelectedTime("");
                   setStep(1);
-                }} className="flex-1">
-                  Voltar
+                }} className="flex-1" style={stepBtnStyle(cfgProfessional.back_button)}>
+                  {cfgProfessional.back_button?.typography?.text || 'Voltar'}
                 </Button>
                 {selectedEmployee && (
-                  <Button onClick={() => setStep(3)} className="flex-1" variant="neon">
-                    Continuar
+                  <Button onClick={() => setStep(3)} className="flex-1" style={stepBtnStyle(cfgProfessional.continue_button)}>
+                    {cfgProfessional.continue_button?.typography?.text || 'Continuar'}
                   </Button>
                 )}
               </div>
@@ -1025,13 +1017,14 @@ export default function ClientBooking() {
 
       case 3:
         return (
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20" style={stepContainerBase(cfgCalendar)}>
             <CardHeader>
-              <CardTitle 
-              style={{
-                fontFamily: customStyles["--font-family"],
-              }} className="text-gradient">Escolha a Data</CardTitle>
-              <CardDescription>Selecione uma data disponível</CardDescription>
+              <CardTitle style={stepTitleStyle(cfgCalendar.title_typography)}>
+                {cfgCalendar.title_typography?.text || 'Escolha a Data'}
+              </CardTitle>
+              <CardDescription style={stepTitleStyle(cfgCalendar.description_typography)}>
+                {cfgCalendar.description_typography?.text || 'Selecione uma data disponível'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
@@ -1061,6 +1054,31 @@ export default function ClientBooking() {
                       }}
                       className="rounded-xl border-2 border-primary/30 bg-background/50 p-4 md:p-6 shadow-lg [&_.rdp-months]:justify-center [&_table]:w-full [&_.rdp-cell]:h-12 [&_.rdp-cell]:w-12 md:[&_.rdp-cell]:h-14 md:[&_.rdp-cell]:w-14 [&_.rdp-head_cell]:w-12 md:[&_.rdp-head_cell]:w-14 [&_button]:h-11 [&_button]:w-11 md:[&_button]:h-12 md:[&_button]:w-12 [&_button]:text-base [&_.rdp-caption_label]:text-lg [&_.rdp-nav_button]:h-9 [&_.rdp-nav_button]:w-9"
                     />
+                    <style>{`
+                      .rdp-day_available:not(.rdp-day_selected) {
+                        background-color: ${cfgCalendar.available_date_color || '#3b82f6'}20 !important;
+                        color: ${cfgCalendar.available_date_color || '#3b82f6'} !important;
+                      }
+                      .rdp-day_selected {
+                        background-color: ${cfgCalendar.current_date_color || '#8b5cf6'} !important;
+                        color: #fff !important;
+                      }
+                      .rdp-day_unavailable {
+                        background-color: ${cfgCalendar.unavailable_date_color || '#cbd5e1'} !important;
+                        color: #94a3b8 !important;
+                        opacity: 0.5;
+                      }
+                      .rdp-head_cell {
+                        color: ${cfgCalendar.weekday_color || '#64748b'} !important;
+                        font-weight: 600;
+                      }
+                      .rdp-caption_label {
+                        color: ${cfgCalendar.calendar_header_color || '#1e293b'} !important;
+                      }
+                      .rdp-nav_button {
+                        color: ${cfgCalendar.calendar_nav_button_color || '#3b82f6'} !important;
+                      }
+                    `}</style>
                   </div>
                 )}
               </div>
@@ -1073,12 +1091,12 @@ export default function ClientBooking() {
                   setAvailableTimes([]);
                   setSelectedTime("");
                   setStep(2);
-                }} className="flex-1">
-                  Voltar
+                }} className="flex-1" style={stepBtnStyle(cfgCalendar.back_button)}>
+                  {cfgCalendar.back_button?.typography?.text || 'Voltar'}
                 </Button>
                 {selectedDate && (
-                  <Button onClick={() => setStep(4)} className="flex-1" variant="neon">
-                    Continuar
+                  <Button onClick={() => setStep(4)} className="flex-1" style={stepBtnStyle(cfgCalendar.continue_button)}>
+                    {cfgCalendar.continue_button?.typography?.text || 'Continuar'}
                   </Button>
                 )}
               </div>
@@ -1088,14 +1106,14 @@ export default function ClientBooking() {
 
       case 4:
         return (
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20" style={stepContainerBase(cfgSlots)}>
             <CardHeader>
-              <CardTitle 
-                style={{
-                  fontFamily: customStyles["--font-family"],
-                }} 
-                className="text-gradient">Escolha o Horário</CardTitle>
-              <CardDescription>Selecione um horário disponível</CardDescription>
+              <CardTitle style={stepTitleStyle(cfgSlots.title_typography)}>
+                {cfgSlots.title_typography?.text || 'Escolha o Horário'}
+              </CardTitle>
+              <CardDescription style={stepTitleStyle(cfgSlots.description_typography)}>
+                {cfgSlots.description_typography?.text || 'Selecione um horário disponível'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {isLoadingAvailability ? (
@@ -1111,24 +1129,26 @@ export default function ClientBooking() {
               ) : (
                 <div>
                   <Label className="text-base font-medium">Horários disponíveis</Label>
-                  <div className="grid grid-cols-4 gap-2 mt-2" 
-                    style={{
-                      fontFamily: customStyles["--font-family"],
-                  }}>
-                    {availableTimes.map((time) => (
-                      <Button
-                        style={{
-                          background: selectedTime !== time ? customStyles["--cards-background"] : undefined,
-                          fontFamily: customStyles["--font-family"],
-                        }}
-                        key={time}
-                        variant={selectedTime === time ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedTime(time)}
-                      >
-                        {time}
-                      </Button>
-                    ))}
+                  <div className="grid grid-cols-4 gap-2 mt-2" style={{ fontFamily: customStyles["--font-family"] }}>
+                    {availableTimes.map((time) => {
+                      const isSelected = selectedTime === time;
+                      return (
+                        <Button
+                          key={time}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedTime(time)}
+                          style={{
+                            borderRadius: cfgSlots.slot_border_radius != null ? `${cfgSlots.slot_border_radius}px` : '8px',
+                            background: isSelected ? (cfgSlots.slot_selected_color || '#3b82f6') : (customStyles["--cards-background"] || '#ffffff'),
+                            color: isSelected ? '#ffffff' : undefined,
+                            fontFamily: customStyles["--font-family"],
+                          }}
+                        >
+                          {time}
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1138,12 +1158,12 @@ export default function ClientBooking() {
                   setSelectedTime("");
                   setAvailableTimes([]);
                   setStep(3);
-                }} className="flex-1">
-                  Voltar
+                }} className="flex-1" style={stepBtnStyle(cfgSlots.back_button)}>
+                  {cfgSlots.back_button?.typography?.text || 'Voltar'}
                 </Button>
                 {selectedTime && (
-                  <Button onClick={() => setStep(5)} className="flex-1" variant="neon">
-                    Continuar
+                  <Button onClick={() => setStep(5)} className="flex-1" style={stepBtnStyle(cfgSlots.continue_button)}>
+                    {cfgSlots.continue_button?.typography?.text || 'Continuar'}
                   </Button>
                 )}
               </div>
@@ -1153,12 +1173,15 @@ export default function ClientBooking() {
 
       case 5:
         if (user && client) {
-          // User is authenticated, proceed to booking
           return (
-            <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+            <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20" style={stepContainerBase(cfgLogin)}>
               <CardHeader>
-                <CardTitle className="text-gradient">Confirmação dos Dados</CardTitle>
-                <CardDescription>Confirme seus dados para o agendamento</CardDescription>
+                <CardTitle style={stepTitleStyle(cfgLogin.title_typography)}>
+                  {cfgLogin.title_typography?.text || 'Confirmação dos Dados'}
+                </CardTitle>
+                <CardDescription style={stepTitleStyle(cfgLogin.description_typography)}>
+                  {cfgLogin.description_typography?.text || 'Confirme seus dados para o agendamento'}
+                </CardDescription>
               </CardHeader>
               <CardContent >
                 <div className="space-y-4">
@@ -1217,19 +1240,11 @@ export default function ClientBooking() {
                 </div>
 
                 <div className="flex gap-2 mt-6">
-                  <Button variant="outline" onClick={() => {
-                    setSelectedTime("");
-                    setStep(4);
-                  }} className="flex-1">
-                    Voltar
+                  <Button variant="outline" onClick={() => { setSelectedTime(""); setStep(4); }} className="flex-1" style={stepBtnStyle(cfgLogin.back_button)}>
+                    {cfgLogin.back_button?.typography?.text || 'Voltar'}
                   </Button>
-                  <Button
-                    onClick={handleBookingSubmit}
-                    disabled={isLoading}
-                    className="flex-1"
-                    variant="neon"
-                  >
-                    {isLoading ? "Agendando..." : "Confirmar Agendamento"}
+                  <Button onClick={handleBookingSubmit} disabled={isLoading} className="flex-1" style={stepBtnStyle(cfgLogin.continue_button)}>
+                    {isLoading ? (cfgLogin.continue_button?.typography?.text || 'Agendando...') : (cfgLogin.continue_button?.typography?.text || 'Confirmar Agendamento')}
                   </Button>
                 </div>
               </CardContent>
@@ -1238,18 +1253,18 @@ export default function ClientBooking() {
         } else {
           // User not authenticated, show auth options
           return (
-            <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+            <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20" style={stepContainerBase(cfgLogin)}>
               <CardHeader className="text-center">
-                <CardTitle className="text-gradient">Acesso Necessário</CardTitle>
-                <CardDescription>
-                  Para continuar com o agendamento, faça login ou crie sua conta
+                <CardTitle style={stepTitleStyle(cfgLogin.title_typography)}>
+                  {cfgLogin.title_typography?.text || 'Acesso Necessário'}
+                </CardTitle>
+                <CardDescription style={stepTitleStyle(cfgLogin.description_typography)}>
+                  {cfgLogin.description_typography?.text || 'Para continuar com o agendamento, faça login ou crie sua conta'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Com sua conta você poderá:
-                  </p>
+                  <p className="text-sm text-muted-foreground">Com sua conta você poderá:</p>
                   <ul className="text-sm text-muted-foreground space-y-1 text-left">
                     <li>• Acompanhar seus agendamentos</li>
                     <li>• Gerenciar seus dados</li>
@@ -1257,49 +1272,25 @@ export default function ClientBooking() {
                     <li>• Histórico de serviços</li>
                   </ul>
                 </div>
-
                 <div className="space-y-3">
-                  <Button 
-                    className="w-full" 
-                    variant="neon"
-                    onClick={() => {
-                      const bookingState = {
-                        serviceId: selectedService?.id,
-                        employeeId: selectedEmployee?.id,
-                        date: selectedDate?.toISOString(),
-                        time: selectedTime,
-                      };
-                      sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
-                      navigate(`/${slug}/entrar?returnTo=agendar`);
-                    }}
-                  >
-                    Já tenho conta - Entrar
+                  <Button className="w-full" style={stepBtnStyle(cfgLogin.continue_button)} onClick={() => {
+                    const bookingState = { serviceId: selectedService?.id, employeeId: selectedEmployee?.id, date: selectedDate?.toISOString(), time: selectedTime };
+                    sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
+                    navigate(`/${slug}/entrar?returnTo=agendar`);
+                  }}>
+                    {cfgLogin.continue_button?.typography?.text || 'Já tenho conta - Entrar'}
                   </Button>
-                  
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => {
-                      const bookingState = {
-                        serviceId: selectedService?.id,
-                        employeeId: selectedEmployee?.id,
-                        date: selectedDate?.toISOString(),
-                        time: selectedTime,
-                      };
-                      sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
-                      navigate(`/${slug}/cadastro?returnTo=agendar`);
-                    }}
-                  >
-                    Criar nova conta
+                  <Button className="w-full" style={stepBtnStyle(cfgLogin.secondary_button)} onClick={() => {
+                    const bookingState = { serviceId: selectedService?.id, employeeId: selectedEmployee?.id, date: selectedDate?.toISOString(), time: selectedTime };
+                    sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
+                    navigate(`/${slug}/cadastro?returnTo=agendar`);
+                  }}>
+                    {cfgLogin.secondary_button?.typography?.text || 'Criar nova conta'}
                   </Button>
                 </div>
-
                 <div className="flex gap-2 mt-6">
-                  <Button variant="ghost" onClick={() => {
-                    setSelectedTime("");
-                    setStep(4);
-                  }} className="flex-1">
-                    Voltar
+                  <Button variant="ghost" onClick={() => { setSelectedTime(""); setStep(4); }} className="flex-1" style={stepBtnStyle(cfgLogin.back_button)}>
+                    {cfgLogin.back_button?.typography?.text || 'Voltar'}
                   </Button>
                 </div>
               </CardContent>
@@ -1308,15 +1299,18 @@ export default function ClientBooking() {
         }
 
       case 6:
-        console.log("[BOOKING] Rendering step 6. wasPaid:", paymentDialog.wasPaid);
         return (
-          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20">
+          <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20" style={stepContainerBase(cfgConfirm)}>
             <CardHeader className="text-center">
               <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-green-500" />
               </div>
-              <CardTitle className="text-gradient">Agendamento Confirmado!</CardTitle>
-              <CardDescription>Seu agendamento foi registrado com sucesso</CardDescription>
+              <CardTitle style={stepTitleStyle(cfgConfirm.title_typography)}>
+                {cfgConfirm.title_typography?.text || 'Agendamento Confirmado!'}
+              </CardTitle>
+              <CardDescription style={stepTitleStyle(cfgConfirm.description_typography)}>
+                {cfgConfirm.description_typography?.text || 'Seu agendamento foi registrado com sucesso'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-background/50 p-4 rounded-lg space-y-2">
@@ -1378,6 +1372,30 @@ export default function ClientBooking() {
   }
 
   const customStyles = generateCustomStyles();
+
+  // --- Steps customization helpers ---
+  const steps = customization?.steps || {};
+  const cfgServices = steps.services || {};
+  const cfgProfessional = steps.professional || {};
+  const cfgCalendar = steps.calendar || {};
+  const cfgSlots = steps.slots || {};
+  const cfgLogin = steps.login || {};
+  const cfgConfirm = steps.confirmation || {};
+
+  const stepContainerBase = (cfg: any): React.CSSProperties => ({
+    background: cfg?.container_background_type === 'gradient' && cfg?.container_background_gradient
+      ? `linear-gradient(${cfg.container_background_gradient.angle || 0}deg, ${cfg.container_background_gradient.colors?.join(', ') || ''})`
+      : cfg?.container_background_color || '#ffffff',
+    borderRadius: cfg?.container_border_radius != null ? `${cfg.container_border_radius}px` : '12px',
+  });
+
+  const stepBtnStyle = (cfg: any, isHover = false): React.CSSProperties => {
+    if (!cfg) return { backgroundColor: '#3b82f6', color: '#fff', borderRadius: '8px', padding: '10px 24px' };
+    return getButtonStyles(cfg, isHover);
+  };
+
+  const stepTitleStyle = (cfg: any): React.CSSProperties => getTypographyStyles(cfg, customization?.body);
+  const stepCheckColor = (cfg: any) => cfg?.check_color || '#3b82f6';
 
 
   let logoSrc = customStyles.logoUrl;
