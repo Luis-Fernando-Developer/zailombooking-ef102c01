@@ -28,43 +28,53 @@ export default function SetPassword() {
   const [loading, setLoading] = useState(false);
   
   const searchParams = new URLSearchParams(window.location.search);
-  const token = searchParams.get("token");
+  const urlToken = searchParams.get("token");
+  const returnToParam = searchParams.get("returnTo");
 
   const { register, handleSubmit, formState: { errors } } = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
   });
 
   const onSubmit = async (values: PasswordFormValues) => {
-    if (!token) {
-      toast({
-        title: "Erro",
-        description: "Token de confirmação não encontrado.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      // Usamos a mesma RPC que confirma o vínculo, mas agora passando a senha para salvar o hash
-      const { data, error } = await supabase.rpc("confirm_client_company_link", {
-        p_token: token,
-        p_password: values.password
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
+      // Fluxo COM token (vínculo multi-empresa via link customizado)
+      if (urlToken) {
+        const { data, error } = await supabase.rpc("confirm_client_company_link", {
+          p_token: urlToken,
+          p_password: values.password
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || "Erro ao definir senha.");
         toast({
           title: "Sucesso!",
           description: "Sua senha foi definida com sucesso. Agora você pode entrar.",
         });
-        const searchParams = new URLSearchParams(window.location.search);
-        const returnTo = searchParams.get("returnTo");
-        navigate(`/${slug}/entrar${returnTo ? `?returnTo=${returnTo}` : ''}`);
-      } else {
-        throw new Error(data?.error || "Erro ao definir senha.");
+        navigate(`/${slug}/entrar${returnToParam ? `?returnTo=${returnToParam}` : ''}`);
+        return;
       }
+
+      // Fluxo SEM token (1º cadastro via confirmação de email do Supabase Auth — sessão já ativa)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.user) {
+        toast({
+          title: "Erro",
+          description: "Sessão não encontrada. Tente fazer login novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: values.password
+      });
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Sucesso!",
+        description: "Sua senha foi definida com sucesso. Agora você pode entrar.",
+      });
+      navigate(`/${slug}/entrar${returnToParam ? `?returnTo=${returnToParam}` : ''}`);
     } catch (error: any) {
       console.error("Error setting password:", error);
       toast({

@@ -34,10 +34,10 @@ export default function ConfirmLink() {
         const currentSlug = slug || searchParams.get('slug');
         const returnTo = searchParams.get('returnTo');
         
-        // Se e 1o cadastro (type=signup), redireciona para criar senha
+        // Se é 1º cadastro (type=signup), redireciona para criar senha — sessão já está ativa
         if (type === 'signup') {
           setTimeout(() => {
-            const passwordUrl = `/${currentSlug || 'client'}/criar-senha?token=${hashToken || ''}${returnTo ? `&returnTo=${returnTo}` : ''}`;
+            const passwordUrl = `/${currentSlug || 'client'}/criar-senha${returnTo ? `?returnTo=${returnTo}` : ''}`;
             navigate(passwordUrl);
           }, 1500);
           return;
