@@ -16,11 +16,18 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { user_id, company_id, name, email, phone, cpf, password, signup_flow, redirectTo, returnTo } = await req.json();
+    const body = await req.json();
+    const { user_id, company_id, name, email, phone, cpf, password, signup_flow, redirectTo, returnTo } = body;
 
-    // Validação mínima
-    if (!company_id || !email) {
-      return new Response(JSON.stringify({ error: "Parâmetros obrigatórios ausentes" }), {
+    // Validação mínima — string 'undefined' passa em !value, então checamos explicitamente
+    if (!company_id || typeof company_id !== 'string' || company_id.trim() === '' || company_id === 'undefined' || company_id === 'null') {
+      return new Response(JSON.stringify({ error: "Parâmetro company_id ausente ou inválido" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!email || typeof email !== 'string' || email.trim() === '' || email === 'undefined') {
+      return new Response(JSON.stringify({ error: "Parâmetro email ausente ou inválido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
