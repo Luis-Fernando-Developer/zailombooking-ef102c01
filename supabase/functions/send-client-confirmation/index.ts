@@ -33,11 +33,41 @@ serve(async (req) => {
       });
     }
 
+    // Normaliza signup_flow: aceita boolean ou string 'true'/'false'
+    const isSignupFlow = signup_flow === true || signup_flow === 'true';
+    const isLinkFlow = signup_flow === false || signup_flow === 'false';
+
+    // Se não conseguiu determinar o fluxo, retorna 400 claro
+    if (!isSignupFlow && !isLinkFlow) {
+      return new Response(JSON.stringify({ error: "signup_flow inválido: envie true (novo cadastro) ou false (vincular existente)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Valida redirectTo no fluxo de signup
+    if (isSignupFlow) {
+      if (!redirectTo || typeof redirectTo !== 'string' || redirectTo.trim() === '' || redirectTo === 'undefined') {
+        return new Response(JSON.stringify({ error: "Parâmetro redirectTo ausente ou inválido para novo cadastro" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        new URL(redirectTo);
+      } catch {
+        return new Response(JSON.stringify({ error: "redirectTo não é uma URL válida" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ─────────────────────────────────────────────
     // FLUXO 1: Primeiro cadastro (usuário novo)
     // Cria usuário no Auth via Admin API + envia link nosso
     // ─────────────────────────────────────────────
-    if (signup_flow === true) {
+    if (isSignupFlow) {
       // 1a. Criar usuário no Supabase Auth via Admin API (sem enviar email automático)
       const { data: authUser, error: createUserError } = await supabaseClient.auth.admin.createUser({
         email: email,
@@ -83,7 +113,15 @@ serve(async (req) => {
         .single();
 
       // 1d. Criar registro de confirmação com token
-      // upsert via SELECT + UPDATE/INSERT (não依赖 nome de constraint única)
+      const confirmationLinkBase = (() => {
+        try {
+          const url = new URL(redirectTo);
+          return url.origin;
+        } catch {
+          throw new Error("redirectTo inválido");
+        }
+      })();
+
       const { data: existing } = await supabaseClient
         .from("client_confirmations")
         .select("id, confirmation_token")
@@ -124,7 +162,7 @@ serve(async (req) => {
         }
       }
 
-      const confirmationLink = `${new URL(redirectTo).origin}/confirmar-vincular?token=${confirmationToken}&slug=${company?.slug}&type=signup${returnTo ? `&returnTo=${returnTo}` : ''}`;
+      const confirmationLink = `${confirmationLinkBase}/confirmar-vincular?token=${confirmationToken}&slug=${company?.slug}&type=signup${returnTo ? `&returnTo=${returnTo}` : ''}`;
 
       // 1e. Enviar link via WhatsApp ou e-mail
       let whatsapp_sent = false;
@@ -203,7 +241,7 @@ Se não foi você, ignore esta mensagem.`;
     // FLUXO 2: Vínculo de usuário existente a empresa
     // (fluxo original)
     // ─────────────────────────────────────────────
-    if (!user_id || !company_id) {
+    if (isLinkFlow && (!user_id || !company_id)) {
       return new Response(JSON.stringify({ error: "Parâmetros user_id e company_id obrigatórios para vínculo" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
