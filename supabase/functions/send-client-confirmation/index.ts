@@ -76,28 +76,48 @@ serve(async (req) => {
         .single();
 
       // 1d. Criar registro de confirmação com token
-      const { data: confData, error: confError } = await supabaseClient
+      // upsert via SELECT + UPDATE/INSERT (não依赖 nome de constraint única)
+      const { data: existing } = await supabaseClient
         .from("client_confirmations")
-        .upsert({
-          user_id: newUserId,
-          company_id,
-          email,
-          name,
-          phone,
-          cpf,
-          password_hash: null,
-          confirmed_at: null,
-        }, {
-          onConflict: 'user_id,company_id'
-        })
-        .select("confirmation_token")
-        .single();
+        .select("id, confirmation_token")
+        .eq("user_id", newUserId)
+        .eq("company_id", company_id)
+        .maybeSingle();
 
-      if (confError) {
-        console.error("Erro ao criar confirmação:", confError);
+      let confirmationToken: string | null = existing?.confirmation_token ?? null;
+
+      if (existing) {
+        await supabaseClient
+          .from("client_confirmations")
+          .update({
+            email, name, phone, cpf,
+            password_hash: null,
+            confirmed_at: null,
+          })
+          .eq("id", existing.id);
+      } else {
+        const { data: inserted, error: insertErr } = await supabaseClient
+          .from("client_confirmations")
+          .insert({
+            user_id: newUserId,
+            company_id,
+            email,
+            name,
+            phone,
+            cpf,
+            password_hash: null,
+            confirmed_at: null,
+          })
+          .select("confirmation_token")
+          .single();
+        if (insertErr) {
+          console.error("Erro ao criar confirmação:", insertErr);
+        } else {
+          confirmationToken = inserted?.confirmation_token ?? null;
+        }
       }
 
-      const confirmationLink = `${new URL(redirectTo).origin}/confirmar-vincular?token=${confData?.confirmation_token}&slug=${company?.slug}&type=signup${returnTo ? `&returnTo=${returnTo}` : ''}`;
+      const confirmationLink = `${new URL(redirectTo).origin}/confirmar-vincular?token=${confirmationToken}&slug=${company?.slug}&type=signup${returnTo ? `&returnTo=${returnTo}` : ''}`;
 
       // 1e. Enviar link via WhatsApp ou e-mail
       let whatsapp_sent = false;
