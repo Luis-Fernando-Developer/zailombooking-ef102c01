@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/ClientSidebar";
 import { ClientNotificationsBell } from "@/components/client/ClientNotificationsBell";
 import { supabase } from "@/lib/supabaseClient";
@@ -68,7 +68,6 @@ export default function ClientProfile() {
 
   const fetchData = async () => {
     try {
-      // Get company
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('id, name, slug, logo_url')
@@ -81,14 +80,12 @@ export default function ClientProfile() {
       }
       setCompany(companyData);
 
-      // Get current user
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) {
         navigate(`/${slug}/entrar`);
         return;
       }
 
-      // Get client profile
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('*')
@@ -132,7 +129,6 @@ export default function ClientProfile() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
     if (name === 'cpf') {
       setFormData(prev => ({ ...prev, cpf: formatCPF(value) }));
     } else {
@@ -143,20 +139,13 @@ export default function ClientProfile() {
   const handleSave = async () => {
     if (!client) return;
     setIsSaving(true);
-
     try {
-      // Validate CPF if provided
       const cleanedCpf = cleanCPF(formData.cpf);
       if (cleanedCpf && !validateCPF(cleanedCpf)) {
-        toast({
-          title: "CPF inválido",
-          description: "Por favor, insira um CPF válido.",
-          variant: "destructive"
-        });
+        toast({ title: "CPF inválido", description: "Por favor, insira um CPF válido.", variant: "destructive" });
         setIsSaving(false);
         return;
       }
-
       const { error } = await supabase
         .from('clients')
         .update({
@@ -166,23 +155,12 @@ export default function ClientProfile() {
           cpf: cleanedCpf || null
         })
         .eq('id', client.id);
-
       if (error) throw error;
-
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram salvas com sucesso."
-      });
-
-      // Refresh client data
+      toast({ title: "Perfil atualizado", description: "Suas informações foram salvas com sucesso." });
       fetchData();
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar as alterações.",
-        variant: "destructive"
-      });
+      toast({ title: "Erro", description: "Não foi possível salvar as alterações.", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -202,13 +180,12 @@ export default function ClientProfile() {
         .upload(path, file, { upsert: true, cacheControl: '3600' });
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from('client-avatars').getPublicUrl(path);
-      const publicUrl = pub.publicUrl;
       const { error: updErr } = await supabase
         .from('clients')
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: pub.publicUrl })
         .eq('id', client.id);
       if (updErr) throw updErr;
-      setClient({ ...client, avatar_url: publicUrl });
+      setClient({ ...client, avatar_url: pub.publicUrl });
       toast({ title: "Foto atualizada", description: "Sua nova foto foi salva." });
     } catch (err: any) {
       console.error("avatar upload", err);
@@ -222,36 +199,19 @@ export default function ClientProfile() {
   const handleDeleteData = async () => {
     if (!client) return;
     setIsDeleting(true);
-
     try {
       const { error } = await supabase
         .from('clients')
-        .update({
-          phone: null,
-          cpf: null,
-          is_active: false
-        })
+        .update({ phone: null, cpf: null, is_active: false })
         .eq('id', client.id);
-
       if (error) throw error;
-
-      toast({
-        title: "Solicitação registrada",
-        description: "Seus dados pessoais foram marcados para exclusão. Você não receberá mais comunicações de marketing."
-      });
-
+      toast({ title: "Solicitação registrada", description: "Seus dados pessoais foram marcados para exclusão." });
       setShowDeleteDialog(false);
-      
-      // Sign out and redirect
       await supabase.auth.signOut();
       navigate(`/${slug}`);
     } catch (error) {
       console.error("Error deleting data:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível processar a solicitação.",
-        variant: "destructive"
-      });
+      toast({ title: "Erro", description: "Não foi possível processar a solicitação.", variant: "destructive" });
     } finally {
       setIsDeleting(false);
     }
@@ -266,40 +226,32 @@ export default function ClientProfile() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex flex-col h-screen w-full bg-gradient-hero overflow-hidden">
-        {/* Header - Agora ocupa toda a largura no topo */}
-        <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20 shrink-0 w-full">
-          <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-gradient">Meu Perfil</h1>
-            <p className="text-xs text-muted-foreground">Gerencie seus dados e privacidade</p>
-          </div>
-          <div className="ml-auto">
-            <ClientNotificationsBell companyId={company?.id} />
-          </div>
-        </header>
+    <div className="flex flex-col min-h-screen bg-gradient-hero">
+      <header className="h-20 shrink-0 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-50 sticky top-0">
+        <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
+        <div className="flex flex-col">
+          <h1 className="text-xl font-bold text-gradient">Meu Perfil</h1>
+          <p className="text-xs text-muted-foreground">Gerencie seus dados e privacidade</p>
+        </div>
+        <div className="ml-auto">
+          <ClientNotificationsBell companyId={company?.id} />
+        </div>
+      </header>
 
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <ClientSidebar
-            clientId={client?.id || ""}
-            clientName={client?.name || null}
-            clientAvatarUrl={client?.avatar_url || null}
-            currentUser={null}
-            companySlug={company?.slug || ""}
-            companyName={company?.name || ""}
-            companyId={company?.id || ""}
-            companyLogoUrl={(company as any)?.logo_url || null}
-          />
+      <div className="flex flex-1 overflow-hidden">
+        <ClientSidebar
+          clientId={client?.id || ""}
+          clientName={client?.name || null}
+          clientAvatarUrl={client?.avatar_url || null}
+          currentUser={null}
+          companySlug={company?.slug || ""}
+          companyName={company?.name || ""}
+          companyId={company?.id || ""}
+          companyLogoUrl={(company as any)?.logo_url || null}
+        />
 
-          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
-
-
-
-          {/* Content */}
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
-            
-            {/* Profile Header Card */}
             <div className="relative overflow-hidden rounded-3xl bg-card/40 border border-primary/20 p-8 card-glow">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
               <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
@@ -327,9 +279,9 @@ export default function ClientProfile() {
                   </div>
                 </div>
                 <div className="md:ml-auto flex gap-3">
-                  <Button 
-                    variant="neon" 
-                    onClick={handleSave} 
+                  <Button
+                    variant="neon"
+                    onClick={handleSave}
                     disabled={isSaving}
                     className="shadow-neon px-8"
                   >
@@ -341,7 +293,6 @@ export default function ClientProfile() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              {/* Left Column - Navigation/Info */}
               <div className="space-y-6">
                 <div className="bg-card/40 border border-primary/10 rounded-2xl p-6 space-y-4">
                   <h3 className="font-bold text-lg border-b border-primary/10 pb-2">Resumo</h3>
@@ -364,8 +315,8 @@ export default function ClientProfile() {
                   <p className="text-xs text-muted-foreground">
                     Ao excluir seus dados, você perderá acesso ao seu histórico de agendamentos.
                   </p>
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     className="w-full bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/20"
                     size="sm"
                     onClick={() => setShowDeleteDialog(true)}
@@ -375,9 +326,7 @@ export default function ClientProfile() {
                 </div>
               </div>
 
-              {/* Main Column - Forms */}
               <div className="md:col-span-2 space-y-8">
-                {/* Personal Info */}
                 <Card className="bg-card/40 backdrop-blur-sm border-primary/10 overflow-hidden">
                   <CardHeader className="bg-primary/5 border-b border-primary/10">
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -432,7 +381,6 @@ export default function ClientProfile() {
                   </CardContent>
                 </Card>
 
-                {/* Address */}
                 <Card className="bg-card/40 backdrop-blur-sm border-primary/10 overflow-hidden">
                   <CardHeader className="bg-primary/5 border-b border-primary/10">
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -468,7 +416,6 @@ export default function ClientProfile() {
                   </CardContent>
                 </Card>
 
-                {/* Payment Methods */}
                 <Card className="bg-card/40 backdrop-blur-sm border-primary/10 overflow-hidden">
                   <CardHeader className="bg-primary/5 border-b border-primary/10">
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -477,10 +424,8 @@ export default function ClientProfile() {
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
                     <p className="text-xs text-muted-foreground">
-                      Gerencie seus cartões salvos para agendamentos rápidos. 
-                      Os dados são armazenados de forma segura pelo nosso processador de pagamentos.
+                      Gerencie seus cartões salvos para agendamentos rápidos.
                     </p>
-                    
                     <div className="rounded-xl border border-dashed border-primary/20 p-8 text-center">
                       <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-4 opacity-20" />
                       <p className="text-sm text-muted-foreground mb-4">Você ainda não possui cartões salvos.</p>
@@ -491,7 +436,6 @@ export default function ClientProfile() {
                   </CardContent>
                 </Card>
 
-                {/* Privacy */}
                 <Card className="bg-card/40 backdrop-blur-sm border-primary/10 overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -510,7 +454,6 @@ export default function ClientProfile() {
             </div>
           </div>
         </main>
-        </div>
       </div>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -531,6 +474,6 @@ export default function ClientProfile() {
           </div>
         </DialogContent>
       </Dialog>
-    </SidebarProvider>
+    </div>
   );
 }

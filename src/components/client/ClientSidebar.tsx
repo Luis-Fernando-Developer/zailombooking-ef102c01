@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/use-permissions';
 import { supabase } from "@/lib/supabaseClient";
 import { useState } from 'react';
+import { useSidebar } from "@/components/ui/sidebar";
 
 const ClienteMenuItems = [
   { title: 'Dashboard', url: '/client/dashboard', icon: LayoutDashboard, current: true },
@@ -29,6 +30,7 @@ interface ClientSidebarProps {
 
 export function ClientSidebar({ companySlug, companyName, companyId, companyLogoUrl, userRole, clientId, clientName, clientAvatarUrl, currentUser }: ClientSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const { setOpen: _setSidebarOpen, isOpen: _sidebarOpen } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
