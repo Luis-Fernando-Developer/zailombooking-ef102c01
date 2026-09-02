@@ -1,12 +1,13 @@
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Calendar, LayoutDashboard, LogOut, User } from 'lucide-react';
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '../ui/sidebar';
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '../ui/sidebar';
 import { CompanyLogo } from '../CompanyLogo';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/use-permissions';
 import { supabase } from "@/lib/supabaseClient";
+import { useState } from 'react';
 
 const ClienteMenuItems = [
   { title: 'Dashboard', url: '/client/dashboard', icon: LayoutDashboard, current: true },
@@ -27,7 +28,7 @@ interface ClientSidebarProps {
 }
 
 export function ClientSidebar({ companySlug, companyName, companyId, companyLogoUrl, userRole, clientId, clientName, clientAvatarUrl, currentUser }: ClientSidebarProps) {
-  const { state } = useSidebar();
+  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -45,10 +46,7 @@ export function ClientSidebar({ companySlug, companyName, companyId, companyLogo
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      toast({
-        title: "Logout realizado",
-        description: "Até logo!",
-      });
+      toast({ title: "Logout realizado", description: "Até logo!" });
       navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -56,37 +54,17 @@ export function ClientSidebar({ companySlug, companyName, companyId, companyLogo
   };
 
   const filteredMenuItems = ClienteMenuItems.filter(item => {
-    if (loading) {
-      return ['Dashboard', 'Agendamentos', 'Serviços'].includes(item.title);
-    }
-
-    if (!permissions) {
-      switch (item.title) {
-        case "Colaboradores":
-          return ['owner', 'manager', 'supervisor'].includes(userRole || '');
-        case "Configurações":
-          return ['owner', 'manager'].includes(userRole || '');
-        default:
-          return true;
-      }
-    }
-
-    switch (item.title) {
-      case "Colaboradores":
-        return permissions.canViewEmployees;
-      case "Configurações":
-        return permissions.canManageSettings;
-      default:
-        return true;
-    }
+    if (loading) return true;
+    if (!permissions) return true;
+    return true;
   });
 
   return (
-    <Sidebar className={state === "collapsed" ? "w-14" : "w-64"} collapsible="icon">
-      <SidebarContent className="bg-card/30 backdrop-blur-md border-r border-primary/20 h-screen overflow-y-auto overflow-x-hidden">
+    <Sidebar className={collapsed ? 'w-14' : 'w-64'} collapsible="none">
+      <SidebarContent className="bg-card/30 backdrop-blur-md border-r border-primary/20 h-full overflow-y-auto overflow-x-hidden">
         {/* Brand */}
         <div className="px-4 pt-6 pb-3 flex items-center gap-3 border-b border-primary/10">
-          {state === "collapsed" ? (
+          {collapsed ? (
             <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black overflow-hidden">
               {companyLogoUrl ? (
                 <img src={companyLogoUrl} alt={companyName} className="w-full h-full object-cover" />
@@ -98,12 +76,8 @@ export function ClientSidebar({ companySlug, companyName, companyId, companyLogo
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <CompanyLogo companySlug={companySlug} className="w-8 h-8 rounded-lg shrink-0" />
               <div className="flex flex-col truncate">
-                <span className="font-black text-sm tracking-tight text-foreground truncate uppercase">
-                  {companyName}
-                </span>
-                <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase opacity-60">
-                  Zailom Booking
-                </span>
+                <span className="font-black text-sm tracking-tight text-foreground truncate uppercase">{companyName}</span>
+                <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase opacity-60">Zailom Booking</span>
               </div>
             </div>
           )}
@@ -111,7 +85,7 @@ export function ClientSidebar({ companySlug, companyName, companyId, companyLogo
 
         {/* Navigation */}
         <SidebarGroup className="px-3 py-6">
-          <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : "px-3 mb-4 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/40"}>
+          <SidebarGroupLabel className={collapsed ? 'sr-only' : 'px-3 mb-4 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/40'}>
             Menu Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -148,7 +122,7 @@ export function ClientSidebar({ companySlug, companyName, companyId, companyLogo
             className="w-full justify-start gap-3 px-4 h-12 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors group/logout"
           >
             <LogOut className="w-5 h-5 group-hover/logout:-translate-x-1 transition-transform" />
-            {state !== "collapsed" && <span className="font-bold text-sm">Encerrar Sessão</span>}
+            {!collapsed && <span className="font-bold text-sm">Encerrar Sessão</span>}
           </Button>
         </div>
       </SidebarContent>
