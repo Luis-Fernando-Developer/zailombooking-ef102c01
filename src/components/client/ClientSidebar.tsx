@@ -104,7 +104,7 @@ export function ClientSidebar({ companySlug, companyName, companyId, companyLogo
                       }
                     >
                       <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 group-hover/item:scale-110`} />
-                      {state !== "collapsed" && <span className="font-bold text-sm tracking-tight">{item.title}</span>}
+                      <span className="font-bold text-sm tracking-tight">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
