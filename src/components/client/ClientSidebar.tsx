@@ -15,20 +15,18 @@ const ClienteMenuItems = [
 ];
 
 interface ClientSidebarProps {
-  
   companySlug: string;
   companyName: string;
   companyId: string;
   companyLogoUrl?: string | null;
   userRole?: string;
-
   clientId?: string;
   clientName?: string | null;
   clientAvatarUrl?: string | null;
   currentUser?: SupabaseUser | null;
 }
 
-export function ClientSidebar({  companySlug, companyName, companyId, companyLogoUrl, userRole,  clientId, clientName, clientAvatarUrl, currentUser }: ClientSidebarProps) {
+export function ClientSidebar({ companySlug, companyName, companyId, companyLogoUrl, userRole, clientId, clientName, clientAvatarUrl, currentUser }: ClientSidebarProps) {
   const { state } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,12 +56,10 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
   };
 
   const filteredMenuItems = ClienteMenuItems.filter(item => {
-    // Durante o carregamento, mostrar itens básicos
     if (loading) {
       return ['Dashboard', 'Agendamentos', 'Serviços'].includes(item.title);
     }
 
-    // Se não temos permissões, usar role como fallback
     if (!permissions) {
       switch (item.title) {
         case "Colaboradores":
@@ -75,7 +71,6 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
       }
     }
 
-    // Usar permissões quando disponíveis
     switch (item.title) {
       case "Colaboradores":
         return permissions.canViewEmployees;
@@ -88,7 +83,7 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
 
   return (
     <Sidebar className={state === "collapsed" ? "w-14" : "w-64"} collapsible="icon">
-      <SidebarContent className="bg-card/30 backdrop-blur-md border-r border-primary/20 overflow-hidden">
+      <SidebarContent className="bg-card/30 backdrop-blur-md border-r border-primary/20 h-screen overflow-y-auto overflow-x-hidden">
         {/* Brand */}
         <div className="px-4 pt-6 pb-3 flex items-center gap-3 border-b border-primary/10">
           {state === "collapsed" ? (
@@ -114,8 +109,6 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
           )}
         </div>
 
-
-
         {/* Navigation */}
         <SidebarGroup className="px-3 py-6">
           <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : "px-3 mb-4 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/40"}>
@@ -126,12 +119,12 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
               {filteredMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
-                    <NavLink 
-                      to={`${basePath}${item.url}`} 
-                      className={({ isActive }) => 
+                    <NavLink
+                      to={`${basePath}${item.url}`}
+                      className={({ isActive }) =>
                         `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group/item ${
-                          isActive 
-                            ? "bg-primary/10 text-primary border border-primary/20 shadow-neon/10" 
+                          isActive
+                            ? "bg-primary/10 text-primary border border-primary/20 shadow-neon/10"
                             : "text-muted-foreground hover:bg-primary/5 hover:text-primary-glow"
                         }`
                       }

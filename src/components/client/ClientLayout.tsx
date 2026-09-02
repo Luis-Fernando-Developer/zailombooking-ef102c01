@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Calendar, Clock, DollarSign, RefreshCw, X, MoreVertical, User } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { ClientRescheduleDialog } from "./ClientRescheduleDialog";
 import { ClientCancelDialog } from "./ClientCancelDialog";
@@ -79,7 +79,7 @@ export default function ClientLayout() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [client, setClient] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
   const [cancelBooking, setCancelBooking] = useState<Booking | null>(null);
 
@@ -180,9 +180,9 @@ export default function ClientLayout() {
 
       if (error) throw error;
 
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === bookingId 
+      setBookings(prev =>
+        prev.map(booking =>
+          booking.id === bookingId
             ? { ...booking, booking_status: 'cancelled' }
             : booking
         )
@@ -275,10 +275,6 @@ export default function ClientLayout() {
         </header>
 
         <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-gradient-hero">
-
-
-
-
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -287,8 +283,8 @@ export default function ClientLayout() {
                   Você possui <span className="text-primary font-bold">{bookings.length}</span> agendamentos registrados.
                 </p>
               </div>
-              <Button 
-                variant="neon" 
+              <Button
+                variant="neon"
                 className="w-full md:w-auto shadow-neon hover:shadow-neon-strong transition-all"
                 onClick={() => navigate(`/${company?.slug}/agendar`)}
               >
@@ -311,8 +307,8 @@ export default function ClientLayout() {
                 <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
                   Parece que você ainda não realizou nenhum agendamento na {company?.name}.
                 </p>
-                <Button 
-                  variant="neon" 
+                <Button
+                  variant="neon"
                   onClick={() => navigate(`/${company?.slug}/agendar`)}
                 >
                   Fazer meu primeiro agendamento
@@ -321,8 +317,8 @@ export default function ClientLayout() {
             ) : (
               <div className="grid gap-6">
                 {bookings.map((booking) => (
-                  <Card 
-                    key={booking.id} 
+                  <Card
+                    key={booking.id}
                     className="group overflow-hidden bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-300 card-glow"
                   >
                     <div className="p-6">
@@ -334,7 +330,7 @@ export default function ClientLayout() {
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-3">
                               <h3 className="font-bold text-xl group-hover:text-primary transition-colors">{booking.service?.name}</h3>
-                              <Badge 
+                              <Badge
                                 variant={statusLabels[booking.booking_status]?.variant || "outline"}
                                 className={`px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${
                                   booking.booking_status === 'confirmed' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
@@ -345,7 +341,7 @@ export default function ClientLayout() {
                                 {statusLabels[booking.booking_status]?.label || booking.booking_status}
                               </Badge>
                             </div>
-                            
+
                             <div className="flex items-center gap-2 text-sm bg-background/40 px-3 py-1 rounded-lg w-fit">
                               <Calendar className="h-4 w-4 text-primary" />
                               <span className="font-medium text-foreground">
@@ -381,14 +377,14 @@ export default function ClientLayout() {
                             <DropdownMenuContent align="end" className="w-48 bg-card/95 backdrop-blur-md border-primary/20">
                               {canModifyBooking(booking) ? (
                                 <>
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="cursor-pointer focus:bg-primary/10 flex items-center gap-2"
                                     onClick={() => setRescheduleBooking(booking)}
                                   >
                                     <RefreshCw className="h-4 w-4 text-primary" />
                                     <span>Reagendar</span>
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive flex items-center gap-2"
                                     onClick={() => setCancelBooking(booking)}
                                   >
@@ -418,9 +414,8 @@ export default function ClientLayout() {
               </div>
             )}
           </div>
-          </main>
-        </div>
-
+        </main>
+      </div>
 
       {rescheduleBooking && company && (
         <ClientRescheduleDialog
