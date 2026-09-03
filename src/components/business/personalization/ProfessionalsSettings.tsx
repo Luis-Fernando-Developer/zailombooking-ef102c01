@@ -6,23 +6,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-
-interface BadgeConfig {
-  enabled?: boolean;
-  background_type?: "solid" | "gradient";
-  background_color?: string;
-  background_gradient?: any;
-  typography?: {
-    family?: string;
-    size?: number;
-    weight?: string;
-    color?: string;
-  };
-  border_radius?: number;
-  padding_v?: number;
-  padding_h?: number;
-}
 
 interface ProfessionalsSettingsProps {
   config: SectionConfig;
@@ -31,11 +14,20 @@ interface ProfessionalsSettingsProps {
 }
 
 export function ProfessionalsSettings({ config, onChange, disabled }: ProfessionalsSettingsProps) {
+  const cards = config.cards ?? {};
+  const badge = cards.badge_combos ?? {};
+
   const updateConfig = (field: keyof SectionConfig, value: any) => {
     onChange({ ...config, [field]: value });
   };
 
-  const badge = config?.cards?.badge_combos ?? {};
+  const updateCards = (patch: any) => {
+    onChange({ ...config, cards: { ...cards, ...patch } });
+  };
+
+  const updateBadge = (patch: any) => {
+    updateCards({ badge_combos: { ...badge, ...patch } });
+  };
 
   return (
     <div className="space-y-6">
@@ -77,57 +69,89 @@ export function ProfessionalsSettings({ config, onChange, disabled }: Profession
         <AccordionItem value="cards">
           <AccordionTrigger>Cards de Profissionais</AccordionTrigger>
           <AccordionContent className="pt-4 space-y-4">
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Cor de Fundo</Label>
-                  <ColorPicker
-                    value={config.cards?.background_color || "#ffffff"}
-                    onChange={(v) => updateConfig("cards", { ...config.cards, background_color: v })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cor da Borda</Label>
-                  <ColorPicker
-                    value={config.cards?.border_color || "#e2e8f0"}
-                    onChange={(v) => updateConfig("cards", { ...config.cards, border_color: v })}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Arredondamento (px)</Label>
-                  <Input
-                    type="number"
-                    className="w-full p-2 bg-background border rounded"
-                    value={config.cards?.border_radius ?? 12}
-                    onChange={(e) => updateConfig("cards", { ...config.cards, border_radius: parseInt(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Espessura da Borda (px)</Label>
-                  <Input
-                    type="number"
-                    className="w-full p-2 bg-background border rounded"
-                    value={config.cards?.has_border ? 1 : 0}
-                    onChange={(e) => updateConfig("cards", { ...config.cards, has_border: parseInt(e.target.value) > 0 })}
-                  />
-                </div>
-              </div>
+            {/* Background */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">Cor de Fundo</Label>
+              <ColorPicker
+                type={cards.background_type || "solid"}
+                solidColor={cards.background_color || "#ffffff"}
+                gradientSettings={cards.background_gradient || { type: "linear", angle: 45, colors: ["#ffffff", "#f8fafc"] }}
+                onTypeChange={(type) => updateCards({ background_type: type })}
+                onSolidColorChange={(color) => updateCards({ background_color: color })}
+                onGradientChange={(gradient) => updateCards({ background_gradient: gradient })}
+                label="Fundo do Card"
+              />
             </div>
 
-            {/* Badge Profissionais */}
+            {/* Border toggle */}
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+              <Switch
+                checked={cards.has_border ?? false}
+                onCheckedChange={(val) => updateCards({ has_border: val })}
+                disabled={disabled}
+              />
+              <Label className="text-sm">Exibir Borda</Label>
+            </div>
+
+            {cards.has_border && (
+              <>
+                {/* Border color */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Cor da Borda</Label>
+                  <ColorPicker
+                    type={cards.border_type || "solid"}
+                    solidColor={cards.border_color || "#e2e8f0"}
+                    gradientSettings={cards.border_gradient || { type: "linear", angle: 45, colors: ["#e2e8f0", "#cbd5e1"] }}
+                    onTypeChange={(type) => updateCards({ border_type: type })}
+                    onSolidColorChange={(color) => updateCards({ border_color: color })}
+                    onGradientChange={(gradient) => updateCards({ border_gradient: gradient })}
+                    label="Cor da Borda"
+                  />
+                </div>
+
+                {/* Border width */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Espessura da Borda: {cards.border_width ?? 1}px
+                  </Label>
+                  <Slider
+                    value={[cards.border_width ?? 1]}
+                    onValueChange={([v]) => updateCards({ border_width: v })}
+                    min={1}
+                    max={10}
+                    step={1}
+                    disabled={disabled}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Border radius */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Arredondamento: {cards.border_radius ?? 12}px
+              </Label>
+              <Slider
+                value={[cards.border_radius ?? 12]}
+                onValueChange={([v]) => updateCards({ border_radius: v })}
+                min={0}
+                max={32}
+                step={2}
+                disabled={disabled}
+              />
+            </div>
+
+            {/* Badge */}
             <div className="space-y-4 border-t pt-4">
               <Label className="text-xs font-medium text-muted-foreground">Badge Profissionais</Label>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={badge.enabled !== false}
-                    onCheckedChange={(val) => updateConfig("cards", { ...config.cards, badge_combos: { ...badge, enabled: val } })}
-                  />
-                  <Label className="text-xs font-normal">Habilitar Badge</Label>
-                </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={badge.enabled !== false}
+                  onCheckedChange={(val) => updateBadge({ enabled: val })}
+                  disabled={disabled}
+                />
+                <Label className="text-xs font-normal">Habilitar Badge</Label>
               </div>
 
               {badge.enabled !== false && (
@@ -135,8 +159,13 @@ export function ProfessionalsSettings({ config, onChange, disabled }: Profession
                   <div className="space-y-2">
                     <Label className="text-xs font-medium text-muted-foreground">Cor do Fundo</Label>
                     <ColorPicker
-                      value={badge.background_color || "#1e293b"}
-                      onChange={(v) => updateConfig("cards", { ...config.cards, badge_combos: { ...badge, background_color: v } })}
+                      type={badge.background_type || "solid"}
+                      solidColor={badge.background_color || "#1e293b"}
+                      gradientSettings={badge.background_gradient || { type: "linear", angle: 135, colors: ["#1e293b", "#0f172a"] }}
+                      onTypeChange={(type) => updateBadge({ background_type: type })}
+                      onSolidColorChange={(color) => updateBadge({ background_color: color })}
+                      onGradientChange={(gradient) => updateBadge({ background_gradient: gradient })}
+                      label="Fundo do Badge"
                     />
                   </div>
 
@@ -147,10 +176,11 @@ export function ProfessionalsSettings({ config, onChange, disabled }: Profession
                       </Label>
                       <Slider
                         value={[badge.border_radius ?? 6]}
-                        onValueChange={([v]) => updateConfig("cards", { ...config.cards, badge_combos: { ...badge, border_radius: v } })}
+                        onValueChange={([v]) => updateBadge({ border_radius: v })}
                         min={0}
                         max={16}
                         step={2}
+                        disabled={disabled}
                       />
                     </div>
                     <div className="space-y-2">
@@ -159,12 +189,24 @@ export function ProfessionalsSettings({ config, onChange, disabled }: Profession
                       </Label>
                       <Slider
                         value={[badge.padding_v ?? 4]}
-                        onValueChange={([v]) => updateConfig("cards", { ...config.cards, badge_combos: { ...badge, padding_v: v } })}
+                        onValueChange={([v]) => updateBadge({ padding_v: v })}
                         min={0}
                         max={16}
                         step={1}
+                        disabled={disabled}
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Tipografia do Badge</Label>
+                    <TypographySettings
+                      label=""
+                      config={badge.typography || defaultTypography}
+                      onChange={(val) => updateBadge({ typography: val })}
+                      showText={false}
+                      disabled={disabled}
+                    />
                   </div>
                 </>
               )}
