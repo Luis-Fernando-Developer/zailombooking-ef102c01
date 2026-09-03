@@ -13,6 +13,8 @@ interface ProfessionalsSettingsProps {
   disabled?: boolean;
 }
 
+const ALL_SIDES = ['top', 'right', 'bottom', 'left'];
+
 export function ProfessionalsSettings({ config, onChange, disabled }: ProfessionalsSettingsProps) {
   const cards = config.cards ?? {};
   const badge = cards.badge_combos ?? {};
@@ -27,6 +29,14 @@ export function ProfessionalsSettings({ config, onChange, disabled }: Profession
 
   const updateBadge = (patch: any) => {
     updateCards({ badge_combos: { ...badge, ...patch } });
+  };
+
+  const toggleBorderSide = (side: string) => {
+    const current = cards.border_sides ?? [...ALL_SIDES];
+    const updated = current.includes(side)
+      ? current.filter(s => s !== side)
+      : [...current, side];
+    updateCards({ border_sides: updated });
   };
 
   return (
@@ -111,22 +121,102 @@ export function ProfessionalsSettings({ config, onChange, disabled }: Profession
 
                 {/* Border width */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Espessura da Borda: {cards.border_width ?? 1}px
-                  </Label>
-                  <Slider
-                    value={[cards.border_width ?? 1]}
-                    onValueChange={([v]) => updateCards({ border_width: v })}
+                  <Label className="text-xs font-medium text-muted-foreground">Espessura da Borda (px)</Label>
+                  <Input
+                    type="number"
+                    value={cards.border_width ?? 1}
+                    onChange={(e) => updateCards({ border_width: parseInt(e.target.value) || 1 })}
                     min={1}
                     max={10}
-                    step={1}
                     disabled={disabled}
                   />
+                </div>
+
+                {/* Border sides */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Lados da Borda</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {ALL_SIDES.map(side => (
+                      <button
+                        key={side}
+                        type="button"
+                        onClick={() => toggleBorderSide(side)}
+                        className={`px-3 py-1 text-xs rounded border ${
+                          (cards.border_sides ?? ALL_SIDES).includes(side)
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted border-muted-foreground/20'
+                        }`}
+                        disabled={disabled}
+                      >
+                        {side.charAt(0).toUpperCase() + side.slice(1)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </>
             )}
 
-            {/* Border radius */}
+            {/* Shadow toggle */}
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+              <Switch
+                checked={cards.has_shadow ?? false}
+                onCheckedChange={(val) => updateCards({ has_shadow: val })}
+                disabled={disabled}
+              />
+              <Label className="text-sm">Exibir Sombra</Label>
+            </div>
+
+            {cards.has_shadow && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-muted/30 rounded-md">
+                <div className="space-y-1">
+                  <Label className="text-xs">Offset X</Label>
+                  <Input
+                    type="number"
+                    value={cards.shadow_offset_x ?? 0}
+                    onChange={(e) => updateCards({ shadow_offset_x: parseInt(e.target.value) || 0 })}
+                    disabled={disabled}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Offset Y</Label>
+                  <Input
+                    type="number"
+                    value={cards.shadow_offset_y ?? 4}
+                    onChange={(e) => updateCards({ shadow_offset_y: parseInt(e.target.value) || 4 })}
+                    disabled={disabled}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Blur</Label>
+                  <Input
+                    type="number"
+                    value={cards.shadow_blur ?? 6}
+                    onChange={(e) => updateCards({ shadow_blur: parseInt(e.target.value) || 6 })}
+                    disabled={disabled}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Spread</Label>
+                  <Input
+                    type="number"
+                    value={cards.shadow_spread ?? 0}
+                    onChange={(e) => updateCards({ shadow_spread: parseInt(e.target.value) || 0 })}
+                    disabled={disabled}
+                  />
+                </div>
+                <div className="col-span-2 md:col-span-4 space-y-1">
+                  <Label className="text-xs">Cor da Sombra</Label>
+                  <Input
+                    type="color"
+                    value={cards.shadow_color || "#000000"}
+                    onChange={(e) => updateCards({ shadow_color: e.target.value })}
+                    disabled={disabled}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Border radius — after shadow section */}
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground">
                 Arredondamento: {cards.border_radius ?? 12}px
