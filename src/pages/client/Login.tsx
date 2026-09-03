@@ -60,7 +60,8 @@ export default function ClientLogin() {
           email: email.trim(),
           password,
           company_slug: slug,
-          returnTo
+          returnTo,
+          origin: window.location.origin
         }
       });
 

@@ -250,177 +250,193 @@ export default function ClientLayout() {
   };
 
   return (
-    <SidebarProvider className="min-h-screen flex w-full">
-      <ClientSidebar
-        clientId={client?.id || "N/A"}
-        clientName={client?.name || null}
-        clientAvatarUrl={client?.avatar_url || null}
-        currentUser={null}
-        companySlug={company?.slug || ""}
-        companyName={company?.name || ""}
-        companyId={company?.id || ""}
-        companyLogoUrl={(company as any)?.logo_url || null}
-      />
-
-      <div className="flex flex-col flex-1 h-screen overflow-hidden">
+    <SidebarProvider className="min-h-screen w-full">
+      <div className="flex flex-col  w-full">
         <header className="h-20 shrink-0 w-full flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20">
           <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
+
           <div className="flex flex-col">
             <h1 className="text-xl font-bold text-gradient">Meus Agendamentos</h1>
             <p className="text-xs text-muted-foreground">Histórico e gerenciamento</p>
           </div>
+
           <div className="ml-auto">
             <ClientNotificationsBell companyId={company?.id} />
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-gradient-hero">
-
-
-
-
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-bold">Resumo da sua conta</h2>
-                <p className="text-muted-foreground">
-                  Você possui <span className="text-primary font-bold">{bookings.length}</span> agendamentos registrados.
-                </p>
-              </div>
-              <Button 
-                variant="neon" 
-                className="w-full md:w-auto shadow-neon hover:shadow-neon-strong transition-all"
-                onClick={() => navigate(`/${company?.slug}/agendar`)}
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                Novo Agendamento
-              </Button>
-            </div>
-
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-muted-foreground animate-pulse">Carregando seus agendamentos...</p>
-              </div>
-            ) : bookings.length === 0 ? (
-              <Card className="bg-card/40 border-primary/10 p-12 text-center">
-                <div className="w-20 h-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Calendar className="w-10 h-10 text-muted-foreground" />
+        <ClientSidebar
+          className="pt-20 h-full flex"
+          clientId={client?.id || "N/A"}
+          clientName={client?.name || null}
+          clientAvatarUrl={client?.avatar_url || null}
+          currentUser={null}
+          companySlug={company?.slug || ""}
+          companyName={company?.name || ""}
+          companyId={company?.id || ""}
+          companyLogoUrl={(company as any)?.logo_url || null}
+        />
+        <div className="flex-1 w-full h-full min-h-0 ">
+          <main className="flex flex-1 w-full overflow-y-auto overflow-x-hidden bg-gradient-hero">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold">Resumo da sua conta</h2>
+                  <p className="text-muted-foreground">
+                    Você possui <span className="text-primary font-bold">{bookings.length}</span>{" "}
+                    agendamentos registrados.
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold mb-2">Nenhum agendamento ainda</h3>
-                <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                  Parece que você ainda não realizou nenhum agendamento na {company?.name}.
-                </p>
-                <Button 
-                  variant="neon" 
+                <Button
+                  variant="neon"
+                  className="w-full md:w-auto shadow-neon hover:shadow-neon-strong transition-all"
                   onClick={() => navigate(`/${company?.slug}/agendar`)}
                 >
-                  Fazer meu primeiro agendamento
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Novo Agendamento
                 </Button>
-              </Card>
-            ) : (
-              <div className="grid gap-6">
-                {bookings.map((booking) => (
-                  <Card 
-                    key={booking.id} 
-                    className="group overflow-hidden bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-300 card-glow"
-                  >
-                    <div className="p-6">
-                      <div className="flex flex-col lg:flex-row justify-between gap-6">
-                        <div className="flex gap-5">
-                          <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-neon-pink/20 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                            <Calendar className="w-8 h-8 text-primary" />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex flex-wrap items-center gap-3">
-                              <h3 className="font-bold text-xl group-hover:text-primary transition-colors">{booking.service?.name}</h3>
-                              <Badge 
-                                variant={statusLabels[booking.booking_status]?.variant || "outline"}
-                                className={`px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-                                  booking.booking_status === 'confirmed' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                                  booking.booking_status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                                  booking.booking_status === 'cancelled' ? 'bg-red-500/10 text-red-500 border-red-500/20' : ''
-                                }`}
-                              >
-                                {statusLabels[booking.booking_status]?.label || booking.booking_status}
-                              </Badge>
+              </div>
+
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-muted-foreground animate-pulse">
+                    Carregando seus agendamentos...
+                  </p>
+                </div>
+              ) : bookings.length === 0 ? (
+                <Card className="bg-card/40 border-primary/10 p-12 text-center">
+                  <div className="w-20 h-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Calendar className="w-10 h-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">Nenhum agendamento ainda</h3>
+                  <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
+                    Parece que você ainda não realizou nenhum agendamento na {company?.name}.
+                  </p>
+                  <Button variant="neon" onClick={() => navigate(`/${company?.slug}/agendar`)}>
+                    Fazer meu primeiro agendamento
+                  </Button>
+                </Card>
+              ) : (
+                <div className="grid gap-6">
+                  {bookings.map((booking) => (
+                    <Card
+                      key={booking.id}
+                      className="group overflow-hidden bg-card/40 border-primary/10 hover:border-primary/30 transition-all duration-300 card-glow"
+                    >
+                      <div className="p-6">
+                        <div className="flex flex-col lg:flex-row justify-between gap-6">
+                          <div className="flex gap-5">
+                            <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-neon-pink/20 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                              <Calendar className="w-8 h-8 text-primary" />
                             </div>
-                            
-                            <div className="flex items-center gap-2 text-sm bg-background/40 px-3 py-1 rounded-lg w-fit">
-                              <Calendar className="h-4 w-4 text-primary" />
-                              <span className="font-medium text-foreground">
-                                {formatLongDate(booking.booking_date, booking.start_time)}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-2 gap-x-6">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <User className="h-4 w-4 text-primary" />
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <h3 className="font-bold text-xl group-hover:text-primary transition-colors">
+                                  {booking.service?.name}
+                                </h3>
+                                <Badge
+                                  variant={
+                                    statusLabels[booking.booking_status]?.variant || "outline"
+                                  }
+                                  className={`px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                                    booking.booking_status === "confirmed"
+                                      ? "bg-green-500/10 text-green-500 border-green-500/20"
+                                      : booking.booking_status === "pending"
+                                        ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                        : booking.booking_status === "cancelled"
+                                          ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                          : ""
+                                  }`}
+                                >
+                                  {statusLabels[booking.booking_status]?.label ||
+                                    booking.booking_status}
+                                </Badge>
+                              </div>
+
+                              <div className="flex items-center gap-2 text-sm bg-background/40 px-3 py-1 rounded-lg w-fit">
+                                <Calendar className="h-4 w-4 text-primary" />
                                 <span className="font-medium text-foreground">
-                                  {booking.employee?.name || 'Profissional a definir'}
+                                  {formatLongDate(booking.booking_date, booking.start_time)}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Clock className="h-4 w-4" />
-                                {booking.service?.duration_minutes || 30} min
-                              </div>
-                              <div className="flex items-center gap-2 text-sm font-bold text-green-500">
-                                <DollarSign className="h-4 w-4" />
-                                R$ {(booking.service?.price || 0).toFixed(2)}
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-2 gap-x-6">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <User className="h-4 w-4 text-primary" />
+                                  <span className="font-medium text-foreground">
+                                    {booking.employee?.name || "Profissional a definir"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Clock className="h-4 w-4" />
+                                  {booking.service?.duration_minutes || 30} min
+                                </div>
+                                <div className="flex items-center gap-2 text-sm font-bold text-green-500">
+                                  <DollarSign className="h-4 w-4" />
+                                  R$ {(booking.service?.price || 0).toFixed(2)}
+                                </div>
                               </div>
                             </div>
                           </div>
+
+                          <div className="flex items-start shrink-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="p-2 hover:bg-primary/10 rounded-full transition-colors outline-none">
+                                  <MoreVertical className="h-5 w-5 text-muted-foreground" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-48 bg-card/95 backdrop-blur-md border-primary/20"
+                              >
+                                {canModifyBooking(booking) ? (
+                                  <>
+                                    <DropdownMenuItem
+                                      className="cursor-pointer focus:bg-primary/10 flex items-center gap-2"
+                                      onClick={() => setRescheduleBooking(booking)}
+                                    >
+                                      <RefreshCw className="h-4 w-4 text-primary" />
+                                      <span>Reagendar</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive flex items-center gap-2"
+                                      onClick={() => setCancelBooking(booking)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                      <span>Cancelar</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : (
+                                  <DropdownMenuItem
+                                    disabled
+                                    className="text-xs italic text-muted-foreground"
+                                  >
+                                    Alteração não permitida
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
 
-                        <div className="flex items-start shrink-0">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="p-2 hover:bg-primary/10 rounded-full transition-colors outline-none">
-                                <MoreVertical className="h-5 w-5 text-muted-foreground" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48 bg-card/95 backdrop-blur-md border-primary/20">
-                              {canModifyBooking(booking) ? (
-                                <>
-                                  <DropdownMenuItem 
-                                    className="cursor-pointer focus:bg-primary/10 flex items-center gap-2"
-                                    onClick={() => setRescheduleBooking(booking)}
-                                  >
-                                    <RefreshCw className="h-4 w-4 text-primary" />
-                                    <span>Reagendar</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    className="cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive flex items-center gap-2"
-                                    onClick={() => setCancelBooking(booking)}
-                                  >
-                                    <X className="h-4 w-4" />
-                                    <span>Cancelar</span>
-                                  </DropdownMenuItem>
-                                </>
-                              ) : (
-                                <DropdownMenuItem disabled className="text-xs italic text-muted-foreground">
-                                  Alteração não permitida
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                        {booking.notes && (
+                          <div className="mt-6 p-4 bg-muted/10 border-l-2 border-primary/40 rounded-r-xl text-sm italic text-muted-foreground">
+                            <span className="font-bold text-primary not-italic mr-2">
+                              Observação:
+                            </span>
+                            {booking.notes}
+                          </div>
+                        )}
                       </div>
-
-                      {booking.notes && (
-                        <div className="mt-6 p-4 bg-muted/10 border-l-2 border-primary/40 rounded-r-xl text-sm italic text-muted-foreground">
-                          <span className="font-bold text-primary not-italic mr-2">Observação:</span>
-                          {booking.notes}
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
           </main>
         </div>
-
+      </div>
 
       {rescheduleBooking && company && (
         <ClientRescheduleDialog

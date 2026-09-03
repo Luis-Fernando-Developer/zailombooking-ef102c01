@@ -26,9 +26,11 @@ interface ClientSidebarProps {
   clientName?: string | null;
   clientAvatarUrl?: string | null;
   currentUser?: SupabaseUser | null;
+
+  className?: string;
 }
 
-export function ClientSidebar({  companySlug, companyName, companyId, companyLogoUrl, userRole,  clientId, clientName, clientAvatarUrl, currentUser }: ClientSidebarProps) {
+export function ClientSidebar({ className, companySlug, companyName, companyId, companyLogoUrl, userRole,  clientId, clientName, clientAvatarUrl, currentUser }: ClientSidebarProps) {
   const { state } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
@@ -87,57 +89,77 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
   });
 
   return (
-    <Sidebar className={state === "collapsed" ? "w-14" : "w-64"} collapsible="icon">
-      <SidebarContent className="bg-card/30 backdrop-blur-md border-r border-primary/20 overflow-hidden">
+    <Sidebar
+      className={state === "collapsed" ? "w-20  flex flex-col justify-center" : "w-64 overflow-hidden"}
+      collapsible="icon"
+    >
+      <SidebarContent
+        className={`bg-card/30 backdrop-blur-md border-r border-primary/20 ${className || ""}`}
+      >
         {/* Brand */}
-        <div className="px-4 pt-6 pb-3 flex items-center gap-3 border-b border-primary/10">
+        <div className="py-3 flex justify-center items-center gap-3 border-b border-primary/10">
           {state === "collapsed" ? (
-            <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black overflow-hidden">
+            <div className=" w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black overflow-hidden">
               {companyLogoUrl ? (
-                <img src={companyLogoUrl} alt={companyName} className="w-full h-full object-cover" />
+                <img
+                  src={companyLogoUrl}
+                  alt={companyName}
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                (companyName || '?').charAt(0).toUpperCase()
+                (companyName || "?").charAt(0).toUpperCase()
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <CompanyLogo companySlug={companySlug} className="w-8 h-8 rounded-lg shrink-0" />
+            <div className="flex flex-col items-center gap-3 min-w-0  w-full px-2">
+              <CompanyLogo
+                companySlug={companySlug}
+                className="w-44 top-0 flex flex-col  object-contain"
+              />
               <div className="flex flex-col truncate">
                 <span className="font-black text-sm tracking-tight text-foreground truncate uppercase">
                   {companyName}
                 </span>
-                <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase opacity-60">
+                {/* <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase opacity-60">
                   Zailom Booking
-                </span>
+                </span> */}
               </div>
             </div>
           )}
         </div>
 
-
-
         {/* Navigation */}
-        <SidebarGroup className="px-3 py-6">
-          <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : "px-3 mb-4 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/40"}>
+        <SidebarGroup className="px-3 py-6 ">
+          <SidebarGroupLabel
+            className={
+              state === "collapsed"
+                ? "flex  gap-2 items-center justify-center"
+                : "px-3 mb-4 text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/40 "
+            }
+          >
             Menu Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-2">
+            <SidebarMenu className={state === "collapsed" ? "overflow-hidden flex flex-col gap-2 items-center justify-center" : "flex flex-col gap-2"}>
               {filteredMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
-                    <NavLink 
-                      to={`${basePath}${item.url}`} 
-                      className={({ isActive }) => 
+                    <NavLink
+                      to={`${basePath}${item.url}`}
+                      className={({ isActive }) =>
                         `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group/item ${
-                          isActive 
-                            ? "bg-primary/10 text-primary border border-primary/20 shadow-neon/10" 
+                          isActive
+                            ? "bg-primary/10 text-primary border border-primary/20 shadow-neon/10"
                             : "text-muted-foreground hover:bg-primary/5 hover:text-primary-glow"
                         }`
                       }
                     >
-                      <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 group-hover/item:scale-110`} />
-                      {state !== "collapsed" && <span className="font-bold text-sm tracking-tight">{item.title}</span>}
+                      <item.icon
+                        className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 group-hover/item:scale-110`}
+                      />
+                      {state !== "collapsed" && (
+                        <span className="font-bold text-sm tracking-tight">{item.title}</span>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -147,7 +169,7 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
         </SidebarGroup>
 
         {/* User Actions */}
-        <div className="mt-auto p-4 border-t border-primary/10 bg-primary/5">
+        <div className={state === "collapsed" ? "overflow-hidden mt-auto p-4 border-t border-primary/10 bg-primary/5" : "overflow-hidden mt-auto p-4 border-t border-primary/10 bg-primary/5"}>
           <Button
             variant="ghost"
             size="sm"
@@ -155,7 +177,7 @@ export function ClientSidebar({  companySlug, companyName, companyId, companyLog
             className="w-full justify-start gap-3 px-4 h-12 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors group/logout"
           >
             <LogOut className="w-5 h-5 group-hover/logout:-translate-x-1 transition-transform" />
-            {state !== "collapsed" && <span className="font-bold text-sm">Encerrar Sessão</span>}
+            {state !== "collapsed" && <span className="font-bold text-sm overflow-hidden">Encerrar Sessão</span>}
           </Button>
         </div>
       </SidebarContent>
