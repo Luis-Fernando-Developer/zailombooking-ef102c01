@@ -45,6 +45,12 @@ interface ProfessionalsSettingsProps {
 export function ProfessionalsSettings({ config, onChange }: ProfessionalsSettingsProps) {
   const [activeTab, setActiveTab] = useState("cards");
 
+  // Defaults defensivos para evitar "undefined" crashes
+  const cards = config?.cards ?? {};
+  const badge = cards?.badge ?? { enabled: true, backgroundColor: '#1e293b', textColor: '#ffffff', borderRadius: 6, typography: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600' } };
+  const titleTypo = cards?.titleTypography ?? { fontFamily: 'Inter', fontSize: 16, weight: '700', color: '#000000' };
+  const subtitleTypo = cards?.subtitleTypography ?? { fontFamily: 'Inter', fontSize: 14, weight: '400', color: '#666666' };
+
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -58,7 +64,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">Cor de Fundo</Label>
             <ColorPicker
-              value={config.cards.backgroundColor}
+              value={cards.backgroundColor ?? '#ffffff'}
               onChange={(v) => onChange("cards.backgroundColor", v)}
             />
           </div>
@@ -67,17 +73,17 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">Cor da Borda</Label>
             <ColorPicker
-              value={config.cards.borderColor}
+              value={cards.borderColor ?? '#e2e8f0'}
               onChange={(v) => onChange("cards.borderColor", v)}
             />
           </div>
 
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">
-              Espessura da Borda: {config.cards.borderWidth}px
+              Espessura da Borda: {cards.borderWidth ?? 1}px
             </Label>
             <Slider
-              value={[config.cards.borderWidth]}
+              value={[cards.borderWidth ?? 1]}
               onValueChange={([v]) => onChange("cards.borderWidth", v)}
               min={0}
               max={5}
@@ -87,10 +93,10 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
 
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">
-              Arredondamento: {config.cards.borderRadius}px
+              Arredondamento: {cards.borderRadius ?? 12}px
             </Label>
             <Slider
-              value={[config.cards.borderRadius]}
+              value={[cards.borderRadius ?? 12]}
               onValueChange={([v]) => onChange("cards.borderRadius", v)}
               min={0}
               max={24}
@@ -108,7 +114,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
                   onClick={() => onChange("cards.shadow", s)}
                   className={cn(
                     "rounded-md border p-2 text-xs capitalize transition-colors",
-                    config.cards.shadow === s
+                    (cards.shadow ?? 'none') === s
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border hover:border-primary/50"
                   )}
@@ -128,7 +134,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
                 <input
                   type="checkbox"
                   id="badge-enabled"
-                  checked={config.cards.badge.enabled}
+                  checked={!!badge.enabled}
                   onChange={(e) => onChange("cards.badge.enabled", e.target.checked)}
                   className="rounded"
                 />
@@ -136,12 +142,12 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
               </div>
             </div>
 
-            {config.cards.badge.enabled && (
+            {badge.enabled && (
               <>
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-muted-foreground">Cor do Fundo</Label>
                   <ColorPicker
-                    value={config.cards.badge.backgroundColor}
+                    value={badge.backgroundColor ?? '#1e293b'}
                     onChange={(v) => onChange("cards.badge.backgroundColor", v)}
                   />
                 </div>
@@ -149,17 +155,17 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-muted-foreground">Cor do Texto</Label>
                   <ColorPicker
-                    value={config.cards.badge.textColor}
+                    value={badge.textColor ?? '#ffffff'}
                     onChange={(v) => onChange("cards.badge.textColor", v)}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-muted-foreground">
-                    Arredondamento: {config.cards.badge.borderRadius}px
+                    Arredondamento: {badge.borderRadius ?? 6}px
                   </Label>
                   <Slider
-                    value={[config.cards.badge.borderRadius]}
+                    value={[badge.borderRadius ?? 6]}
                     onValueChange={([v]) => onChange("cards.badge.borderRadius", v)}
                     min={0}
                     max={16}
@@ -170,7 +176,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-muted-foreground">Família da Fonte</Label>
                   <Input
-                    value={config.cards.badge.typography.fontFamily || ""}
+                    value={badge.typography?.fontFamily ?? ""}
                     onChange={(e) => onChange("cards.badge.typography.fontFamily", e.target.value)}
                     placeholder="Ex: Inter, sans-serif"
                     className="h-9 text-sm"
@@ -179,10 +185,10 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
 
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-muted-foreground">
-                    Tamanho da Fonte: {config.cards.badge.typography.fontSize || 12}px
+                    Tamanho da Fonte: {badge.typography?.fontSize ?? 12}px
                   </Label>
                   <Slider
-                    value={[config.cards.badge.typography.fontSize || 12]}
+                    value={[badge.typography?.fontSize ?? 12]}
                     onValueChange={([v]) => onChange("cards.badge.typography.fontSize", v)}
                     min={8}
                     max={20}
@@ -199,7 +205,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
                         onClick={() => onChange("cards.badge.typography.fontWeight", w)}
                         className={cn(
                           "rounded-md border p-2 text-xs transition-colors",
-                          config.cards.badge.typography.fontWeight === w
+                          (badge.typography?.fontWeight ?? '600') === w
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50"
                         )}
@@ -222,7 +228,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
             <div className="space-y-2">
               <Label className="text-xs font-normal text-muted-foreground">Família da Fonte</Label>
               <Input
-                value={config.cards.titleTypography.fontFamily || ""}
+                value={titleTypo.fontFamily ?? ""}
                 onChange={(e) => onChange("cards.titleTypography.fontFamily", e.target.value)}
                 placeholder="Ex: Inter, sans-serif"
                 className="h-9 text-sm"
@@ -231,10 +237,10 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
 
             <div className="space-y-2">
               <Label className="text-xs font-normal text-muted-foreground">
-                Tamanho: {config.cards.titleTypography.fontSize || 16}px
+                Tamanho: {titleTypo.fontSize ?? 16}px
               </Label>
               <Slider
-                value={[config.cards.titleTypography.fontSize || 16]}
+                value={[titleTypo.fontSize ?? 16]}
                 onValueChange={([v]) => onChange("cards.titleTypography.fontSize", v)}
                 min={12}
                 max={32}
@@ -245,7 +251,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
             <div className="space-y-2">
               <Label className="text-xs font-normal text-muted-foreground">Cor</Label>
               <ColorPicker
-                value={config.cards.titleTypography.color || "#000000"}
+                value={titleTypo.color ?? "#000000"}
                 onChange={(v) => onChange("cards.titleTypography.color", v)}
               />
             </div>
@@ -259,7 +265,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
                     onClick={() => onChange("cards.titleTypography.fontWeight", w)}
                     className={cn(
                       "rounded-md border p-2 text-xs transition-colors",
-                      config.cards.titleTypography.fontWeight === w
+                      (titleTypo.fontWeight ?? '700') === w
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border hover:border-primary/50"
                     )}
@@ -278,7 +284,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
             <div className="space-y-2">
               <Label className="text-xs font-normal text-muted-foreground">Família da Fonte</Label>
               <Input
-                value={config.cards.subtitleTypography.fontFamily || ""}
+                value={subtitleTypo.fontFamily ?? ""}
                 onChange={(e) => onChange("cards.subtitleTypography.fontFamily", e.target.value)}
                 placeholder="Ex: Inter, sans-serif"
                 className="h-9 text-sm"
@@ -287,10 +293,10 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
 
             <div className="space-y-2">
               <Label className="text-xs font-normal text-muted-foreground">
-                Tamanho: {config.cards.subtitleTypography.fontSize || 14}px
+                Tamanho: {subtitleTypo.fontSize ?? 14}px
               </Label>
               <Slider
-                value={[config.cards.subtitleTypography.fontSize || 14]}
+                value={[subtitleTypo.fontSize ?? 14]}
                 onValueChange={([v]) => onChange("cards.subtitleTypography.fontSize", v)}
                 min={10}
                 max={24}
@@ -301,7 +307,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
             <div className="space-y-2">
               <Label className="text-xs font-normal text-muted-foreground">Cor</Label>
               <ColorPicker
-                value={config.cards.subtitleTypography.color || "#666666"}
+                value={subtitleTypo.color ?? "#666666"}
                 onChange={(v) => onChange("cards.subtitleTypography.color", v)}
               />
             </div>
@@ -315,7 +321,7 @@ export function ProfessionalsSettings({ config, onChange }: ProfessionalsSetting
                     onClick={() => onChange("cards.subtitleTypography.fontWeight", w)}
                     className={cn(
                       "rounded-md border p-2 text-xs transition-colors",
-                      config.cards.subtitleTypography.fontWeight === w
+                      (subtitleTypo.fontWeight ?? '400') === w
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border hover:border-primary/50"
                     )}
