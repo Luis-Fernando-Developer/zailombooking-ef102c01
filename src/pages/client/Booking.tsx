@@ -10,15 +10,18 @@ import { BookingLogo } from "@/components/BookingLogo";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { 
-  CalendarDays, 
-  Clock, 
-  DollarSign, 
-  User, 
-  Mail, 
+import {
+  CalendarDays,
+  Clock,
+  DollarSign,
+  User,
+  Mail,
   Phone,
   ArrowLeft,
-  Check
+  Check,
+  CreditCard,
+  QrCode,
+  Receipt,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
@@ -64,7 +67,7 @@ export default function ClientBooking() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [company, setCompany] = useState<Company | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [combos, setCombos] = useState<any[]>([]);
@@ -86,11 +89,13 @@ export default function ClientBooking() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [step, setStep] = useState(1); // 1: Service, 2: Employee, 3: Date, 4: Time, 5: Auth, 6: Confirmation
+  const [step, setStep] = useState(1); // 1: Service, 2: Employee, 3: Date, 4: Time, 5: Auth, 6: Confirmation, 7: Payment
   const [user, setUser] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
   const [customization, setCustomization] = useState<any>(null);
   const [pendingEmployeeRestore, setPendingEmployeeRestore] = useState<string | null>(null);
+  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
+  const [paymentSettings, setPaymentSettings] = useState<{ enabled: boolean; mode: string }>({ enabled: false, mode: 'none' });
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; bookingId?: string; amount?: number; allowLater?: boolean; wasPaid?: boolean }>({ open: false });
 
   useEffect(() => {
@@ -114,7 +119,7 @@ export default function ClientBooking() {
           .eq('user_id', session.user.id)
           .eq('company_id', company.id)
           .single();
-        
+
         if (clientData) {
           setClient(clientData);
         }
@@ -149,10 +154,10 @@ export default function ClientBooking() {
   // Apply dynamic theme customizations
   useEffect(() => {
     if (customization) {
-      const themeData = typeof customization.theme === 'object' && customization.theme !== null 
+      const themeData = typeof customization.theme === 'object' && customization.theme !== null
         ? customization.theme as Record<string, any>
         : {};
-      
+
       const mergedCustomization = {
         ...customization,
         ...themeData
@@ -166,7 +171,7 @@ export default function ClientBooking() {
         const bgStyles = getBackgroundStyles(bodyCfg);
         if (bgStyles.backgroundColor) root.style.backgroundColor = bgStyles.backgroundColor as string;
         if (bgStyles.background) root.style.background = bgStyles.background as string;
-        
+
         // Apply default typography variables
         if (bodyCfg.default_font_family) root.style.setProperty('--font-primary', bodyCfg.default_font_family);
         if (bodyCfg.default_text_color) root.style.setProperty('--text-color', bodyCfg.default_text_color);
@@ -187,7 +192,7 @@ export default function ClientBooking() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const shouldRestore = searchParams.get('restore') === 'true';
-    
+
     if (shouldRestore && user && services.length > 0) {
       const savedState = sessionStorage.getItem('pendingBooking');
       if (savedState) {
@@ -215,19 +220,19 @@ export default function ClientBooking() {
             };
             setSelectedService(comboAsService);
           }
-          
+
           // Save employee ID for restoration in Phase 2
           if (state.employeeId) {
             setPendingEmployeeRestore(state.employeeId);
           }
-          
+
           // Restore date and time
           if (state.date) setSelectedDate(new Date(state.date));
           if (state.time) setSelectedTime(state.time);
-          
+
           // Go directly to step 5 (confirmation)
           setStep(5);
-          
+
           // Clear saved state and URL param
           sessionStorage.removeItem('pendingBooking');
           window.history.replaceState({}, '', `/${slug}/agendar`);
@@ -249,7 +254,7 @@ export default function ClientBooking() {
     }
   }, [pendingEmployeeRestore, employees]);
 
-  
+
 
   const fetchCompanyAndServices = async () => {
     try {
@@ -281,6 +286,15 @@ export default function ClientBooking() {
           ? { ...customizationData, ...((customizationData as any).theme || {}) }
           : null
       );
+
+      // Buscar configurações de pagamento da empresa
+      const { data: paymentData } = await supabase
+        .from('company_payment_settings')
+        .select('payment_mode')
+        .eq('company_id', companyData.id)
+        .maybeSingle();
+      const mode = paymentData?.payment_mode || 'none';
+      setPaymentSettings({ enabled: mode !== 'none', mode });
 
 
       const { data: servicesData, error: servicesError } = await supabase
@@ -379,20 +393,6 @@ export default function ClientBooking() {
       styles['--cards-background'] = customization.cards_color;
     }
 
-    // Cor dos cards (gradient ou cor sólida)
-    if (
-      customization.cards_color_type === "gradient" &&
-      customization.cards_gradient &&
-      customization.cards_gradient.colors &&
-      customization.cards_gradient.colors.length > 1
-    ) {
-      const direction = customization.cards_gradient.direction || "to right";
-      const colors = customization.cards_gradient.colors.join(", ");
-      styles['--cards-background'] = `linear-gradient(${direction}, ${colors})`;
-    } else if (customization.cards_color) {
-      styles['--cards-background'] = customization.cards_color;
-    }
-
     // Logo
     styles.logoUrl = customization.logo_url || null;
 
@@ -468,14 +468,14 @@ export default function ClientBooking() {
       const { data: employeesData, error } = await supabase
         .from('employees')
         .select(`
-          id, 
-          name, 
+          id,
+          name,
           avatar_url,
           employee_services!inner(
             service_id
           )
         `)
-        .eq('company_id', company.id)  
+        .eq('company_id', company.id)
         .eq('is_active', true)
         .eq('employee_services.service_id', selectedService.id);
 
@@ -500,17 +500,13 @@ export default function ClientBooking() {
       // Get dates from current month and next month
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const next30Days = Array.from({ length: 31 }, (_, i) => {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
         return d;
       });
 
-      // Optimize: Instead of calling getAvailability 31 times, we just mark dates based on employee schedule and business hours first
-      // and only verify slots when the user selects a specific date or in a more batched way if possible.
-      // For now, let's just make it parallel to be faster.
-      
       const datePromises = next30Days.map(async (date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         try {
@@ -519,8 +515,7 @@ export default function ClientBooking() {
             const combo = combos.find(c => c.id === comboId);
             if (!combo) return { date: null, reason: 'service_not_found', error: null };
             const serviceIds = (combo.items || []).map((it: any) => it.service_id).filter(Boolean);
-            
-            // Check first service availability as a proxy for the whole day to speed up
+
             if (serviceIds.length > 0) {
               const { slots, reason, error } = await getAvailability({
                 data: {
@@ -546,7 +541,7 @@ export default function ClientBooking() {
               date: dateStr
             }
           });
-          
+
           if (slots && !error && slots.length > 0) {
             return { date, reason: null, error: null };
           }
@@ -587,7 +582,6 @@ export default function ClientBooking() {
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
-      // Para combos, por agora exibimos os horários do primeiro serviço do combo (backend idealmente deve suportar combo availability)
       if (selectedService.id?.startsWith?.('combo:')) {
         const comboId = selectedService.id.replace('combo:', '');
         const combo = combos.find(c => c.id === comboId);
@@ -596,7 +590,7 @@ export default function ClientBooking() {
           setAvailableTimes([]);
           return;
         }
-        
+
         const { slots, error } = await getAvailability({
           data: {
             company_id: company.id,
@@ -617,7 +611,7 @@ export default function ClientBooking() {
         }
 
       }
-      
+
       const { slots, reason, error } = await getAvailability({
         data: {
           company_id: company.id,
@@ -657,18 +651,16 @@ export default function ClientBooking() {
 
   const handleBookingSubmit = async () => {
     if (!selectedService || !selectedEmployee || !selectedDate || !selectedTime || !company) return;
-    if (isSubmitting) return; // evita duplicação por cliques múltiplos
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
     setIsLoading(true);
     try {
       let clientId;
-      
+
       if (user && client) {
-        // Use authenticated client
         clientId = client.id;
       } else {
-        // This should not happen with the new flow, but keeping as fallback
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
           .upsert([
@@ -678,7 +670,7 @@ export default function ClientBooking() {
               email: formData.client_email,
               phone: formData.client_phone
             }
-          ], { 
+          ], {
             onConflict: 'company_id,email',
             ignoreDuplicates: false
           })
@@ -689,13 +681,8 @@ export default function ClientBooking() {
         clientId = clientData.id;
       }
 
-      // Criar agendamento
-      const { data: session } = await supabase.auth.getSession();
-
       const isCombo = selectedService.id?.startsWith?.('combo:');
       const bookingDate = format(selectedDate, 'yyyy-MM-dd');
-      // start_time / end_time são TIMESTAMPTZ no banco: gravar sempre no fuso
-      // de negócio e manter booking_time como HH:mm literal escolhido pelo cliente.
       const [shStr, smStr] = (selectedTime || '00:00').split(':');
       const sh = Number(shStr) || 0;
       const sm = Number(smStr) || 0;
@@ -720,10 +707,6 @@ export default function ClientBooking() {
         booking_status: 'pending'
       };
 
-
-      let newBookingId: string;
-
-      // Insere diretamente na tabela bookings
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .insert([payloadBase])
@@ -734,9 +717,9 @@ export default function ClientBooking() {
         console.error("Booking insert error:", bookingError);
         throw new Error(bookingError.message || 'Erro ao criar agendamento. Tente novamente.');
       }
-      newBookingId = bookingData.id;
+      const newBookingId = bookingData.id;
+      setCreatedBookingId(newBookingId);
 
-      // Notificação WhatsApp (best-effort) — status inicial é "pending"
       if (newBookingId) {
         supabase.functions
           .invoke('notify-booking-event', {
@@ -745,28 +728,8 @@ export default function ClientBooking() {
           .catch((err) => console.warn('[notify-booking-event] pending failed:', err));
       }
 
-      const isComboFlow = isCombo;
-
-      // Decide se abre o diálogo de pagamento
-      // Abre diálogo de pagamento se empresa tem pagamento online habilitado
-      if (!isComboFlow && newBookingId) {
-        const { data: settings } = await supabase
-          .from("company_payment_settings")
-          .select("payment_mode")
-          .eq("company_id", company.id)
-          .maybeSingle();
-        const enabled = settings && settings.payment_mode !== "none";
-        if (enabled) {
-          setPaymentDialog({
-            open: true,
-            bookingId: newBookingId,
-            amount: selectedService.price,
-            allowLater: true,
-          });
-          return;
-        }
-      }
-
+      // Vai para o step de confirmação (6). Se houver pagamento online,
+      // o step 6 exibirá um botão para avançar ao step 7 (pagamento).
       setStep(6);
       toast({
         title: "Agendamento realizado!",
@@ -785,11 +748,19 @@ export default function ClientBooking() {
     }
   };
 
+  const openPaymentDialog = () => {
+    if (!createdBookingId || !company) return;
+    setPaymentDialog({
+      open: true,
+      bookingId: createdBookingId,
+      amount: selectedService?.price || 0,
+      allowLater: true,
+    });
+  };
+
   /**
    * Aplica ao card do step exatamente a configuração salva em Personalização
    * para a section correspondente (services / professionals).
-   * A borda do card só é sobrescrita quando a empresa habilitou "Exibir Borda",
-   * preservando o destaque visual do item selecionado.
    */
   const stepCardStyles = (section: "services" | "professionals"): Record<string, any> => {
     const cfg = customization?.[section]?.cards;
@@ -825,7 +796,6 @@ export default function ClientBooking() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4" >
-                {/* Render combos primeiro, como cards iguais aos serviços */}
                 {combos.map((combo) => {
                   const synthetic: Service = {
                     id: `combo:${combo.id}`,
@@ -979,7 +949,7 @@ export default function ClientBooking() {
                   ))
                 )}
               </div>
-              
+
               <div className="flex gap-2 mt-6">
                 <Button variant="outline" onClick={() => {
                   setSelectedEmployee(null);
@@ -1238,7 +1208,6 @@ export default function ClientBooking() {
             </Card>
           );
         } else {
-          // User not authenticated, show auth options
           return (
             <Card className="card-glow bg-card/50 backdrop-blur-sm border-primary/20" style={stepContainerBase(cfgLogin)}>
               <CardHeader className="text-center">
@@ -1338,10 +1307,21 @@ export default function ClientBooking() {
                 </Badge>
               </div>
 
+              {paymentSettings.enabled && createdBookingId && !paymentDialog.wasPaid && (
+                <Button
+                  onClick={openPaymentDialog}
+                  className="w-full"
+                  variant="neon"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Continuar para Pagamento
+                </Button>
+              )}
+
               <Button
                 onClick={() => navigate(`/${slug}`)}
                 className="w-full"
-                variant="neon"
+                variant={paymentSettings.enabled && createdBookingId && !paymentDialog.wasPaid ? "outline" : "neon"}
               >
                 Voltar ao Início
               </Button>
@@ -1392,8 +1372,6 @@ export default function ClientBooking() {
       .getPublicUrl(customization.logo_upload_path).data.publicUrl;
   }
 
-  console.log("logoSrc:", logoSrc);
-
   return (
     <div className="min-h-screen bg-gradient-hero">
       {/* Header */}
@@ -1438,16 +1416,21 @@ export default function ClientBooking() {
             cpf_cnpj: client?.cpf,
           }}
           allowPayLater={paymentDialog.allowLater}
-          onPayLater={() => { 
+          onPayLater={() => {
             console.log("[BOOKING] Pay later selected.");
-            setPaymentDialog(prev => ({ ...prev, open: false, wasPaid: false })); 
-            setStep(6); 
+            setPaymentDialog(prev => ({ ...prev, open: false, wasPaid: false }));
+            toast({
+              title: "Tudo certo!",
+              description: "Você poderá pagar no local do atendimento.",
+            });
           }}
-          onPaid={() => { 
+          onPaid={() => {
             console.log("[BOOKING] Payment confirmed callback.");
-            setPaymentDialog(prev => ({ ...prev, wasPaid: true })); 
-            // Movemos para o passo 6 imediatamente no callback do onPaid
-            setStep(6); 
+            setPaymentDialog(prev => ({ ...prev, wasPaid: true }));
+            toast({
+              title: "Pagamento confirmado!",
+              description: "Seu agendamento foi validado.",
+            });
           }}
         />
       )}
