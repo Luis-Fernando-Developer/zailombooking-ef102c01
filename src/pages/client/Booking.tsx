@@ -85,6 +85,7 @@ export default function ClientBooking() {
     notes: ""
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1); // 1: Service, 2: Employee, 3: Date, 4: Time, 5: Auth, 6: Confirmation
   const [user, setUser] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
@@ -656,7 +657,9 @@ export default function ClientBooking() {
 
   const handleBookingSubmit = async () => {
     if (!selectedService || !selectedEmployee || !selectedDate || !selectedTime || !company) return;
+    if (isSubmitting) return; // evita duplicação por cliques múltiplos
 
+    setIsSubmitting(true);
     setIsLoading(true);
     try {
       let clientId;
@@ -720,7 +723,7 @@ export default function ClientBooking() {
 
       let newBookingId: string;
 
-      // Tenta inserir diretamente na tabela bookings
+      // Insere diretamente na tabela bookings
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .insert([payloadBase])
@@ -729,23 +732,9 @@ export default function ClientBooking() {
 
       if (bookingError) {
         console.error("Booking insert error:", bookingError);
-        // Se falhar (ex: RLS), tenta via Edge Function se ela existir
-        try {
-          const { data, error } = await supabase.functions.invoke('create-booking', {
-            body: payloadBase
-          });
-
-          if (error) {
-            throw new Error(error.message || 'Erro ao criar agendamento');
-          }
-
-          newBookingId = data?.booking?.id;
-        } catch (efError) {
-          throw new Error('Não foi possível realizar o agendamento. Verifique suas permissões.');
-        }
-      } else {
-        newBookingId = bookingData.id;
+        throw new Error(bookingError.message || 'Erro ao criar agendamento. Tente novamente.');
       }
+      newBookingId = bookingData.id;
 
       // Notificação WhatsApp (best-effort) — status inicial é "pending"
       if (newBookingId) {
@@ -794,6 +783,7 @@ export default function ClientBooking() {
         variant: "destructive"
       });
     } finally {
+      setIsSubmitting(false);
       setIsLoading(false);
     }
   };
