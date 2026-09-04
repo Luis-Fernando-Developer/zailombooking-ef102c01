@@ -728,9 +728,18 @@ export default function ClientBooking() {
           .catch((err) => console.warn('[notify-booking-event] pending failed:', err));
       }
 
-      // Vai para o step de confirmação (6). Se houver pagamento online,
-      // o step 6 exibirá um botão para avançar ao step 7 (pagamento).
-      setStep(6);
+      // Pagamento online habilitado → abre o diálogo de pagamento direto,
+      // sem precisar do passo 6/7 manual.
+      if (paymentSettings.enabled && paymentSettings.mode !== 'none' && newBookingId) {
+        setPaymentDialog({
+          open: true,
+          bookingId: newBookingId,
+          amount: selectedService?.price || 0,
+          allowLater: true,
+        });
+      } else {
+        setStep(6);
+      }
       toast({
         title: "Agendamento realizado!",
         description: "Seu agendamento foi registrado com sucesso."
