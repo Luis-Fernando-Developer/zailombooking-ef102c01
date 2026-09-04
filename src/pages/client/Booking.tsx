@@ -748,11 +748,8 @@ export default function ClientBooking() {
       const isComboFlow = isCombo;
 
       // Decide se abre o diálogo de pagamento
-      const paymentRule = selectedService.payment_required || "optional";
-      const needsPayment = !isComboFlow && newBookingId && paymentRule !== "never";
-
-      if (needsPayment) {
-        // Verifica se a empresa aceita pagamento online
+      // Abre diálogo de pagamento se empresa tem pagamento online habilitado
+      if (!isComboFlow && newBookingId) {
         const { data: settings } = await supabase
           .from("company_payment_settings")
           .select("payment_mode")
@@ -764,7 +761,7 @@ export default function ClientBooking() {
             open: true,
             bookingId: newBookingId,
             amount: selectedService.price,
-            allowLater: paymentRule === "optional",
+            allowLater: true,
           });
           return;
         }
