@@ -96,7 +96,8 @@ export default function ClientBooking() {
   const [pendingEmployeeRestore, setPendingEmployeeRestore] = useState<string | null>(null);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [paymentSettings, setPaymentSettings] = useState<{ enabled: boolean; mode: string }>({ enabled: false, mode: 'none' });
-  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; bookingId?: string; amount?: number; allowLater?: boolean; wasPaid?: boolean }>({ open: false });
+  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; bookingId?: string; amount?: number; allowLater?: boolean; wasPaid?: boolean; openedOnce?: boolean }>({ open: false });
+  const [isPaidOnce, setIsPaidOnce] = useState(false);
 
   useEffect(() => {
     applyTheme(getInitialTheme("client"));
@@ -736,6 +737,7 @@ export default function ClientBooking() {
           bookingId: newBookingId,
           amount: selectedService?.price || 0,
           allowLater: true,
+          openedOnce: true,
         });
       } else {
         setStep(6);
@@ -764,6 +766,7 @@ export default function ClientBooking() {
       bookingId: createdBookingId,
       amount: selectedService?.price || 0,
       allowLater: true,
+      openedOnce: true,
     });
   };
 
@@ -1311,19 +1314,26 @@ export default function ClientBooking() {
                 <p className="text-sm text-muted-foreground">
                   Você receberá um e-mail de confirmação em breve.
                 </p>
-                <Badge variant={paymentDialog.wasPaid ? "default" : "secondary"} className={paymentDialog.wasPaid ? "bg-green-500 hover:bg-green-600" : ""}>
-                  Status: {paymentDialog.wasPaid ? "Confirmado" : "Aguardando Confirmação"}
+                <Badge
+                  variant={paymentDialog.wasPaid ? "default" : "secondary"}
+                  className={paymentDialog.wasPaid ? "bg-green-500 hover:bg-green-600" : ""}
+                >
+                  {paymentDialog.wasPaid
+                    ? "Pago"
+                    : paymentSettings.enabled && createdBookingId
+                      ? "Aguardando pagamento"
+                      : "Aguardando confirmação"}
                 </Badge>
               </div>
 
-              {paymentSettings.enabled && createdBookingId && !paymentDialog.wasPaid && (
+              {paymentSettings.enabled && createdBookingId && !paymentDialog.wasPaid && !isPaidOnce && (
                 <Button
                   onClick={openPaymentDialog}
                   className="w-full"
                   variant="neon"
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Continuar para Pagamento
+                  {paymentDialog.openedOnce ? "Continuar Pagamento" : "Pagar agora"}
                 </Button>
               )}
 
@@ -1428,6 +1438,7 @@ export default function ClientBooking() {
           onPayLater={() => {
             console.log("[BOOKING] Pay later selected.");
             setPaymentDialog(prev => ({ ...prev, open: false, wasPaid: false }));
+            setStep(6);
             toast({
               title: "Tudo certo!",
               description: "Você poderá pagar no local do atendimento.",
@@ -1436,6 +1447,8 @@ export default function ClientBooking() {
           onPaid={() => {
             console.log("[BOOKING] Payment confirmed callback.");
             setPaymentDialog(prev => ({ ...prev, wasPaid: true }));
+            setIsPaidOnce(true);
+            setStep(6);
             toast({
               title: "Pagamento confirmado!",
               description: "Seu agendamento foi validado.",
