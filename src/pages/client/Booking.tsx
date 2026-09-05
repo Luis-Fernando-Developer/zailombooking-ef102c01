@@ -626,7 +626,9 @@ export default function ClientBooking() {
 
   /**
    * Coleta dados do cliente e abre o diálogo de pagamento.
-   * O booking NÃO é criado aqui — só após confirmação do pagamento (onPaid/onPayLater).
+   * O booking NÃO é criado aqui — só após confirmação do pagamento (onPaid) ou escolha
+   * explícita de 'Pagar no local' (onPayLater). Até lá, o slot não é reservado e o
+   * agendamento não aparece em lugar nenhum (nem no painel da empresa).
    */
   const handleBookingSubmit = async () => {
     if (!selectedService || !selectedEmployee || !selectedDate || !selectedTime || !company) return;
@@ -636,9 +638,9 @@ export default function ClientBooking() {
     setIsLoading(true);
     try {
       // Garante que o cliente existe (sem criar booking ainda)
-      let clientId;
+      let clientId: string | undefined;
 
-      if (user && client) {
+      if (user && client?.id) {
         clientId = client.id;
       } else {
         const { data: clientData, error: clientError } = await supabase
@@ -658,10 +660,16 @@ export default function ClientBooking() {
           .single();
 
         if (clientError) throw clientError;
-        clientId = clientData.id;
+        clientId = clientData?.id;
       }
 
-      // Abre o dialog de pagamento — booking será criado no callback onPaid ou onPayLater
+      if (!clientId) {
+        throw new Error('Não foi possível identificar o cliente.');
+      }
+
+      // NÃO cria booking aqui. Apenas abre o dialog de pagamento.
+      // O booking será criado SOMENTE dentro de onPaid (após pagamento confirmado)
+      // ou onPayLater (usuário escolhe explicitamente 'Pagar no local').
       setPaymentDialog({
         open: true,
         bookingId: undefined, // ainda não existe
