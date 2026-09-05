@@ -31,7 +31,6 @@ import { getAvailability, AVAILABILITY_REASON_LABELS } from "@/lib/api/availabil
 import { applyTheme, getInitialTheme } from "@/components/ThemeToggle";
 import { getTypographyStyles, getBackgroundStyles, getCardStyles, getButtonStyles } from "@/components/business/personalization/utils";
 
-
 interface Service {
   id: string;
   name: string;
@@ -96,8 +95,14 @@ export default function ClientBooking() {
   const [pendingEmployeeRestore, setPendingEmployeeRestore] = useState<string | null>(null);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [paymentSettings, setPaymentSettings] = useState<{ enabled: boolean; mode: string }>({ enabled: false, mode: 'none' });
-  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; bookingId?: string; amount?: number; allowLater?: boolean; wasPaid?: boolean; openedOnce?: boolean }>({ open: false });
-  const [isPaidOnce, setIsPaidOnce] = useState(false);
+  const [paymentDialog, setPaymentDialog] = useState<{
+    open: boolean;
+    bookingId?: string;
+    amount?: number;
+    allowLater?: boolean;
+    wasPaid?: boolean;
+    openedOnce?: boolean;
+  }>({ open: false });
 
   useEffect(() => {
     applyTheme(getInitialTheme("client"));
@@ -112,7 +117,6 @@ export default function ClientBooking() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       setUser(session.user);
-      // Check if user is client in this company
       if (company) {
         const { data: clientData } = await supabase
           .from('clients')
@@ -120,7 +124,6 @@ export default function ClientBooking() {
           .eq('user_id', session.user.id)
           .eq('company_id', company.id)
           .single();
-
         if (clientData) {
           setClient(clientData);
         }
@@ -152,7 +155,6 @@ export default function ClientBooking() {
     }
   }, [selectedDate, selectedEmployee, selectedService, company]);
 
-  // Apply dynamic theme customizations
   useEffect(() => {
     if (customization) {
       const themeData = typeof customization.theme === 'object' && customization.theme !== null
@@ -168,17 +170,14 @@ export default function ClientBooking() {
       const root = document.documentElement;
 
       if (bodyCfg) {
-        // Apply body background
         const bgStyles = getBackgroundStyles(bodyCfg);
         if (bgStyles.backgroundColor) root.style.backgroundColor = bgStyles.backgroundColor as string;
         if (bgStyles.background) root.style.background = bgStyles.background as string;
 
-        // Apply default typography variables
         if (bodyCfg.default_font_family) root.style.setProperty('--font-primary', bodyCfg.default_font_family);
         if (bodyCfg.default_text_color) root.style.setProperty('--text-color', bodyCfg.default_text_color);
         if (bodyCfg.max_width) root.style.setProperty('--max-width', `${bodyCfg.max_width}px`);
       } else {
-        // Legacy fallbacks
         if (customization.primary_color) {
           root.style.setProperty('--primary', customization.primary_color);
         }
@@ -189,7 +188,6 @@ export default function ClientBooking() {
     }
   }, [customization]);
 
-  // Restore booking state after login redirect - Phase 1: service, date, time
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const shouldRestore = searchParams.get('restore') === 'true';
@@ -200,7 +198,6 @@ export default function ClientBooking() {
         try {
           const state = JSON.parse(savedState);
 
-          // Handle combo prefix ("combo:UUID") vs plain service UUID
           const savedId: string = state.serviceId || '';
           const isComboId = savedId.startsWith('combo:');
           const rawId = isComboId ? savedId.replace('combo:', '') : savedId;
@@ -222,19 +219,15 @@ export default function ClientBooking() {
             setSelectedService(comboAsService);
           }
 
-          // Save employee ID for restoration in Phase 2
           if (state.employeeId) {
             setPendingEmployeeRestore(state.employeeId);
           }
 
-          // Restore date and time
           if (state.date) setSelectedDate(new Date(state.date));
           if (state.time) setSelectedTime(state.time);
 
-          // Go directly to step 5 (confirmation)
           setStep(5);
 
-          // Clear saved state and URL param
           sessionStorage.removeItem('pendingBooking');
           window.history.replaceState({}, '', `/${slug}/agendar`);
         } catch (e) {
@@ -244,7 +237,6 @@ export default function ClientBooking() {
     }
   }, [user, services, combos, slug]);
 
-  // Restore booking state - Phase 2: employee (after employees are loaded)
   useEffect(() => {
     if (pendingEmployeeRestore && employees.length > 0) {
       const employee = employees.find(e => e.id === pendingEmployeeRestore);
@@ -254,8 +246,6 @@ export default function ClientBooking() {
       setPendingEmployeeRestore(null);
     }
   }, [pendingEmployeeRestore, employees]);
-
-
 
   const fetchCompanyAndServices = async () => {
     try {
@@ -273,22 +263,18 @@ export default function ClientBooking() {
 
       setCompany(companyData);
 
-      // Buscar personalização
       const { data: customizationData } = await supabase
         .from('company_customizations')
         .select('*')
         .eq('company_id', companyData.id)
         .maybeSingle();
 
-      // Mescla o objeto `theme` (personalização V3) na raiz para que
-      // os steps usem exatamente a mesma configuração da landing page.
       setCustomization(
         customizationData
           ? { ...customizationData, ...((customizationData as any).theme || {}) }
           : null
       );
 
-      // Buscar configurações de pagamento da empresa
       const { data: paymentData } = await supabase
         .from('company_payment_settings')
         .select('payment_mode')
@@ -296,7 +282,6 @@ export default function ClientBooking() {
         .maybeSingle();
       const mode = paymentData?.payment_mode || 'none';
       setPaymentSettings({ enabled: mode !== 'none', mode });
-
 
       const { data: servicesData, error: servicesError } = await supabase
         .from('services')
@@ -318,7 +303,6 @@ export default function ClientBooking() {
        console.error('Error fetching combos:', combosError);
        setCombos([]);
      } else {
-       // coletar ids de serviços usados nos combos
        const serviceIds = Array.from(
          new Set(
            (combosData || [])
@@ -365,7 +349,6 @@ export default function ClientBooking() {
 
     const styles: any = {};
 
-    // Fonte
     if (customization.font_family) {
       styles['--font-family'] = customization.font_family;
     }
@@ -380,7 +363,6 @@ export default function ClientBooking() {
       styles['--font-gradient'] = false;
     }
 
-    // Cor dos cards (gradient ou cor sólida)
     if (
       customization.cards_color_type === "gradient" &&
       customization.cards_gradient &&
@@ -394,13 +376,11 @@ export default function ClientBooking() {
       styles['--cards-background'] = customization.cards_color;
     }
 
-    // Logo
     styles.logoUrl = customization.logo_url || null;
 
     return styles;
   };
 
-  // Ao selecionar um combo no UI, criamos um "service-like" para manter o fluxo
   const handleSelectCombo = (combo: any) => {
     const synthetic: Service = {
       id: `combo:${combo.id}`,
@@ -432,7 +412,6 @@ export default function ClientBooking() {
           return;
         }
 
-        // buscar employee_services para esses serviceIds
         const { data: esData, error: esError } = await supabase
           .from('employee_services')
           .select('employee_id, service_id')
@@ -440,20 +419,17 @@ export default function ClientBooking() {
 
         if (esError) throw esError;
 
-        // contar quantos services cada employee possui
         const counts: Record<string, number> = {};
         (esData || []).forEach((row: any) => {
           counts[row.employee_id] = (counts[row.employee_id] || 0) + 1;
         });
 
-        // employees que possuem count === serviceIds.length
         const eligibleEmployeeIds = Object.keys(counts).filter(empId => counts[empId] === serviceIds.length);
         if (eligibleEmployeeIds.length === 0) {
           setEmployees([]);
           return;
         }
 
-         // buscar dados dos employees elegíveis (apenas do mesmo company)
         const { data: employeesData } = await supabase
           .from('employees')
           .select('id, name, avatar_url')
@@ -465,7 +441,6 @@ export default function ClientBooking() {
         return;
       }
 
-      // Buscar funcionários que oferecem o serviço selecionado
       const { data: employeesData, error } = await supabase
         .from('employees')
         .select(`
@@ -498,7 +473,6 @@ export default function ClientBooking() {
     setIsLoadingAvailability(true);
     setAvailabilityReason(null);
     try {
-      // Get dates from current month and next month
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -650,6 +624,10 @@ export default function ClientBooking() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  /**
+   * Coleta dados do cliente e abre o diálogo de pagamento.
+   * O booking NÃO é criado aqui — só após confirmação do pagamento (onPaid/onPayLater).
+   */
   const handleBookingSubmit = async () => {
     if (!selectedService || !selectedEmployee || !selectedDate || !selectedTime || !company) return;
     if (isSubmitting) return;
@@ -657,6 +635,7 @@ export default function ClientBooking() {
     setIsSubmitting(true);
     setIsLoading(true);
     try {
+      // Garante que o cliente existe (sem criar booking ainda)
       let clientId;
 
       if (user && client) {
@@ -682,75 +661,28 @@ export default function ClientBooking() {
         clientId = clientData.id;
       }
 
-      const isCombo = selectedService.id?.startsWith?.('combo:');
-      const bookingDate = format(selectedDate, 'yyyy-MM-dd');
-      const [shStr, smStr] = (selectedTime || '00:00').split(':');
-      const sh = Number(shStr) || 0;
-      const sm = Number(smStr) || 0;
-      const duration = Number(selectedService.duration_minutes) || 30;
-      const normalizedSelectedTime = `${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`;
-      const startISO = `${bookingDate}T${normalizedSelectedTime}:00-03:00`;
-      const endISO = new Date(new Date(startISO).getTime() + duration * 60000).toISOString();
-
-      const payloadBase: any = {
-        company_id: company.id,
-        employee_id: selectedEmployee.id,
-        service_id: isCombo ? null : selectedService.id,
-        combo_id: isCombo ? selectedService.id.replace('combo:', '') : null,
-        booking_time: `${normalizedSelectedTime}:00`,
-        start_time: startISO,
-        end_time: endISO,
-        booking_date: bookingDate,
-        duration_minutes: duration,
-        price: selectedService.price,
-        notes: formData.notes,
-        client_id: clientId,
-        booking_status: 'pending'
-      };
-
-      const { data: bookingData, error: bookingError } = await supabase
-        .from('bookings')
-        .insert([payloadBase])
-        .select()
-        .single();
-
-      if (bookingError) {
-        console.error("Booking insert error:", bookingError);
-        throw new Error(bookingError.message || 'Erro ao criar agendamento. Tente novamente.');
-      }
-      const newBookingId = bookingData.id;
-      setCreatedBookingId(newBookingId);
-
-      if (newBookingId) {
-        supabase.functions
-          .invoke('notify-booking-event', {
-            body: { booking_id: newBookingId, event_key: 'booking_pending' },
-          })
-          .catch((err) => console.warn('[notify-booking-event] pending failed:', err));
-      }
-
-      // Pagamento online habilitado → abre o diálogo de pagamento direto,
-      // sem precisar do passo 6/7 manual.
-      if (paymentSettings.enabled && paymentSettings.mode !== 'none' && newBookingId) {
-        setPaymentDialog({
-          open: true,
-          bookingId: newBookingId,
-          amount: selectedService?.price || 0,
-          allowLater: true,
-          openedOnce: true,
-        });
-      } else {
-        setStep(6);
-      }
-      toast({
-        title: "Agendamento realizado!",
-        description: "Seu agendamento foi registrado com sucesso."
+      // Abre o dialog de pagamento — booking será criado no callback onPaid ou onPayLater
+      setPaymentDialog({
+        open: true,
+        bookingId: undefined, // ainda não existe
+        amount: selectedService?.price || 0,
+        allowLater: true,
+        openedOnce: false,
+        // Dados do cliente para o dialog usar na criação do booking
+        _clientId: clientId,
+        _serviceId: selectedService?.id || '',
+        _employeeId: selectedEmployee?.id || '',
+        _companyId: company.id,
+        _clientName: client?.name || formData.client_name,
+        _clientEmail: client?.email || formData.client_email,
+        _clientPhone: client?.phone || formData.client_phone,
+        _notes: formData.notes,
       });
     } catch (error) {
-      console.error("Erro ao criar agendamento:", error);
+      console.error("Erro ao preparar agendamento:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível realizar o agendamento. Tente novamente.",
+        description: "Não foi possível iniciar o agendamento. Tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -759,21 +691,21 @@ export default function ClientBooking() {
     }
   };
 
+  /**
+   * Abre o dialog de pagamento para o booking já criado.
+   * Usado quando o usuário volta ao step 6 e clica em 'Pagar agora'.
+   */
   const openPaymentDialog = () => {
     if (!createdBookingId || !company) return;
     setPaymentDialog({
       open: true,
       bookingId: createdBookingId,
       amount: selectedService?.price || 0,
-      allowLater: true,
+      allowLater: false,
       openedOnce: true,
     });
   };
 
-  /**
-   * Aplica ao card do step exatamente a configuração salva em Personalização
-   * para a section correspondente (services / professionals).
-   */
   const stepCardStyles = (section: "services" | "professionals"): Record<string, any> => {
     const cfg = customization?.[section]?.cards;
     const styles: Record<string, any> = { ...getCardStyles(cfg) };
@@ -792,6 +724,33 @@ export default function ClientBooking() {
     key: "title_typography" | "description_typography" | "price_typography"
   ) => getTypographyStyles(customization?.[section]?.cards?.[key], customization?.body);
 
+  const customStyles = generateCustomStyles();
+
+  const steps = customization?.steps || {};
+  const cfgServices = steps.services || {};
+  const cfgProfessional = steps.professional || {};
+  const cfgCalendar = steps.calendar || {};
+  const cfgSlots = steps.slots || {};
+  const cfgLogin = steps.login || {};
+  const cfgConfirm = steps.confirmation || {};
+
+  const stepContainerBase = (cfg: any): React.CSSProperties => ({
+    background: cfg?.container_background_type === 'gradient' && cfg?.container_background_gradient
+      ? `linear-gradient(${cfg.container_background_gradient.angle || 0}deg, ${cfg.container_background_gradient.colors?.join(', ') || ''})`
+      : cfg?.container_background_color || '#ffffff',
+    borderRadius: cfg?.container_border_radius != null ? `${cfg.container_border_radius}px` : '12px',
+  });
+
+  const stepBtnStyle = (cfg: any, isHover = false): React.CSSProperties => {
+    if (!cfg) return { backgroundColor: '#3b82f6', color: '#fff', borderRadius: '8px', padding: '10px 24px' };
+    return getButtonStyles(cfg, isHover);
+  };
+
+  const stepTitleStyle = (cfg: any): React.CSSProperties => getTypographyStyles(cfg, customization?.body);
+  const stepCheckColor = (cfg: any) => cfg?.check_color || '#3b82f6';
+
+  const isPayLater = paymentDialog._clientId != null && createdBookingId == null;
+  const isPaid = paymentDialog.wasPaid === true;
 
   const renderStep = () => {
     switch (step) {
@@ -1213,7 +1172,7 @@ export default function ClientBooking() {
                     {cfgLogin.back_button?.typography?.text || 'Voltar'}
                   </Button>
                   <Button onClick={handleBookingSubmit} disabled={isLoading} className="flex-1" style={stepBtnStyle(cfgLogin.continue_button)}>
-                    {isLoading ? (cfgLogin.continue_button?.typography?.text || 'Agendando...') : (cfgLogin.continue_button?.typography?.text || 'Confirmar Agendamento')}
+                    {isLoading ? (cfgLogin.continue_button?.typography?.text || 'Aguarde...') : (cfgLogin.continue_button?.typography?.text || 'Confirmar Agendamento')}
                   </Button>
                 </div>
               </CardContent>
@@ -1315,10 +1274,10 @@ export default function ClientBooking() {
                   Você receberá um e-mail de confirmação em breve.
                 </p>
                 <Badge
-                  variant={isPaidOnce ? "default" : "secondary"}
-                  className={isPaidOnce ? "bg-green-500 hover:bg-green-600" : ""}
+                  variant={isPaid ? "default" : "secondary"}
+                  className={isPaid ? "bg-green-500 hover:bg-green-600" : ""}
                 >
-                  {isPaidOnce
+                  {isPaid
                     ? "Pago"
                     : paymentSettings.enabled
                       ? "Aguardando pagamento"
@@ -1326,7 +1285,7 @@ export default function ClientBooking() {
                 </Badge>
               </div>
 
-              {paymentSettings.enabled && createdBookingId && !isPaidOnce && (
+              {paymentSettings.enabled && createdBookingId && !isPaid && (
                 <Button
                   onClick={openPaymentDialog}
                   className="w-full"
@@ -1357,33 +1316,6 @@ export default function ClientBooking() {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
   }
 
-  const customStyles = generateCustomStyles();
-
-  // --- Steps customization helpers ---
-  const steps = customization?.steps || {};
-  const cfgServices = steps.services || {};
-  const cfgProfessional = steps.professional || {};
-  const cfgCalendar = steps.calendar || {};
-  const cfgSlots = steps.slots || {};
-  const cfgLogin = steps.login || {};
-  const cfgConfirm = steps.confirmation || {};
-
-  const stepContainerBase = (cfg: any): React.CSSProperties => ({
-    background: cfg?.container_background_type === 'gradient' && cfg?.container_background_gradient
-      ? `linear-gradient(${cfg.container_background_gradient.angle || 0}deg, ${cfg.container_background_gradient.colors?.join(', ') || ''})`
-      : cfg?.container_background_color || '#ffffff',
-    borderRadius: cfg?.container_border_radius != null ? `${cfg.container_border_radius}px` : '12px',
-  });
-
-  const stepBtnStyle = (cfg: any, isHover = false): React.CSSProperties => {
-    if (!cfg) return { backgroundColor: '#3b82f6', color: '#fff', borderRadius: '8px', padding: '10px 24px' };
-    return getButtonStyles(cfg, isHover);
-  };
-
-  const stepTitleStyle = (cfg: any): React.CSSProperties => getTypographyStyles(cfg, customization?.body);
-  const stepCheckColor = (cfg: any) => cfg?.check_color || '#3b82f6';
-
-
   let logoSrc = customStyles.logoUrl;
   if (!logoSrc && customization?.logo_upload_path) {
     logoSrc = supabase.storage
@@ -1391,9 +1323,36 @@ export default function ClientBooking() {
       .getPublicUrl(customization.logo_upload_path).data.publicUrl;
   }
 
+  // Dados necessários para criar o booking no callback do dialog
+  const buildBookingData = (clientId: string) => {
+    const isCombo = selectedService?.id?.startsWith?.('combo:');
+    const bookingDate = format(selectedDate!, 'yyyy-MM-dd');
+    const [shStr, smStr] = (selectedTime || '00:00').split(':');
+    const sh = Number(shStr) || 0;
+    const sm = Number(smStr) || 0;
+    const duration = Number(selectedService?.duration_minutes) || 30;
+    const normalizedSelectedTime = `${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`;
+    const startISO = `${bookingDate}T${normalizedSelectedTime}:00-03:00`;
+    const endISO = new Date(new Date(startISO).getTime() + duration * 60000).toISOString();
+    return {
+      company_id: company!.id,
+      employee_id: selectedEmployee!.id,
+      service_id: isCombo ? null : selectedService!.id,
+      combo_id: isCombo ? selectedService!.id.replace('combo:', '') : null,
+      booking_time: `${normalizedSelectedTime}:00`,
+      start_time: startISO,
+      end_time: endISO,
+      booking_date: bookingDate,
+      duration_minutes: duration,
+      price: selectedService!.price,
+      notes: formData.notes,
+      client_id: clientId,
+      booking_status: 'pending',
+    };
+  };
+
   return (
     <div className="min-h-screen bg-gradient-hero">
-      {/* Header */}
       <header className="border-b border-primary/20 bg-card/30 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -1418,16 +1377,15 @@ export default function ClientBooking() {
         {renderStep()}
       </div>
 
-      {paymentDialog.open && paymentDialog.bookingId && company && (
+      {paymentDialog.open && company && (
         <BookingPaymentDialog
           open={paymentDialog.open}
           onClose={() => {
-            console.log("[BOOKING] Closing payment dialog. Current wasPaid:", paymentDialog.wasPaid);
             setPaymentDialog(prev => ({ ...prev, open: false }));
           }}
           bookingId={paymentDialog.bookingId}
           companyId={company.id}
-          amount={paymentDialog.amount || 0}
+          amount={paymentDialog.amount || selectedService?.price || 0}
           payerInitial={{
             name: client?.name || formData.client_name,
             email: client?.email || formData.client_email,
@@ -1435,24 +1393,59 @@ export default function ClientBooking() {
             cpf_cnpj: client?.cpf,
           }}
           allowPayLater={paymentDialog.allowLater}
-          onPayLater={() => {
-            console.log("[BOOKING] Pay later selected.");
+          onPayLater={async () => {
+            // Criar booking agora (pagará no local)
+            let clientId = paymentDialog._clientId;
+            if (!clientId) {
+              const { data: cd } = await supabase
+                .from('clients')
+                .upsert([{ company_id: company.id, name: formData.client_name, email: formData.client_email, phone: formData.client_phone }], { onConflict: 'company_id,email' })
+                .select().single();
+              clientId = cd?.id;
+            }
+            const { data: booking, error: bErr } = await supabase
+              .from('bookings')
+              .insert([buildBookingData(clientId!)])
+              .select().single();
+            if (bErr || !booking) {
+              toast({ title: "Erro", description: "Não foi possível registrar o agendamento.", variant: "destructive" });
+              return;
+            }
+            const newId = booking.id;
+            setCreatedBookingId(newId);
+            supabase.functions
+              .invoke('notify-booking-event', { body: { booking_id: newId, event_key: 'booking_pending' } })
+              .catch((e: any) => console.warn('[notify-booking-event] failed:', e));
             setPaymentDialog(prev => ({ ...prev, open: false, wasPaid: false }));
             setStep(6);
-            toast({
-              title: "Tudo certo!",
-              description: "Você poderá pagar no local do atendimento.",
-            });
+            toast({ title: "Agendamento registrado!", description: "Você pagará no local do atendimento." });
           }}
-          onPaid={() => {
-            console.log("[BOOKING] Payment confirmed callback.");
-            setPaymentDialog(prev => ({ ...prev, wasPaid: true }));
-            setIsPaidOnce(true);
+          onPaid={async () => {
+            // Booking ainda não existe — criar agora (pagamento online confirmado)
+            let clientId = paymentDialog._clientId;
+            if (!clientId) {
+              const { data: cd } = await supabase
+                .from('clients')
+                .upsert([{ company_id: company.id, name: formData.client_name, email: formData.client_email, phone: formData.client_phone }], { onConflict: 'company_id,email' })
+                .select().single();
+              clientId = cd?.id;
+            }
+            const { data: booking, error: bErr } = await supabase
+              .from('bookings')
+              .insert([{ ...buildBookingData(clientId!), booking_status: 'confirmed', payment_status: 'paid' }])
+              .select().single();
+            if (bErr || !booking) {
+              toast({ title: "Erro", description: "Não foi possível confirmar o agendamento.", variant: "destructive" });
+              return;
+            }
+            const newId = booking.id;
+            setCreatedBookingId(newId);
+            supabase.functions
+              .invoke('notify-booking-event', { body: { booking_id: newId, event_key: 'booking_confirmed' } })
+              .catch((e: any) => console.warn('[notify-booking-event] failed:', e));
+            setPaymentDialog(prev => ({ ...prev, open: false, wasPaid: true }));
             setStep(6);
-            toast({
-              title: "Pagamento confirmado!",
-              description: "Seu agendamento foi validado.",
-            });
+            toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
           }}
         />
       )}
