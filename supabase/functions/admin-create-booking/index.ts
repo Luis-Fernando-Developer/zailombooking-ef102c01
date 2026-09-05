@@ -224,6 +224,7 @@ serve(async (req) => {
       client_name,
       client_email,
       client_phone,
+      client_id: client_id_input,
       client_password,
       is_new_client,
       payment_status: payment_status_input,
@@ -239,9 +240,12 @@ serve(async (req) => {
       ? String(booking_status_input)
       : 'confirmed'
 
-    let clientId
+    let clientId = client_id_input || null
 
-    if (is_new_client) {
+    // Se já recebeu client_id direto (fluxo BookingPaymentDialog), usa sem buscar
+    if (clientId) {
+      // Nada a fazer — clientId já está definido
+    } else if (is_new_client) {
       const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
         email: client_email,
         password: client_password || '123456',
