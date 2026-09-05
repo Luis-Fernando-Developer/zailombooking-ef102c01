@@ -1315,18 +1315,18 @@ export default function ClientBooking() {
                   Você receberá um e-mail de confirmação em breve.
                 </p>
                 <Badge
-                  variant={paymentDialog.wasPaid ? "default" : "secondary"}
-                  className={paymentDialog.wasPaid ? "bg-green-500 hover:bg-green-600" : ""}
+                  variant={isPaidOnce ? "default" : "secondary"}
+                  className={isPaidOnce ? "bg-green-500 hover:bg-green-600" : ""}
                 >
-                  {paymentDialog.wasPaid
+                  {isPaidOnce
                     ? "Pago"
-                    : paymentSettings.enabled && createdBookingId
+                    : paymentSettings.enabled
                       ? "Aguardando pagamento"
                       : "Aguardando confirmação"}
                 </Badge>
               </div>
 
-              {paymentSettings.enabled && createdBookingId && !paymentDialog.wasPaid && !isPaidOnce && (
+              {paymentSettings.enabled && createdBookingId && !isPaidOnce && (
                 <Button
                   onClick={openPaymentDialog}
                   className="w-full"

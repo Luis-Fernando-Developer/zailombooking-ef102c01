@@ -82,7 +82,11 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         });
 
         if (!error && (data as any)?.is_paid) {
-          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (db)");
+          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (db) - updating booking status");
+          // Atualiza status no banco para confirmed antes de chamar onPaid
+          await supabase.rpc("update_booking_payment_confirmed", { _booking_id: bookingId }).catch((e) => {
+            console.error("[PAYMENT_DIALOG] Failed to update booking status:", e);
+          });
           confirm();
           return;
         }
@@ -95,7 +99,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           });
           console.log("[PAYMENT_DIALOG] Gateway check:", remote);
           if ((remote as any)?.is_paid) {
-            console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (gateway)");
+            console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (gateway) - updating booking status");
+            await supabase.rpc("update_booking_payment_confirmed", { _booking_id: bookingId }).catch((e) => {
+              console.error("[PAYMENT_DIALOG] Failed to update booking status:", e);
+            });
             confirm();
           }
         }
