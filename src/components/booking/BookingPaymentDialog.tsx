@@ -8,36 +8,58 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, QrCode, CreditCard, Receipt, CheckCircle2, Copy } from "lucide-react";
 
+interface BookingData {
+  company_id: string;
+  employee_id: string;
+  service_id?: string;
+  combo_id?: string;
+  booking_time: string;
+  start_time: string;
+  end_time: string;
+  booking_date: string;
+  duration_minutes: number;
+  price: number;
+  notes?: string;
+  client_id: string;
+  booking_status?: string;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
-  bookingId: string;
+  bookingId?: string;
   companyId: string;
   amount: number;
   payerInitial: { name: string; email?: string; phone?: string; cpf_cnpj?: string };
   onPaid: () => void;
   allowPayLater?: boolean;
   onPayLater?: () => void;
+  /** Dados para criar booking novo quando bookingId não é fornecido */
+  bookingData?: BookingData;
 }
 
 const ICON: Record<string, any> = { PIX: QrCode, CREDIT_CARD: CreditCard, DEBIT_CARD: CreditCard, BOLETO: Receipt };
 const LABEL: Record<string, string> = { PIX: "PIX", CREDIT_CARD: "Cartão de Crédito", DEBIT_CARD: "Cartão de Débito", BOLETO: "Boleto" };
 const KEY_TO_METHOD: Record<string, string> = { pix: "PIX", credit_card: "CREDIT_CARD", debit_card: "DEBIT_CARD", boleto: "BOLETO" };
 
-export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater }: Props) {
+export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater, bookingData }: Props) {
   const { toast } = useToast();
   const [methods, setMethods] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>("PIX");
   const [payer, setPayer] = useState(payerInitial);
   const [loading, setLoading] = useState(false);
   const [payment, setPayment] = useState<any>(null);
-  
   const [isPaid, setIsPaid] = useState(false);
+  const [activeBookingId, setActiveBookingId] = useState<string | undefined>(bookingId);
+
+  // Mantém activeBookingId em sync com prop
+  useEffect(() => {
+    if (bookingId) setActiveBookingId(bookingId);
+  }, [bookingId]);
 
   useEffect(() => {
-    console.log("[PAYMENT_DIALOG] Booking ID:", bookingId);
-    console.log("[PAYMENT_DIALOG] Payer Info:", payerInitial);
     if (!open) return;
+    setActiveBookingId(bookingId);
     (async () => {
       const { data } = await supabase
         .from("company_payment_settings")
@@ -52,13 +74,8 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
     })();
   }, [open, companyId]);
 
-  // Polling em duas camadas (mesmo padrão do fluxo de cadastro):
-  // 1) RPC pública SECURITY DEFINER (imune a RLS)
-  // 2) A cada 3 ciclos, verificação ativa no gateway, caso o webhook não chegue.
   useEffect(() => {
-    if (!payment?.id || isPaid || !open) return;
-
-    console.log("[PAYMENT_DIALOG] Starting poll for booking:", bookingId);
+    if (!activeBookingId || isPaid || !open) return;
 
     let isSubscribed = true;
     let tick = 0;
@@ -78,13 +95,12 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
       try {
         const { data, error } = await supabase.rpc("check_booking_payment_status", {
-          _booking_id: bookingId,
+          _booking_id: activeBookingId,
         });
 
         if (!error && (data as any)?.is_paid) {
-          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (db) - updating booking status");
-          // Atualiza status no banco para confirmed antes de chamar onPaid
-          await supabase.rpc("update_booking_payment_confirmed", { _booking_id: bookingId }).catch((e) => {
+          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (db)");
+          await supabase.rpc("update_booking_payment_confirmed", { _booking_id: activeBookingId }).catch((e) => {
             console.error("[PAYMENT_DIALOG] Failed to update booking status:", e);
           });
           confirm();
@@ -92,15 +108,13 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         }
         if (error) console.error("[PAYMENT_DIALOG] RPC Error:", error);
 
-        // Fallback ativo: pergunta direto ao gateway a cada ~6s.
         if (tick % 3 === 0) {
           const { data: remote } = await supabase.functions.invoke("booking-payment-status", {
-            body: { booking_id: bookingId },
+            body: { booking_id: activeBookingId },
           });
-          console.log("[PAYMENT_DIALOG] Gateway check:", remote);
           if ((remote as any)?.is_paid) {
-            console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (gateway) - updating booking status");
-            await supabase.rpc("update_booking_payment_confirmed", { _booking_id: bookingId }).catch((e) => {
+            console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (gateway)");
+            await supabase.rpc("update_booking_payment_confirmed", { _booking_id: activeBookingId }).catch((e) => {
               console.error("[PAYMENT_DIALOG] Failed to update booking status:", e);
             });
             confirm();
@@ -115,16 +129,53 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       isSubscribed = false;
       clearInterval(t);
     };
-  }, [payment?.id, bookingId, isPaid, open]);
+  }, [activeBookingId, isPaid, open]);
 
+  /**
+   * Cria o booking via RPC (quando ainda não existe).
+   * Retorna o ID do booking criado.
+   */
+  async function createBooking(): Promise<string> {
+    if (!bookingData) throw new Error("bookingData é necessário para criar o booking");
 
+    const { data, error } = await supabase.functions.invoke("admin-create-booking", {
+      method: "POST",
+      body: {
+        company_id: bookingData.company_id,
+        company_slug: "", // não usado na criação direta
+        service_id: bookingData.service_id || null,
+        combo_id: bookingData.combo_id || null,
+        employee_id: bookingData.employee_id,
+        booking_date: bookingData.booking_date,
+        booking_time: bookingData.booking_time,
+        duration_minutes: bookingData.duration_minutes,
+        price: bookingData.price,
+        client_id: bookingData.client_id,
+        notes: bookingData.notes || "",
+        booking_status: bookingData.booking_status || "pending",
+      },
+    });
 
+    if (error) throw new Error(error.message || "Erro ao criar agendamento");
+    if ((data as any)?.error) throw new Error((data as any).error);
+
+    return (data as any).booking_id || (data as any)?.id;
+  }
 
   async function generate() {
     setLoading(true);
     try {
+      // Se não temos bookingId, criar o booking primeiro
+      let currentBookingId = activeBookingId;
+      if (!currentBookingId) {
+        if (!bookingData) throw new Error("bookingData é necessário para criar o booking");
+        currentBookingId = await createBooking();
+        setActiveBookingId(currentBookingId);
+        console.log("[PAYMENT_DIALOG] Booking criado:", currentBookingId);
+      }
+
       const { data, error } = await supabase.functions.invoke("booking-create-payment", {
-        body: { booking_id: bookingId, method: selected, payer, amount },
+        body: { booking_id: currentBookingId, method: selected, payer, amount },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -181,9 +232,9 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
                 <div className="space-y-2">
                   <Label>CPF/CNPJ do pagador</Label>
-                  <Input 
-                    value={payer.cpf_cnpj || ""} 
-                    onChange={(e) => setPayer({ ...payer, cpf_cnpj: e.target.value.replace(/\D/g, "") })} 
+                  <Input
+                    value={payer.cpf_cnpj || ""}
+                    onChange={(e) => setPayer({ ...payer, cpf_cnpj: e.target.value.replace(/\D/g, "") })}
                     placeholder="Apenas números"
                   />
                 </div>
@@ -196,10 +247,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
             {payment && payment.method === "PIX" && payment.pix_qr_code && (
               <div className="space-y-3 text-center">
-                <img 
-                  src={payment.pix_qr_code.startsWith('data:') ? payment.pix_qr_code : `data:image/png;base64,${payment.pix_qr_code}`} 
-                  alt="QR PIX" 
-                  className="mx-auto w-56 h-56 bg-white p-2 rounded-lg" 
+                <img
+                  src={payment.pix_qr_code.startsWith('data:') ? payment.pix_qr_code : `data:image/png;base64,${payment.pix_qr_code}`}
+                  alt="QR PIX"
+                  className="mx-auto w-56 h-56 bg-white p-2 rounded-lg"
                 />
                 <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(payment.pix_payload || ""); toast({ title: "Copiado!" }); }}>
                   <Copy className="w-3 h-3 mr-1" /> Copiar código PIX
