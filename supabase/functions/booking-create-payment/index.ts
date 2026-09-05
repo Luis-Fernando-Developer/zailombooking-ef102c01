@@ -31,55 +31,53 @@ serve(async (req) => {
 
     const { booking_id, method, payer, amount: bodyAmount, bookingData } = body
 
-    let resolvedBookingId = booking_id;
+    // --- RESOLUÇÃO DE booking_id ---
+    // Fluxo 1: booking_id já fornecido diretamente (fluxo novo via dialog)
+    // Fluxo 2: sem booking_id mas com bookingData → cria inline (fallback / fluxo antigo)
+    // Fluxo 3: sem nenhum → erro claro
+    let resolvedBookingId: string | undefined = booking_id;
 
-    // Se não recebeu booking_id mas recebeu bookingData, criar o booking aqui
     if (!resolvedBookingId && bookingData) {
-      console.log('[BOOKING_PAYMENT] booking_id não fornecido — criando booking via RPC inline');
-
-      // Validação defensiva de campos obrigatórios
+      // Validação mínima de bookingData antes de tentar criar
+      const bd = bookingData as Record<string, unknown>;
       const required = ['company_id', 'client_id', 'employee_id', 'booking_date', 'booking_time'];
-      for (const field of required) {
-        if (!bookingData[field]) {
-          throw new Error(`bookingData.${field} é obrigatório para criar o agendamento`);
-        }
+      const missing = required.filter((f) => !bd[f]);
+      if (missing.length) {
+        throw new Error(`bookingData campos obrigatórios faltando: ${missing.join(', ')}`);
       }
 
-      try {
-        // start_time e end_time em formato ISO (supabase usa timestamptz)
-        const rawTime = (bookingData.start_time || bookingData.booking_time || '').toString().slice(0, 8);
-        const datePart = bookingData.booking_date;
-        const startTs = `${datePart}T${rawTime}:00-03:00`;
-        const duration = Number(bookingData.duration_minutes) || 60;
-        const endTs = new Date(new Date(startTs).getTime() + duration * 60000).toISOString();
+      const rawTime = (String(bd.start_time || bd.booking_time || '00:00:00')).slice(0, 8);
+      const datePart = String(bd.booking_date);
+      const startTs = `${datePart}T${rawTime}:00-03:00`;
+      const duration = Number(bd.duration_minutes) || 60;
+      const endTs = new Date(new Date(startTs).getTime() + duration * 60000).toISOString();
 
-        const { data: newBooking, error: cbErr } = await supabaseClient.rpc('create_booking', {
-          p_company_id: bookingData.company_id,
-          p_employee_id: bookingData.employee_id,
-          p_service_id: bookingData.service_id || null,
-          p_combo_id: bookingData.combo_id || null,
-          p_booking_date: bookingData.booking_date,
-          p_booking_time: bookingData.booking_time,
-          p_start_time: startTs,
-          p_end_time: endTs,
-          p_duration_minutes: bookingData.duration_minutes,
-          p_price: bookingData.price,
-          p_client_id: bookingData.client_id,
-          p_notes: bookingData.notes || '',
-          p_booking_status: bookingData.booking_status || 'pending',
-          p_company_slug: bookingData.company_slug || null,
-        });
-        if (cbErr) throw new Error(`Erro ao criar booking: ${cbErr.message}`);
-        if (!newBooking) throw new Error('create_booking RPC não retornou ID do agendamento');
-        resolvedBookingId = newBooking;
-        console.log('[BOOKING_PAYMENT] Booking criado inline, ID:', resolvedBookingId);
-      } catch (e: any) {
-        console.error('[BOOKING_PAYMENT] Falha ao criar booking inline:', e.message);
-        throw new Error(`Não foi possível criar o agendamento: ${e.message}`);
-      }
+      const { data: newId, error: cbErr } = await supabaseClient.rpc('create_booking', {
+        p_company_id: String(bd.company_id),
+        p_employee_id: String(bd.employee_id),
+        p_service_id: bd.service_id ? String(bd.service_id) : null,
+        p_combo_id: bd.combo_id ? String(bd.combo_id) : null,
+        p_booking_date: String(bd.booking_date),
+        p_booking_time: String(bd.booking_time),
+        p_start_time: startTs,
+        p_end_time: endTs,
+        p_duration_minutes: Number(bd.duration_minutes) || 60,
+        p_price: Number(bd.price) || 0,
+        p_client_id: String(bd.client_id),
+        p_notes: String(bd.notes || ''),
+        p_booking_status: String(bd.booking_status || 'pending'),
+        p_company_slug: bd.company_slug ? String(bd.company_slug) : null,
+      });
+
+      if (cbErr) throw new Error(`create_booking RPC falhou: ${cbErr.message}`);
+      if (!newId) throw new Error('create_booking RPC não retornou ID');
+      resolvedBookingId = String(newId);
+      console.log('[BOOKING_PAYMENT] Booking criado inline, ID:', resolvedBookingId);
     }
 
-    if (!resolvedBookingId) throw new Error('booking_id é obrigatório — nem o dialog nem a função conseguiram criar o booking')
+    if (!resolvedBookingId) {
+      throw new Error('booking_id é obrigatório — nem o dialog nem a função conseguiram criar o booking');
+    }
 
     // 3. Buscar agendamento e empresa
     const { data: booking, error: bErr } = await supabaseClient
