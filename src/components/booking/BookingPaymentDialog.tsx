@@ -132,22 +132,38 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   }, [activeBookingId, isPaid, open]);
 
   /**
-   * Cria o booking via RPC (quando ainda não existe).
+   * Cria o booking via admin-create-booking (quando ainda não existe).
    * Retorna o ID do booking criado.
    */
   async function createBooking(): Promise<string> {
     if (!bookingData) throw new Error("bookingData é necessário para criar o booking");
 
+    // Validação defensiva dos campos obrigatórios
+    const required: (keyof BookingData)[] = ['company_id', 'client_id', 'employee_id', 'booking_date', 'booking_time'];
+    const missing = required.filter((f) => !bookingData[f]);
+    if (missing.length) {
+      throw new Error(`Campos obrigatórios faltando no bookingData: ${missing.join(', ')}`);
+    }
+
+    // Calcula start_time e end_time em ISO se não vierem prontos
+    const rawTime = (bookingData.start_time || bookingData.booking_time || '00:00:00').toString().slice(0, 8);
+    const datePart = bookingData.booking_date;
+    const startTs = `${datePart}T${rawTime}:00-03:00`;
+    const duration = Number(bookingData.duration_minutes) || 60;
+    const endTs = new Date(new Date(startTs).getTime() + duration * 60000).toISOString();
+
     const { data, error } = await supabase.functions.invoke("admin-create-booking", {
       method: "POST",
       body: {
         company_id: bookingData.company_id,
-        company_slug: "",
+        company_slug: bookingData.company_slug || "",
         service_id: bookingData.service_id || null,
         combo_id: bookingData.combo_id || null,
         employee_id: bookingData.employee_id,
         booking_date: bookingData.booking_date,
         booking_time: bookingData.booking_time,
+        start_time: startTs,
+        end_time: endTs,
         duration_minutes: bookingData.duration_minutes,
         price: bookingData.price,
         client_id: bookingData.client_id,

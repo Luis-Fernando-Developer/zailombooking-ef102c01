@@ -36,7 +36,23 @@ serve(async (req) => {
     // Se não recebeu booking_id mas recebeu bookingData, criar o booking aqui
     if (!resolvedBookingId && bookingData) {
       console.log('[BOOKING_PAYMENT] booking_id não fornecido — criando booking via RPC inline');
+
+      // Validação defensiva de campos obrigatórios
+      const required = ['company_id', 'client_id', 'employee_id', 'booking_date', 'booking_time'];
+      for (const field of required) {
+        if (!bookingData[field]) {
+          throw new Error(`bookingData.${field} é obrigatório para criar o agendamento`);
+        }
+      }
+
       try {
+        // start_time e end_time em formato ISO (supabase usa timestamptz)
+        const rawTime = (bookingData.start_time || bookingData.booking_time || '').toString().slice(0, 8);
+        const datePart = bookingData.booking_date;
+        const startTs = `${datePart}T${rawTime}:00-03:00`;
+        const duration = Number(bookingData.duration_minutes) || 60;
+        const endTs = new Date(new Date(startTs).getTime() + duration * 60000).toISOString();
+
         const { data: newBooking, error: cbErr } = await supabaseClient.rpc('create_booking', {
           p_company_id: bookingData.company_id,
           p_employee_id: bookingData.employee_id,
@@ -44,18 +60,21 @@ serve(async (req) => {
           p_combo_id: bookingData.combo_id || null,
           p_booking_date: bookingData.booking_date,
           p_booking_time: bookingData.booking_time,
-          p_start_time: bookingData.start_time || bookingData.booking_time,
-          p_end_time: bookingData.end_time,
+          p_start_time: startTs,
+          p_end_time: endTs,
           p_duration_minutes: bookingData.duration_minutes,
           p_price: bookingData.price,
           p_client_id: bookingData.client_id,
           p_notes: bookingData.notes || '',
           p_booking_status: bookingData.booking_status || 'pending',
+          p_company_slug: bookingData.company_slug || null,
         });
         if (cbErr) throw new Error(`Erro ao criar booking: ${cbErr.message}`);
+        if (!newBooking) throw new Error('create_booking RPC não retornou ID do agendamento');
         resolvedBookingId = newBooking;
         console.log('[BOOKING_PAYMENT] Booking criado inline, ID:', resolvedBookingId);
       } catch (e: any) {
+        console.error('[BOOKING_PAYMENT] Falha ao criar booking inline:', e.message);
         throw new Error(`Não foi possível criar o agendamento: ${e.message}`);
       }
     }
