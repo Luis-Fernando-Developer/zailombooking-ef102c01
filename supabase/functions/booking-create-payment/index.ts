@@ -29,8 +29,38 @@ serve(async (req) => {
       throw new Error('Corpo da requisição inválido')
     }
 
-    const { booking_id, method, payer, amount: bodyAmount } = body
-    if (!booking_id) throw new Error('booking_id é obrigatório')
+    const { booking_id, method, payer, amount: bodyAmount, bookingData } = body
+
+    let resolvedBookingId = booking_id;
+
+    // Se não recebeu booking_id mas recebeu bookingData, criar o booking aqui
+    if (!resolvedBookingId && bookingData) {
+      console.log('[BOOKING_PAYMENT] booking_id não fornecido — criando booking via RPC inline');
+      try {
+        const { data: newBooking, error: cbErr } = await supabaseClient.rpc('create_booking', {
+          p_company_id: bookingData.company_id,
+          p_employee_id: bookingData.employee_id,
+          p_service_id: bookingData.service_id || null,
+          p_combo_id: bookingData.combo_id || null,
+          p_booking_date: bookingData.booking_date,
+          p_booking_time: bookingData.booking_time,
+          p_start_time: bookingData.start_time || bookingData.booking_time,
+          p_end_time: bookingData.end_time,
+          p_duration_minutes: bookingData.duration_minutes,
+          p_price: bookingData.price,
+          p_client_id: bookingData.client_id,
+          p_notes: bookingData.notes || '',
+          p_booking_status: bookingData.booking_status || 'pending',
+        });
+        if (cbErr) throw new Error(`Erro ao criar booking: ${cbErr.message}`);
+        resolvedBookingId = newBooking;
+        console.log('[BOOKING_PAYMENT] Booking criado inline, ID:', resolvedBookingId);
+      } catch (e: any) {
+        throw new Error(`Não foi possível criar o agendamento: ${e.message}`);
+      }
+    }
+
+    if (!resolvedBookingId) throw new Error('booking_id é obrigatório — nem o dialog nem a função conseguiram criar o booking')
 
     // 3. Buscar agendamento e empresa
     const { data: booking, error: bErr } = await supabaseClient

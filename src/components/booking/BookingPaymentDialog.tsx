@@ -142,7 +142,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       method: "POST",
       body: {
         company_id: bookingData.company_id,
-        company_slug: "", // não usado na criação direta
+        company_slug: "",
         service_id: bookingData.service_id || null,
         combo_id: bookingData.combo_id || null,
         employee_id: bookingData.employee_id,
@@ -159,16 +159,16 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
     if (error) throw new Error(error.message || "Erro ao criar agendamento");
     if ((data as any)?.error) throw new Error((data as any).error);
 
-    return (data as any).booking_id || (data as any)?.id;
+    const bookingId = (data as any)?.booking_id || (data as any)?.id;
+    if (!bookingId) throw new Error("admin-create-booking não retornou booking_id");
+    return bookingId;
   }
 
   async function generate() {
     setLoading(true);
     try {
-      // Se não temos bookingId, criar o booking primeiro
       let currentBookingId = activeBookingId;
       if (!currentBookingId) {
-        if (!bookingData) throw new Error("bookingData é necessário para criar o booking");
         currentBookingId = await createBooking();
         setActiveBookingId(currentBookingId);
         console.log("[PAYMENT_DIALOG] Booking criado:", currentBookingId);
@@ -177,7 +177,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       const { data, error } = await supabase.functions.invoke("booking-create-payment", {
         body: { booking_id: currentBookingId, method: selected, payer, amount },
       });
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Erro ao gerar pagamento");
       if ((data as any)?.error) throw new Error((data as any).error);
       setPayment((data as any).payment);
     } catch (e: any) {
