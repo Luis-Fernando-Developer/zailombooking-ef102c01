@@ -83,7 +83,7 @@ serve(async (req) => {
     const { data: booking, error: bErr } = await supabaseClient
       .from('bookings')
       .select('*, company:companies(*)')
-      .eq('id', booking_id)
+      .eq('id', resolvedBookingId)
       .single()
 
     if (bErr || !booking) throw new Error('Agendamento não encontrado')
