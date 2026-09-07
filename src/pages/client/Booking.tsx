@@ -1407,128 +1407,288 @@ export default function ClientBooking() {
         <BookingPaymentDialog
           open={paymentDialog.open}
           onClose={() => {
-            setPaymentDialog(prev => ({ ...prev, open: false }));
+            setPaymentDialog(prev => ({
+              ...prev,
+              open: false,
+            }));
           }}
           bookingId={paymentDialog.bookingId}
           companyId={company.id}
-          amount={paymentDialog.amount || selectedService?.price || 0}
+          amount={
+            paymentDialog.amount ||
+            selectedService?.price ||
+            0
+          }
           payerInitial={{
-            name: client?.name || formData.client_name,
-            email: client?.email || formData.client_email,
-            phone: client?.phone || formData.client_phone,
-            cpf_cnpj: client?.cpf,
+            name:
+              client?.name ||
+              formData.client_name,
+            email:
+              client?.email ||
+              formData.client_email,
+            phone:
+              client?.phone ||
+              formData.client_phone,
+            cpf_cnpj:
+              client?.cpf,
           }}
-          allowPayLater={paymentDialog.allowLater}
+          allowPayLater={
+            paymentDialog.allowLater
+          }
+        
+          /*
+           * IMPORTANTE:
+           * No pagamento online, o booking ainda não existe.
+           * Enviamos os dados necessários para que o
+           * booking-payment possa ser criado sem booking_id.
+           */
+          bookingData={
+            paymentDialog._clientId
+              ? buildBookingData(
+                  paymentDialog._clientId
+                )
+              : undefined
+          }
+        
           onPayLater={async () => {
             // Criar booking agora (pagará no local)
-            let clientId = paymentDialog._clientId;
+            let clientId =
+              paymentDialog._clientId;
+        
             if (!clientId) {
-              const { data: cd } = await supabase
-                .from('clients')
-                .upsert([{ company_id: company.id, name: formData.client_name, email: formData.client_email, phone: formData.client_phone }], { onConflict: 'company_id,email' })
-                .select().single();
+              const { data: cd } =
+                await supabase
+                  .from("clients")
+                  .upsert(
+                    [
+                      {
+                        company_id:
+                          company.id,
+                        name:
+                          formData.client_name,
+                        email:
+                          formData.client_email,
+                        phone:
+                          formData.client_phone,
+                      },
+                    ],
+                    {
+                      onConflict:
+                        "company_id,email",
+                    }
+                  )
+                  .select()
+                  .single();
+        
               clientId = cd?.id;
             }
-            const { data: booking, error: bErr } = await supabase
-              .from('bookings')
-              .insert([buildBookingData(clientId!)])
-              .select().single();
-            if (bErr || !booking) {
-              toast({ title: "Erro", description: "Não foi possível registrar o agendamento.", variant: "destructive" });
-              return;
-            }
-            const newId = booking.id;
-            setCreatedBookingId(newId);
-            supabase.functions
-              .invoke('notify-booking-event', { body: { booking_id: newId, event_key: 'booking_pending' } })
-              .catch((e: any) => console.warn('[notify-booking-event] failed:', e));
-            setPaymentDialog(prev => ({ ...prev, open: false, wasPaid: false }));
-            setStep(6);
-            toast({ title: "Agendamento registrado!", description: "Você pagará no local do atendimento." });
-          }}
-          onPaid={async (paymentId) => {
-            let clientId = paymentDialog._clientId;
-          
-            if (!clientId) {
-              const { data: cd } = await supabase
-                .from("clients")
-                .upsert(
-                  [{
-                    company_id: company.id,
-                    name: formData.client_name,
-                    email: formData.client_email,
-                    phone: formData.client_phone,
-                  }],
-                  { onConflict: "company_id,email" }
-                )
-                .select()
-                .single();
-          
-              clientId = cd?.id;
-            }
-          
-            const { data: booking, error: bErr } = await supabase
+        
+            const {
+              data: booking,
+              error: bErr,
+            } = await supabase
               .from("bookings")
-              .insert([{
-                ...buildBookingData(clientId!),
-                booking_status: "confirmed",
-                payment_status: "paid",
-              }])
+              .insert([
+                buildBookingData(
+                  clientId!
+                ),
+              ])
               .select()
               .single();
-          
+        
             if (bErr || !booking) {
               toast({
                 title: "Erro",
-                description: "Não foi possível confirmar o agendamento.",
-                variant: "destructive",
+                description:
+                  "Não foi possível registrar o agendamento.",
+                variant:
+                  "destructive",
               });
               return;
             }
-          
+        
             const newId = booking.id;
-          
-            // Vincula o pagamento ao booking que acabou de ser criado.
-            const { error: paymentLinkError } = await supabase
+        
+            setCreatedBookingId(
+              newId
+            );
+        
+            supabase.functions
+              .invoke(
+                "notify-booking-event",
+                {
+                  body: {
+                    booking_id:
+                      newId,
+                    event_key:
+                      "booking_pending",
+                  },
+                }
+              )
+              .catch(
+                (e: any) =>
+                  console.warn(
+                    "[notify-booking-event] failed:",
+                    e
+                  )
+              );
+        
+            setPaymentDialog(
+              prev => ({
+                ...prev,
+                open: false,
+                wasPaid: false,
+              })
+            );
+        
+            setStep(6);
+        
+            toast({
+              title:
+                "Agendamento registrado!",
+              description:
+                "Você pagará no local do atendimento.",
+            });
+          }}
+        
+          onPaid={async (
+            paymentId
+          ) => {
+            let clientId =
+              paymentDialog._clientId;
+        
+            if (!clientId) {
+              const { data: cd } =
+                await supabase
+                  .from("clients")
+                  .upsert(
+                    [
+                      {
+                        company_id:
+                          company.id,
+                        name:
+                          formData.client_name,
+                        email:
+                          formData.client_email,
+                        phone:
+                          formData.client_phone,
+                      },
+                    ],
+                    {
+                      onConflict:
+                        "company_id,email",
+                    }
+                  )
+                  .select()
+                  .single();
+        
+              clientId = cd?.id;
+            }
+        
+            /*
+             * O pagamento foi confirmado.
+             * AGORA sim criamos o booking.
+             */
+            const {
+              data: booking,
+              error: bErr,
+            } = await supabase
+              .from("bookings")
+              .insert([
+                {
+                  ...buildBookingData(
+                    clientId!
+                  ),
+                  booking_status:
+                    "confirmed",
+                  payment_status:
+                    "paid",
+                },
+              ])
+              .select()
+              .single();
+        
+            if (bErr || !booking) {
+              toast({
+                title: "Erro",
+                description:
+                  "Não foi possível confirmar o agendamento.",
+                variant:
+                  "destructive",
+              });
+              return;
+            }
+        
+            const newId =
+              booking.id;
+        
+            /*
+             * Agora vinculamos o pagamento
+             * ao booking recém-criado.
+             */
+            const {
+              error:
+                paymentLinkError,
+            } = await supabase
               .from("booking_payments")
               .update({
-                booking_id: newId,
+                booking_id:
+                  newId,
               })
-              .eq("id", paymentId);
-          
+              .eq(
+                "id",
+                paymentId
+              );
+        
             if (paymentLinkError) {
               console.error(
                 "[BOOKING] Erro ao vincular pagamento ao booking:",
                 paymentLinkError
               );
             }
-          
-            setCreatedBookingId(newId);
-          
+        
+            setCreatedBookingId(
+              newId
+            );
+        
             supabase.functions
-              .invoke("notify-booking-event", {
-                body: {
-                  booking_id: newId,
-                  event_key: "booking_confirmed",
-                },
-              })
-              .catch((e: any) =>
-                console.warn("[notify-booking-event] failed:", e)
+              .invoke(
+                "notify-booking-event",
+                {
+                  body: {
+                    booking_id:
+                      newId,
+                    event_key:
+                      "booking_confirmed",
+                  },
+                }
+              )
+              .catch(
+                (e: any) =>
+                  console.warn(
+                    "[notify-booking-event] failed:",
+                    e
+                  )
               );
-          
-            setPaymentDialog((prev) => ({
-              ...prev,
-              open: false,
-              wasPaid: true,
-              paymentId,
-              bookingId: newId,
-            }));
-          
+        
+            setPaymentDialog(
+              prev => ({
+                ...prev,
+                open: false,
+                wasPaid: true,
+                paymentId,
+                bookingId:
+                  newId,
+              })
+            );
+        
             setStep(6);
-          
+        
             toast({
-              title: "Pagamento confirmado!",
-              description: "Seu agendamento foi validado.",
+              title:
+                "Pagamento confirmado!",
+              description:
+                "Seu agendamento foi validado.",
             });
           }}
         />
