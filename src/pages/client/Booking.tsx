@@ -1617,8 +1617,6 @@ export default function ClientBooking() {
                   ),
                   booking_status:
                     "confirmed",
-                  payment_status:
-                    "paid",
                 },
               ])
               .select()
