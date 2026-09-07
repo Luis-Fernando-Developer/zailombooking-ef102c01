@@ -1537,8 +1537,7 @@ export default function ClientBooking() {
                   body: {
                     booking_id:
                       newId,
-                    event_key:
-                      "booking_pending",
+                      event_key: "booking_confirmed",
                   },
                 }
               )
