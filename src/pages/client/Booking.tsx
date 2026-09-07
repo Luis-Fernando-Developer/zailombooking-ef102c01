@@ -1483,15 +1483,31 @@ export default function ClientBooking() {
               clientId = cd?.id;
             }
         
+            // const {
+            //   data: booking,
+            //   error: bErr,
+            // } = await supabase
+            //   .from("bookings")
+            //   .insert([
+            //     buildBookingData(
+            //       clientId!
+            //     ),
+            //   ])
+            //   .select()
+            //   .single();
             const {
               data: booking,
               error: bErr,
             } = await supabase
               .from("bookings")
               .insert([
-                buildBookingData(
-                  clientId!
-                ),
+                {
+                  ...buildBookingData(
+                    clientId!
+                  ),
+                  booking_status:
+                    "confirmed",
+                },
               ])
               .select()
               .single();
