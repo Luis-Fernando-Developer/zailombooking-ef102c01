@@ -95,14 +95,31 @@ export default function ClientBooking() {
   const [pendingEmployeeRestore, setPendingEmployeeRestore] = useState<string | null>(null);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [paymentSettings, setPaymentSettings] = useState<{ enabled: boolean; mode: string }>({ enabled: false, mode: 'none' });
+  // const [paymentDialog, setPaymentDialog] = useState<{
+  //   open: boolean;
+  //   bookingId?: string;
+  //   amount?: number;
+  //   allowLater?: boolean;
+  //   wasPaid?: boolean;
+  //   openedOnce?: boolean;
+  // }>({ open: false });
   const [paymentDialog, setPaymentDialog] = useState<{
     open: boolean;
     bookingId?: string;
+    paymentId?: string;
     amount?: number;
     allowLater?: boolean;
     wasPaid?: boolean;
     openedOnce?: boolean;
-  }>({ open: false });
+    _clientId?: string;
+    _serviceId?: string;
+    _employeeId?: string;
+    _companyId?: string;
+    _clientName?: string;
+    _clientEmail?: string;
+    _clientPhone?: string;
+    _notes?: string;
+  }>({ open: false })
 
   useEffect(() => {
     applyTheme(getInitialTheme("client"));
