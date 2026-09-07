@@ -1505,8 +1505,9 @@ export default function ClientBooking() {
                   ...buildBookingData(
                     clientId!
                   ),
-                  booking_status:
-                    "confirmed",
+                   booking_status: "confirmed",
+                   payment_status: "pending",
+                   payment_method: "local",
                 },
               ])
               .select()
@@ -1615,8 +1616,9 @@ export default function ClientBooking() {
                   ...buildBookingData(
                     clientId!
                   ),
-                  booking_status:
-                    "confirmed",
+                   booking_status: "confirmed",
+                   payment_status: "pending",
+                   payment_method: "local",
                 },
               ])
               .select()
