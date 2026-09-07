@@ -75,7 +75,8 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   }, [open, companyId]);
 
   useEffect(() => {
-    if (!activeBookingId || isPaid || !open) return;
+    // if (!activeBookingId || isPaid || !open) return;
+    if (!payment?.id || isPaid || !open) return;
 
     let isSubscribed = true;
     let tick = 0;
@@ -94,8 +95,13 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       tick += 1;
 
       try {
-        const { data, error } = await supabase.rpc("check_booking_payment_status", {
-          _booking_id: activeBookingId,
+        // const { data, error } = await supabase.rpc("check_booking_payment_status", {
+        //   _booking_id: activeBookingId,
+        // });
+        const { data: remote } = await supabase.functions.invoke("booking-payment-status", {
+          body: {
+            payment_id: payment?.id,
+          },
         });
 
         if (!error && (data as any)?.is_paid) {
@@ -129,7 +135,8 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       isSubscribed = false;
       clearInterval(t);
     };
-  }, [activeBookingId, isPaid, open]);
+  // }, [activeBookingId, isPaid, open]);
+  }, [payment?.id, isPaid, open]);
 
   /**
    * Cria o booking via admin-create-booking (quando ainda não existe).
@@ -191,7 +198,15 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       // }
 
       const { data, error } = await supabase.functions.invoke("booking-create-payment", {
-        body: { booking_id: currentBookingId, method: selected, payer, amount },
+        // body: { booking_id: currentBookingId, method: selected, payer, amount },
+        body: {
+          booking_id: null,
+          company_id: companyId,
+          method: selected,
+          payer,
+          amount,
+          booking_data: bookingData,
+        },
       });
       if (error) throw new Error(error.message || "Erro ao gerar pagamento");
       if ((data as any)?.error) throw new Error((data as any).error);
