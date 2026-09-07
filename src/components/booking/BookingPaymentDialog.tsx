@@ -8,11 +8,27 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, QrCode, CreditCard, Receipt, CheckCircle2, Copy } from "lucide-react";
 
+// interface BookingData {
+//   company_id: string;
+//   employee_id: string;
+//   service_id?: string;
+//   combo_id?: string;
+//   booking_time: string;
+//   start_time: string;
+//   end_time: string;
+//   booking_date: string;
+//   duration_minutes: number;
+//   price: number;
+//   notes?: string;
+//   client_id: string;
+//   booking_status?: string;
+// }
+
 interface BookingData {
   company_id: string;
   employee_id: string;
-  service_id?: string;
-  combo_id?: string;
+  service_id?: string | null;
+  combo_id?: string | null;
   booking_time: string;
   start_time: string;
   end_time: string;
@@ -24,18 +40,35 @@ interface BookingData {
   booking_status?: string;
 }
 
+// interface Props {
+//   open: boolean;
+//   onClose: () => void;
+//   bookingId?: string;
+//   companyId: string;
+//   amount: number;
+//   payerInitial: { name: string; email?: string; phone?: string; cpf_cnpj?: string };
+//   // onPaid: () => void;
+//   onPaid: (paymentId: string) => void;
+//   allowPayLater?: boolean;
+//   onPayLater?: () => void;
+//   /** Dados para criar booking novo quando bookingId não é fornecido */
+//   bookingData?: BookingData;
+// }
 interface Props {
   open: boolean;
   onClose: () => void;
   bookingId?: string;
   companyId: string;
   amount: number;
-  payerInitial: { name: string; email?: string; phone?: string; cpf_cnpj?: string };
-  // onPaid: () => void;
+  payerInitial: {
+    name: string;
+    email?: string;
+    phone?: string;
+    cpf_cnpj?: string;
+  };
   onPaid: (paymentId: string) => void;
   allowPayLater?: boolean;
   onPayLater?: () => void;
-  /** Dados para criar booking novo quando bookingId não é fornecido */
   bookingData?: BookingData;
 }
 
