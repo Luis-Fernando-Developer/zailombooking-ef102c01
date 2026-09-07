@@ -183,12 +183,12 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   async function generate() {
     setLoading(true);
     try {
-      let currentBookingId = activeBookingId;
-      if (!currentBookingId) {
-        currentBookingId = await createBooking();
-        setActiveBookingId(currentBookingId);
-        console.log("[PAYMENT_DIALOG] Booking criado:", currentBookingId);
-      }
+      // let currentBookingId = activeBookingId;
+      // if (!currentBookingId) {
+      //   currentBookingId = await createBooking();
+      //   setActiveBookingId(currentBookingId);
+      //   console.log("[PAYMENT_DIALOG] Booking criado:", currentBookingId);
+      // }
 
       const { data, error } = await supabase.functions.invoke("booking-create-payment", {
         body: { booking_id: currentBookingId, method: selected, payer, amount },
