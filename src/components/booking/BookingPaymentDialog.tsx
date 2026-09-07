@@ -31,7 +31,8 @@ interface Props {
   companyId: string;
   amount: number;
   payerInitial: { name: string; email?: string; phone?: string; cpf_cnpj?: string };
-  onPaid: () => void;
+  // onPaid: () => void;
+  onPaid: (paymentId: string) => void;
   allowPayLater?: boolean;
   onPayLater?: () => void;
   /** Dados para criar booking novo quando bookingId não é fornecido */
@@ -74,70 +75,138 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
     })();
   }, [open, companyId]);
 
+  // useEffect(() => {
+  //   // if (!activeBookingId || isPaid || !open) return;
+  //   if (!payment?.id || isPaid || !open) return;
+
+  //   let isSubscribed = true;
+  //   let tick = 0;
+
+  //   const confirm = () => {
+  //     isSubscribed = false;
+  //     clearInterval(t);
+  //     setIsPaid(true);
+  //     onPaid();
+  //     toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
+  //     setTimeout(() => onClose(), 3000);
+  //   };
+
+  //   const t = setInterval(async () => {
+  //     if (!isSubscribed) return;
+  //     tick += 1;
+
+  //     try {
+  //       // const { data, error } = await supabase.rpc("check_booking_payment_status", {
+  //       //   _booking_id: activeBookingId,
+  //       // });
+  //       const { data: remote } = await supabase.functions.invoke("booking-payment-status", {
+  //         body: {
+  //           payment_id: payment?.id,
+  //         },
+  //       });
+
+  //       if (!error && (data as any)?.is_paid) {
+  //         console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (db)");
+  //         await supabase.rpc("update_booking_payment_confirmed", { _booking_id: activeBookingId }).catch((e) => {
+  //           console.error("[PAYMENT_DIALOG] Failed to update booking status:", e);
+  //         });
+  //         confirm();
+  //         return;
+  //       }
+  //       if (error) console.error("[PAYMENT_DIALOG] RPC Error:", error);
+
+  //       if (tick % 3 === 0) {
+  //         const { data: remote } = await supabase.functions.invoke("booking-payment-status", {
+  //           body: { booking_id: activeBookingId },
+  //         });
+  //         if ((remote as any)?.is_paid) {
+  //           console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (gateway)");
+  //           await supabase.rpc("update_booking_payment_confirmed", { _booking_id: activeBookingId }).catch((e) => {
+  //             console.error("[PAYMENT_DIALOG] Failed to update booking status:", e);
+  //           });
+  //           confirm();
+  //         }
+  //       }
+  //     } catch (err) {
+  //       console.error("[PAYMENT_DIALOG] Poll exception:", err);
+  //     }
+  //   }, 2000);
+
+  //   return () => {
+  //     isSubscribed = false;
+  //     clearInterval(t);
+  //   };
+  // // }, [activeBookingId, isPaid, open]);
+  // }, [payment?.id, isPaid, open]);
+
   useEffect(() => {
-    // if (!activeBookingId || isPaid || !open) return;
-    if (!payment?.id || isPaid || !open) return;
+  if (!payment?.id || isPaid || !open) return;
 
     let isSubscribed = true;
-    let tick = 0;
-
+  
     const confirm = () => {
+      if (!isSubscribed) return;
+  
       isSubscribed = false;
       clearInterval(t);
+  
       setIsPaid(true);
-      onPaid();
-      toast({ title: "Pagamento confirmado!", description: "Seu agendamento foi validado." });
+  
+      // Devolve o ID do registro em booking_payments
+      // para o Booking.tsx criar o booking e depois vinculá-lo.
+      onPaid(payment.id);
+  
+      toast({
+        title: "Pagamento confirmado!",
+        description: "Seu agendamento foi validado.",
+      });
+  
       setTimeout(() => onClose(), 3000);
     };
-
+  
     const t = setInterval(async () => {
       if (!isSubscribed) return;
-      tick += 1;
-
+  
       try {
-        // const { data, error } = await supabase.rpc("check_booking_payment_status", {
-        //   _booking_id: activeBookingId,
-        // });
-        const { data: remote } = await supabase.functions.invoke("booking-payment-status", {
-          body: {
-            payment_id: payment?.id,
-          },
-        });
-
-        if (!error && (data as any)?.is_paid) {
-          console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (db)");
-          await supabase.rpc("update_booking_payment_confirmed", { _booking_id: activeBookingId }).catch((e) => {
-            console.error("[PAYMENT_DIALOG] Failed to update booking status:", e);
-          });
-          confirm();
+        const { data, error } = await supabase.functions.invoke(
+          "booking-payment-status",
+          {
+            body: {
+              payment_id: payment.id,
+            },
+          }
+        );
+  
+        if (error) {
+          console.error(
+            "[PAYMENT_DIALOG] Status error:",
+            error.message
+          );
           return;
         }
-        if (error) console.error("[PAYMENT_DIALOG] RPC Error:", error);
-
-        if (tick % 3 === 0) {
-          const { data: remote } = await supabase.functions.invoke("booking-payment-status", {
-            body: { booking_id: activeBookingId },
-          });
-          if ((remote as any)?.is_paid) {
-            console.log("[PAYMENT_DIALOG] PAYMENT CONFIRMED (gateway)");
-            await supabase.rpc("update_booking_payment_confirmed", { _booking_id: activeBookingId }).catch((e) => {
-              console.error("[PAYMENT_DIALOG] Failed to update booking status:", e);
-            });
-            confirm();
-          }
+  
+        if ((data as any)?.is_paid) {
+          console.log(
+            "[PAYMENT_DIALOG] PAYMENT CONFIRMED",
+            payment.id
+          );
+  
+          confirm();
         }
       } catch (err) {
-        console.error("[PAYMENT_DIALOG] Poll exception:", err);
+        console.error(
+          "[PAYMENT_DIALOG] Poll exception:",
+          err
+        );
       }
     }, 2000);
-
+  
     return () => {
       isSubscribed = false;
       clearInterval(t);
     };
-  // }, [activeBookingId, isPaid, open]);
-  }, [payment?.id, isPaid, open]);
-
+  }, [payment?.id, isPaid, open, onPaid, onClose, toast]);
+  
   /**
    * Cria o booking via admin-create-booking (quando ainda não existe).
    * Retorna o ID do booking criado.
