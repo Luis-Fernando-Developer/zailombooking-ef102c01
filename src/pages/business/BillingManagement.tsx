@@ -800,7 +800,7 @@ export default function BillingManagement() {
                     </CardDescription>
                   </div>
 
-                  <Badge
+                  {/* <Badge
                     variant={
                       effectiveSubStatus(
                         subscription
@@ -814,6 +814,18 @@ export default function BillingManagement() {
                       effectiveSubStatus(
                         subscription
                       )
+                    )}
+                  </Badge> */}
+                  <Badge
+                    variant={
+                      effectiveSubStatus(subscription, invoices) === "active"
+                        ? "default"
+                        : "destructive"
+                    }
+                    className="self-start"
+                  >
+                    {labelSubStatus(
+                      effectiveSubStatus(subscription, invoices)
                     )}
                   </Badge>
                 </div>
@@ -2205,32 +2217,74 @@ function statusVariant(
 /**
  * O status financeiro real vive em billing_status.
  */
+// function effectiveSubStatus(
+//   sub: {
+//     status?: string;
+//     billing_status?:
+//       | string
+//       | null;
+//   } | null
+// ): string {
+//   if (!sub)
+//     return "inativo";
+
+//   const billing = (
+//     sub.billing_status ||
+//     ""
+//   ).toLowerCase();
+
+//   if (
+//     billing &&
+//     billing !== "active"
+//   ) {
+//     return billing;
+//   }
+
+//   return (
+//     sub.status ||
+//     "inativo"
+//   ).toLowerCase();
+// }
 function effectiveSubStatus(
   sub: {
     status?: string;
-    billing_status?:
-      | string
-      | null;
-  } | null
+    billing_status?: string | null;
+  } | null,
+  invoices: Invoice[] = []
 ): string {
-  if (!sub)
-    return "inativo";
+  if (!sub) return "inativo";
 
   const billing = (
-    sub.billing_status ||
-    ""
+    sub.billing_status || ""
   ).toLowerCase();
 
-  if (
-    billing &&
-    billing !== "active"
-  ) {
+  /*
+   * "past_due" só deve aparecer como "Em atraso"
+   * quando realmente existe uma cobrança financeira
+   * pendente, vencida ou em processamento.
+   *
+   * Isso evita mostrar "Em atraso" quando o banco
+   * deixou billing_status=past_due, mas não existe
+   * nenhuma fatura correspondente em company_invoices.
+   */
+  if (billing === "past_due") {
+    const hasOpenInvoice = invoices.some((invoice) =>
+      ["pending", "overdue", "processing"].includes(
+        String(invoice.status || "").toLowerCase()
+      )
+    );
+
+    if (!hasOpenInvoice) {
+      return "active";
+    }
+  }
+
+  if (billing && billing !== "active") {
     return billing;
   }
 
   return (
-    sub.status ||
-    "inativo"
+    sub.status || "inativo"
   ).toLowerCase();
 }
 
