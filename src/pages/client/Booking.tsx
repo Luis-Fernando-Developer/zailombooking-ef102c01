@@ -1506,8 +1506,8 @@ export default function ClientBooking() {
                     clientId!
                   ),
                    booking_status: "confirmed",
-                   payment_status: "pending",
-                   payment_method: "local",
+                   payment_status: "confirmed",
+                   payment_method: "online",
                 },
               ])
               .select()
