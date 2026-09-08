@@ -909,7 +909,8 @@
 //   } as Record<string, string>)[s] || s;
 // }
 
-import { useState, useEffect, useMemo } from "react";
+// import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -2716,7 +2717,7 @@ function LimitCard({
 }: {
   label: string;
   value: number | null;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   companyId?: string;
 }) {
   const [usage, setUsage] = useState<number | null>(
