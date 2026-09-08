@@ -1694,7 +1694,7 @@ export default function BillingManagement() {
                                         (p) =>
                                           p.id ===
                                           selectedPlan
-                                      ]?.name.toLowerCase() ||
+                                      )?.name.toLowerCase() ||
                                         ""
                                     ]?.annual ||
                                     0
@@ -1705,7 +1705,7 @@ export default function BillingManagement() {
                                         (p) =>
                                           p.id ===
                                           selectedPlan
-                                      ]?.name.toLowerCase() ||
+                                      )?.name.toLowerCase() ||
                                         ""
                                     ]?.quarterly ||
                                     0
@@ -1714,7 +1714,7 @@ export default function BillingManagement() {
                                         (p) =>
                                           p.id ===
                                           selectedPlan
-                                      ]?.name.toLowerCase() ||
+                                      )?.name.toLowerCase() ||
                                         ""
                                     ]?.monthly ||
                                     0
