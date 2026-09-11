@@ -1,208 +1,234 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@supabase/supabase-js';
 
-export type UserRole = 'owner' | 'manager' | 'supervisor' | 'receptionist' | 'employee' | 'rh' | 'marketing' | 'designer';
+export type UserRole =
+  | 'owner'
+  | 'admin'
+  | 'manager'
+  | 'supervisor'
+  | 'receptionist'
+  | 'employee'
+  | 'rh'
+  | 'marketing'
+  | 'designer';
 
+/**
+ * Legacy permission shape kept temporarily so existing screens do not break.
+ * The source of truth is now employee_permissions -> permissions.
+ */
 export interface PermissionLevel {
-  // Gestão de funcionários
   canManageEmployees: boolean;
   canViewEmployees: boolean;
-  
-  // Gestão de serviços
   canManageServices: boolean;
   canViewServices: boolean;
-  
-  // Gestão de agendamentos
   canManageAllBookings: boolean;
   canViewAllBookings: boolean;
   canManageOwnBookings: boolean;
-  
-  // Gestão de clientes
   canManageClients: boolean;
   canViewClients: boolean;
-  
-  // Relatórios e dashboards
   canViewFinancialReports: boolean;
   canViewBasicReports: boolean;
   canViewDashboard: boolean;
-  
-  // Configurações
   canManageSettings: boolean;
   canManageSubscription: boolean;
-  
-  // Operações específicas
   canDeleteOwner: boolean;
+
+  /** New permission API. */
+  hasPermission: (code: string) => boolean;
+}
+
+const EMPTY_PERMISSIONS: Omit<PermissionLevel, 'hasPermission'> = {
+  canManageEmployees: false,
+  canViewEmployees: false,
+  canManageServices: false,
+  canViewServices: false,
+  canManageAllBookings: false,
+  canViewAllBookings: false,
+  canManageOwnBookings: false,
+  canManageClients: false,
+  canViewClients: false,
+  canViewFinancialReports: false,
+  canViewBasicReports: false,
+  canViewDashboard: false,
+  canManageSettings: false,
+  canManageSubscription: false,
+  canDeleteOwner: false,
+};
+
+/**
+ * Converts the new relational permission codes into the old boolean API.
+ * This compatibility layer will be removed in FASE 12 after all consumers
+ * have migrated to hasPermission().
+ */
+function buildPermissionLevel(permissionCodes: Set<string>): PermissionLevel {
+  const hasPermission = (code: string) => permissionCodes.has(code);
+
+  return {
+    ...EMPTY_PERMISSIONS,
+    canManageEmployees:
+      hasPermission('employees.create') ||
+      hasPermission('employees.edit') ||
+      hasPermission('employees.delete'),
+    canViewEmployees: hasPermission('employees.view'),
+
+    canManageServices:
+      hasPermission('services.create') ||
+      hasPermission('services.edit') ||
+      hasPermission('services.delete'),
+    canViewServices: hasPermission('services.view'),
+
+    canManageAllBookings:
+      hasPermission('bookings.create') ||
+      hasPermission('bookings.edit') ||
+      hasPermission('bookings.cancel') ||
+      hasPermission('bookings.manage_all'),
+    canViewAllBookings: hasPermission('bookings.view'),
+    canManageOwnBookings: hasPermission('bookings.manage_own'),
+
+    canManageClients:
+      hasPermission('clients.create') ||
+      hasPermission('clients.edit') ||
+      hasPermission('clients.delete'),
+    canViewClients: hasPermission('clients.view'),
+
+    canViewFinancialReports: hasPermission('reports.view_financial'),
+    canViewBasicReports: hasPermission('reports.view_basic'),
+    canViewDashboard: hasPermission('dashboard.view'),
+
+    canManageSettings: hasPermission('settings.manage'),
+    canManageSubscription: hasPermission('subscription.manage'),
+
+    // This remains false until a dedicated permission exists.
+    canDeleteOwner: false,
+
+    hasPermission,
+  };
 }
 
 export function usePermissions(companyId?: string, user?: User | null) {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [permissionCodes, setPermissionCodes] = useState<Set<string>>(new Set());
   const [permissions, setPermissions] = useState<PermissionLevel | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchPermissions = useCallback(async () => {
     if (!user || !companyId) {
       setUserRole(null);
+      setPermissionCodes(new Set());
       setPermissions(null);
       setLoading(false);
       return;
     }
 
-    const fetchUserRole = async () => {
-      try {
-        // Get role directly from employees table since get_user_role function doesn't exist
-        const { data, error } = await supabase
-          .from('employees')
-          .select('role')
-          .eq('company_id', companyId)
-          .eq('user_id', user.id)
-          .single();
+    setLoading(true);
 
-        if (error) throw error;
+    try {
+      // Role is read only for compatibility/display. It does NOT determine
+      // permissions for normal employees.
+      const { data: employee, error: employeeError } = await supabase
+        .from('employees')
+        .select('id, role')
+        .eq('company_id', companyId)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        const role = (data?.role || 'employee') as UserRole;
-        setUserRole(role);
-        setPermissions(getPermissionsByRole(role));
-      } catch (error) {
-        console.error('Error fetching user role:', error);
+      if (employeeError) throw employeeError;
+
+      if (!employee) {
         setUserRole(null);
+        setPermissionCodes(new Set());
         setPermissions(null);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    fetchUserRole();
-  }, [user, companyId]);
+      const role = employee.role as UserRole;
+      setUserRole(role);
 
-  return { userRole, permissions, loading };
-}
+      const { data: rows, error: permissionsError } = await supabase
+        .from('employee_permissions')
+        .select('permission_id, permissions!inner(code, is_active)')
+        .eq('employee_id', employee.id);
 
-function getPermissionsByRole(role: UserRole): PermissionLevel {
-  const basePermissions: PermissionLevel = {
-    canManageEmployees: false,
-    canViewEmployees: false,
-    canManageServices: false,
-    canViewServices: true,
-    canManageAllBookings: false,
-    canViewAllBookings: false,
-    canManageOwnBookings: false,
-    canManageClients: false,
-    canViewClients: false,
-    canViewFinancialReports: false,
-    canViewBasicReports: false,
-    canViewDashboard: false,
-    canManageSettings: false,
-    canManageSubscription: false,
-    canDeleteOwner: false,
+      if (permissionsError) throw permissionsError;
+
+      const codes = new Set<string>();
+
+      for (const row of rows ?? []) {
+        const permission = row.permissions as
+          | { code?: string; is_active?: boolean }
+          | { code?: string; is_active?: boolean }[]
+          | null;
+
+        const item = Array.isArray(permission) ? permission[0] : permission;
+
+        if (item?.code && item.is_active !== false) {
+          codes.add(item.code);
+        }
+      }
+
+      /**
+       * Owner/admin are system-level company administrators. Their access is
+       * intentionally preserved while the employee permission model is being
+       * migrated. All other employees depend exclusively on assigned rows.
+       */
+      if (role === 'owner' || role === 'admin') {
+        const { data: activePermissions, error: catalogError } = await supabase
+          .from('permissions')
+          .select('code')
+          .eq('is_active', true);
+
+        if (catalogError) throw catalogError;
+
+        for (const permission of activePermissions ?? []) {
+          if (permission.code) codes.add(permission.code);
+        }
+      }
+
+      setPermissionCodes(codes);
+      setPermissions(buildPermissionLevel(codes));
+    } catch (error) {
+      console.error('Error fetching employee permissions:', error);
+      setUserRole(null);
+      setPermissionCodes(new Set());
+      setPermissions(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [companyId, user]);
+
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
+
+  const hasPermission = useCallback(
+    (code: string) => permissionCodes.has(code),
+    [permissionCodes]
+  );
+
+  return {
+    userRole,
+    permissions,
+    permissionCodes,
+    hasPermission,
+    loading,
+    refreshPermissions: fetchPermissions,
   };
-
-  switch (role) {
-    case 'owner':
-      return {
-        ...basePermissions,
-        canManageEmployees: true,
-        canViewEmployees: true,
-        canManageServices: true,
-        canManageAllBookings: true,
-        canViewAllBookings: true,
-        canManageOwnBookings: true,
-        canManageClients: true,
-        canViewClients: true,
-        canViewFinancialReports: true,
-        canViewBasicReports: true,
-        canViewDashboard: true,
-        canManageSettings: true,
-        canManageSubscription: true,
-        canDeleteOwner: false, // Não pode se excluir
-      };
-
-    case 'manager':
-      return {
-        ...basePermissions,
-        canManageEmployees: true, // Exceto Owner
-        canViewEmployees: true,
-        canManageServices: true,
-        canManageAllBookings: true,
-        canViewAllBookings: true,
-        canManageOwnBookings: true,
-        canManageClients: true,
-        canViewClients: true,
-        canViewFinancialReports: true,
-        canViewBasicReports: true,
-        canViewDashboard: true,
-        canManageSettings: true,
-        canManageSubscription: false,
-        canDeleteOwner: false,
-      };
-
-    case 'supervisor':
-      return {
-        ...basePermissions,
-        canManageEmployees: false,
-        canViewEmployees: true,
-        canManageServices: false,
-        canManageAllBookings: true,
-        canViewAllBookings: true,
-        canManageOwnBookings: true,
-        canManageClients: true,
-        canViewClients: true,
-        canViewFinancialReports: false,
-        canViewBasicReports: true,
-        canViewDashboard: true,
-        canManageSettings: false,
-        canManageSubscription: false,
-        canDeleteOwner: false,
-      };
-
-    case 'receptionist':
-      return {
-        ...basePermissions,
-        canManageEmployees: false,
-        canViewEmployees: false,
-        canManageServices: false,
-        canManageAllBookings: true,
-        canViewAllBookings: true,
-        canManageOwnBookings: true,
-        canManageClients: true,
-        canViewClients: true,
-        canViewFinancialReports: false,
-        canViewBasicReports: false,
-        canViewDashboard: true,
-        canManageSettings: false,
-        canManageSubscription: false,
-        canDeleteOwner: false,
-      };
-
-    case 'employee':
-      return {
-        ...basePermissions,
-        canManageEmployees: false,
-        canViewEmployees: false,
-        canManageServices: false,
-        canManageAllBookings: false,
-        canViewAllBookings: false,
-        canManageOwnBookings: true,
-        canManageClients: false,
-        canViewClients: true, // Apenas nos próprios atendimentos
-        canViewFinancialReports: false,
-        canViewBasicReports: false,
-        canViewDashboard: true,
-        canManageSettings: false,
-        canManageSubscription: false,
-        canDeleteOwner: false,
-      };
-
-    default:
-      return basePermissions;
-  }
 }
 
-// Hook auxiliar para verificar permissão específica
-export function useHasPermission(companyId?: string, user?: User | null, permission?: keyof PermissionLevel) {
+/**
+ * Compatibility hook used by existing components.
+ * New code should prefer permission codes directly:
+ * usePermissions(...).hasPermission('employees.edit')
+ */
+export function useHasPermission(
+  companyId?: string,
+  user?: User | null,
+  permission?: keyof PermissionLevel
+) {
   const { permissions, loading } = usePermissions(companyId, user);
-  
-  if (!permission || loading || !permissions) {
+
+  if (!permission || permission === 'hasPermission' || loading || !permissions) {
     return { hasPermission: false, loading };
   }
 
