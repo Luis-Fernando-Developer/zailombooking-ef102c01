@@ -22,7 +22,7 @@ interface Company {
   id: string;
   name: string;
   slug: string;
-  owner_id?: string | null;
+  owner_email?: string | null;
 }
 
 interface Employee {
@@ -50,7 +50,6 @@ function roleLabel(role: string | null) {
     supervisor: "Supervisor",
     receptionist: "Recepcionista",
     employee: "Funcionário",
-    employer: "Proprietário",
     rh: "RH",
     marketing: "Marketing",
     designer: "Designer",
@@ -74,7 +73,7 @@ export default function HumanResources() {
     setLoading(true);
     try {
       const [{ data: companyData, error: companyError }, { data: authData }] = await Promise.all([
-        supabase.from("companies").select("id, name, slug, owner_id").eq("slug", slug).single(),
+        supabase.from("companies").select("id, name, slug, owner_email").eq("slug", slug).single(),
         supabase.auth.getUser(),
       ]);
 
@@ -91,13 +90,13 @@ export default function HumanResources() {
         .eq("user_id", authData.user.id)
         .maybeSingle();
 
-      // Owner has priority. The legacy "employer" role is also an owner fallback
-      // for companies created before owner_id became the canonical source.
-      const resolvedRole =
-        companyData.owner_id === authData.user.id || employee?.role === "employer"
-          ? "owner"
-          : employee?.role || "employee";
+      // The company owner is identified by the owner_email stored on companies.
+      // The employee row is only relevant when the owner is also a professional.
+      const isCompanyOwner =
+        String(companyData.owner_email ?? "").trim().toLowerCase() ===
+        String(authData.user.email ?? "").trim().toLowerCase();
 
+      const resolvedRole = isCompanyOwner ? "owner" : employee?.role || "employee";
       setUserRole(resolvedRole);
 
       const { data: employeesData, error: employeesError } = await supabase
