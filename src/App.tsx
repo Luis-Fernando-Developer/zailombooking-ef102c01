@@ -47,6 +47,9 @@ import BusinessNotifications from "./pages/business/Notifications";
 import BusinessChat from "./pages/business/Chat";
 import BusinessMarketing from "./pages/business/Marketing";
 import HumanResources from "./pages/business/HumanResources";
+import HrDocuments from "./pages/business/HrDocuments";
+import HrEvaluations from "./pages/business/HrEvaluations";
+import HrHistory from "./pages/business/HrHistory";
 import ClientBooking from "./pages/client/Booking";
 import ClientLogin from "./pages/client/Login";
 import ClientSignup from "./pages/client/Signup";
@@ -95,6 +98,9 @@ const App = () => (
             <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessServices /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/colaboradores" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessEmployees /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/recursos-humanos" element={<RequireBusinessAuth><HumanResources /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/recursos-humanos/documentos" element={<RequireBusinessAuth><HrDocuments /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/recursos-humanos/avaliacoes" element={<RequireBusinessAuth><HrEvaluations /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/recursos-humanos/historico" element={<RequireBusinessAuth><HrHistory /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/configuracoes" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessSettings /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/billing" element={<RequireBusinessAuth><BillingManagement /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/perfil" element={<RequireBusinessAuth><BusinessProfile /></RequireBusinessAuth>} />
