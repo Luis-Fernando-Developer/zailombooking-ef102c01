@@ -190,7 +190,7 @@ export function usePermissions(companyId?: string, user?: User | null) {
     // Keep each Realtime table on its own channel. This avoids registering
     // callbacks on a channel that has already entered the SUBSCRIBED state.
     const permissionChannel = supabase
-      .channel(`employee-permissions-${employeeId}-${crypto.randomUUID()}`)
+      .channel(`employee-permissions-${employeeId}`)
       .on(
         'postgres_changes',
         {
@@ -205,7 +205,7 @@ export function usePermissions(companyId?: string, user?: User | null) {
       );
 
     const employeeChannel = supabase
-      .channel(`employee-profile-${employeeId}-${crypto.randomUUID()}`)
+      .channel(`employee-profile-${employeeId}`)
       .on(
         'postgres_changes',
         {
