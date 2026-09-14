@@ -15,6 +15,23 @@ interface Service {
   name: string;
 }
 
+interface Permission {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  module: string;
+  sort_order: number;
+}
+
+interface PermissionPreset {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+}
+
 interface Employee {
   id: string;
   name: string;
@@ -39,6 +56,23 @@ interface Employee {
 interface SystemProfile { id: string; code: string; name: string; }
 interface BaseOccupation { id: string; name: string; company_id: string | null; }
 
+const MODULE_LABELS: Record<string, string> = {
+  employees: "Funcionários",
+  services: "Serviços",
+  bookings: "Agendamentos",
+  clients: "Clientes",
+  reports: "Relatórios",
+  dashboard: "Dashboard",
+  settings: "Configurações",
+  subscription: "Assinatura",
+  reallocation: "Realocação",
+  chat: "Chat",
+  marketing: "Marketing",
+  chatbot: "Chatbot",
+  whatsapp: "WhatsApp",
+  finance: "Financeiro",
+};
+
 interface EditEmployeeDialogProps {
   employee: Employee | null;
   companyId: string;
@@ -53,6 +87,10 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
   const [employeeServices, setEmployeeServices] = useState<string[]>([]);
   const [systemProfiles, setSystemProfiles] = useState<SystemProfile[]>([]);
   const [occupations, setOccupations] = useState<BaseOccupation[]>([]);
+  const [permissionsCatalog, setPermissionsCatalog] = useState<Permission[]>([]);
+  const [permissionPresets, setPermissionPresets] = useState<PermissionPreset[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [selectedPreset, setSelectedPreset] = useState("");
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -77,6 +115,8 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
   useEffect(() => {
     if (open && employee) {
       const fallback = splitFullName(employee.name || "");
+      setSelectedPermissions([]);
+      setSelectedPreset("");
       setFormData({
         first_name: employee.first_name ?? fallback.first_name,
         second_name: employee.second_name ?? fallback.second_name,
@@ -99,6 +139,8 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
       fetchEmployeeServices();
       fetchSystemProfiles();
       fetchOccupations();
+      fetchPermissions();
+      fetchEmployeePermissions();
     }
   }, [open, employee, companyId]);
 
@@ -120,7 +162,6 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
       .order('name');
     setOccupations(data || []);
   };
-
 
   const fetchServices = async () => {
     try {
@@ -152,6 +193,100 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
       console.error('Error fetching employee services:', error);
     }
   };
+
+  const fetchPermissions = async () => {
+    try {
+      const [{ data: permissions, error: permissionsError }, { data: presets, error: presetsError }] = await Promise.all([
+        supabase
+          .from('permissions')
+          .select('id, code, name, description, module, sort_order')
+          .eq('is_active', true)
+          .order('module')
+          .order('sort_order'),
+        supabase
+          .from('permission_presets')
+          .select('id, code, name, description, sort_order')
+          .eq('is_active', true)
+          .order('sort_order'),
+      ]);
+
+      if (permissionsError) throw permissionsError;
+      if (presetsError) throw presetsError;
+
+      setPermissionsCatalog(permissions || []);
+      setPermissionPresets(presets || []);
+    } catch (error) {
+      console.error('Error fetching permission catalog:', error);
+      toast({
+        title: "Erro ao carregar permissões",
+        description: "Não foi possível carregar o catálogo de permissões.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchEmployeePermissions = async () => {
+    if (!employee) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('employee_permissions')
+        .select('permission_id')
+        .eq('employee_id', employee.id);
+
+      if (error) throw error;
+
+      setSelectedPermissions((data || []).map(item => item.permission_id));
+    } catch (error) {
+      console.error('Error fetching employee permissions:', error);
+      toast({
+        title: "Erro ao carregar permissões",
+        description: "Não foi possível carregar as permissões atuais do colaborador.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePresetChange = async (presetId: string) => {
+    setSelectedPreset(presetId);
+
+    if (!presetId) {
+      setSelectedPermissions([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('permission_preset_items')
+      .select('permission_id')
+      .eq('preset_id', presetId);
+
+    if (error) {
+      console.error('Error fetching preset permissions:', error);
+      toast({
+        title: "Erro ao carregar preset",
+        description: "Não foi possível carregar as permissões do preset.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedPermissions((data || []).map(item => item.permission_id));
+  };
+
+  const togglePermission = (permissionId: string, checked: boolean) => {
+    setSelectedPermissions(prev =>
+      checked
+        ? prev.includes(permissionId) ? prev : [...prev, permissionId]
+        : prev.filter(id => id !== permissionId)
+    );
+    setSelectedPreset("");
+  };
+
+  const groupedPermissions = permissionsCatalog.reduce<Record<string, Permission[]>>((groups, permission) => {
+    if (!groups[permission.module]) groups[permission.module] = [];
+    groups[permission.module].push(permission);
+    return groups;
+  }, {});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,6 +364,29 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
           .insert(serviceInserts);
 
         if (servicesError) throw servicesError;
+      }
+
+      // Atualizar permissões vinculadas
+      // Primeiro, remover todas as permissões existentes
+      const { error: deletePermissionsError } = await supabase
+        .from('employee_permissions')
+        .delete()
+        .eq('employee_id', employee.id);
+
+      if (deletePermissionsError) throw deletePermissionsError;
+
+      // Adicionar somente as permissões selecionadas
+      if (selectedPermissions.length > 0) {
+        const permissionInserts = selectedPermissions.map(permissionId => ({
+          employee_id: employee.id,
+          permission_id: permissionId,
+        }));
+
+        const { error: permissionsError } = await supabase
+          .from('employee_permissions')
+          .insert(permissionInserts);
+
+        if (permissionsError) throw permissionsError;
       }
 
       toast({
@@ -380,8 +538,6 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
             </div>
           )}
 
-
-
           <div className="space-y-2">
             <Label htmlFor="system_profile">Perfil do Sistema</Label>
             <Select
@@ -429,7 +585,65 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
             <p className="text-xs text-muted-foreground">Campo livre — apenas organizacional/visual.</p>
           </div>
 
+          <div className="space-y-3">
+            <div>
+              <Label>Permissões de Acesso</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Defina manualmente o que este colaborador pode acessar. A função não altera estas permissões automaticamente.
+              </p>
+            </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="permission_preset">Preset de permissões</Label>
+              <Select value={selectedPreset} onValueChange={handlePresetChange}>
+                <SelectTrigger id="permission_preset">
+                  <SelectValue placeholder="Selecione um preset" />
+                </SelectTrigger>
+                <SelectContent>
+                  {permissionPresets.map((preset) => (
+                    <SelectItem key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3 max-h-64 overflow-y-auto rounded-md border p-3">
+              {Object.entries(groupedPermissions).map(([module, permissions]) => (
+                <div key={module} className="space-y-2">
+                  <p className="text-sm font-medium">
+                    {MODULE_LABELS[module] || module}
+                  </p>
+                  <div className="space-y-2 pl-1">
+                    {permissions.map((permission) => (
+                      <div key={permission.id} className="flex items-start space-x-2">
+                        <Checkbox
+                          id={`edit-permission-${permission.id}`}
+                          checked={selectedPermissions.includes(permission.id)}
+                          onCheckedChange={(checked) => togglePermission(permission.id, checked === true)}
+                        />
+                        <Label
+                          htmlFor={`edit-permission-${permission.id}`}
+                          className="text-sm font-normal leading-tight cursor-pointer"
+                        >
+                          {permission.name}
+                          {permission.description && (
+                            <span className="block text-xs text-muted-foreground mt-0.5">
+                              {permission.description}
+                            </span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {permissionsCatalog.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhuma permissão cadastrada.</p>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-3">
             <Label>Serviços Vinculados</Label>
@@ -505,7 +719,6 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
             />
             <Label htmlFor="is_active">Colaborador ativo</Label>
           </div>
-
 
           <div className="flex gap-4 pt-4">
             <Button
