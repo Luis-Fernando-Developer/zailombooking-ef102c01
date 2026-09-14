@@ -109,7 +109,10 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   const { toast } = useToast();
   const { hasPermission, loading: permissionsLoading, userRole: permissionUserRole } = usePermissions(companyId, currentUser);
 
-  const effectiveUserRole = permissionUserRole || userRole;
+  const effectiveUserRole =
+    userRole === 'owner' || userRole === 'admin'
+      ? userRole
+      : permissionUserRole || userRole;
 
   const currentPath = location.pathname;
   const { slug: routeSlug } = useParams<{ slug: string }>();
