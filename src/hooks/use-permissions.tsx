@@ -184,50 +184,6 @@ export function usePermissions(companyId?: string, user?: User | null) {
     fetchPermissions();
   }, [fetchPermissions]);
 
-  useEffect(() => {
-    if (!employeeId || !companyId) return;
-
-    // Keep each Realtime table on its own channel. This avoids registering
-    // callbacks on a channel that has already entered the SUBSCRIBED state.
-    const permissionChannel = supabase
-      .channel(`employee-permissions-${employeeId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'employee_permissions',
-          filter: `employee_id=eq.${employeeId}`,
-        },
-        () => {
-          fetchPermissions();
-        }
-      );
-
-    const employeeChannel = supabase
-      .channel(`employee-profile-${employeeId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'employees',
-          filter: `id=eq.${employeeId}`,
-        },
-        () => {
-          fetchPermissions();
-        }
-      );
-
-    permissionChannel.subscribe();
-    employeeChannel.subscribe();
-
-    return () => {
-      supabase.removeChannel(permissionChannel);
-      supabase.removeChannel(employeeChannel);
-    };
-  }, [employeeId, companyId, fetchPermissions]);
-
   const hasPermission = useCallback(
     (code: string) => permissionCodes.has(code),
     [permissionCodes]
