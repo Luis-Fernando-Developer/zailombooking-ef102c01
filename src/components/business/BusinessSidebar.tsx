@@ -107,7 +107,9 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { hasPermission, loading: permissionsLoading } = usePermissions(companyId, currentUser);
+  const { hasPermission, loading: permissionsLoading, userRole: permissionUserRole } = usePermissions(companyId, currentUser);
+
+  const effectiveUserRole = permissionUserRole || userRole;
 
   const currentPath = location.pathname;
   const { slug: routeSlug } = useParams<{ slug: string }>();
@@ -152,11 +154,11 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
 
   const canAccessPermission = (permission?: PermissionCode) => {
     if (!permission) return false;
-    if (userRole === 'owner' || userRole === 'admin') return true;
+    if (effectiveUserRole === 'owner' || effectiveUserRole === 'admin') return true;
     return hasPermission(permission);
   };
 
-  const allowedMenuItems = permissionsLoading && userRole !== 'owner' && userRole !== 'admin'
+  const allowedMenuItems = permissionsLoading && effectiveUserRole !== 'owner' && effectiveUserRole !== 'admin'
     ? []
     : menuItems
         .map((item) => {
@@ -175,7 +177,7 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
             <div className="w-full transition-all duration-500 opacity-100 scale-100">
               <BookingLogo showText={false} className="mb-2" />
               <h2 className="font-semibold text-gradient truncate">{companyName}</h2>
-              <p className="text-sm text-muted-foreground capitalize">{userRole}</p>
+              <p className="text-sm text-muted-foreground capitalize">{effectiveUserRole}</p>
             </div>
           ) : (
             <div className="flex justify-center transition-all duration-500 opacity-100 scale-110"><BookingLogo showText={false} /></div>
