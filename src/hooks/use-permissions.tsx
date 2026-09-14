@@ -111,6 +111,19 @@ export function usePermissions(companyId?: string, user?: User | null) {
     setLoading(true);
 
     try {
+      // Owner status comes from the company, not from the employee role.
+      // An owner may also have an employees row because they can be a professional,
+      // but that row must never downgrade their company-level administrator access.
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('owner_id')
+        .eq('id', companyId)
+        .maybeSingle();
+
+      if (companyError) throw companyError;
+
+      const isCompanyOwner = company?.owner_id === user.id;
+
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('id, role')
@@ -120,7 +133,16 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
       if (employeeError) throw employeeError;
 
-      if (!employee) {
+      // Owner is always resolved as owner, even when an employees row exists
+      // with a different role (for example "employer").
+      if (isCompanyOwner) {
+        setUserRole('owner');
+        setEmployeeId(employee?.id ?? null);
+      } else if (employee) {
+        const role = employee.role as UserRole;
+        setUserRole(role);
+        setEmployeeId(employee.id);
+      } else {
         setUserRole(null);
         setEmployeeId(null);
         setPermissionCodes(new Set());
@@ -128,35 +150,11 @@ export function usePermissions(companyId?: string, user?: User | null) {
         return;
       }
 
-      const role = employee.role as UserRole;
-      setUserRole(role);
-      setEmployeeId(employee.id);
-
-      const { data: rows, error: permissionsError } = await supabase
-        .from('employee_permissions')
-        .select('permission_id, permissions!inner(code, is_active)')
-        .eq('employee_id', employee.id);
-
-      if (permissionsError) throw permissionsError;
-
       const codes = new Set<string>();
 
-      for (const row of rows ?? []) {
-        const permission = row.permissions as
-          | { code?: string; is_active?: boolean }
-          | { code?: string; is_active?: boolean }[]
-          | null;
-
-        const item = Array.isArray(permission) ? permission[0] : permission;
-
-        if (item?.code && item.is_active !== false) {
-          codes.add(item.code);
-        }
-      }
-
-      // Owner/admin remain system-level administrators during migration.
-      // Every other employee depends exclusively on employee_permissions.
-      if (role === 'owner' || role === 'admin') {
+      // Only employees need individually assigned permissions. Owner/admin are
+      // system-level administrators and receive the complete active catalog.
+      if (isCompanyOwner || employee?.role === 'owner' || employee?.role === 'admin') {
         const { data: activePermissions, error: catalogError } = await supabase
           .from('permissions')
           .select('code')
@@ -166,6 +164,26 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
         for (const permission of activePermissions ?? []) {
           if (permission.code) codes.add(permission.code);
+        }
+      } else if (employee) {
+        const { data: rows, error: permissionsError } = await supabase
+          .from('employee_permissions')
+          .select('permission_id, permissions!inner(code, is_active)')
+          .eq('employee_id', employee.id);
+
+        if (permissionsError) throw permissionsError;
+
+        for (const row of rows ?? []) {
+          const permission = row.permissions as
+            | { code?: string; is_active?: boolean }
+            | { code?: string; is_active?: boolean }[]
+            | null;
+
+          const item = Array.isArray(permission) ? permission[0] : permission;
+
+          if (item?.code && item.is_active !== false) {
+            codes.add(item.code);
+          }
         }
       }
 
