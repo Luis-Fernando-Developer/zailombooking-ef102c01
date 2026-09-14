@@ -5,7 +5,6 @@ import { User } from '@supabase/supabase-js';
 export type UserRole =
   | 'owner'
   | 'admin'
-  | 'employer'
   | 'manager'
   | 'supervisor'
   | 'receptionist'
@@ -112,13 +111,24 @@ export function usePermissions(companyId?: string, user?: User | null) {
     setLoading(true);
 
     try {
+      // The current schema stores the company owner as owner_email.
+      // Do not depend on a non-existent companies.owner_id column.
       const { data: company, error: companyError } = await supabase
         .from('companies')
-        .select('owner_id')
+        .select('owner_email')
         .eq('id', companyId)
         .maybeSingle();
 
       if (companyError) throw companyError;
+
+      // Owner detection is independent from employee permissions. An owner may
+      // also have an employee row, but that row is not required to identify the owner.
+      const normalizedOwnerEmail = String(company?.owner_email ?? '').trim().toLowerCase();
+      const normalizedUserEmail = String(user.email ?? '').trim().toLowerCase();
+      const isCompanyOwner =
+        !!normalizedOwnerEmail &&
+        !!normalizedUserEmail &&
+        normalizedOwnerEmail === normalizedUserEmail;
 
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
@@ -128,12 +138,6 @@ export function usePermissions(companyId?: string, user?: User | null) {
         .maybeSingle();
 
       if (employeeError) throw employeeError;
-
-      // Owner is identified first by companies.owner_id. The legacy "employer"
-      // employee role is also treated as owner for backward compatibility with
-      // companies created before the owner_id/permission migration.
-      const isCompanyOwner =
-        company?.owner_id === user.id || employee?.role === 'employer';
 
       if (isCompanyOwner) {
         setUserRole('owner');
@@ -151,7 +155,7 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
       const codes = new Set<string>();
 
-      // Company owner and system admins always receive the complete active catalog.
+      // Company owners and system admins always receive the complete active catalog.
       if (isCompanyOwner || employee?.role === 'owner' || employee?.role === 'admin') {
         const { data: activePermissions, error: catalogError } = await supabase
           .from('permissions')
