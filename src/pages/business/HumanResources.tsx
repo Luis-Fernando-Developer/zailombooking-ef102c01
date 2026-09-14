@@ -91,12 +91,12 @@ export default function HumanResources() {
         .eq("user_id", authData.user.id)
         .maybeSingle();
 
-      // IMPORTANT: company ownership has priority over employees.role.
-      // The owner may also have an employees row with role="employer" (or another role)
-      // because the owner can also be a professional. That must never downgrade admin access.
-      const resolvedRole = companyData.owner_id === authData.user.id
-        ? "owner"
-        : employee?.role || "employee";
+      // Owner has priority. The legacy "employer" role is also an owner fallback
+      // for companies created before owner_id became the canonical source.
+      const resolvedRole =
+        companyData.owner_id === authData.user.id || employee?.role === "employer"
+          ? "owner"
+          : employee?.role || "employee";
 
       setUserRole(resolvedRole);
 
@@ -116,7 +116,11 @@ export default function HumanResources() {
   };
 
   const { hasPermission, loading: permissionLoading, userRole: permissionRole } = usePermissions(company?.id, currentUser);
-  const isAdministrator = userRole === "owner" || userRole === "admin" || permissionRole === "owner" || permissionRole === "admin";
+  const isAdministrator =
+    userRole === "owner" ||
+    userRole === "admin" ||
+    permissionRole === "owner" ||
+    permissionRole === "admin";
   const canView = isAdministrator || hasPermission("hr.view");
 
   const activeEmployees = useMemo(() => employees.filter((employee) => employee.is_active !== false), [employees]);
