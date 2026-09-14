@@ -13,10 +13,6 @@ export type UserRole =
   | 'marketing'
   | 'designer';
 
-/**
- * Legacy permission shape kept temporarily so existing screens do not break.
- * The source of truth is now employee_permissions -> permissions.
- */
 export interface PermissionLevel {
   canManageEmployees: boolean;
   canViewEmployees: boolean;
@@ -60,26 +56,17 @@ function buildPermissionLevel(permissionCodes: Set<string>): PermissionLevel {
   return {
     ...EMPTY_PERMISSIONS,
     canManageEmployees:
-      hasPermission('employees.create') ||
-      hasPermission('employees.edit') ||
-      hasPermission('employees.delete'),
+      hasPermission('employees.create') || hasPermission('employees.edit') || hasPermission('employees.delete'),
     canViewEmployees: hasPermission('employees.view'),
     canManageServices:
-      hasPermission('services.create') ||
-      hasPermission('services.edit') ||
-      hasPermission('services.delete'),
+      hasPermission('services.create') || hasPermission('services.edit') || hasPermission('services.delete'),
     canViewServices: hasPermission('services.view'),
     canManageAllBookings:
-      hasPermission('bookings.create') ||
-      hasPermission('bookings.edit') ||
-      hasPermission('bookings.cancel') ||
-      hasPermission('bookings.manage_all'),
+      hasPermission('bookings.create') || hasPermission('bookings.edit') || hasPermission('bookings.cancel') || hasPermission('bookings.manage_all'),
     canViewAllBookings: hasPermission('bookings.view'),
     canManageOwnBookings: hasPermission('bookings.manage_own'),
     canManageClients:
-      hasPermission('clients.create') ||
-      hasPermission('clients.edit') ||
-      hasPermission('clients.delete'),
+      hasPermission('clients.create') || hasPermission('clients.edit') || hasPermission('clients.delete'),
     canViewClients: hasPermission('clients.view'),
     canViewFinancialReports: hasPermission('reports.view_financial'),
     canViewBasicReports: hasPermission('reports.view_basic'),
@@ -111,8 +98,6 @@ export function usePermissions(companyId?: string, user?: User | null) {
     setLoading(true);
 
     try {
-      // The current schema stores the company owner as owner_email.
-      // Do not depend on a non-existent companies.owner_id column.
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .select('owner_email')
@@ -121,8 +106,6 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
       if (companyError) throw companyError;
 
-      // Owner detection is independent from employee permissions. An owner may
-      // also have an employee row, but that row is not required to identify the owner.
       const normalizedOwnerEmail = String(company?.owner_email ?? '').trim().toLowerCase();
       const normalizedUserEmail = String(user.email ?? '').trim().toLowerCase();
       const isCompanyOwner =
@@ -155,7 +138,6 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
       const codes = new Set<string>();
 
-      // Company owners and system admins always receive the complete active catalog.
       if (isCompanyOwner || employee?.role === 'owner' || employee?.role === 'admin') {
         const { data: activePermissions, error: catalogError } = await supabase
           .from('permissions')
@@ -180,12 +162,8 @@ export function usePermissions(companyId?: string, user?: User | null) {
             | { code?: string; is_active?: boolean }
             | { code?: string; is_active?: boolean }[]
             | null;
-
           const item = Array.isArray(permission) ? permission[0] : permission;
-
-          if (item?.code && item.is_active !== false) {
-            codes.add(item.code);
-          }
+          if (item?.code && item.is_active !== false) codes.add(item.code);
         }
       }
 
@@ -209,8 +187,10 @@ export function usePermissions(companyId?: string, user?: User | null) {
   useEffect(() => {
     if (!employeeId || !companyId) return;
 
-    const channel = supabase
-      .channel(`employee-permissions-${employeeId}`)
+    // Keep each Realtime table on its own channel. This avoids registering
+    // callbacks on a channel that has already entered the SUBSCRIBED state.
+    const permissionChannel = supabase
+      .channel(`employee-permissions-${employeeId}-${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         {
@@ -222,7 +202,10 @@ export function usePermissions(companyId?: string, user?: User | null) {
         () => {
           fetchPermissions();
         }
-      )
+      );
+
+    const employeeChannel = supabase
+      .channel(`employee-profile-${employeeId}-${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         {
@@ -234,11 +217,14 @@ export function usePermissions(companyId?: string, user?: User | null) {
         () => {
           fetchPermissions();
         }
-      )
-      .subscribe();
+      );
+
+    permissionChannel.subscribe();
+    employeeChannel.subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(permissionChannel);
+      supabase.removeChannel(employeeChannel);
     };
   }, [employeeId, companyId, fetchPermissions]);
 
