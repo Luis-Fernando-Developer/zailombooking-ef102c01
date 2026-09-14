@@ -150,12 +150,20 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
     }
   };
 
-  const allowedMenuItems = permissionsLoading
+  // Owner/admin are company-level administrators and must retain access to
+  // the complete company menu even when they are not represented in employees.
+  const canAccessPermission = (permission?: PermissionCode) => {
+    if (!permission) return false;
+    if (userRole === 'owner' || userRole === 'admin') return true;
+    return hasPermission(permission);
+  };
+
+  const allowedMenuItems = permissionsLoading && userRole !== 'owner' && userRole !== 'admin'
     ? []
     : menuItems
         .map((item) => {
-          if (!item.children) return hasPermission(item.permission || "") ? item : null;
-          const allowedChildren = item.children.filter((child) => hasPermission(child.permission || ""));
+          if (!item.children) return canAccessPermission(item.permission) ? item : null;
+          const allowedChildren = item.children.filter((child) => canAccessPermission(child.permission));
           if (allowedChildren.length === 0) return null;
           return { ...item, children: allowedChildren };
         })
@@ -163,8 +171,8 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
 
   return (
     <Sidebar collapsible="icon" className="border-r border-primary/20 h-screen sticky top-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
-      <SidebarContent className="bg-card/30 backdrop-blur-sm border-r border-primary/20 min-h-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
-        <div className="p-4 border-b border-primary/20 flex flex-col items-center justify-center min-h-[100px]">
+      <SidebarContent className="bg-card/30 backdrop-blur-sm border-r border-primary/20 min-h-0 overflow-hidden flex flex-col transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
+        <div className="p-4 border-b border-primary/20 flex flex-col items-center justify-center min-h-[100px] shrink-0">
           {state !== "collapsed" ? (
             <div className="w-full transition-all duration-500 opacity-100 scale-100">
               <BookingLogo showText={false} className="mb-2" />
@@ -176,7 +184,7 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
           )}
         </div>
 
-        <div className="overflow-y-auto h-full scrollbar-none">
+        <div className="overflow-y-auto flex-1 min-h-0 scrollbar-none">
           <SidebarGroup>
             <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : "transition-opacity duration-500"}>Menu Principal</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -231,8 +239,10 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+        </div>
 
-          <SidebarGroup className="mt-auto border-t border-primary/20 pt-2">
+        <div className="shrink-0 border-t border-primary/20 pt-2 pb-2">
+          <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem className={state === "collapsed" ? "flex justify-center w-full" : ""}>
