@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -33,6 +32,10 @@ import {
   ArrowRightLeft,
   CalendarOff,
   KeyRound,
+  User,
+  UserRoundCog,
+  BarChart3,
+  Wallet,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -51,11 +54,13 @@ type MenuItem = { title: string; url: string; icon: typeof LayoutDashboard; perm
 const menuItems: MenuItem[] = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
   { title: "Agendamentos", url: "/admin/agendamentos", icon: Calendar, permission: "bookings.view" },
+  { title: "Clientes", url: "/admin/clientes", icon: Users, permission: "clients.view" },
   { title: "Realocação", url: "/admin/realocacao", icon: ArrowRightLeft, permission: "reallocation.view" },
   { title: "Ausências", url: "/admin/ausencias", icon: CalendarOff, permission: "employees.view" },
   { title: "Horários", url: "/admin/horarios", icon: Clock, permission: "employees.view" },
   { title: "Serviços", url: "/admin/servicos", icon: Briefcase, permission: "services.view" },
   { title: "Colaboradores", url: "/admin/colaboradores", icon: Users, permission: "employees.view" },
+  { title: "Recursos Humanos", url: "/admin/recursos-humanos", icon: UserRoundCog, permission: "employees.view" },
   { title: "Solicitações", url: "/admin/solicitacoes", icon: Inbox, permission: "reallocation.view" },
   { title: "Notificações", url: "/admin/notificacoes", icon: Bell, permission: "dashboard.view" },
   { title: "Bate-papo", url: "/admin/bate-papo", icon: MessageSquare, permission: "chat.view" },
@@ -84,6 +89,8 @@ const menuItems: MenuItem[] = [
       { title: "API REST", url: "/admin/integracoes/api", icon: KeyRound, permission: "settings.view" },
     ],
   },
+  { title: "Relatórios", url: "/admin/relatorios", icon: BarChart3, permission: "reports.view_basic" },
+  { title: "Financeiro", url: "/admin/financeiro", icon: Wallet, permission: "finance.view" },
   { title: "Configurações", url: "/admin/configuracoes", icon: Settings, permission: "settings.view" },
 ];
 
@@ -142,20 +149,6 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
       console.error('Error signing out:', error);
     }
   };
-
-  const [isOwnerByCompany, setIsOwnerByCompany] = useState<boolean>(false);
-  useEffect(() => {
-    let isMounted = true;
-    async function checkOwner() {
-      if (!companyId || !currentUser?.email) return;
-      const { data } = await supabase.from('companies').select('owner_email').eq('id', companyId).single();
-      const ownerEmail = (data?.owner_email || '').toLowerCase();
-      const currentEmail = currentUser.email?.toLowerCase() || '';
-      if (isMounted) setIsOwnerByCompany(!!ownerEmail && ownerEmail === currentEmail);
-    }
-    checkOwner();
-    return () => { isMounted = false; };
-  }, [companyId, currentUser?.email]);
 
   const allowedMenuItems = permissionsLoading
     ? []
@@ -235,6 +228,21 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
                     </SidebarMenuItem>
                   );
                 })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarGroup className="mt-auto border-t border-primary/20 pt-2">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem className={state === "collapsed" ? "flex justify-center w-full" : ""}>
+                  <SidebarMenuButton asChild isActive={isActive("/admin/perfil")} className={cn("relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300", state === "collapsed" ? "justify-center w-10 h-10 p-0" : "w-full", getNavCls(isActive("/admin/perfil")))}>
+                    <NavLink to={`${basePath}/admin/perfil`}>
+                      <User className="w-5 h-5 flex-shrink-0" />
+                      {state !== "collapsed" && <span className="flex-1">Meu Perfil</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
