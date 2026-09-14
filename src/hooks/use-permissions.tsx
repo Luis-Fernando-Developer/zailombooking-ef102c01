@@ -5,6 +5,7 @@ import { User } from '@supabase/supabase-js';
 export type UserRole =
   | 'owner'
   | 'admin'
+  | 'employer'
   | 'manager'
   | 'supervisor'
   | 'receptionist'
@@ -111,9 +112,6 @@ export function usePermissions(companyId?: string, user?: User | null) {
     setLoading(true);
 
     try {
-      // Owner status comes from the company, not from the employee role.
-      // An owner may also have an employees row because they can be a professional,
-      // but that row must never downgrade their company-level administrator access.
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .select('owner_id')
@@ -121,8 +119,6 @@ export function usePermissions(companyId?: string, user?: User | null) {
         .maybeSingle();
 
       if (companyError) throw companyError;
-
-      const isCompanyOwner = company?.owner_id === user.id;
 
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
@@ -133,14 +129,17 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
       if (employeeError) throw employeeError;
 
-      // Owner is always resolved as owner, even when an employees row exists
-      // with a different role (for example "employer").
+      // Owner is identified first by companies.owner_id. The legacy "employer"
+      // employee role is also treated as owner for backward compatibility with
+      // companies created before the owner_id/permission migration.
+      const isCompanyOwner =
+        company?.owner_id === user.id || employee?.role === 'employer';
+
       if (isCompanyOwner) {
         setUserRole('owner');
         setEmployeeId(employee?.id ?? null);
       } else if (employee) {
-        const role = employee.role as UserRole;
-        setUserRole(role);
+        setUserRole(employee.role as UserRole);
         setEmployeeId(employee.id);
       } else {
         setUserRole(null);
@@ -152,8 +151,7 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
       const codes = new Set<string>();
 
-      // Only employees need individually assigned permissions. Owner/admin are
-      // system-level administrators and receive the complete active catalog.
+      // Company owner and system admins always receive the complete active catalog.
       if (isCompanyOwner || employee?.role === 'owner' || employee?.role === 'admin') {
         const { data: activePermissions, error: catalogError } = await supabase
           .from('permissions')
@@ -204,8 +202,6 @@ export function usePermissions(companyId?: string, user?: User | null) {
     fetchPermissions();
   }, [fetchPermissions]);
 
-  // Keep the sidebar and permission-aware screens synchronized when the
-  // current employee's permissions are changed without a new login.
   useEffect(() => {
     if (!employeeId || !companyId) return;
 
