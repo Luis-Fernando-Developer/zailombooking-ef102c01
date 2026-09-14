@@ -60,7 +60,7 @@ const menuItems: MenuItem[] = [
   { title: "Horários", url: "/admin/horarios", icon: Clock, permission: "employees.view" },
   { title: "Serviços", url: "/admin/servicos", icon: Briefcase, permission: "services.view" },
   { title: "Colaboradores", url: "/admin/colaboradores", icon: Users, permission: "employees.view" },
-  { title: "Recursos Humanos", url: "/admin/recursos-humanos", icon: UserRoundCog, permission: "employees.view" },
+  { title: "Recursos Humanos", url: "/admin/recursos-humanos", icon: UserRoundCog, permission: "hr.view" },
   { title: "Solicitações", url: "/admin/solicitacoes", icon: Inbox, permission: "reallocation.view" },
   { title: "Notificações", url: "/admin/notificacoes", icon: Bell, permission: "dashboard.view" },
   { title: "Bate-papo", url: "/admin/bate-papo", icon: MessageSquare, permission: "chat.view" },
@@ -150,8 +150,6 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
     }
   };
 
-  // Owner/admin are company-level administrators and must retain access to
-  // the complete company menu even when they are not represented in employees.
   const canAccessPermission = (permission?: PermissionCode) => {
     if (!permission) return false;
     if (userRole === 'owner' || userRole === 'admin') return true;
