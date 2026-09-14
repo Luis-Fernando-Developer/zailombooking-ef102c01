@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   Activity,
   Archive,
+  ArrowRight,
   CalendarDays,
   CheckCircle2,
   ClipboardList,
   Clock3,
   FileText,
   HeartPulse,
+  Plus,
   Users,
 } from "lucide-react";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/lib/supabaseClient";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -34,12 +37,62 @@ interface Employee {
 }
 
 const hrModules = [
-  { title: "Férias", description: "Organização, solicitações, aprovações e histórico de férias.", permission: "hr.manage_vacations", icon: CalendarDays },
-  { title: "Afastamentos", description: "Registro e acompanhamento de afastamentos e ocorrências.", permission: "hr.manage_absences", icon: HeartPulse },
-  { title: "Documentos", description: "Documentos administrativos e histórico documental dos colaboradores.", permission: "hr.manage_documents", icon: FileText },
-  { title: "Jornada / Ponto", description: "Jornadas, escalas, ponto, horas extras e banco de horas.", permission: "hr.manage_attendance", icon: Clock3 },
-  { title: "Avaliações", description: "Avaliações de desempenho, feedbacks e histórico profissional.", permission: "hr.manage_evaluations", icon: ClipboardList },
-  { title: "Histórico", description: "Linha do tempo das principais alterações administrativas do colaborador.", permission: "hr.manage_employees", icon: Activity },
+  {
+    title: "Colaboradores",
+    description: "Cadastro, edição, status, serviços e permissões dos colaboradores.",
+    permission: "hr.manage_employees",
+    icon: Users,
+    path: "colaboradores",
+    action: "Gerenciar",
+  },
+  {
+    title: "Férias",
+    description: "Organização, solicitações, aprovações e histórico de férias.",
+    permission: "hr.manage_vacations",
+    icon: CalendarDays,
+    path: "ausencias",
+    action: "Gerenciar",
+  },
+  {
+    title: "Afastamentos",
+    description: "Registro e acompanhamento de afastamentos e ocorrências.",
+    permission: "hr.manage_absences",
+    icon: HeartPulse,
+    path: "ausencias",
+    action: "Gerenciar",
+  },
+  {
+    title: "Jornada / Ponto",
+    description: "Jornadas, escalas, ponto, horas extras e banco de horas.",
+    permission: "hr.manage_attendance",
+    icon: Clock3,
+    path: "horarios",
+    action: "Gerenciar",
+  },
+  {
+    title: "Documentos",
+    description: "Documentos administrativos e histórico documental dos colaboradores.",
+    permission: "hr.manage_documents",
+    icon: FileText,
+    path: null,
+    action: "Em construção",
+  },
+  {
+    title: "Avaliações",
+    description: "Avaliações de desempenho, feedbacks e histórico profissional.",
+    permission: "hr.manage_evaluations",
+    icon: ClipboardList,
+    path: null,
+    action: "Em construção",
+  },
+  {
+    title: "Histórico",
+    description: "Linha do tempo das principais alterações administrativas do colaborador.",
+    permission: "hr.manage_employees",
+    icon: Activity,
+    path: null,
+    action: "Em construção",
+  },
 ];
 
 function roleLabel(role: string | null) {
@@ -90,14 +143,11 @@ export default function HumanResources() {
         .eq("user_id", authData.user.id)
         .maybeSingle();
 
-      // The company owner is identified by the owner_email stored on companies.
-      // The employee row is only relevant when the owner is also a professional.
       const isCompanyOwner =
         String(companyData.owner_email ?? "").trim().toLowerCase() ===
         String(authData.user.email ?? "").trim().toLowerCase();
 
-      const resolvedRole = isCompanyOwner ? "owner" : employee?.role || "employee";
-      setUserRole(resolvedRole);
+      setUserRole(isCompanyOwner ? "owner" : employee?.role || "employee");
 
       const { data: employeesData, error: employeesError } = await supabase
         .from("employees")
@@ -161,29 +211,70 @@ export default function HumanResources() {
   }
 
   const layoutRole = isAdministrator ? "owner" : userRole;
+  const basePath = `/${company.slug}/admin`;
 
   return (
     <BusinessLayout companySlug={company.slug} companyName={company.name} companyId={company.id} userRole={layoutRole} currentUser={currentUser}>
       <div className="p-4 sm:p-6 sm:px-10 w-full space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Recursos Humanos</h1>
-          <p className="text-muted-foreground mt-1">Gestão administrativa e acompanhamento da equipe da empresa.</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gradient">Recursos Humanos</h1>
+            <p className="text-muted-foreground mt-1">Gestão administrativa e acompanhamento da equipe da empresa.</p>
+          </div>
+          {(isAdministrator || hasPermission("hr.manage_employees")) && (
+            <Button asChild variant="neon">
+              <Link to={`${basePath}/colaboradores`}>
+                <Plus className="w-4 h-4 mr-2" />
+                Novo colaborador
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Colaboradores</p><p className="text-2xl font-bold mt-1">{employees.length}</p></div><Users className="w-8 h-8 text-primary" /></CardContent></Card>
+          <Link to={`${basePath}/colaboradores`} className="block">
+            <Card className="h-full transition-colors hover:border-primary/50"><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Colaboradores</p><p className="text-2xl font-bold mt-1">{employees.length}</p></div><Users className="w-8 h-8 text-primary" /></CardContent></Card>
+          </Link>
           <Card><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Ativos</p><p className="text-2xl font-bold mt-1">{activeEmployees.length}</p></div><CheckCircle2 className="w-8 h-8 text-primary" /></CardContent></Card>
           <Card><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Inativos</p><p className="text-2xl font-bold mt-1">{inactiveEmployees}</p></div><Archive className="w-8 h-8 text-muted-foreground" /></CardContent></Card>
-          <Card><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Acompanhamento</p><p className="text-sm font-semibold mt-2">Estrutura inicial</p></div><Activity className="w-8 h-8 text-primary" /></CardContent></Card>
+          <Link to={`${basePath}/ausencias`} className="block">
+            <Card className="h-full transition-colors hover:border-primary/50"><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Ausências</p><p className="text-sm font-semibold mt-2">Gerenciar registros</p></div><HeartPulse className="w-8 h-8 text-primary" /></CardContent></Card>
+          </Link>
         </div>
 
         <Card>
-          <CardHeader><CardTitle>Módulos de RH</CardTitle><CardDescription>O RH fica separado da gestão operacional de Colaboradores. Cada módulo terá sua própria permissão.</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle>Módulos de RH</CardTitle>
+            <CardDescription>Acesse diretamente cada área disponível. As áreas futuras já ficam identificadas sem liberar ações incompletas.</CardDescription>
+          </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {hrModules.filter((module) => isAdministrator || hasPermission(module.permission) || hasPermission("hr.view")).map((module) => {
                 const Icon = module.icon;
-                return <Card key={module.title} className="bg-card/60"><CardContent className="p-5"><div className="flex items-start gap-3"><div className="rounded-lg bg-primary/10 p-2 text-primary"><Icon className="w-5 h-5" /></div><div className="min-w-0"><div className="flex items-center gap-2 flex-wrap"><h3 className="font-semibold">{module.title}</h3><Badge variant="outline">Módulo</Badge></div><p className="text-sm text-muted-foreground mt-1">{module.description}</p></div></div></CardContent></Card>;
+                const content = (
+                  <Card className={`h-full bg-card/60 transition-colors ${module.path ? "hover:border-primary/50" : "opacity-75"}`}>
+                    <CardContent className="p-5 h-full flex flex-col">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="rounded-lg bg-primary/10 p-2 text-primary"><Icon className="w-5 h-5" /></div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold">{module.title}</h3>
+                            <Badge variant="outline">{module.path ? "Disponível" : "Em construção"}</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">{module.description}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex justify-end">
+                        {module.path ? (
+                          <span className="text-sm font-medium text-primary flex items-center gap-1">{module.action}<ArrowRight className="w-4 h-4" /></span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Módulo ainda não disponível</span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+                return module.path ? <Link key={module.title} to={`${basePath}/${module.path}`}>{content}</Link> : <div key={module.title}>{content}</div>;
               })}
             </div>
           </CardContent>
@@ -192,9 +283,35 @@ export default function HumanResources() {
         <Card>
           <CardHeader><CardTitle>Equipe</CardTitle><CardDescription>Visão rápida dos colaboradores cadastrados na empresa.</CardDescription></CardHeader>
           <CardContent>
-            {recentEmployees.length === 0 ? <div className="py-10 text-center text-muted-foreground">Nenhum colaborador cadastrado.</div> : <div className="space-y-3">{recentEmployees.map((employee, index) => <div key={employee.id}><div className="flex items-center justify-between gap-4 py-2"><div className="min-w-0"><p className="font-medium truncate">{employee.name}</p><p className="text-sm text-muted-foreground">{roleLabel(employee.role)}</p></div><Badge variant={employee.is_active === false ? "secondary" : "outline"}>{employee.is_active === false ? "Inativo" : "Ativo"}</Badge></div>{index < recentEmployees.length - 1 && <Separator />}</div>)}</div>}
+            {recentEmployees.length === 0 ? (
+              <div className="py-10 text-center text-muted-foreground">Nenhum colaborador cadastrado.</div>
+            ) : (
+              <div className="space-y-3">
+                {recentEmployees.map((employee, index) => (
+                  <div key={employee.id}>
+                    <Link to={`${basePath}/colaboradores`} className="flex items-center justify-between gap-4 py-2 rounded-md hover:bg-muted/40 px-2 -mx-2 transition-colors">
+                      <div className="min-w-0"><p className="font-medium truncate">{employee.name}</p><p className="text-sm text-muted-foreground">{roleLabel(employee.role)}</p></div>
+                      <Badge variant={employee.is_active === false ? "secondary" : "outline"}>{employee.is_active === false ? "Inativo" : "Ativo"}</Badge>
+                    </Link>
+                    {index < recentEmployees.length - 1 && <Separator />}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        <div className="flex flex-wrap gap-3">
+          {(isAdministrator || hasPermission("hr.manage_vacations") || hasPermission("hr.manage_absences")) && (
+            <Button asChild variant="outline"><Link to={`${basePath}/ausencias`}><CalendarDays className="w-4 h-4 mr-2" />Férias e afastamentos</Link></Button>
+          )}
+          {(isAdministrator || hasPermission("hr.manage_attendance")) && (
+            <Button asChild variant="outline"><Link to={`${basePath}/horarios`}><Clock3 className="w-4 h-4 mr-2" />Jornada e horários</Link></Button>
+          )}
+          {(isAdministrator || hasPermission("hr.manage_employees")) && (
+            <Button asChild variant="outline"><Link to={`${basePath}/colaboradores`}><Users className="w-4 h-4 mr-2" />Gerenciar equipe</Link></Button>
+          )}
+        </div>
       </div>
     </BusinessLayout>
   );
