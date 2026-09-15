@@ -62,10 +62,8 @@ Deno.serve(async (req) => {
     const isOwner = (comp?.owner_email ?? '').toLowerCase() === (user.email ?? '').toLowerCase();
     const actor_role = isOwner ? 'owner' : (emp?.role ?? 'employee');
 
-    // New permission model: absence approvals are controlled by the explicit
-    // HR permission. Schedule approvals keep their existing schedule-specific
-    // authorization until a dedicated schedule permission exists in the catalog.
-    if (reqRow.request_type === 'absence_request' && decision !== 'cancel') {
+    const isPermissionControlledAbsence = reqRow.request_type === 'absence_request' && decision !== 'cancel';
+    if (isPermissionControlledAbsence) {
       const permission = await checkEmployeePermission(
         supabase,
         user.id,
@@ -83,7 +81,7 @@ Deno.serve(async (req) => {
 
     const canCancel = decision === 'cancel' && reqRow.created_by === user.id;
     const isApprover = approverRoles.includes(actor_role);
-    if (!canCancel && !isApprover) {
+    if (!canCancel && !isApprover && !isPermissionControlledAbsence) {
       return j({ error: 'forbidden_role', actor_role, approverRoles }, 403);
     }
 
