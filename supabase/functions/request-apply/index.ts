@@ -6,13 +6,11 @@
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { checkEmployeePermission, permissionDeniedResponse } from '../_shared/employee-permissions.ts';
 
 type Handler = (sb: SupabaseClient, req: any) => Promise<unknown>;
 
 const HANDLERS: Record<string, Handler> = {
-  // schedule_change v2: aplica decisões linha-a-linha em schedule_entries
-  // e marca o schedule como approved / partially_approved.
-  // Fallback v1: payload com employees[] + new_schedule[] grava em employee_schedules.
   schedule_change: async (sb, r) => {
     const payload = r.request_payload ?? {};
     const scheduleId: string | undefined = payload.schedule_id;
@@ -26,7 +24,6 @@ const HANDLERS: Record<string, Handler> = {
       const approved = (entries ?? []).filter((e: any) => e.decision_status === 'approved').length;
       const pending  = (entries ?? []).filter((e: any) => e.decision_status === 'pending').length;
 
-      // Pending = aprovação total da request → assume aprovado para os ainda pendentes
       if (pending > 0 && r.status === 'approved') {
         await sb.from('schedule_entries').update({ decision_status: 'approved' })
           .eq('schedule_id', scheduleId).eq('decision_status', 'pending');
@@ -40,7 +37,6 @@ const HANDLERS: Record<string, Handler> = {
       return { schedule_id: scheduleId, total, approved, rejected, status: newStatus };
     }
 
-    // v1 legacy
     const employees: string[] = payload.employees ?? [];
     const schedule = payload.new_schedule ?? [];
     if (!employees.length || !Array.isArray(schedule)) return { applied: 0 };
@@ -59,7 +55,6 @@ const HANDLERS: Record<string, Handler> = {
     return { applied };
   },
 
-  // Exemplo: ausência aprovada — grava em employee_absences
   absence_request: async (sb, r) => {
     const p = r.request_payload ?? {};
     const { error } = await sb.from('employee_absences').insert({
@@ -117,6 +112,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'no_handler_for_type', type: r.request_type }), {
         status: 501, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    if (r.request_type === 'absence_request') {
+      const permission = await checkEmployeePermission(
+        sb,
+        user.id,
+        r.tenant_id,
+        'hr.manage_absences',
+      );
+      if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
     }
 
     const result = await handler(sb, r);
