@@ -4,6 +4,7 @@
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { checkEmployeePermission, permissionDeniedResponse } from '../_shared/employee-permissions.ts';
 
 type Decision = 'approve' | 'partial_approve' | 'reject' | 'request_revision' | 'cancel';
 
@@ -61,6 +62,19 @@ Deno.serve(async (req) => {
     const isOwner = (comp?.owner_email ?? '').toLowerCase() === (user.email ?? '').toLowerCase();
     const actor_role = isOwner ? 'owner' : (emp?.role ?? 'employee');
 
+    // New permission model: absence approvals are controlled by the explicit
+    // HR permission. Schedule approvals keep their existing schedule-specific
+    // authorization until a dedicated schedule permission exists in the catalog.
+    if (reqRow.request_type === 'absence_request' && decision !== 'cancel') {
+      const permission = await checkEmployeePermission(
+        supabase,
+        user.id,
+        reqRow.tenant_id,
+        'hr.manage_absences',
+      );
+      if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
+    }
+
     step = 'fetch_rule';
     const { data: rule } = await supabase
       .from('request_approval_rules').select('*')
@@ -91,7 +105,6 @@ Deno.serve(async (req) => {
       .from('requests').update(patch).eq('id', request_id).select('*').single();
     if (updErr) return j({ error: 'update_request_failed', step, detail: updErr.message }, 500);
 
-    // Se for schedule_change, propaga a decisão para a escala
     const scheduleId = reqRow.request_type === 'schedule_change'
       ? reqRow.request_payload?.schedule_id
       : null;
@@ -117,10 +130,7 @@ Deno.serve(async (req) => {
       if (Object.keys(schedPatch).length > 0) {
         const { error: sErr } = await supabase.from('schedules')
           .update(schedPatch).eq('id', scheduleId).eq('tenant_id', reqRow.tenant_id);
-        if (sErr) {
-          console.error('schedule update failed', sErr);
-          // não bloqueia — apenas registra
-        }
+        if (sErr) console.error('schedule update failed', sErr);
       }
     }
 
