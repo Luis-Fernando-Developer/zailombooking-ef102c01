@@ -6,11 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-/**
- * Edge Function: login-with-context
- * Autentica um usuário baseado na senha contextual da empresa.
- * A senha nunca é usada como senha global do Supabase Auth.
- */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
@@ -74,7 +69,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (client && (!client.user_id || !client.password_hash)) {
+    if (!client) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Cliente não encontrado nesta empresa.",
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!client.user_id || !client.password_hash) {
       return new Response(JSON.stringify({
         success: false,
         needs_first_access: true,
@@ -102,9 +107,41 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use the browser origin sent by Login.tsx when it is a valid HTTP(S) origin.
-    // This keeps local development redirects on the local host instead of falling back
-    // to the production SITE_URL.
+    const authenticatedUserId = validData.user_id;
+
+    if (!authenticatedUserId) {
+      return new Response(JSON.stringify({
+        error: "Cliente autenticado sem identidade global vinculada.",
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (client.user_id !== authenticatedUserId) {
+      const { error: syncError } = await supabaseClient
+        .from("clients")
+        .update({ user_id: authenticatedUserId })
+        .eq("id", client.id)
+        .eq("company_id", company.id);
+
+      if (syncError) {
+        console.error("[LOGIN_CONTEXT] Erro ao sincronizar user_id do cliente:", syncError);
+        return new Response(JSON.stringify({
+          error: "Não foi possível sincronizar a identidade do cliente.",
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log("[LOGIN_CONTEXT] user_id do cliente sincronizado:", {
+        client_id: client.id,
+        company_id: company.id,
+        user_id: authenticatedUserId,
+      });
+    }
+
     const configuredSiteUrl = Deno.env.get("SITE_URL") || "https://booking.zailom.com";
     let siteUrl = configuredSiteUrl;
 
@@ -142,6 +179,8 @@ Deno.serve(async (req) => {
       console.error("[LOGIN_CONTEXT] Erro ao gerar link de sessão:", otpError);
       throw new Error("Não foi possível gerar a sessão de acesso.");
     }
+
+    console.log("[LOGIN_CONTEXT] Action link gerado:", otpData?.properties?.action_link);
 
     return new Response(JSON.stringify({
       success: true,
