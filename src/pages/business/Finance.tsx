@@ -38,9 +38,11 @@ export default function BusinessFinance() {
       setCurrentUser(auth.user);
       setCompany(c);
 
+      // Use only columns confirmed to exist in booking_payments.
+      // The payment gateway identifier is not needed by this page.
       const { data: paymentRows, error: paymentError } = await supabase
         .from("booking_payments")
-        .select("id,booking_id,status,method,amount,external_id,created_at,paid_at")
+        .select("id,booking_id,status,method,amount,created_at,paid_at")
         .eq("company_id", c.id)
         .order("created_at", { ascending: false });
       if (paymentError) throw paymentError;
@@ -89,7 +91,7 @@ export default function BusinessFinance() {
   const filtered = useMemo(() => payments.filter((p) => {
     const date = String(p.created_at || "").slice(0, 10);
     const q = search.trim().toLowerCase();
-    const text = [p.status, p.method, p.external_id, p.booking?.client?.name, p.booking?.service?.name].map((v) => String(v ?? "").toLowerCase()).join(" ");
+    const text = [p.status, p.method, p.booking?.client?.name, p.booking?.service?.name].map((v) => String(v ?? "").toLowerCase()).join(" ");
     return (!from || date >= from) && (!to || date <= to) && (!q || text.includes(q));
   }), [payments, from, to, search]);
 
