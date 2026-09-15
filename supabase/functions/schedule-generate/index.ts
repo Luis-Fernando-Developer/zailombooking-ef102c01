@@ -13,6 +13,7 @@
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { checkEmployeePermission, permissionDeniedResponse } from '../_shared/employee-permissions.ts';
 
 interface PatternDay {
   work: boolean;
@@ -48,6 +49,14 @@ Deno.serve(async (req) => {
       return json({ error: 'tenant_id, schedule_id, employee_ids[] obrigatórios' }, 400);
     }
 
+    const permission = await checkEmployeePermission(
+      supabase,
+      user.id,
+      tenant_id,
+      'hr.manage_attendance',
+    );
+    if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
+
     const { data: belongs } = await supabase.rpc('user_belongs_to_company', {
       _user_id: user.id, _company_id: tenant_id,
     });
@@ -58,7 +67,6 @@ Deno.serve(async (req) => {
     if (schErr || !schedule) return json({ error: 'schedule_not_found' }, 404);
     if (!append && schedule.status !== 'draft') return json({ error: 'schedule_not_draft' }, 400);
 
-    // Carrega template (opcional)
     let pattern: PatternDay[] | null = null;
     let cycleLen = 7;
     if (template_id) {
@@ -68,20 +76,17 @@ Deno.serve(async (req) => {
       if (tpl) { pattern = tpl.pattern_days as PatternDay[]; cycleLen = tpl.cycle_length_days || 7; }
     }
 
-    // Fallback: business_hours por dia da semana
     const { data: bhRows } = await supabase
       .from('business_hours').select('*').eq('company_id', tenant_id);
     const bhByDow = new Map<number, any>();
     (bhRows ?? []).forEach((b: any) => bhByDow.set(b.day_of_week, b));
 
-    // Ausências aprovadas no período
     const { data: absences } = await supabase
       .from('employee_absences').select('*')
       .in('employee_id', employee_ids)
       .lte('start_date', schedule.period_end)
       .gte('end_date', schedule.period_start);
 
-    // Employees (para detectar inativos e desligamento programado)
     const { data: emps } = await supabase
       .from('employees')
       .select('id, is_active, termination_effective_date')
@@ -93,7 +98,6 @@ Deno.serve(async (req) => {
       employeeStateById.set(employee.id, employee);
     });
 
-    // Gera entries
     const start = new Date(schedule.period_start + 'T00:00:00');
     const end   = new Date(schedule.period_end   + 'T00:00:00');
     const rows: any[] = [];
@@ -108,26 +112,17 @@ Deno.serve(async (req) => {
         if (!employeeState) continue;
 
         const terminationDate = employeeState.termination_effective_date;
-
-        // Se o colaborador já estará desligado no começo do ciclo, não cria
-        // nenhuma linha para ele. Assim ele não aparece na próxima escala.
-        if (terminationDate && terminationDate <= schedule.period_start) {
-          continue;
-        }
+        if (terminationDate && terminationDate <= schedule.period_start) continue;
 
         let entryType: string = 'F';
         let st: string | null = null, et: string | null = null, bs: string | null = null, be: string | null = null;
 
-        // Desligado efetivo: só bloqueia a partir da data efetiva.
-        // is_active=false sem data efetiva significa desligamento imediato/manual.
         if ((terminationDate && isoDate >= terminationDate) || (!employeeState.is_active && !terminationDate)) {
           entryType = 'D';
         } else if ((absences ?? []).some((a: any) =>
           a.employee_id === empId && isoDate >= a.start_date && isoDate <= a.end_date)) {
           entryType = 'A';
         } else if (pattern && pattern.length > 0) {
-          // Usa o tamanho real do pattern como ciclo efetivo para evitar dias "vazios"
-          // quando cycle_length_days > pattern.length (template desalinhado).
           const effectiveLen = Math.min(cycleLen || pattern.length, pattern.length);
           const p = pattern[cycleIdx % effectiveLen] ?? pattern[0];
           if (p.work) { entryType = 'T'; st = p.start ?? null; et = p.end ?? null; bs = p.break_start ?? null; be = p.break_end ?? null; }
@@ -148,7 +143,6 @@ Deno.serve(async (req) => {
     }
 
     if (append) {
-      // Não apaga existentes; só insere combinações (employee_id, entry_date) que não existem
       const { data: existing } = await supabase
         .from('schedule_entries')
         .select('employee_id, entry_date')
@@ -164,7 +158,6 @@ Deno.serve(async (req) => {
       return json({ ok: true, inserted: filtered.length, mode: 'append' });
     }
 
-    // Limpa entries existentes e insere novos
     await supabase.from('schedule_entries').delete().eq('schedule_id', schedule_id);
     const chunkSize = 500;
     for (let i = 0; i < rows.length; i += chunkSize) {
