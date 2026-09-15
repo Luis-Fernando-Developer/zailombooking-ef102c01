@@ -62,13 +62,21 @@ Deno.serve(async (req) => {
     const isOwner = (comp?.owner_email ?? '').toLowerCase() === (user.email ?? '').toLowerCase();
     const actor_role = isOwner ? 'owner' : (emp?.role ?? 'employee');
 
-    const isPermissionControlledAbsence = reqRow.request_type === 'absence_request' && decision !== 'cancel';
-    if (isPermissionControlledAbsence) {
+    const isAbsencePermissionControlled =
+      reqRow.request_type === 'absence_request' && decision !== 'cancel';
+    const isSchedulePermissionControlled =
+      reqRow.request_type === 'schedule_change' && decision !== 'cancel';
+
+    if (isAbsencePermissionControlled || isSchedulePermissionControlled) {
+      const permissionCode = isAbsencePermissionControlled
+        ? 'hr.manage_absences'
+        : 'hr.manage_attendance';
+
       const permission = await checkEmployeePermission(
         supabase,
         user.id,
         reqRow.tenant_id,
-        'hr.manage_absences',
+        permissionCode,
       );
       if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
     }
@@ -80,8 +88,9 @@ Deno.serve(async (req) => {
     const approverRoles: string[] = rule?.approver_roles ?? ['owner', 'manager'];
 
     const canCancel = decision === 'cancel' && reqRow.created_by === user.id;
+    const isPermissionControlled = isAbsencePermissionControlled || isSchedulePermissionControlled;
     const isApprover = approverRoles.includes(actor_role);
-    if (!canCancel && !isApprover && !isPermissionControlledAbsence) {
+    if (!canCancel && !isApprover && !isPermissionControlled) {
       return j({ error: 'forbidden_role', actor_role, approverRoles }, 403);
     }
 
@@ -145,7 +154,7 @@ Deno.serve(async (req) => {
       const { error: cErr } = await supabase.from('request_comments').insert({
         request_id, author_id: user.id, author_role: actor_role, message: comment,
       });
-      if (cErr) console.error('comment insert failed', cErr);
+      if (cErr) console.error('request comment insert failed', cErr);
     }
 
     return j({ request: updated });
