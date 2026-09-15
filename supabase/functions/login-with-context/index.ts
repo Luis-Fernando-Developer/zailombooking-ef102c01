@@ -107,16 +107,35 @@ Deno.serve(async (req) => {
       });
     }
 
-    const authenticatedUserId = validData.user_id;
+    const { data: authUsersData, error: authUserError } = await supabaseClient.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
 
-    if (!authenticatedUserId) {
+    if (authUserError) {
+      console.error("[LOGIN_CONTEXT] Erro ao buscar usuário global:", authUserError);
       return new Response(JSON.stringify({
-        error: "Cliente autenticado sem identidade global vinculada.",
+        error: "Não foi possível localizar a identidade global do cliente.",
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const authUser = authUsersData.users.find(
+      (user) => user.email?.trim().toLowerCase() === email.toLowerCase()
+    );
+
+    if (!authUser) {
+      return new Response(JSON.stringify({
+        error: "Identidade global do cliente não encontrada.",
       }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const authenticatedUserId = authUser.id;
 
     if (client.user_id !== authenticatedUserId) {
       const { error: syncError } = await supabaseClient
