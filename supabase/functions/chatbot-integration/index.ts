@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { checkEmployeePermission, permissionDeniedResponse } from "../_shared/employee-permissions.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,7 +11,6 @@ const corsHeaders = {
 const DEFAULT_FLOW_BASE_URL = "https://api-flowbuilder.zailom.com/functions/v1/flow-api";
 const REQUIRED_SCOPES = ["workspace:read", "instances:read", "bots:read"];
 
-// ─── JWT HS256 helper ────────────────────────────────────────────────────────
 function toBase64Url(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
   let binary = "";
@@ -35,7 +35,6 @@ async function signJwt(payload: any, secret: string): Promise<string> {
   return `${signingInput}.${toBase64Url(sig)}`;
 }
 
-// ─── Flow API helper ─────────────────────────────────────────────────────────
 async function flowFetch(baseUrl: string, apiKey: string, path: string) {
   const url = `${baseUrl.replace(/\/$/, "")}${path}`;
   const res = await fetch(url, {
@@ -76,14 +75,29 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    async function requireSettingsPermission(companyId: string) {
+      if (!companyId) return json({ error: "Missing company_id" }, 400);
+      const permission = await checkEmployeePermission(
+        supabaseClient,
+        user.id,
+        companyId,
+        "settings.manage",
+      );
+      if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
+      return null;
+    }
+
+    if (["save", "disconnect", "flow-fetch", "sync", "save-config", "sign-embed-token", "sync-plan"].includes(action)) {
+      const permissionResponse = await requireSettingsPermission(body.company_id);
+      if (permissionResponse) return permissionResponse;
+    }
+
     // ─── SAVE: valida chave, verifica scopes, cacheia workspace ───────────
     if (action === "save") {
       const { company_id, api_key, base_url } = body;
       if (!company_id || !api_key) return json({ error: "Missing fields" }, 400);
 
       const flowBase = (base_url && typeof base_url === "string" && base_url.trim()) || DEFAULT_FLOW_BASE_URL;
-
-      // 1. Health check
       const health = await flowFetch(flowBase, api_key, "/v1/health");
       if (!health.ok) {
         return json({
@@ -105,7 +119,6 @@ serve(async (req) => {
         }, 403);
       }
 
-      // 2. Workspace
       const ws = await flowFetch(flowBase, api_key, "/v1/workspace");
       if (!ws.ok) {
         return json({
@@ -117,7 +130,6 @@ serve(async (req) => {
       }
       const workspace = ws.body?.data ?? null;
 
-      // 3. Persistir
       const { error: dbError } = await supabaseClient
         .from("chatbot_integration")
         .upsert({
@@ -134,7 +146,6 @@ serve(async (req) => {
         }, { onConflict: "company_id" });
 
       if (dbError) throw dbError;
-
       return json({ success: true, workspace, scopes });
     }
 
@@ -161,7 +172,6 @@ serve(async (req) => {
       return json({ success: true });
     }
 
-    // ─── Helper: carrega integração + valida ativa ────────────────────────
     async function loadIntegration(company_id: string) {
       const { data, error } = await supabaseClient
         .from("chatbot_integration")
@@ -169,9 +179,7 @@ serve(async (req) => {
         .eq("company_id", company_id)
         .maybeSingle();
       if (error) throw error;
-      if (!data || !data.is_active || !data.flow_api_key) {
-        return null;
-      }
+      if (!data || !data.is_active || !data.flow_api_key) return null;
       return {
         apiKey: data.flow_api_key as string,
         baseUrl: (data.flow_api_base_url as string) || DEFAULT_FLOW_BASE_URL,
@@ -179,13 +187,11 @@ serve(async (req) => {
     }
 
     // ─── FLOW-FETCH: proxy read-only para endpoints do Flow ───────────────
-    // Body: { action:'flow-fetch', company_id, path:'/v1/instances' }
     if (action === "flow-fetch") {
       const { company_id, path } = body;
       if (!company_id || !path || typeof path !== "string" || !path.startsWith("/")) {
         return json({ error: "Missing/invalid company_id or path" }, 400);
       }
-      // Whitelist: apenas GETs do escopo esperado
       const allowed = /^\/v1\/(health|workspace|instances(\/[a-f0-9-]+)?|bots(\/[a-f0-9-]+)?(\?.*)?)$/i;
       if (!allowed.test(path)) return json({ error: "Path not allowed" }, 400);
 
