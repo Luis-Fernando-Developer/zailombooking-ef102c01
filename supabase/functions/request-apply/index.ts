@@ -114,12 +114,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (r.request_type === 'absence_request') {
+    let requiredPermission: string | null = null;
+    if (r.request_type === 'absence_request') requiredPermission = 'hr.manage_absences';
+    if (r.request_type === 'schedule_change') requiredPermission = 'hr.manage_attendance';
+
+    if (requiredPermission) {
       const permission = await checkEmployeePermission(
         sb,
         user.id,
         r.tenant_id,
-        'hr.manage_absences',
+        requiredPermission,
       );
       if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
     }
