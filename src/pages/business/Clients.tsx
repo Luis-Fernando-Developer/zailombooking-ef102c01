@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Search, Plus, Pencil, UserRound, Phone, Mail, CalendarDays } from "lucide-react";
+import { Search, Plus, Pencil, UserRound, Phone, Mail, CalendarDays, KeyRound } from "lucide-react";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ export default function BusinessClients() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [accessLoadingId, setAccessLoadingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", cpf: "" });
 
   useEffect(() => { load(); }, [slug]);
@@ -40,7 +41,7 @@ export default function BusinessClients() {
 
       const { data, error } = await supabase
         .from("clients")
-        .select("id,name,email,phone,cpf,created_at")
+        .select("id,name,email,phone,cpf,user_id,password_hash,created_at")
         .eq("company_id", c.id)
         .order("name", { ascending: true });
       if (error) throw error;
@@ -108,6 +109,45 @@ export default function BusinessClients() {
     }
   }
 
+  async function requestClientAccess(client: any) {
+    if (!client.email) {
+      toast({
+        title: "E-mail necessário",
+        description: "Cadastre um e-mail para que o cliente possa receber o link de primeiro acesso.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAccessLoadingId(client.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("request-client-access", {
+        body: {
+          email: client.email,
+          company_slug: company.slug,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Não foi possível solicitar o acesso.");
+
+      toast({
+        title: data.already_configured ? "Acesso já configurado" : "Primeiro acesso enviado",
+        description: data.message,
+      });
+
+      await load();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao enviar acesso",
+        description: error.message || "Não foi possível processar o primeiro acesso.",
+        variant: "destructive",
+      });
+    } finally {
+      setAccessLoadingId(null);
+    }
+  }
+
   if (loading || permissionLoading || !company) {
     return <BusinessLayout companySlug={slug || ""} companyName="Carregando..." companyId="" userRole="loading"><div className="p-10 text-center">Carregando clientes...</div></BusinessLayout>;
   }
@@ -127,12 +167,21 @@ export default function BusinessClients() {
           <CardHeader><CardTitle>Lista de clientes</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar por nome, e-mail, telefone ou CPF..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
-            {filtered.length === 0 ? <div className="py-12 text-center text-muted-foreground">Nenhum cliente encontrado.</div> : <div className="space-y-3">{filtered.map((client) => (
-              <div key={client.id} className="rounded-lg border p-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-start gap-3"><div className="rounded-full bg-primary/10 p-2"><UserRound className="w-5 h-5 text-primary" /></div><div><p className="font-semibold">{client.name || "Sem nome"}</p><div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:gap-4"><span className="inline-flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{client.email || "Sem e-mail"}</span><span className="inline-flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{client.phone || "Sem telefone"}</span><span className="inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{client.created_at ? new Date(client.created_at).toLocaleDateString("pt-BR") : "-"}</span></div></div></div>
-                {canEdit && <Button variant="outline" onClick={() => openEdit(client)}><Pencil className="w-4 h-4 mr-2" />Editar</Button>}
-              </div>
-            ))}</div>}
+            {filtered.length === 0 ? <div className="py-12 text-center text-muted-foreground">Nenhum cliente encontrado.</div> : <div className="space-y-3">{filtered.map((client) => {
+              const hasAccess = Boolean(client.user_id && client.password_hash);
+              const hasIdentity = Boolean(client.user_id);
+              const accessBusy = accessLoadingId === client.id;
+
+              return (
+                <div key={client.id} className="rounded-lg border p-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex items-start gap-3 min-w-0"><div className="rounded-full bg-primary/10 p-2"><UserRound className="w-5 h-5 text-primary" /></div><div className="min-w-0"><p className="font-semibold">{client.name || "Sem nome"}</p><div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:gap-4"><span className="inline-flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{client.email || "Sem e-mail"}</span><span className="inline-flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{client.phone || "Sem telefone"}</span><span className="inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{client.created_at ? new Date(client.created_at).toLocaleDateString("pt-BR") : "-"}</span></div><div className="mt-2 text-xs"><span className={hasAccess ? "text-emerald-500" : hasIdentity ? "text-amber-500" : "text-muted-foreground"}>{hasAccess ? "Acesso ativo" : hasIdentity ? "Identidade criada · aguardando senha" : "Sem acesso ao sistema"}</span></div></div></div>
+                  <div className="flex flex-wrap gap-2">
+                    {canEdit && <Button variant="outline" onClick={() => openEdit(client)}><Pencil className="w-4 h-4 mr-2" />Editar</Button>}
+                    {canEdit && !hasAccess && <Button variant="neon" disabled={accessBusy} onClick={() => requestClientAccess(client)}><KeyRound className="w-4 h-4 mr-2" />{accessBusy ? "Enviando..." : hasIdentity ? "Reenviar acesso" : "Enviar acesso"}</Button>}
+                  </div>
+                </div>
+              );
+            })}</div>}
             <p className="text-sm text-muted-foreground">{filtered.length} cliente(s) exibido(s).</p>
           </CardContent>
         </Card>
