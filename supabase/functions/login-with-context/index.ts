@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -9,6 +9,7 @@ const corsHeaders = {
 /**
  * Edge Function: login-with-context
  * Autentica um usuário baseado na senha contextual da empresa.
+ * A senha nunca é usada como senha global do Supabase Auth.
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -30,6 +31,34 @@ serve(async (req) => {
       });
     }
 
+    // Antes da validação da senha, detecta o cliente cadastrado pela recepção
+    // que ainda não possui identidade/senha contextual.
+    const { data: company } = await supabaseClient
+      .from("companies")
+      .select("id")
+      .eq("slug", company_slug)
+      .maybeSingle();
+
+    if (company) {
+      const { data: client } = await supabaseClient
+        .from("clients")
+        .select("id,user_id,password_hash")
+        .eq("company_id", company.id)
+        .ilike("email", email)
+        .maybeSingle();
+
+      if (client && (!client.user_id || !client.password_hash)) {
+        return new Response(JSON.stringify({
+          success: false,
+          needs_first_access: true,
+          error: "Este cliente ainda não possui uma senha definida para esta empresa.",
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // 1. Validar a senha contextual via RPC
     const { data: validData, error: validError } = await supabaseClient.rpc('validate_client_password', {
       p_email: email,
@@ -38,7 +67,7 @@ serve(async (req) => {
     });
 
     if (validError || !validData?.success) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: validData?.error || "Credenciais inválidas para esta empresa.",
         needs_link: validData?.needs_link,
         user_id: validData?.user_id
@@ -49,10 +78,10 @@ serve(async (req) => {
     }
 
     // 2. Gerar link de sessão
-    // A URL de redirecionamento DEVE ser absoluta para evitar que o Supabase redirecione para a raiz errada
+    // A sessão é global do Auth, mas a senha que autorizou este login é contextual da empresa.
     const siteUrl = Deno.env.get("SITE_URL") || "https://booking.zailom.com";
     let redirectUrl = `${siteUrl}/${company_slug}/agendamentos`;
-    
+
     if (returnTo === 'agendar') {
       redirectUrl = `${siteUrl}/${company_slug}/agendar?restore=true`;
     }
@@ -72,8 +101,8 @@ serve(async (req) => {
       throw new Error("Não foi possível gerar a sessão de acesso.");
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       action_link: otpData.properties.action_link,
       message: "Autenticação contextual realizada."
     }), {
@@ -83,7 +112,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Erro no login contextual:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
