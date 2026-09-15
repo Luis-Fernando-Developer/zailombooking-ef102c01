@@ -46,6 +46,7 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useSidebarBadges, type BadgeInfo } from "@/hooks/use-sidebar-badges";
 import { usePermissions } from "@/hooks/use-permissions";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 type PermissionCode = string;
 type SubItem = { title: string; url: string; icon: typeof LayoutDashboard; permission?: PermissionCode };
@@ -107,7 +108,30 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { hasPermission, loading: permissionsLoading, userRole: permissionUserRole } = usePermissions(companyId, currentUser);
+  const [resolvedUser, setResolvedUser] = useState<SupabaseUser | null>(null);
+
+  // Algumas páginas antigas não passam currentUser para o BusinessLayout.
+  // Nesse caso, resolvemos a sessão aqui para que a sidebar continue calculando
+  // as permissões normalmente ao navegar entre as páginas.
+  useEffect(() => {
+    if (currentUser !== undefined) {
+      setResolvedUser(currentUser);
+      return;
+    }
+
+    let cancelled = false;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) setResolvedUser(data.user ?? null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser]);
+
+  const sidebarUser = currentUser !== undefined ? currentUser : resolvedUser;
+  const { hasPermission, loading: permissionsLoading, userRole: permissionUserRole } = usePermissions(companyId, sidebarUser);
 
   const effectiveUserRole =
     userRole === 'owner' || userRole === 'admin'
@@ -128,7 +152,7 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
       ? "!bg-primary/20 !text-primary border-l-4 !border-l-primary font-semibold shadow-[inset_0_0_12px_rgba(0,200,255,0.08)]"
       : "border-l-4 border-l-transparent hover:bg-primary/10 hover:text-primary";
 
-  const badges = useSidebarBadges(companyId, currentUser?.id);
+  const badges = useSidebarBadges(companyId, sidebarUser?.id);
   const renderBadge = (info?: BadgeInfo) => {
     if (!info || info.count <= 0) return null;
     const color = info.severity === "red" ? "bg-destructive text-destructive-foreground" : "bg-yellow-500 text-black";
