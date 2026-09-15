@@ -7,26 +7,14 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-// ---------------------------------------------------------------------------
-// Inlined de _shared/gateway-config.ts — o editor do painel Supabase não
-// resolve imports relativos fora da pasta da própria função.
-// Ordem: variável de ambiente -> tabela public.super_admin_gateway_configs.
-// ---------------------------------------------------------------------------
-async function getGatewayConfig(
-  adminClient: any,
-  provider: string,
-  key: string,
-): Promise<string | undefined> {
+import { checkEmployeePermission, permissionDeniedResponse } from "../_shared/employee-permissions.ts";
+
+async function getGatewayConfig(adminClient: any, provider: string, key: string): Promise<string | undefined> {
   const envValue = (Deno.env.get(key) ?? '').trim();
   if (envValue) return envValue;
-
   const { data, error } = await adminClient
-    .from('super_admin_gateway_configs')
-    .select('value')
-    .eq('provider', provider)
-    .eq('key', key)
-    .maybeSingle();
-
+    .from('super_admin_gateway_configs').select('value')
+    .eq('provider', provider).eq('key', key).maybeSingle();
   if (error) {
     console.error(`[gateway-config] erro ao ler ${provider}/${key}:`, error.message);
     return undefined;
@@ -34,11 +22,7 @@ async function getGatewayConfig(
   return data?.value?.trim() || undefined;
 }
 
-async function getGatewayConfigFirst(
-  adminClient: any,
-  provider: string,
-  keys: string[],
-): Promise<string | undefined> {
+async function getGatewayConfigFirst(adminClient: any, provider: string, keys: string[]): Promise<string | undefined> {
   for (const key of keys) {
     const value = await getGatewayConfig(adminClient, provider, key);
     if (value) return value;
@@ -48,17 +32,14 @@ async function getGatewayConfigFirst(
 
 async function getEvolutionBaseUrl(adminClient: any): Promise<string | undefined> {
   const value = await getGatewayConfigFirst(adminClient, 'whatsapp', [
-    'EVOLUTION_GLOBAL_BASE_URL',
-    'EVOLUTION_GLOBAL_URL',
-    'EVOLUTION_MANAGER_URL',
+    'EVOLUTION_GLOBAL_BASE_URL', 'EVOLUTION_GLOBAL_URL', 'EVOLUTION_MANAGER_URL',
   ]);
   return value?.replace(/\/$/, '');
 }
 
 async function getEvolutionApiKey(adminClient: any): Promise<string | undefined> {
   return getGatewayConfigFirst(adminClient, 'whatsapp', [
-    'EVOLUTION_GLOBAL_API_KEY',
-    'EVOLUTION_MANAGER_KEY',
+    'EVOLUTION_GLOBAL_API_KEY', 'EVOLUTION_MANAGER_KEY',
   ]);
 }
 
@@ -96,7 +77,6 @@ serve(async (req) => {
 
     const ASAAS_API_KEY = (await getGatewayConfig(admin, "asaas", "ASAAS_API_KEY") ?? "").trim();
 
-    // ---- Autenticação ----------------------------------------------------
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "Não autorizado." }, 401);
 
@@ -109,9 +89,7 @@ serve(async (req) => {
     if (claimsErr || !claimsData?.claims) return json({ error: "Não autorizado." }, 401);
 
     const userId = claimsData.claims.sub as string;
-    const userEmail = String(claimsData.claims.email ?? "").toLowerCase();
 
-    // ---- Payload ---------------------------------------------------------
     const body = await req.json().catch(() => null);
     const companyId: string | undefined = body?.company_id;
     const type: string = String(body?.type ?? "");
@@ -121,7 +99,14 @@ serve(async (req) => {
       return json({ error: "type inválido (pix | boleto | credit_card)." }, 400);
     }
 
-    // ---- Autorização na empresa -----------------------------------------
+    const permission = await checkEmployeePermission(
+      admin,
+      userId,
+      companyId,
+      'subscription.manage',
+    );
+    if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
+
     const { data: company } = await admin
       .from("companies")
       .select("id, name, owner_email, owner_name, owner_phone, owner_cpf, cnpj, asaas_customer_id")
@@ -129,18 +114,6 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!company) return json({ error: "Empresa não encontrada." }, 404);
-
-    let allowed = String(company.owner_email ?? "").toLowerCase() === userEmail;
-    if (!allowed) {
-      const { data: emp } = await admin
-        .from("employees")
-        .select("id, role")
-        .eq("company_id", company.id)
-        .eq("user_id", userId)
-        .maybeSingle();
-      allowed = !!emp && ["owner", "admin", "manager"].includes(String(emp.role ?? ""));
-    }
-    if (!allowed) return json({ error: "Sem permissão para esta empresa." }, 403);
 
     async function setAsDefault(methodId: string) {
       await admin
@@ -158,7 +131,6 @@ serve(async (req) => {
         .eq("company_id", company!.id);
     }
 
-    // ---- PIX / BOLETO ----------------------------------------------------
     if (type === "pix" || type === "boleto") {
       const label = type === "pix" ? "PIX" : "Boleto bancário";
 
@@ -172,7 +144,6 @@ serve(async (req) => {
 
       let methodId = existing?.id as string | undefined;
       if (!methodId) {
-        // libera o índice único de "um padrão por empresa" antes de inserir
         await admin
           .from("company_payment_methods")
           .update({ is_default: false })
@@ -197,7 +168,6 @@ serve(async (req) => {
       return json({ ok: true, payment_method_id: methodId, type });
     }
 
-    // ---- CARTÃO DE CRÉDITO (tokenização) ---------------------------------
     if (!ASAAS_API_KEY) {
       return json({ error: "Gateway da plataforma não configurado (ASAAS_API_KEY)." }, 500);
     }
@@ -241,7 +211,6 @@ serve(async (req) => {
       return data;
     }
 
-    // Cliente Asaas (reaproveita ou cria)
     let customerId: string | null = company.asaas_customer_id ?? null;
     const cpfCnpj = onlyDigits(company.cnpj || company.owner_cpf || holder.cpfCnpj);
     if (!customerId) {
@@ -300,7 +269,6 @@ serve(async (req) => {
     const brand = tokenized?.creditCardBrand ?? null;
     const last4 = tokenized?.creditCardNumber ?? number.slice(-4);
 
-    // libera o índice único de padrão
     await admin
       .from("company_payment_methods")
       .update({ is_default: false })
