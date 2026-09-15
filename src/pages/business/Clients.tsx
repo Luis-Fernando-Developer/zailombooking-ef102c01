@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
@@ -38,9 +37,10 @@ export default function BusinessClients() {
       if (ce || !c) throw ce || new Error("Empresa não encontrada.");
       setCurrentUser(auth.user);
       setCompany(c);
+
       const { data, error } = await supabase
         .from("clients")
-        .select("id,name,email,phone,cpf,is_active,created_at,updated_at")
+        .select("id,name,email,phone,cpf,created_at")
         .eq("company_id", c.id)
         .order("name", { ascending: true });
       if (error) throw error;
@@ -129,7 +129,7 @@ export default function BusinessClients() {
             <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar por nome, e-mail, telefone ou CPF..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
             {filtered.length === 0 ? <div className="py-12 text-center text-muted-foreground">Nenhum cliente encontrado.</div> : <div className="space-y-3">{filtered.map((client) => (
               <div key={client.id} className="rounded-lg border p-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-start gap-3"><div className="rounded-full bg-primary/10 p-2"><UserRound className="w-5 h-5 text-primary" /></div><div><div className="flex items-center gap-2"><p className="font-semibold">{client.name || "Sem nome"}</p><Badge variant={client.is_active === false ? "secondary" : "default"}>{client.is_active === false ? "Inativo" : "Ativo"}</Badge></div><div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:gap-4"><span className="inline-flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{client.email || "Sem e-mail"}</span><span className="inline-flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{client.phone || "Sem telefone"}</span><span className="inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{client.created_at ? new Date(client.created_at).toLocaleDateString("pt-BR") : "-"}</span></div></div></div>
+                <div className="flex items-start gap-3"><div className="rounded-full bg-primary/10 p-2"><UserRound className="w-5 h-5 text-primary" /></div><div><p className="font-semibold">{client.name || "Sem nome"}</p><div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:gap-4"><span className="inline-flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{client.email || "Sem e-mail"}</span><span className="inline-flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{client.phone || "Sem telefone"}</span><span className="inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{client.created_at ? new Date(client.created_at).toLocaleDateString("pt-BR") : "-"}</span></div></div></div>
                 {canEdit && <Button variant="outline" onClick={() => openEdit(client)}><Pencil className="w-4 h-4 mr-2" />Editar</Button>}
               </div>
             ))}</div>}
