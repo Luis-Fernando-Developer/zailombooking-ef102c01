@@ -28,6 +28,9 @@ import BusinessDashboard from "./pages/business/Dashboard";
 import BusinessBookings from "./pages/business/Bookings";
 import BusinessServices from "./pages/business/Services";
 import BusinessEmployees from "./pages/business/Employees";
+import BusinessClients from "./pages/business/Clients";
+import BusinessReports from "./pages/business/Reports";
+import BusinessFinance from "./pages/business/Finance";
 import BusinessSettings from "./pages/business/Settings";
 import BillingManagement from "./pages/business/BillingManagement";
 import BusinessProfile from "./pages/business/Profile";
@@ -93,6 +96,9 @@ const App = () => (
             <Route path="/super-admin/add-company" element={<RequireSuperAdmin><CreateCompany /></RequireSuperAdmin>} />
             <Route path="/:slug/admin/dashboard" element={<RequireBusinessAuth><BusinessDashboard /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/agendamentos" element={<RequireBusinessAuth><BusinessBookings /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/clientes" element={<RequireBusinessAuth><BusinessClients /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/relatorios" element={<RequireBusinessAuth><BusinessReports /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/financeiro" element={<RequireBusinessAuth><BusinessFinance /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/realocacao" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessRealocacao /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/ausencias" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessAusencias /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessServices /></RequireRole></RequireBusinessAuth>} />
