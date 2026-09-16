@@ -248,7 +248,7 @@ export default function ClientLayout() {
   };
 
   return (
-    <SidebarProvider className="client-layout-sidebar-provider min-h-screen w-full">
+    <SidebarProvider className="client-layout-sidebar-provider min-h-screen w-full border border-red-600">
       <ClientSidebar
         clientId={client?.id || "N/A"}
         clientName={client?.name || null}
