@@ -1,6 +1,8 @@
 -- Chat: access is controlled by the granular permission model, not by employee role.
 -- chat.view = may access/read chat
 -- chat.send = may send messages
+-- The employee_role enum does not contain 'admin'.
+-- Company owners are identified by companies.owner_email and the owner role.
 
 CREATE OR REPLACE FUNCTION public.user_can_chat(_user_id UUID, _company_id UUID)
 RETURNS BOOLEAN
@@ -22,7 +24,7 @@ AS $$
       FROM public.employees e
       WHERE e.company_id = _company_id
         AND e.user_id = _user_id
-        AND e.role IN ('owner', 'admin')
+        AND e.role = 'owner'
     )
     OR EXISTS (
       SELECT 1
@@ -56,7 +58,7 @@ AS $$
       FROM public.employees e
       WHERE e.company_id = _company_id
         AND e.user_id = _user_id
-        AND e.role IN ('owner', 'admin')
+        AND e.role = 'owner'
     )
     OR EXISTS (
       SELECT 1
