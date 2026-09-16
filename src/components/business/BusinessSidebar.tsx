@@ -36,6 +36,7 @@ import {
   UserRoundCog,
   BarChart3,
   Wallet,
+  LogOut,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -110,9 +111,6 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   const { toast } = useToast();
   const [resolvedUser, setResolvedUser] = useState<SupabaseUser | null>(null);
 
-  // Algumas páginas antigas não passam currentUser para o BusinessLayout.
-  // Nesse caso, resolvemos a sessão aqui para que a sidebar continue calculando
-  // as permissões normalmente ao navegar entre as páginas.
   useEffect(() => {
     if (currentUser !== undefined) {
       setResolvedUser(currentUser);
@@ -120,11 +118,9 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
     }
 
     let cancelled = false;
-
     supabase.auth.getUser().then(({ data }) => {
       if (!cancelled) setResolvedUser(data.user ?? null);
     });
-
     return () => {
       cancelled = true;
     };
@@ -278,6 +274,19 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
                       <User className="w-5 h-5 flex-shrink-0" />
                       {state !== "collapsed" && <span className="flex-1">Meu Perfil</span>}
                     </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem className={state === "collapsed" ? "flex justify-center w-full" : ""}>
+                  <SidebarMenuButton
+                    type="button"
+                    onClick={handleLogout}
+                    className={cn(
+                      "relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 border-l-4 border-l-transparent hover:bg-destructive/10 hover:text-destructive",
+                      state === "collapsed" ? "justify-center w-10 h-10 p-0" : "w-full"
+                    )}
+                  >
+                    <LogOut className="w-5 h-5 flex-shrink-0" />
+                    {state !== "collapsed" && <span className="flex-1 text-left">Sair</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
