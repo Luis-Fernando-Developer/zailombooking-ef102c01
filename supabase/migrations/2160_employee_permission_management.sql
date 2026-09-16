@@ -94,7 +94,7 @@ BEGIN
     RAISE EXCEPTION 'Employees cannot change their own permissions';
   END IF;
 
-  IF v_actor_role IN ('owner', 'admin') THEN
+  IF v_actor_role = 'owner' THEN
     v_has_permission := true;
   ELSE
     SELECT EXISTS (
