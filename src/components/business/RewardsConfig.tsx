@@ -25,7 +25,6 @@ interface Service {
   price: number;
 }
 
-// Aligned with database schema - client_rewards table
 interface Reward {
   id: string;
   name: string;
@@ -41,9 +40,17 @@ interface Reward {
 
 interface RewardsConfigProps {
   companyId: string;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
-export function RewardsConfig({ companyId }: RewardsConfigProps) {
+export function RewardsConfig({
+  companyId,
+  canCreate = false,
+  canEdit = false,
+  canDelete = false,
+}: RewardsConfigProps) {
   const { toast } = useToast();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -67,7 +74,6 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
 
   const fetchData = async () => {
     try {
-      // Fetch services
       const { data: servicesData } = await supabase
         .from('services')
         .select('id, name, price')
@@ -77,7 +83,6 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
 
       if (servicesData) setServices(servicesData);
 
-      // Fetch rewards
       const { data: rewardsData } = await supabase
         .from('client_rewards')
         .select('*')
@@ -85,7 +90,6 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
         .order('created_at', { ascending: false });
 
       if (rewardsData) {
-        // Enrich with service names
         const enrichedRewards = rewardsData.map(reward => ({
           id: reward.id,
           name: reward.name,
@@ -236,10 +240,12 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
             Configure brindes para fidelizar seus clientes
           </p>
         </div>
-        <Button variant="default" onClick={() => handleOpenDialog()}>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Brinde
-        </Button>
+        {canCreate && (
+          <Button variant="default" onClick={() => handleOpenDialog()}>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Brinde
+          </Button>
+        )}
       </div>
 
       {rewards.length === 0 ? (
@@ -250,10 +256,12 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
             <p className="text-muted-foreground text-center mb-4">
               Crie brindes para premiar seus clientes fiéis após realizarem determinados procedimentos.
             </p>
-            <Button variant="outline" onClick={() => handleOpenDialog()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Primeiro Brinde
-            </Button>
+            {canCreate && (
+              <Button variant="outline" onClick={() => handleOpenDialog()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Primeiro Brinde
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -276,14 +284,20 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
                       </CardDescription>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(reward)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(reward.id)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
+                  {(canEdit || canDelete) && (
+                    <div className="flex gap-2">
+                      {canEdit && (
+                        <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(reward)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(reward.id)}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -314,7 +328,6 @@ export function RewardsConfig({ companyId }: RewardsConfigProps) {
         </div>
       )}
 
-      {/* Reward Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg bg-card max-h-[90vh] overflow-y-auto">
           <DialogHeader>
