@@ -90,7 +90,7 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
           Novo Serviço
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[300px] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Adicionar Novo Serviço</DialogTitle>
           <DialogDescription>
@@ -98,7 +98,7 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 h-full overflow-auto">
           <div className="space-y-2">
             <Label htmlFor="name">Nome do Serviço *</Label>
             <Input
