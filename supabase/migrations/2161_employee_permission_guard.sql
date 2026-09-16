@@ -1,7 +1,7 @@
 -- Protege employee_permissions no banco.
 -- O próprio colaborador nunca pode alterar as próprias permissões.
 -- Para alterar permissões de outro colaborador, é necessário
--- employees.manage_permissions (ou owner/admin).
+-- employees.manage_permissions (ou owner).
 
 CREATE OR REPLACE FUNCTION public.guard_employee_permission_change()
 RETURNS trigger
@@ -46,7 +46,7 @@ BEGIN
     RAISE EXCEPTION 'Employees cannot change their own permissions';
   END IF;
 
-  IF v_actor_role IN ('owner', 'admin') THEN
+  IF v_actor_role = 'owner' THEN
     v_allowed := true;
   ELSE
     SELECT EXISTS (
