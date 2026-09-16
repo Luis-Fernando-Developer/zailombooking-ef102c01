@@ -248,7 +248,7 @@ export default function ClientLayout() {
   };
 
   return (
-    <SidebarProvider className="min-h-screen flex w-full">
+    <SidebarProvider className="client-layout-sidebar-provider min-h-screen w-full">
       <ClientSidebar
         clientId={client?.id || "N/A"}
         clientName={client?.name || null}
@@ -260,7 +260,7 @@ export default function ClientLayout() {
         companyLogoUrl={(company as any)?.logo_url || null}
       />
 
-      <div className="flex flex-col flex-1 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
+      <div className="client-layout-content flex flex-col flex-1 min-w-0 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
         <header className="h-20 shrink-0 w-full flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20">
           <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4 shrink-0" />
 
@@ -455,6 +455,36 @@ export default function ClientLayout() {
           }}
         />
       )}
+
+      <style>{`
+        .client-layout-sidebar-provider {
+          min-height: 100vh;
+          width: 100%;
+        }
+
+        @media (min-width: 768px) {
+          .client-layout-sidebar-provider {
+            display: grid !important;
+            grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+            transition: grid-template-columns 700ms cubic-bezier(0.4, 0, 0.2, 1);
+          }
+
+          .client-layout-sidebar-provider:has(> .peer[data-state="collapsed"]) {
+            grid-template-columns: var(--sidebar-width-icon) minmax(0, 1fr);
+          }
+
+          .client-layout-sidebar-provider > .peer {
+            min-width: 0;
+            min-height: 100vh;
+          }
+
+          .client-layout-sidebar-provider > .client-layout-content {
+            min-width: 0;
+            min-height: 100vh;
+            width: 100%;
+          }
+        }
+      `}</style>
     </SidebarProvider>
   );
 }
