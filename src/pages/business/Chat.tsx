@@ -86,10 +86,10 @@ function fmtDuration(sec: number) {
 export default function Chat() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
-  const { hasPermission } = usePermissions(companyId ?? undefined, user);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string>("");
   const [myRole, setMyRole] = useState<string>("");
+  const { hasPermission } = usePermissions(companyId ?? undefined, user);
   const [members, setMembers] = useState<Member[]>([]);
   const [generalMessages, setGeneralMessages] = useState<ChatMessage[]>([]);
   const [dmMessages, setDmMessages] = useState<ChatMessage[]>([]);
