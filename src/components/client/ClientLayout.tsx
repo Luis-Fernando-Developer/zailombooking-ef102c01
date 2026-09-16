@@ -248,7 +248,7 @@ export default function ClientLayout() {
   };
 
   return (
-    <SidebarProvider className="client-layout-sidebar-provider min-h-screen w-full border border-red-600">
+    <SidebarProvider className="client-layout-sidebar-provider min-h-screen w-full flex border border-red-600">
       <ClientSidebar
         clientId={client?.id || "N/A"}
         clientName={client?.name || null}
@@ -260,7 +260,7 @@ export default function ClientLayout() {
         companyLogoUrl={(company as any)?.logo_url || null}
       />
 
-      <div className="client-layout-content flex flex-col flex-1 min-w-0 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
+      <div className=" flex !flex-col flex-1 min-w-0 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
         <header className="h-20 shrink-0 w-full flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20">
           <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4 shrink-0" />
 
