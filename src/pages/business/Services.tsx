@@ -204,9 +204,22 @@ export default function BusinessServices() {
     );
   }
 
-  const canSeeServices = hasPermission('services.view_services');
+  const canSeeServices = hasPermission('services.view');
   const canSeeCombos = hasPermission('services.view_combos');
   const canSeeGifts = hasPermission('services.view_gifts');
+
+  const canCreateService = hasPermission('services.create');
+  const canEditService = hasPermission('services.edit');
+  const canDeleteService = hasPermission('services.delete');
+
+  const canCreateCombo = hasPermission('services.create');
+  const canEditCombo = hasPermission('services.edit');
+  const canDeleteCombo = hasPermission('services.delete');
+
+  const canManageGifts = hasPermission('services.create');
+  const canEditGifts = hasPermission('services.edit');
+  const canDeleteGifts = hasPermission('services.delete');
+
   const visibleTabs = [canSeeServices, canSeeCombos, canSeeGifts].filter(Boolean).length;
 
   if (visibleTabs === 0) {
@@ -238,8 +251,8 @@ export default function BusinessServices() {
             <p className="text-muted-foreground">Gerencie os serviços oferecidos pela sua empresa</p>
           </div>
           <div className="flex gap-2">
-            {canSeeCombos && <ServiceComboDialog companyId={company.id} onComboAdded={fetchData} />}
-            {canSeeServices && <AddServiceDialog companyId={company.id} onServiceAdded={fetchData} />}
+            {canSeeCombos && canCreateCombo && <ServiceComboDialog companyId={company.id} onComboAdded={fetchData} />}
+            {canSeeServices && canCreateService && <AddServiceDialog companyId={company.id} onServiceAdded={fetchData} />}
           </div>
         </div>
 
@@ -260,7 +273,7 @@ export default function BusinessServices() {
                     <p className="text-muted-foreground text-center mb-4">
                       Comece criando seu primeiro serviço para que os clientes possam fazer agendamentos.
                     </p>
-                    <AddServiceDialog companyId={company.id} onServiceAdded={fetchData} />
+                    {canCreateService && <AddServiceDialog companyId={company.id} onServiceAdded={fetchData} />}
                   </CardContent>
                 </Card>
               ) : (
@@ -273,10 +286,12 @@ export default function BusinessServices() {
                             {service.name}
                             {!service.is_active && <Badge variant="secondary">Inativo</Badge>}
                           </CardTitle>
-                          <div className="flex gap-1">
-                            <EditServiceDialog service={service} companyId={company.id} onServiceUpdated={fetchData} />
-                            <DeleteServiceDialog service={service} onServiceDeleted={fetchData} />
-                          </div>
+                          {(canEditService || canDeleteService) && (
+                            <div className="flex gap-1">
+                              {canEditService && <EditServiceDialog service={service} companyId={company.id} onServiceUpdated={fetchData} />}
+                              {canDeleteService && <DeleteServiceDialog service={service} onServiceDeleted={fetchData} />}
+                            </div>
+                          )}
                         </div>
                         {service.description && <CardDescription>{service.description}</CardDescription>}
                       </CardHeader>
@@ -305,7 +320,7 @@ export default function BusinessServices() {
                 <Card>
                   <CardContent className="py-8 text-center">
                     <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Use o botão "Criar Combo" acima para combinar serviços</p>
+                    <p className="text-muted-foreground">{canCreateCombo ? 'Use o botão "Criar Combo" acima para combinar serviços' : 'Nenhum combo cadastrado'}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -318,10 +333,12 @@ export default function BusinessServices() {
                             {combo.name}
                             {!combo.is_active && <Badge variant="secondary">Inativo</Badge>}
                           </CardTitle>
-                          <div className="flex gap-1">
-                            <EditComboDialog combo={combo} services={services} companyId={company.id} onComboUpdated={fetchData} />
-                            <DeleteComboDialog combo={combo} onComboDeleted={fetchData} />
-                          </div>
+                          {(canEditCombo || canDeleteCombo) && (
+                            <div className="flex gap-1">
+                              {canEditCombo && <EditComboDialog combo={combo} services={services} companyId={company.id} onComboUpdated={fetchData} />}
+                              {canDeleteCombo && <DeleteComboDialog combo={combo} onComboDeleted={fetchData} />}
+                            </div>
+                          )}
                         </div>
                         {combo.description && <CardDescription>{combo.description}</CardDescription>}
                       </CardHeader>
@@ -345,7 +362,12 @@ export default function BusinessServices() {
 
           {canSeeGifts && (
             <TabsContent value="rewards">
-              <RewardsConfig companyId={company.id} />
+              <RewardsConfig
+                companyId={company.id}
+                canCreate={canManageGifts}
+                canEdit={canEditGifts}
+                canDelete={canDeleteGifts}
+              />
             </TabsContent>
           )}
         </Tabs>
