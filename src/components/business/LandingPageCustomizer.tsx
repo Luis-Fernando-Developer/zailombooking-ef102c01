@@ -36,7 +36,8 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
   const { hasPermission, loading: permissionsLoading } = usePermissions(companyId, authUser);
 
   const isPremiumPlan = companyPlan !== "starter";
-  const isLocked = !isPremiumPlan || !canEdit;
+  const canManageLandingPage = canEdit || hasPermission("settings.manage");
+  const isLocked = !isPremiumPlan || !canManageLandingPage;
 
   const defaultData: CustomizationData = {
     body: { font_family: 'Inter', background_color: '#ffffff' },
