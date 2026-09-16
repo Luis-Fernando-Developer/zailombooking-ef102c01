@@ -261,7 +261,7 @@ export default function ClientLayout() {
       />
 
       <div className=" flex !flex-col flex-1 min-w-0 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
-        <header className="h-20 shrink-0 w-full flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20">
+        <header className="h-20 flex-1 w-full flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20">
           <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4 shrink-0" />
 
           <div className="flex flex-col min-w-0">
