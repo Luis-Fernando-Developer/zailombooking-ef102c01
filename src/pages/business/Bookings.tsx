@@ -55,6 +55,7 @@ const paymentMethodConfig: Record<string, { label: string; color: string }> = {
   online:  { label: "Pago online",     color: "bg-green-500" },
   local:   { label: "Pagar no local",  color: "bg-yellow-500" },
   pending: { label: "Método pendente", color: "bg-gray-500" },
+  reward:  { label: "Brinde",           color: "bg-blue-500" },
 };
 
 const FINAL_LOCKED_STATUSES = new Set(["cancelled", "completed"]);
