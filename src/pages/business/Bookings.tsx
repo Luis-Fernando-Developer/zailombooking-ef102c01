@@ -529,6 +529,12 @@ export default function BusinessBookings() {
               const canAct = canActOnBooking(booking);
               const canEdit = canEditBooking(booking);
               const canCancel = canCancelBooking(booking);
+              // "Confirmar" é uma ação manual exclusiva de pagamentos no local.
+              // Agendamentos automáticos (online confirmado ou brinde) não podem ser
+              // confirmados novamente pelo painel.
+              const canManuallyConfirm =
+                booking.booking_status === 'pending' &&
+                booking.payment_method === 'local';
               const showActions = !permissionsLoading && (canEdit || canCancel);
 
               return (
@@ -626,10 +632,12 @@ export default function BusinessBookings() {
 
                             {!noShow && canEdit && (
                               <>
-                                <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
-                                  <Check className="mr-2 h-4 w-4" />
-                                  Confirmar
-                                </DropdownMenuItem>
+                                {canManuallyConfirm && (
+                                  <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
+                                    <Check className="mr-2 h-4 w-4" />
+                                    Confirmar
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
                                   <Check className="mr-2 h-4 w-4" />
                                   Marcar como Concluído
