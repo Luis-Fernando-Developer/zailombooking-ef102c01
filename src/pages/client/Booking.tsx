@@ -1541,6 +1541,11 @@ export default function ClientBooking() {
             }
         
             const newId = booking.id;
+
+            if (rewardAchievementId) {
+              const { data: redeemed, error: redeemError } = await supabase.rpc('redeem_client_reward', { p_achievement_id: rewardAchievementId, p_booking_id: newId });
+              if (redeemError || !redeemed) console.error('[REWARD] Falha ao marcar brinde como resgatado:', redeemError);
+            }
         
             setCreatedBookingId(
               newId
@@ -1652,6 +1657,11 @@ export default function ClientBooking() {
         
             const newId =
               booking.id;
+
+            if (rewardAchievementId) {
+              const { data: redeemed, error: redeemError } = await supabase.rpc('redeem_client_reward', { p_achievement_id: rewardAchievementId, p_booking_id: newId });
+              if (redeemError || !redeemed) console.error('[REWARD] Falha ao marcar brinde como resgatado:', redeemError);
+            }
         
             /*
              * Agora vinculamos o pagamento
