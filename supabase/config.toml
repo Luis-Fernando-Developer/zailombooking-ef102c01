@@ -22,3 +22,6 @@ verify_jwt = false
 [functions.signup-with-payment]
 verify_jwt = false
 
+
+[functions.validate-own-gateway-key]
+verify_jwt = false
