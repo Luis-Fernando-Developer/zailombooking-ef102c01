@@ -702,6 +702,65 @@ export default function ClientBooking() {
         throw new Error('Não foi possível identificar o cliente.');
       }
 
+      // Fluxo específico de brinde grátis: não abre pagamento.
+      if (rewardAchievement && effectivePrice === 0) {
+        const bookingData = buildBookingData(clientId);
+        const { data: booking, error: bookingError } = await supabase
+          .from('bookings')
+          .insert([{
+            ...bookingData,
+            booking_status: 'confirmed',
+            payment_status: 'free',
+            payment_method: 'reward',
+          }])
+          .select()
+          .single();
+
+        if (bookingError || !booking) {
+          throw bookingError ?? new Error('Não foi possível registrar o agendamento do brinde.');
+        }
+
+        const { data: redeemed, error: redeemError } = await supabase.rpc('redeem_client_reward', {
+          p_achievement_id: rewardAchievementId,
+          p_booking_id: booking.id,
+        });
+
+        if (redeemError || !redeemed) {
+          console.error('[REWARD] Falha ao marcar brinde grátis como resgatado:', redeemError);
+          toast({
+            title: 'Atenção',
+            description: 'O agendamento foi criado, mas não foi possível concluir o resgate do brinde. Entre em contato com a empresa.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        setCreatedBookingId(booking.id);
+        setPaymentDialog(prev => ({
+          ...prev,
+          open: false,
+          wasPaid: false,
+          bookingId: booking.id,
+        }));
+        setStep(6);
+
+        supabase.functions
+          .invoke('notify-booking-event', {
+            body: {
+              booking_id: booking.id,
+              event_key: 'booking_confirmed',
+            },
+          })
+          .catch((e: any) => console.warn('[notify-booking-event] failed:', e));
+
+        toast({
+          title: 'Brinde resgatado!',
+          description: 'Seu agendamento foi confirmado gratuitamente.',
+        });
+        return;
+      }
+
+      // Fluxo normal ou brinde com valor:
       // NÃO cria booking aqui. Apenas abre o dialog de pagamento.
       // O booking será criado SOMENTE dentro de onPaid (após pagamento confirmado)
       // ou onPayLater (usuário escolhe explicitamente 'Pagar no local').
@@ -743,7 +802,7 @@ export default function ClientBooking() {
     setPaymentDialog({
       open: true,
       bookingId: createdBookingId,
-      amount: selectedService?.price || 0,
+      amount: effectivePrice,
       allowLater: false,
       openedOnce: true,
     });
@@ -1194,7 +1253,11 @@ export default function ClientBooking() {
                       <span className="text-muted-foreground">Valor:</span>
                       <span className="font-medium" style={{
                         fontFamily: customStyles["--font-family"],
-                      }}>R$ {selectedService?.price.toFixed(2)}</span>
+                      }}>
+                        {rewardAchievement
+                          ? (effectivePrice === 0 ? 'Grátis — Brinde' : 'R$ ' + effectivePrice.toFixed(2) + ' — Valor do brinde')
+                          : 'R$ ' + Number(selectedService?.price ?? 0).toFixed(2)}
+                      </span>
                     </div>
                   </div>
 
@@ -1309,27 +1372,36 @@ export default function ClientBooking() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Valor:</span>
-                  <span className="font-medium">R$ {selectedService?.price.toFixed(2)}</span>
+                  <span className="font-medium">
+                    {rewardAchievement
+                      ? (effectivePrice === 0 ? 'Grátis — Brinde' : 'R$ ' + effectivePrice.toFixed(2) + ' — Valor do brinde')
+                      : 'R$ ' + Number(selectedService?.price ?? 0).toFixed(2)}
+                  </span>
                 </div>
               </div>
 
               <div className="text-center space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Você receberá um e-mail de confirmação em breve.
+                  {rewardAchievement && effectivePrice === 0
+                    ? "Seu brinde foi resgatado e o agendamento foi confirmado automaticamente."
+                    : "Você receberá um e-mail de confirmação em breve."}
                 </p>
                 <Badge
-                  variant={isPaid ? "default" : "secondary"}
-                  className={isPaid ? "bg-green-500 hover:bg-green-600" : ""}
+                  variant="default"
+                  className="bg-green-500 hover:bg-green-600"
                 >
-                  {isPaid
-                    ? "Pago"
-                    : paymentSettings.enabled
-                      ? "Aguardando pagamento"
-                      : "Aguardando confirmação"}
+                  {rewardAchievement && effectivePrice === 0
+                    ? "Brinde resgatado • Agendamento confirmado"
+                    : isPaid
+                      ? "Pago"
+                      : paymentSettings.enabled
+                        ? "Aguardando pagamento"
+                        : "Aguardando confirmação"}
                 </Badge>
               </div>
 
-              {paymentSettings.enabled && createdBookingId && !isPaid && (
+              {!(rewardAchievement && effectivePrice === 0) &&
+                paymentSettings.enabled && createdBookingId && !isPaid && (
                 <Button
                   onClick={openPaymentDialog}
                   className="w-full"
