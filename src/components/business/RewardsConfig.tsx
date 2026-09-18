@@ -121,6 +121,8 @@ export function RewardsConfig({
             description: reward.description,
             reward_service_id: reward.reward_service_id,
             reward_service_ids: serviceIds,
+            reward_value: Number(reward.reward_value ?? 0),
+            validity_days: Number(reward.validity_days ?? 30),
             required_procedures: reward.required_procedures,
             count_specific_service: reward.count_specific_service ?? false,
             specific_service_id: reward.specific_service_id,
