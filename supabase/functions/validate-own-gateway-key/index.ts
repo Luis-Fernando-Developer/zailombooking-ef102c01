@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,9 +78,37 @@ async function validatePagarme(apiKey: string) {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  // O preflight precisa passar sem JWT para o browser conseguir iniciar a chamada.
+  // A autenticação real é validada manualmente no POST abaixo.
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
 
   try {
+    const authorization = req.headers.get('Authorization') ?? ''
+    const jwt = authorization.replace(/^Bearer\s+/i, '').trim()
+
+    if (!jwt) {
+      return ok({ error: 'Não autenticado' }, 401)
+    }
+
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      },
+    )
+
+    const { data: { user }, error: userError } = await admin.auth.getUser(jwt)
+
+    if (userError || !user) {
+      return ok({ error: 'Sessão inválida ou expirada' }, 401)
+    }
+
     const { api_key, provider } = await req.json()
     if (!api_key) return ok({ error: 'API Key is required' }, 400)
 
