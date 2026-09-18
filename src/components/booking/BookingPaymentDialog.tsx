@@ -343,7 +343,9 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         ) : (
           <>
             {!methods.length && (
-              <p className="text-sm text-muted-foreground">Esta empresa não aceita pagamento online.</p>
+              <p className="text-sm text-muted-foreground">
+                {amount === 0 ? "Este benefício é gratuito. Confirme para reservar seu horário." : "Esta empresa não aceita pagamento online."}
+              </p>
             )}
 
             {!payment && methods.length > 0 && (
@@ -428,7 +430,9 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
         <DialogFooter className="flex-col gap-2 sm:flex-col">
           {allowPayLater && !payment && !isPaid && (
-            <Button variant="outline" onClick={onPayLater} className="w-full">Pagar no local</Button>
+            <Button variant="outline" onClick={onPayLater} className="w-full">
+              {amount === 0 ? "Resgatar brinde" : "Pagar no local"}
+            </Button>
           )}
           {!isPaid && <Button variant="ghost" onClick={onClose}>Fechar</Button>}
         </DialogFooter>
