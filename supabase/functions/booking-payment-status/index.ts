@@ -25,8 +25,25 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const { booking_id } = await req.json().catch(() => ({ booking_id: null }));
-    if (!booking_id) return json({ error: "booking_id é obrigatório" }, 400);
+    const body = await req.json().catch(() => ({}));
+    let booking_id = body?.booking_id ?? null;
+    const payment_id = body?.payment_id ?? null;
+
+    // O BookingPaymentDialog envia o ID do pagamento Asaas.
+    // Também aceitamos booking_id para chamadas diretas/admin.
+    if (!booking_id && payment_id) {
+      const { data: paymentRow } = await supabase
+        .from("booking_payments")
+        .select("booking_id")
+        .eq("asaas_id", payment_id)
+        .maybeSingle();
+
+      booking_id = paymentRow?.booking_id ?? null;
+    }
+
+    if (!booking_id) {
+      return json({ error: "booking_id ou payment_id é obrigatório" }, 400);
+    }
 
     // 1) Estado atual no banco (fonte de verdade local)
     const { data: statusRow } = await supabase.rpc("check_booking_payment_status", {
