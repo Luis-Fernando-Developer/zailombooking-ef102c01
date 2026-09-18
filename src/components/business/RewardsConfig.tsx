@@ -32,6 +32,8 @@ interface Reward {
   description: string | null;
   reward_service_id: string | null;
   reward_service_ids: string[];
+  reward_value: number;
+  validity_days: number;
   required_procedures: number;
   count_specific_service: boolean;
   specific_service_id: string | null;
@@ -66,6 +68,8 @@ export function RewardsConfig({
     description: "",
     reward_service_id: "",
     reward_service_ids: [],
+    reward_value: 0,
+    validity_days: 30,
     required_procedures: 10,
     count_specific_service: false,
     specific_service_id: "",
@@ -143,6 +147,8 @@ export function RewardsConfig({
         description: reward.description || "",
         reward_service_id: reward.reward_service_id || "",
         reward_service_ids: reward.reward_service_ids || (reward.reward_service_id ? [reward.reward_service_id] : []),
+        reward_value: Number(reward.reward_value ?? 0),
+        validity_days: Number(reward.validity_days ?? 30),
         required_procedures: reward.required_procedures,
         count_specific_service: reward.count_specific_service,
         specific_service_id: reward.specific_service_id || "",
@@ -155,6 +161,8 @@ export function RewardsConfig({
         description: "",
         reward_service_id: "",
         reward_service_ids: [],
+        reward_value: 0,
+        validity_days: 30,
         required_procedures: 10,
         count_specific_service: false,
         specific_service_id: "",
@@ -182,6 +190,8 @@ export function RewardsConfig({
         name: formData.name,
         description: formData.description || null,
         reward_service_id: formData.reward_service_ids[0] || null,
+        reward_value: Number(formData.reward_value) || 0,
+        validity_days: Math.max(1, Number(formData.validity_days) || 30),
         required_procedures: formData.required_procedures,
         count_specific_service: formData.count_specific_service,
         specific_service_id: formData.count_specific_service ? formData.specific_service_id || null : null,
@@ -352,6 +362,10 @@ export function RewardsConfig({
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div>
+                    <p className="text-muted-foreground">Valor do brinde</p>
+                    <p className="font-medium">{Number(reward.reward_value) === 0 ? "Grátis" : formatPrice(Number(reward.reward_value))}</p>
+                  </div>
+                  <div>
                     <p className="text-muted-foreground">Procedimentos necessários</p>
                     <p className="font-medium">{reward.required_procedures} procedimentos</p>
                   </div>
@@ -441,6 +455,31 @@ export function RewardsConfig({
               <p className="text-xs text-muted-foreground">
                 {formData.reward_service_ids.length === 0 ? "Nenhum serviço selecionado." : formData.reward_service_ids.length + " serviço(s) selecionado(s)."}
               </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Valor do Brinde</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.reward_value}
+                  onChange={(e) => setFormData({ ...formData, reward_value: Math.max(0, Number(e.target.value) || 0) })}
+                />
+                <p className="text-xs text-muted-foreground">R$ 0,00 = grátis. Acima de R$ 0,00 = valor especial.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Validade (dias)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="3650"
+                  value={formData.validity_days}
+                  onChange={(e) => setFormData({ ...formData, validity_days: Math.max(1, Number(e.target.value) || 1) })}
+                />
+                <p className="text-xs text-muted-foreground">Prazo para o cliente resgatar o brinde.</p>
+              </div>
             </div>
 
             <div className="space-y-2">
