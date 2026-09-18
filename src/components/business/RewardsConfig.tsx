@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
@@ -30,11 +31,13 @@ interface Reward {
   name: string;
   description: string | null;
   reward_service_id: string | null;
+  reward_service_ids: string[];
   required_procedures: number;
   count_specific_service: boolean;
   specific_service_id: string | null;
   is_active: boolean;
   reward_service?: Service;
+  reward_services?: Service[];
   specific_service?: Service;
 }
 
@@ -62,6 +65,7 @@ export function RewardsConfig({
     name: "",
     description: "",
     reward_service_id: "",
+    reward_service_ids: [],
     required_procedures: 10,
     count_specific_service: false,
     specific_service_id: "",
@@ -83,25 +87,45 @@ export function RewardsConfig({
 
       if (servicesData) setServices(servicesData);
 
-      const { data: rewardsData } = await supabase
+      const { data: rewardsData, error: rewardsError } = await supabase
         .from('client_rewards')
         .select('*')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
+      if (rewardsError) throw rewardsError;
+
+      const { data: rewardServicesData, error: rewardServicesError } = await supabase
+        .from('client_reward_services')
+        .select('reward_id, service_id');
+
+      if (rewardServicesError) throw rewardServicesError;
+
       if (rewardsData) {
-        const enrichedRewards = rewardsData.map(reward => ({
-          id: reward.id,
-          name: reward.name,
-          description: reward.description,
-          reward_service_id: reward.reward_service_id,
-          required_procedures: reward.required_procedures,
-          count_specific_service: reward.count_specific_service ?? false,
-          specific_service_id: reward.specific_service_id,
-          is_active: reward.is_active ?? true,
-          reward_service: servicesData?.find(s => s.id === reward.reward_service_id),
-          specific_service: servicesData?.find(s => s.id === reward.specific_service_id)
-        }));
+        const rewardServiceMap = new Map<string, string[]>();
+        (rewardServicesData || []).forEach((item: { reward_id: string; service_id: string }) => {
+          const ids = rewardServiceMap.get(item.reward_id) || [];
+          ids.push(item.service_id);
+          rewardServiceMap.set(item.reward_id, ids);
+        });
+
+        const enrichedRewards = rewardsData.map(reward => {
+          const serviceIds = rewardServiceMap.get(reward.id) || (reward.reward_service_id ? [reward.reward_service_id] : []);
+          return {
+            id: reward.id,
+            name: reward.name,
+            description: reward.description,
+            reward_service_id: reward.reward_service_id,
+            reward_service_ids: serviceIds,
+            required_procedures: reward.required_procedures,
+            count_specific_service: reward.count_specific_service ?? false,
+            specific_service_id: reward.specific_service_id,
+            is_active: reward.is_active ?? true,
+            reward_service: servicesData?.find(s => s.id === reward.reward_service_id),
+            reward_services: serviceIds.map(id => servicesData?.find(s => s.id === id)).filter(Boolean) as Service[],
+            specific_service: servicesData?.find(s => s.id === reward.specific_service_id)
+          };
+        });
         setRewards(enrichedRewards);
       }
     } catch (error) {
@@ -118,6 +142,7 @@ export function RewardsConfig({
         name: reward.name,
         description: reward.description || "",
         reward_service_id: reward.reward_service_id || "",
+        reward_service_ids: reward.reward_service_ids || (reward.reward_service_id ? [reward.reward_service_id] : []),
         required_procedures: reward.required_procedures,
         count_specific_service: reward.count_specific_service,
         specific_service_id: reward.specific_service_id || "",
@@ -129,6 +154,7 @@ export function RewardsConfig({
         name: "",
         description: "",
         reward_service_id: "",
+        reward_service_ids: [],
         required_procedures: 10,
         count_specific_service: false,
         specific_service_id: "",
@@ -155,29 +181,50 @@ export function RewardsConfig({
         company_id: companyId,
         name: formData.name,
         description: formData.description || null,
-        reward_service_id: formData.reward_service_id || null,
+        reward_service_id: formData.reward_service_ids[0] || null,
         required_procedures: formData.required_procedures,
         count_specific_service: formData.count_specific_service,
         specific_service_id: formData.count_specific_service ? formData.specific_service_id || null : null,
         is_active: formData.is_active
       };
 
+      let rewardId = editingReward?.id;
+
       if (editingReward) {
         const { error } = await supabase
           .from('client_rewards')
           .update(rewardData)
           .eq('id', editingReward.id);
-        
         if (error) throw error;
-        toast({ title: "Brinde atualizado com sucesso!" });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('client_rewards')
-          .insert([rewardData]);
-        
+          .insert([rewardData])
+          .select('id')
+          .single();
         if (error) throw error;
-        toast({ title: "Brinde criado com sucesso!" });
+        rewardId = data.id;
       }
+
+      if (!rewardId) throw new Error("ID do brinde não encontrado");
+
+      const { error: deleteLinksError } = await supabase
+        .from('client_reward_services')
+        .delete()
+        .eq('reward_id', rewardId);
+      if (deleteLinksError) throw deleteLinksError;
+
+      if (formData.reward_service_ids.length > 0) {
+        const { error: insertLinksError } = await supabase
+          .from('client_reward_services')
+          .insert(formData.reward_service_ids.map(serviceId => ({
+            reward_id: rewardId,
+            service_id: serviceId,
+          })));
+        if (insertLinksError) throw insertLinksError;
+      }
+
+      toast({ title: editingReward ? "Brinde atualizado com sucesso!" : "Brinde criado com sucesso!" });
 
       setDialogOpen(false);
       fetchData();
@@ -280,7 +327,9 @@ export function RewardsConfig({
                         {!reward.is_active && <Badge variant="secondary">Inativo</Badge>}
                       </CardTitle>
                       <CardDescription>
-                        {reward.reward_service ? `Serviço: ${reward.reward_service.name} (${formatPrice(reward.reward_service.price)})` : 'Sem serviço vinculado'}
+                        {reward.reward_services && reward.reward_services.length > 0
+  ? 'Serviços: ' + reward.reward_services.map(service => service.name).join(', ')
+  : 'Sem serviço vinculado'}
                       </CardDescription>
                     </div>
                   </div>
@@ -357,22 +406,41 @@ export function RewardsConfig({
             </div>
 
             <div className="space-y-2">
-              <Label>Serviço como Brinde</Label>
-              <Select
-                value={formData.reward_service_id}
-                onValueChange={(value) => setFormData({ ...formData, reward_service_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o serviço gratuito" />
-                </SelectTrigger>
-                <SelectContent className="bg-card">
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name} ({formatPrice(service.price)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Serviços como Brinde</Label>
+              <p className="text-sm text-muted-foreground">
+                Selecione um ou mais serviços que o cliente poderá receber gratuitamente.
+              </p>
+              <div className="rounded-md border p-3 max-h-48 overflow-y-auto space-y-2">
+                {services.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum serviço ativo disponível.</p>
+                ) : (
+                  services.map((service) => {
+                    const checked = formData.reward_service_ids.includes(service.id);
+                    return (
+                      <label key={service.id} className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50 cursor-pointer">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(value) => {
+                            const nextIds = value
+                              ? [...formData.reward_service_ids, service.id]
+                              : formData.reward_service_ids.filter(id => id !== service.id);
+                            setFormData({
+                              ...formData,
+                              reward_service_ids: nextIds,
+                              reward_service_id: nextIds[0] || "",
+                            });
+                          }}
+                        />
+                        <span className="flex-1 text-sm">{service.name}</span>
+                        <span className="text-sm text-muted-foreground">{formatPrice(service.price)}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {formData.reward_service_ids.length === 0 ? "Nenhum serviço selecionado." : formData.reward_service_ids.length + " serviço(s) selecionado(s)."}
+              </p>
             </div>
 
             <div className="space-y-2">
