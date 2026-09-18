@@ -95,6 +95,8 @@ export default function ClientBooking() {
   const [pendingEmployeeRestore, setPendingEmployeeRestore] = useState<string | null>(null);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [paymentSettings, setPaymentSettings] = useState<{ enabled: boolean; mode: string }>({ enabled: false, mode: 'none' });
+  const [rewardAchievementId] = useState(() => new URLSearchParams(window.location.search).get('reward_id'));
+  const [rewardAchievement, setRewardAchievement] = useState<any>(null);
   // const [paymentDialog, setPaymentDialog] = useState<{
   //   open: boolean;
   //   bookingId?: string;
@@ -154,6 +156,21 @@ export default function ClientBooking() {
       checkAuthState();
     }
   }, [company]);
+
+  useEffect(() => {
+    const loadReward = async () => {
+      if (!rewardAchievementId || !company || !user || !client || services.length === 0) return;
+      const { data, error } = await supabase.from('client_reward_achievements').select('id,reward_name,reward_description,reward_value,reward_service_ids,status,expires_at').eq('id', rewardAchievementId).eq('company_id', company.id).eq('client_id', client.id).maybeSingle();
+      if (error || !data) { toast({ title: 'Brinde indisponível', description: 'Esse brinde não está disponível para resgate.', variant: 'destructive' }); return; }
+      if (data.status !== 'available' || new Date(data.expires_at) <= new Date()) { toast({ title: 'Brinde expirado', description: 'Esse brinde não pode mais ser resgatado.', variant: 'destructive' }); return; }
+      const allowedIds = (data.reward_service_ids || []) as string[];
+      const allowedServices = services.filter(s => allowedIds.includes(s.id));
+      if (!allowedServices.length) { toast({ title: 'Brinde indisponível', description: 'Nenhum serviço deste brinde está disponível para agendamento.', variant: 'destructive' }); return; }
+      setRewardAchievement(data);
+      if (!selectedService || !allowedIds.includes(selectedService.id)) { setSelectedService(allowedServices[0]); setStep(2); }
+    };
+    loadReward();
+  }, [rewardAchievementId, company, user, client, services, toast]);
 
   useEffect(() => {
     if (selectedService) {
@@ -691,7 +708,7 @@ export default function ClientBooking() {
       setPaymentDialog({
         open: true,
         bookingId: undefined, // ainda não existe
-        amount: selectedService?.price || 0,
+        amount: effectivePrice,
         allowLater: true,
         openedOnce: false,
         // Dados do cliente para o dialog usar na criação do booking
@@ -777,6 +794,7 @@ export default function ClientBooking() {
 
   const isPayLater = paymentDialog._clientId != null && createdBookingId == null;
   const isPaid = paymentDialog.wasPaid === true;
+  const effectivePrice = rewardAchievement ? Number(rewardAchievement.reward_value ?? 0) : Number(selectedService?.price ?? 0);
 
   const renderStep = () => {
     switch (step) {
@@ -842,7 +860,7 @@ export default function ClientBooking() {
                     </div>
                   );
                 })}
-                {services.map((service) => (
+                {(rewardAchievement ? services.filter(s => (rewardAchievement.reward_service_ids || []).includes(s.id)) : services).map((service) => (
                   <div
                     key={service.id}
                     className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
@@ -873,7 +891,7 @@ export default function ClientBooking() {
                             </div>
                             <div className="flex items-center gap-1" style={stepCardTypography("services", "price_typography")}>
                               <DollarSign className="w-4 h-4" />
-                              R$ {service.price.toFixed(2)}
+                              R$ {(rewardAchievement ? effectivePrice : service.price).toFixed(2)}
                             </div>
 
                           </div>
@@ -1370,7 +1388,7 @@ export default function ClientBooking() {
       end_time: endISO,
       booking_date: bookingDate,
       duration_minutes: duration,
-      price: selectedService!.price,
+      price: effectivePrice,
       notes: formData.notes,
       client_id: clientId,
       booking_status: 'pending',
@@ -1415,9 +1433,7 @@ export default function ClientBooking() {
           bookingId={paymentDialog.bookingId}
           companyId={company.id}
           amount={
-            paymentDialog.amount ||
-            selectedService?.price ||
-            0
+            paymentDialog.amount ?? effectivePrice
           }
           payerInitial={{
             name:
