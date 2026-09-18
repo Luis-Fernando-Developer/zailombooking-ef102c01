@@ -1,5 +1,5 @@
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { Calendar, LayoutDashboard, LogOut, User } from 'lucide-react';
+import { Calendar, Gift, LayoutDashboard, LogOut, User } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '../ui/sidebar';
 import { CompanyLogo } from '../CompanyLogo';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 const ClienteMenuItems = [
   { title: 'Dashboard', url: '/client/dashboard', icon: LayoutDashboard, current: true },
   { title: 'Meus Agendamentos', url: '/agendamentos', icon: Calendar, current: false },
+  { title: 'Prêmios e Brindes', url: '/client/premios', icon: Gift, current: false },
   { title: 'Meu Perfil', url: '/client/perfil', icon: User, current: false },
 ];
 
