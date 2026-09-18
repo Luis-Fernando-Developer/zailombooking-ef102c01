@@ -307,7 +307,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           method: selected,
           payer,
           amount,
-          booking_data: bookingData,
+          bookingData: bookingData,
         },
       });
       if (error) throw new Error(error.message || "Erro ao gerar pagamento");
