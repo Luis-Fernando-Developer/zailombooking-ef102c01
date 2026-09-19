@@ -1463,6 +1463,7 @@ export default function ClientBooking() {
       price: effectivePrice,
       notes: formData.notes,
       client_id: clientId,
+      created_source: 'landingpage',
       booking_status: 'pending',
     };
   };
