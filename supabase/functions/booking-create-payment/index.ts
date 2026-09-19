@@ -3,7 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
 }
 
 serve(async (req) => {
@@ -15,8 +16,29 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } }
     )
+
+    // A função é chamada pelo navegador. O preflight não passa pelo verify_jwt da plataforma,
+    // então a autenticação do POST é validada aqui.
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const jwt = authHeader.replace(/^Bearer\s+/i, '').trim()
+    if (!jwt) {
+      return new Response(JSON.stringify({ error: 'Sessão não autenticada.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
+    const { data: authData, error: authError } = await supabaseClient.auth.getUser(jwt)
+    if (authError || !authData?.user) {
+      console.error('[BOOKING_PAYMENT] Auth error:', authError?.message)
+      return new Response(JSON.stringify({ error: 'Sessão inválida ou expirada.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
 
     // 2. Extração do corpo com log básico
     const rawBody = await req.text()
@@ -31,64 +53,45 @@ serve(async (req) => {
 
     const { booking_id, method, payer, amount: bodyAmount, bookingData } = body
 
-    // --- RESOLUÇÃO DE booking_id ---
-    // Fluxo 1: booking_id já fornecido diretamente (fluxo novo via dialog)
-    // Fluxo 2: sem booking_id mas com bookingData → cria inline (fallback / fluxo antigo)
-    // Fluxo 3: sem nenhum → erro claro
-    let resolvedBookingId: string | undefined = booking_id;
+    // --- RESOLUÇÃO DO CONTEXTO ---
+    // Online: booking_id ainda não existe. Usamos bookingData para descobrir
+    // empresa/profissional e criamos somente o registro de pagamento.
+    let resolvedBookingId: string | undefined = booking_id || undefined
+    let booking: any = null
+    let companyId: string | undefined = undefined
 
-    if (!resolvedBookingId && bookingData) {
-      // Validação mínima de bookingData antes de tentar criar
-      const bd = bookingData as Record<string, unknown>;
-      const required = ['company_id', 'client_id', 'employee_id', 'booking_date', 'booking_time'];
-      const missing = required.filter((f) => !bd[f]);
+    if (resolvedBookingId) {
+      const { data: existingBooking, error: bErr } = await supabaseClient
+        .from('bookings')
+        .select('*, company:companies(*)')
+        .eq('id', resolvedBookingId)
+        .single()
+
+      if (bErr || !existingBooking) throw new Error('Agendamento não encontrado')
+      booking = existingBooking
+      companyId = String(existingBooking.company_id)
+    } else if (bookingData) {
+      const bd = bookingData as Record<string, unknown>
+      const required = ['company_id', 'client_id', 'employee_id', 'booking_date', 'booking_time']
+      const missing = required.filter((f) => !bd[f])
       if (missing.length) {
-        throw new Error(`bookingData campos obrigatórios faltando: ${missing.join(', ')}`);
+        throw new Error(`bookingData campos obrigatórios faltando: ${missing.join(', ')}`)
       }
-
-      const rawTime = (String(bd.start_time || bd.booking_time || '00:00:00')).slice(0, 8);
-      const datePart = String(bd.booking_date);
-      const startTs = `${datePart}T${rawTime}:00-03:00`;
-      const duration = Number(bd.duration_minutes) || 60;
-      const endTs = new Date(new Date(startTs).getTime() + duration * 60000).toISOString();
-
-      const { data: newId, error: cbErr } = await supabaseClient.rpc('create_booking', {
-        p_company_id: String(bd.company_id),
-        p_employee_id: String(bd.employee_id),
-        p_service_id: bd.service_id ? String(bd.service_id) : null,
-        p_combo_id: bd.combo_id ? String(bd.combo_id) : null,
-        p_booking_date: String(bd.booking_date),
-        p_booking_time: String(bd.booking_time),
-        p_start_time: startTs,
-        p_end_time: endTs,
-        p_duration_minutes: Number(bd.duration_minutes) || 60,
-        p_price: Number(bd.price) || 0,
-        p_client_id: String(bd.client_id),
-        p_notes: String(bd.notes || ''),
-        p_booking_status: String(bd.booking_status || 'pending'),
-        p_company_slug: bd.company_slug ? String(bd.company_slug) : null,
-      });
-
-      if (cbErr) throw new Error(`create_booking RPC falhou: ${cbErr.message}`);
-      if (!newId) throw new Error('create_booking RPC não retornou ID');
-      resolvedBookingId = String(newId);
-      console.log('[BOOKING_PAYMENT] Booking criado inline, ID:', resolvedBookingId);
+      companyId = String(bd.company_id)
+    } else {
+      throw new Error('booking_id ou bookingData é obrigatório')
     }
 
-    if (!resolvedBookingId) {
-      throw new Error('booking_id é obrigatório — nem o dialog nem a função conseguiram criar o booking');
-    }
-
-    // 3. Buscar agendamento e empresa
-    const { data: booking, error: bErr } = await supabaseClient
-      .from('bookings')
-      .select('*, company:companies(*)')
-      .eq('id', resolvedBookingId)
+    // 3. Buscar configurações de pagamento
+    const { data: settings, error: sErr } = await supabaseClient
+      .from('company_payment_settings')
+      .select('*')
+      .eq('company_id', companyId)
       .single()
 
-    if (bErr || !booking) throw new Error('Agendamento não encontrado')
+    if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
 
-    // 4. Buscar configurações de pagamento
+    // 4. Decide quem RECEBE o pagamento (fluxo de repasse)
     const { data: settings, error: sErr } = await supabaseClient
       .from('company_payment_settings')
       .select('*')
@@ -97,16 +100,18 @@ serve(async (req) => {
 
     if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
 
-    // 4b. Decide quem RECEBE o pagamento (fluxo de repasse)
     let receiverProvider: string = settings.own_gateway_provider || 'asaas'
     let receiverKey: string = (settings.own_gateway_api_key_encrypted || '').trim()
     let receiverLabel: 'company' | 'autonomous' = 'company'
+    const targetEmployeeId = booking?.employee_id ?? (bookingData?.employee_id ? String(bookingData.employee_id) : null)
 
     try {
+      if (!targetEmployeeId) throw new Error('Profissional do agendamento não informado')
+
       const { data: empRow } = await supabaseClient
         .from('employees')
         .select('payout_flow_override, employee_type')
-        .eq('id', booking.employee_id)
+        .eq('id', targetEmployeeId)
         .maybeSingle()
 
       const flow = empRow?.payout_flow_override || settings.payout_flow || 'via_company'
@@ -218,7 +223,7 @@ serve(async (req) => {
     // B) Pagamento
     const billingType = method === 'PIX' ? 'PIX' : (method === 'CREDIT_CARD' ? 'CREDIT_CARD' : (method === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
     
-    const bookingAmount = Number(booking.total_price ?? booking.price ?? 0)
+    const bookingAmount = Number(booking?.total_price ?? booking?.price ?? bookingData?.price ?? 0)
     const amount = Number(bodyAmount || bookingAmount || 0)
     console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType} | Amount: ${amount}`)
 
@@ -234,10 +239,17 @@ serve(async (req) => {
         billingType: billingType,
         value: amount,
         dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // 24h
-        description: `Agendamento #${booking.id}`,
-        externalReference: booking.id,
+        description: booking
+          ? `Agendamento #${booking.id}`
+          : `Pagamento de agendamento online - ${String(bookingData?.booking_date)} ${String(bookingData?.booking_time)}`,
+        externalReference: booking?.id ?? `pending:${crypto.randomUUID()}`,
         metadata: {
-          booking_id: booking.id
+          booking_id: booking?.id ?? null,
+          company_id: companyId,
+          client_id: booking?.client_id ?? bookingData?.client_id ?? null,
+          employee_id: booking?.employee_id ?? bookingData?.employee_id ?? null,
+          service_id: booking?.service_id ?? bookingData?.service_id ?? null,
+          reward_payment: Boolean(bookingData?.reward_id),
         },
         postalCode: '12345678', // Postal code fallback for webhooks
         // Removemos o callback manual que estava causando conflitos com o webhook global configurado no painel do Asaas.
@@ -278,13 +290,20 @@ serve(async (req) => {
 
     // Gravar no banco
     const { error: dbErr } = await supabaseClient.from('booking_payments').insert({
-      booking_id: booking.id,
+      booking_id: booking?.id ?? null,
+      company_id: companyId,
       asaas_id: paymentResult.id,
       provider: 'asaas',
       amount,
       status: 'pending',
       method: billingType,
-      payment_data: responseData.payment
+      payment_data: responseData.payment,
+      metadata: {
+        booking_data: bookingData ?? null,
+        company_id: companyId,
+        client_id: booking?.client_id ?? bookingData?.client_id ?? null,
+        employee_id: booking?.employee_id ?? bookingData?.employee_id ?? null,
+      }
     })
 
     if (dbErr) {
