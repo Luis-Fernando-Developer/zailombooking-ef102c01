@@ -112,7 +112,7 @@ serve(async (req) => {
         const { data: eps } = await supabaseClient
           .from('employee_payment_settings')
           .select('provider, api_key_encrypted, is_active')
-          .eq('employee_id', booking.employee_id)
+          .eq('employee_id', targetEmployeeId)
           .maybeSingle()
         if (eps?.is_active && eps?.api_key_encrypted) {
           receiverProvider = eps.provider
