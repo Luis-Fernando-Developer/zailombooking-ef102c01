@@ -1593,7 +1593,7 @@ export default function ClientBooking() {
                   ...buildBookingData(
                     clientId!
                   ),
-                   booking_status: "confirmed",
+                   booking_status: "pending",
                    payment_status: "pending",
                    payment_method: "local",
                 },
@@ -1656,7 +1656,7 @@ export default function ClientBooking() {
               title:
                 "Agendamento registrado!",
               description:
-                "Você pagará no local do atendimento.",
+                "Seu agendamento ficou pendente de confirmação pela empresa. Você pagará no local do atendimento.",
             });
           }}
         
