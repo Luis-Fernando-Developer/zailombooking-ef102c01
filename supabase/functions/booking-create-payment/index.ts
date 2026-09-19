@@ -92,14 +92,6 @@ serve(async (req) => {
     if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
 
     // 4. Decide quem RECEBE o pagamento (fluxo de repasse)
-    const { data: settings, error: sErr } = await supabaseClient
-      .from('company_payment_settings')
-      .select('*')
-      .eq('company_id', booking.company_id)
-      .single()
-
-    if (sErr || !settings) throw new Error('Configurações de pagamento não encontradas')
-
     let receiverProvider: string = settings.own_gateway_provider || 'asaas'
     let receiverKey: string = (settings.own_gateway_api_key_encrypted || '').trim()
     let receiverLabel: 'company' | 'autonomous' = 'company'
