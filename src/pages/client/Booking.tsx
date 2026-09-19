@@ -1749,7 +1749,7 @@ export default function ClientBooking() {
                   newId,
               })
               .eq(
-                "id",
+                "asaas_id",
                 paymentId
               );
         
