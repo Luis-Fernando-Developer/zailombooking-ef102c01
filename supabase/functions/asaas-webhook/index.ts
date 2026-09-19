@@ -229,6 +229,32 @@ serve(async (req) => {
     console.info(`[ASAAS_WEBHOOK][${requestId}] Agendamento Resolvido: ${bookingId} | Confirmado: ${isConfirmed}`)
 
 
+    if (asaasPaymentId && isConfirmed) {
+      // O pagamento online pode existir antes do booking. Nesse caso,
+      // atualizamos somente booking_payments; o Booking.tsx fará o vínculo
+      // ao criar o agendamento após a confirmação.
+      const { data: pendingPayment, error: pendingPaymentError } = await supabaseClient
+        .from('booking_payments')
+        .select('id, booking_id')
+        .eq('asaas_id', asaasPaymentId)
+        .maybeSingle();
+
+      if (pendingPaymentError) {
+        console.error(`[ASAAS_WEBHOOK][${requestId}] Erro ao localizar booking_payments:`, pendingPaymentError.message);
+      } else if (pendingPayment && !pendingPayment.booking_id) {
+        const { error: pendingUpdateError } = await supabaseClient
+          .from('booking_payments')
+          .update({ status: 'paid', updated_at: new Date().toISOString() })
+          .eq('id', pendingPayment.id);
+
+        if (pendingUpdateError) {
+          console.error(`[ASAAS_WEBHOOK][${requestId}] Erro ao marcar pagamento pendente como pago:`, pendingUpdateError.message);
+        } else {
+          console.info(`[ASAAS_WEBHOOK][${requestId}] Pagamento ${asaasPaymentId} confirmado antes do booking.`);
+        }
+      }
+    }
+
     if (bookingId && isConfirmed) {
       const now = new Date().toISOString();
       console.info(`[ASAAS_WEBHOOK][${requestId}] Marcando booking ${bookingId} como PAGO. Event: ${event}, Status: ${currentStatus}`);
