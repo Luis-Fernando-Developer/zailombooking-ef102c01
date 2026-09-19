@@ -357,7 +357,8 @@ serve(async (req) => {
         duration_minutes,
         price: price,
         booking_status: bookingStatus,
-        payment_status: paymentStatus
+        payment_status: paymentStatus,
+        created_source: 'business_panel'
       })
       .select()
       .single()
