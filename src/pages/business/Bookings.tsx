@@ -273,10 +273,25 @@ export default function BusinessBookings() {
     }
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ booking_status: status })
-        .eq('id', bookingId);
+      let error: any = null;
+
+      if (
+        status === 'confirmed' &&
+        current.booking_status === 'pending' &&
+        current.payment_method === 'local'
+      ) {
+        const { error: confirmError } = await supabase.rpc('confirm_local_booking', {
+          p_booking_id: bookingId,
+        });
+        error = confirmError;
+      } else {
+        const result = await supabase
+          .from('bookings')
+          .update({ booking_status: status })
+          .eq('id', bookingId);
+
+        error = result.error;
+      }
 
       if (error) throw error;
 
