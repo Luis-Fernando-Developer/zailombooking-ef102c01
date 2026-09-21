@@ -1454,6 +1454,7 @@ export default function ClientBooking() {
       company_id: company!.id,
       employee_id: selectedEmployee!.id,
       service_id: isCombo ? null : selectedService!.id,
+      availability_service_id: isCombo ? (combos.find((c: any) => c.id === selectedService!.id.replace("combo:", ""))?.items?.[0]?.service_id || null) : selectedService!.id,
       combo_id: isCombo ? selectedService!.id.replace('combo:', '') : null,
       booking_time: `${normalizedSelectedTime}:00`,
       start_time: startISO,
@@ -1662,7 +1663,8 @@ export default function ClientBooking() {
           }}
         
           onPaid={async (
-            paymentId
+            paymentId,
+            holdId
           ) => {
             let clientId =
               paymentDialog._clientId;
@@ -1695,70 +1697,48 @@ export default function ClientBooking() {
               clientId = cd?.id;
             }
         
-            /*
-             * O pagamento foi confirmado.
-             * AGORA sim criamos o booking.
-             */
-            const {
-              data: booking,
-              error: bErr,
-            } = await supabase
-              .from("bookings")
-              .insert([
-                {
-                  ...buildBookingData(
-                    clientId!
-                  ),
-                   booking_status: "confirmed",
-                   payment_status: "confirmed",
-                   payment_method: "online",
-                },
-              ])
-              .select()
-              .single();
-        
-            if (bErr || !booking) {
+            if (!holdId) {
               toast({
-                title: "Erro",
-                description:
-                  "Não foi possível confirmar o agendamento.",
-                variant:
-                  "destructive",
+                title: "Horário não reservado",
+                description: "Não foi possível validar a reserva temporária deste horário. Escolha o horário novamente.",
+                variant: "destructive",
               });
+              setPaymentDialog(prev => ({ ...prev, open: false }));
+              setStep(4);
               return;
             }
-        
-            const newId =
-              booking.id;
+
+            // O pagamento confirmado só vira agendamento quando o banco
+            // valida atomicamente o hold do cliente.
+            const { data: newId, error: confirmError } = await supabase.rpc(
+              "confirm_online_booking_payment",
+              {
+                p_hold_id: holdId,
+                p_payment_id: paymentId,
+              }
+            );
+
+            if (confirmError || !newId) {
+              const detail = String((confirmError as any)?.details || "");
+              const message = detail.includes("hold_expired")
+                ? "O tempo para concluir a reserva acabou. O horário foi liberado. Escolha outro horário."
+                : (confirmError?.message || "O horário não está mais disponível.");
+
+              toast({
+                title: "Não foi possível confirmar o agendamento",
+                description: message,
+                variant: "destructive",
+              });
+              setPaymentDialog(prev => ({ ...prev, open: false }));
+              setCreatedBookingId(null);
+              setStep(4);
+              await fetchAvailableTimes();
+              return;
+            }
 
             if (rewardAchievementId) {
               const { data: redeemed, error: redeemError } = await supabase.rpc('redeem_client_reward', { p_achievement_id: rewardAchievementId, p_booking_id: newId });
               if (redeemError || !redeemed) console.error('[REWARD] Falha ao marcar brinde como resgatado:', redeemError);
-            }
-        
-            /*
-             * Agora vinculamos o pagamento
-             * ao booking recém-criado.
-             */
-            const {
-              error:
-                paymentLinkError,
-            } = await supabase
-              .from("booking_payments")
-              .update({
-                booking_id:
-                  newId,
-              })
-              .eq(
-                "asaas_id",
-                paymentId
-              );
-        
-            if (paymentLinkError) {
-              console.error(
-                "[BOOKING] Erro ao vincular pagamento ao booking:",
-                paymentLinkError
-              );
             }
         
             setCreatedBookingId(
