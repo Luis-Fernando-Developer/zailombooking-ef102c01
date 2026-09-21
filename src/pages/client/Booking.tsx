@@ -1540,6 +1540,13 @@ export default function ClientBooking() {
               : undefined
           }
         
+          onSlotUnavailable={() => {
+            setPaymentDialog(prev => ({ ...prev, open: false }));
+            setSelectedTime("");
+            setStep(4);
+            fetchAvailableTimes();
+          }}
+
           onPayLater={async () => {
             // Criar booking agora (pagará no local)
             let clientId =
