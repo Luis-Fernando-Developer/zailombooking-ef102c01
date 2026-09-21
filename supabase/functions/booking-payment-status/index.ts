@@ -132,26 +132,59 @@ serve(async (req) => {
 
     console.log(`[BOOKING_STATUS] ${booking_id} asaas=${asaasId} status=${remoteStatus}`);
 
-    // 3) Persiste a confirmação para que o restante do sistema enxergue o mesmo estado
+    // 3) Só informa "pago" ao frontend depois de persistir o status local.
+    // Antes os erros dos UPDATEs eram ignorados, permitindo que o frontend
+    // chamasse confirm_online_booking_payment enquanto booking_payments ainda
+    // estava como pending.
     if (paid) {
       if (paymentRow?.id) {
-        await supabase
+        const { error: paymentUpdateError } = await supabase
           .from("booking_payments")
           .update({ status: "paid" })
           .eq("id", paymentRow.id);
+
+        if (paymentUpdateError) {
+          console.error("[BOOKING_STATUS] Failed to persist payment status:", paymentUpdateError.message);
+          return json({
+            is_paid: false,
+            source: "db",
+            error: "Não foi possível persistir a confirmação do pagamento.",
+            ...local,
+          });
+        }
       } else if (booking_id) {
-        await supabase
+        const { error: paymentUpdateError } = await supabase
           .from("booking_payments")
           .update({ status: "paid" })
           .eq("booking_id", booking_id)
           .eq("asaas_id", asaasId);
+
+        if (paymentUpdateError) {
+          console.error("[BOOKING_STATUS] Failed to persist payment status:", paymentUpdateError.message);
+          return json({
+            is_paid: false,
+            source: "db",
+            error: "Não foi possível persistir a confirmação do pagamento.",
+            ...local,
+          });
+        }
       }
 
       if (booking_id) {
-        await supabase
+        const { error: bookingUpdateError } = await supabase
           .from("bookings")
           .update({ payment_status: "paid" })
           .eq("id", booking_id);
+
+        if (bookingUpdateError) {
+          console.error("[BOOKING_STATUS] Failed to persist booking payment status:", bookingUpdateError.message);
+          return json({
+            is_paid: false,
+            source: "db",
+            error: "Não foi possível persistir o status do agendamento.",
+            ...local,
+          });
+        }
       }
     }
 
