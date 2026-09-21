@@ -51,7 +51,7 @@ serve(async (req) => {
       throw new Error('Corpo da requisição inválido')
     }
 
-    const { booking_id, method, payer, amount: bodyAmount, bookingData } = body
+    const { booking_id, method, payer, amount: bodyAmount, bookingData, hold_id } = body
 
     // --- RESOLUÇÃO DO CONTEXTO ---
     // Online: booking_id ainda não existe. Usamos bookingData para descobrir
@@ -80,6 +80,35 @@ serve(async (req) => {
       companyId = String(bd.company_id)
     } else {
       throw new Error('booking_id ou bookingData é obrigatório')
+    }
+
+    // Para pagamento online sem booking pré-criado, o hold é obrigatório.
+    if (!resolvedBookingId) {
+      if (!hold_id) throw new Error('Reserva temporária do horário não encontrada.');
+
+      const { data: hold, error: holdError } = await supabaseClient
+        .from('booking_slot_holds')
+        .select('id, company_id, employee_id, client_id, booking_date, booking_time, expires_at, status')
+        .eq('id', hold_id)
+        .maybeSingle();
+
+      if (holdError || !hold) throw new Error('Reserva temporária do horário não encontrada.');
+      if (hold.status !== 'active' || new Date(hold.expires_at).getTime() <= Date.now()) {
+        throw new Error('O tempo para concluir a reserva acabou. O horário foi liberado.');
+      }
+      if (String(hold.company_id) !== String(companyId)) {
+        throw new Error('Reserva temporária inválida para esta empresa.');
+      }
+
+      const { data: holdClient } = await supabaseClient
+        .from('clients')
+        .select('id')
+        .eq('id', hold.client_id)
+        .eq('company_id', companyId)
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+
+      if (!holdClient) throw new Error('Reserva temporária não pertence ao cliente autenticado.');
     }
 
     // 3. Buscar configurações de pagamento
