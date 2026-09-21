@@ -28,7 +28,7 @@ EXECUTE FUNCTION public.mark_local_booking_paid_on_completion();
 -- Corrige também registros locais que já foram concluídos antes desta migration.
 -- O trigger de imutabilidade bloqueia UPDATE em agendamentos concluídos.
 -- Desabilita somente esse trigger durante o backfill e o reabilita em seguida.
-DO $
+DO $$
 BEGIN
   IF EXISTS (
     SELECT 1
@@ -42,7 +42,7 @@ BEGIN
   ) THEN
     ALTER TABLE public.bookings DISABLE TRIGGER trg_prevent_locked_booking_update;
   END IF;
-END $;
+END $$;
 
 UPDATE public.bookings
 SET payment_status = 'confirmed'
@@ -50,7 +50,7 @@ WHERE LOWER(COALESCE(booking_status::text, '')) = 'completed'
   AND LOWER(COALESCE(payment_method::text, '')) = 'local'
   AND LOWER(COALESCE(payment_status::text, '')) = 'pending';
 
-DO $
+DO $$
 BEGIN
   IF EXISTS (
     SELECT 1
@@ -64,7 +64,7 @@ BEGIN
   ) THEN
     ALTER TABLE public.bookings ENABLE TRIGGER trg_prevent_locked_booking_update;
   END IF;
-END $;
+END $$;
 
 REVOKE ALL ON FUNCTION public.mark_local_booking_paid_on_completion() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.mark_local_booking_paid_on_completion() TO authenticated, service_role;
