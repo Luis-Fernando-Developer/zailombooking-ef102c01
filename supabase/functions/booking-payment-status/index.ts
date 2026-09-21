@@ -140,7 +140,7 @@ serve(async (req) => {
       if (paymentRow?.id) {
         const { error: paymentUpdateError } = await supabase
           .from("booking_payments")
-          .update({ status: "paid" })
+          .update({ status: "confirmed" })
           .eq("id", paymentRow.id);
 
         if (paymentUpdateError) {
@@ -155,7 +155,7 @@ serve(async (req) => {
       } else if (booking_id) {
         const { error: paymentUpdateError } = await supabase
           .from("booking_payments")
-          .update({ status: "paid" })
+          .update({ status: "confirmed" })
           .eq("booking_id", booking_id)
           .eq("asaas_id", asaasId);
 
