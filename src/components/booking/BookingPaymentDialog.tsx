@@ -38,6 +38,7 @@ interface BookingData {
   notes?: string;
   client_id: string;
   booking_status?: string;
+  availability_service_id?: string | null;
 }
 
 // interface Props {
@@ -85,6 +86,9 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   const [payment, setPayment] = useState<any>(null);
   const [isPaid, setIsPaid] = useState(false);
   const [activeBookingId, setActiveBookingId] = useState<string | undefined>(bookingId);
+  const [holdId, setHoldId] = useState<string | null>(null);
+  const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
+  const [holdSecondsLeft, setHoldSecondsLeft] = useState<number | null>(null);
 
   // Mantém activeBookingId em sync com prop
   useEffect(() => {
@@ -171,6 +175,20 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   //   };
   // // }, [activeBookingId, isPaid, open]);
   // }, [payment?.id, isPaid, open]);
+
+  useEffect(() => {
+    if (!holdExpiresAt || !open) return;
+    const update = () => {
+      const seconds = Math.max(0, Math.ceil((new Date(holdExpiresAt).getTime() - Date.now()) / 1000));
+      setHoldSecondsLeft(seconds);
+      if (seconds <= 0) {
+        setHoldId(null);
+      }
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [holdExpiresAt, open]);
 
   useEffect(() => {
   if (!payment?.id || isPaid || !open) return;
@@ -292,21 +310,49 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   async function generate() {
     setLoading(true);
     try {
-      // let currentBookingId = activeBookingId;
-      // if (!currentBookingId) {
-      //   currentBookingId = await createBooking();
-      //   setActiveBookingId(currentBookingId);
-      //   console.log("[PAYMENT_DIALOG] Booking criado:", currentBookingId);
-      // }
+      if (!bookingData) throw new Error("Dados do agendamento não encontrados.");
+
+      // O hold é adquirido somente quando o cliente realmente inicia o pagamento.
+      // Assim, "pagar no local" continua sem bloquear o horário.
+      let currentHoldId = holdId;
+
+      if (!currentHoldId) {
+        const { data: hold, error: holdError } = await supabase.rpc("create_online_booking_hold", {
+          p_company_id: bookingData.company_id,
+          p_employee_id: bookingData.employee_id,
+          p_service_id: bookingData.availability_service_id || bookingData.service_id || null,
+          p_client_id: bookingData.client_id,
+          p_booking_date: bookingData.booking_date,
+          p_booking_time: bookingData.booking_time,
+          p_start_time: bookingData.start_time,
+          p_end_time: bookingData.end_time,
+          p_hold_minutes: 10,
+        });
+
+        if (holdError) {
+          const detail = String((holdError as any).details || "");
+          const message = detail.includes("slot_already_held")
+            ? "Esse horário acabou de ser reservado por outra pessoa. Escolha outro horário."
+            : (holdError.message || "Não foi possível reservar este horário.");
+          throw new Error(message);
+        }
+
+        const row = Array.isArray(hold) ? hold[0] : hold;
+        currentHoldId = row?.hold_id;
+        if (!currentHoldId) throw new Error("O servidor não retornou o hold do horário.");
+
+        setHoldId(currentHoldId);
+        setHoldExpiresAt(row.expires_at);
+      }
 
       const { data, error } = await supabase.functions.invoke("booking-create-payment", {
-        // body: { booking_id: currentBookingId, method: selected, payer, amount },
         body: {
           booking_id: null,
           company_id: companyId,
           method: selected,
           payer,
           amount,
+          hold_id: currentHoldId,
           bookingData: bookingData,
         },
       });
