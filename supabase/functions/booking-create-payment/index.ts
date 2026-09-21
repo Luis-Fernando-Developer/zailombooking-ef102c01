@@ -270,6 +270,7 @@ serve(async (req) => {
           client_id: booking?.client_id ?? bookingData?.client_id ?? null,
           employee_id: booking?.employee_id ?? bookingData?.employee_id ?? null,
           service_id: booking?.service_id ?? bookingData?.service_id ?? null,
+          hold_id: hold_id ?? null,
           reward_payment: Boolean(bookingData?.reward_id),
         },
         postalCode: '12345678', // Postal code fallback for webhooks
@@ -324,6 +325,7 @@ serve(async (req) => {
         company_id: companyId,
         client_id: booking?.client_id ?? bookingData?.client_id ?? null,
         employee_id: booking?.employee_id ?? bookingData?.employee_id ?? null,
+        hold_id: hold_id ?? null,
       }
     })
 
