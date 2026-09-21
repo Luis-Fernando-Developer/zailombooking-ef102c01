@@ -1454,7 +1454,6 @@ export default function ClientBooking() {
       company_id: company!.id,
       employee_id: selectedEmployee!.id,
       service_id: isCombo ? null : selectedService!.id,
-      availability_service_id: isCombo ? (combos.find((c: any) => c.id === selectedService!.id.replace("combo:", ""))?.items?.[0]?.service_id || null) : selectedService!.id,
       combo_id: isCombo ? selectedService!.id.replace('combo:', '') : null,
       booking_time: `${normalizedSelectedTime}:00`,
       start_time: startISO,
