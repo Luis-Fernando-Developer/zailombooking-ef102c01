@@ -49,7 +49,7 @@ interface BookingData {
 //   amount: number;
 //   payerInitial: { name: string; email?: string; phone?: string; cpf_cnpj?: string };
 //   // onPaid: () => void;
-//   onPaid: (paymentId: string) => void;
+//   onPaid: (paymentId: string, holdId: string | null) => void;
 //   allowPayLater?: boolean;
 //   onPayLater?: () => void;
 //   /** Dados para criar booking novo quando bookingId não é fornecido */
@@ -205,7 +205,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   
       // Devolve o ID do registro em booking_payments
       // para o Booking.tsx criar o booking e depois vinculá-lo.
-      onPaid(payment.id);
+      onPaid(payment.id, holdId);
   
       toast({
         title: "Pagamento confirmado!",
