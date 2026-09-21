@@ -70,6 +70,7 @@ interface Props {
   onPaid: (paymentId: string) => void;
   allowPayLater?: boolean;
   onPayLater?: () => void;
+  onSlotUnavailable?: () => void;
   bookingData?: BookingData;
 }
 
@@ -77,7 +78,7 @@ const ICON: Record<string, any> = { PIX: QrCode, CREDIT_CARD: CreditCard, DEBIT_
 const LABEL: Record<string, string> = { PIX: "PIX", CREDIT_CARD: "Cartão de Crédito", DEBIT_CARD: "Cartão de Débito", BOLETO: "Boleto" };
 const KEY_TO_METHOD: Record<string, string> = { pix: "PIX", credit_card: "CREDIT_CARD", debit_card: "DEBIT_CARD", boleto: "BOLETO" };
 
-export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater, bookingData }: Props) {
+export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater, onSlotUnavailable, bookingData }: Props) {
   const { toast } = useToast();
   const [methods, setMethods] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>("PIX");
@@ -332,9 +333,11 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         if (holdError) {
           const detail = String((holdError as any).details || "");
           const rawMessage = String(holdError.message || "");
-          const message = detail.includes("slot_already_held") || rawMessage.toLowerCase().includes("acabou de ser reservado")
+          const slotConflict = detail.includes("slot_already_held") || rawMessage.toLowerCase().includes("acabou de ser reservado");
+          const message = slotConflict
             ? "Esse horário acabou de ser reservado por outra pessoa. Escolha outro horário."
             : rawMessage || "Não foi possível reservar este horário.";
+          if (slotConflict) onSlotUnavailable?.();
           throw new Error(message);
         }
 
