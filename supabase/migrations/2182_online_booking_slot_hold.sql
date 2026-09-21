@@ -191,6 +191,11 @@ BEGIN
       ERRCODE = 'P0001';
   END IF;
 
+  IF v_payment.company_id <> v_hold.company_id
+     OR COALESCE((v_payment.metadata->>'client_id'), '') <> v_hold.client_id::TEXT THEN
+    RAISE EXCEPTION 'Pagamento não corresponde ao hold do cliente.';
+  END IF;
+
   IF LOWER(COALESCE(v_payment.status::TEXT,'')) NOT IN ('paid','confirmed','received') THEN
     RAISE EXCEPTION 'Pagamento ainda não confirmado.';
   END IF;
