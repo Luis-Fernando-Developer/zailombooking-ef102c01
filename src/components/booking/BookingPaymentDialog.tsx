@@ -360,7 +360,19 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           bookingData: bookingData,
         },
       });
-      if (error) throw new Error(error.message || "Erro ao gerar pagamento");
+      if (error) {
+        let serverMessage = error.message || "Erro ao gerar pagamento";
+        try {
+          const response = (error as any)?.context;
+          if (response && typeof response.json === "function") {
+            const payload = await response.json();
+            if (payload?.error) serverMessage = String(payload.error);
+          }
+        } catch {
+          // Mantém a mensagem original quando a resposta da Edge Function não puder ser lida.
+        }
+        throw new Error(serverMessage);
+      }
       if ((data as any)?.error) throw new Error((data as any).error);
       setPayment((data as any).payment);
     } catch (e: any) {
