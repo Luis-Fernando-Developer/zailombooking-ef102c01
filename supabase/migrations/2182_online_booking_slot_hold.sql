@@ -218,7 +218,7 @@ BEGIN
 
   UPDATE public.booking_payments
      SET booking_id = v_booking_id,
-         status = 'paid',
+         status = 'confirmed',
          updated_at = now()
    WHERE id = v_payment.id;
 
