@@ -96,8 +96,14 @@ serve(async (req) => {
       if (hold.status !== 'active' || new Date(hold.expires_at).getTime() <= Date.now()) {
         throw new Error('O tempo para concluir a reserva acabou. O horário foi liberado.');
       }
-      if (String(hold.company_id) !== String(companyId)) {
-        throw new Error('Reserva temporária inválida para esta empresa.');
+      if (
+        String(hold.company_id) !== String(companyId) ||
+        String(hold.employee_id) !== String(bookingData?.employee_id) ||
+        String(hold.client_id) !== String(bookingData?.client_id) ||
+        String(hold.booking_date) !== String(bookingData?.booking_date) ||
+        String(hold.booking_time).slice(0, 5) !== String(bookingData?.booking_time).slice(0, 5)
+      ) {
+        throw new Error('Reserva temporária não corresponde aos dados deste agendamento.');
       }
 
       const { data: holdClient } = await supabaseClient
