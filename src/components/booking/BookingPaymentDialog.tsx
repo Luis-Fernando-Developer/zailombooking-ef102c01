@@ -331,9 +331,10 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
         if (holdError) {
           const detail = String((holdError as any).details || "");
-          const message = detail.includes("slot_already_held")
+          const rawMessage = String(holdError.message || "");
+          const message = detail.includes("slot_already_held") || rawMessage.toLowerCase().includes("acabou de ser reservado")
             ? "Esse horário acabou de ser reservado por outra pessoa. Escolha outro horário."
-            : (holdError.message || "Não foi possível reservar este horário.");
+            : rawMessage || "Não foi possível reservar este horário.";
           throw new Error(message);
         }
 
@@ -369,7 +370,19 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Pagamento do agendamento</DialogTitle>
-          <DialogDescription>Valor: <strong>R$ {amount.toFixed(2)}</strong></DialogDescription>
+          <DialogDescription>
+            Valor: <strong>R$ {amount.toFixed(2)}</strong>
+            {holdSecondsLeft != null && holdSecondsLeft > 0 && (
+              <span className="block mt-1 text-amber-600 font-medium">
+                Horário reservado para você por {Math.floor(holdSecondsLeft / 60)}:{String(holdSecondsLeft % 60).padStart(2, "0")}
+              </span>
+            )}
+            {holdSecondsLeft === 0 && (
+              <span className="block mt-1 text-destructive font-medium">
+                O tempo da reserva terminou. O horário foi liberado.
+              </span>
+            )}
+          </DialogDescription>
         </DialogHeader>
 
         {isPaid ? (
@@ -420,7 +433,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
                   />
                 </div>
 
-                <Button onClick={generate} disabled={loading} className="w-full">
+                <Button onClick={generate} disabled={loading || holdSecondsLeft === 0} className="w-full">
                   {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Gerar pagamento
                 </Button>
               </div>
