@@ -13,6 +13,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { LandingPageCustomizer } from "@/components/business/LandingPageCustomizer";
 import { PaymentSettings } from "@/components/business/PaymentSettings";
+import { usePermissions } from "@/hooks/use-permissions";
+import type { User } from "@supabase/supabase-js";
 
 interface Company {
   id: string;
@@ -43,6 +45,8 @@ export default function BusinessSettings() {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const { hasPermission, loading: permissionsLoading } = usePermissions(company?.id, authUser);
   const { toast } = useToast();
 
   const [companyData, setCompanyData] = useState({
@@ -80,6 +84,7 @@ export default function BusinessSettings() {
   };
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setAuthUser(data.user));
     fetchData();
   }, [slug]);
 
@@ -249,7 +254,18 @@ export default function BusinessSettings() {
     );
   }
 
-  const canEditSettings = ['owner', 'admin'].includes(employee.role);
+  const canManageSettings =
+    ['owner', 'admin'].includes(employee.role) || hasPermission('settings.manage');
+
+  const canViewCompanyInfo = hasPermission('settings.view_company_info');
+  const canViewBooking = hasPermission('settings.view_booking');
+  const canViewLandingPage = hasPermission('settings.view_landing_page');
+  const canViewPayments = hasPermission('settings.view_payments');
+  const canViewPayoutFlow = hasPermission('settings.view_payout_flow');
+  const canViewPaymentMethods = hasPermission('settings.view_payment_methods');
+  const canViewPlan = hasPermission('settings.view_plan');
+  const canManagePlan =
+    ['owner', 'admin'].includes(employee.role) || hasPermission('subscription.manage');
 
   return (
     <BusinessLayout
@@ -458,7 +474,7 @@ export default function BusinessSettings() {
         <LandingPageCustomizer 
           companyId={company.id}
           companyPlan={company.plan_id ? (plans?.find(p => p.id === company.plan_id)?.name?.toLowerCase() || subscription?.subscription_plans?.name?.toLowerCase() || "starter") : (subscription?.subscription_plans?.name?.toLowerCase() || "starter")}
-          canEdit={canEditSettings}
+          canEdit={canManageSettings}
           className=" flex w-full flex-col "
           
         />
