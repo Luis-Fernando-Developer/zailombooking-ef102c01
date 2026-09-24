@@ -192,7 +192,7 @@ export function PaymentSettings({
         </>
       )}
 
-      {showPayoutFlow && enabled && (
+      {showPayoutFlow && (
         <div className="space-y-3">
           {[
             { v: "via_company", title: "Empresa recebe e repassa", desc: "Cliente paga na conta da empresa. A empresa transfere o % combinado para o autônomo." },
@@ -205,7 +205,7 @@ export function PaymentSettings({
         </div>
       )}
 
-      {showPaymentMethods && enabled && (
+      {showPaymentMethods && (
         <div className="space-y-3">
           {Object.entries(METHOD_META).map(([key, meta]) => {
             const Icon = meta.icon;
