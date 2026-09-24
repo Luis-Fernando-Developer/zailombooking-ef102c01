@@ -488,7 +488,8 @@ export default function BillingManagement() {
     }
   }
 
-  async function handleChangePlan() {\n    if (!hasPermission("subscription.manage")) return;
+  async function handleChangePlan() {
+    if (!hasPermission("subscription.manage")) return;
     if (!subscription || !selectedPlan) return;
 
     setBusy(true);
@@ -582,7 +583,8 @@ export default function BillingManagement() {
     }
   }
 
-  async function handleSetMethodPix() {\n    if (!hasPermission("subscription.manage")) return;
+  async function handleSetMethodPix() {
+    if (!hasPermission("subscription.manage")) return;
     if (!company) return;
 
     setBusy(true);
@@ -1183,7 +1185,8 @@ export default function BillingManagement() {
     }
   }
 
-  async function handleChangePlan() {\n    if (!hasPermission("subscription.manage")) return;
+  async function handleChangePlan() {
+    if (!hasPermission("subscription.manage")) return;
     if (!subscription || !selectedPlan) return;
 
     setBusy(true);
@@ -1277,7 +1280,8 @@ export default function BillingManagement() {
     }
   }
 
-  async function handleSetMethodPix() {\n    if (!hasPermission("subscription.manage")) return;
+  async function handleSetMethodPix() {
+    if (!hasPermission("subscription.manage")) return;
     if (!company) return;
 
     setBusy(true);
