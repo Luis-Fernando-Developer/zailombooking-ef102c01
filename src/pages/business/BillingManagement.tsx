@@ -695,3 +695,1629 @@ export default function BillingManagement() {
       </BusinessLayout>
     );
   }
+  const plan =
+    subscription?.subscription_plans;
+
+  const pending =
+    subscription?.pending_plan_change as any;
+
+  return (
+    <BusinessLayout
+      companySlug={
+        company?.slug || ""
+      }
+      companyName={
+        company?.name || ""
+      }
+      companyId={
+        company?.id || ""
+      }
+      userRole="owner"
+    >
+      <div className="p-6 space-y-6 px-10">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              navigate(
+                `/${slug}/admin/configuracoes`
+              )
+            }
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Voltar
+          </Button>
+
+          <div>
+            <h1 className="text-3xl font-bold text-gradient">
+              Gerenciar Plano
+            </h1>
+
+            <p className="text-muted-foreground">
+              Plano, métodos de pagamento e
+              faturas
+            </p>
+          </div>
+        </div>
+
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) =>
+            setSearchParams(
+              {
+                tab: v,
+              },
+              {
+                replace: true,
+              }
+            )
+          }
+        >
+          <TabsList>
+            <TabsTrigger value="plan">
+              <Package className="w-4 h-4 mr-1" />
+              Plano Atual
+            </TabsTrigger>
+
+            <TabsTrigger value="methods">
+              <CreditCard className="w-4 h-4 mr-1" />
+              Métodos
+            </TabsTrigger>
+
+            <TabsTrigger value="invoices">
+              <FileText className="w-4 h-4 mr-1" />
+              Faturas
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent
+            value="plan"
+            className="space-y-4"
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle>
+                      {plan?.name ||
+                        "Sem plano ativo"}
+                    </CardTitle>
+
+                    <CardDescription>
+                      {subscription ? (
+                        <div className="flex flex-col">
+                          <span>
+                            {formatBRL(
+                              subscription.original_price
+                            )}{" "}
+                            /{" "}
+                            {periodLabel(
+                              subscription.billing_period
+                            )}
+                          </span>
+
+                          <span className="text-xs text-muted-foreground">
+                            Modelo Profissional de
+                            Gerenciamento
+                          </span>
+                        </div>
+                      ) : (
+                        "Nenhuma assinatura encontrada"
+                      )}
+                    </CardDescription>
+                  </div>
+
+                  {/* <Badge
+                    variant={
+                      effectiveSubStatus(
+                        subscription
+                      ) === "active"
+                        ? "default"
+                        : "destructive"
+                    }
+                    className="self-start"
+                  >
+                    {labelSubStatus(
+                      effectiveSubStatus(
+                        subscription
+                      )
+                    )}
+                  </Badge> */}
+                  <Badge
+                    variant={
+                      effectiveSubStatus(subscription, invoices) === "active"
+                        ? "default"
+                        : "destructive"
+                    }
+                    className="self-start"
+                  >
+                    {labelSubStatus(
+                      effectiveSubStatus(subscription, invoices)
+                    )}
+                  </Badge>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">
+                      Próxima cobrança:
+                    </span>
+
+                    <div className="font-medium">
+                      {formatDate(
+                        subscription?.next_billing_date
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-muted-foreground">
+                      Tier no builder:
+                    </span>
+
+                    <div className="font-medium capitalize">
+                      {plan?.name || "—"}
+                    </div>
+                  </div>
+                </div>
+
+                {pending && (
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-amber-600 font-semibold">
+                      <CalendarClock className="w-4 h-4" />
+                      Alteração Agendada
+                    </div>
+
+                    <p className="text-sm">
+                      Seu plano mudará para{" "}
+                      <strong>
+                        {allPlans.find(
+                          (p) =>
+                            p.id ===
+                            pending.plan_id
+                        )?.name ||
+                          pending.plan_id}{" "}
+                        (
+                        {periodLabel(
+                          pending.billing_period
+                        )}
+                        )
+                      </strong>{" "}
+                      em{" "}
+                      <strong>
+                        {formatDate(
+                          pending.effective_at ||
+                            subscription?.next_billing_date
+                        )}
+                      </strong>
+                      .
+                    </p>
+
+                    <p className="text-xs text-muted-foreground">
+                      Até lá, você continua com
+                      acesso total aos recursos do
+                      plano {plan?.name}.
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Limites do Plano
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <LimitCard
+                      label="Mensagens"
+                      value={
+                        limits?.max_chatbot_messages ??
+                        null
+                      }
+                      icon={
+                        <MessageSquare className="w-4 h-4 text-green-500" />
+                      }
+                      companyId={
+                        company?.id
+                      }
+                    />
+
+                    <LimitCard
+                      label="Funcionários"
+                      value={
+                        limits?.max_employees ??
+                        null
+                      }
+                      icon={
+                        <Check className="w-4 h-4 text-green-500" />
+                      }
+                      companyId={
+                        company?.id
+                      }
+                    />
+
+                    <LimitCard
+                      label="Serviços"
+                      value={
+                        limits?.max_services ??
+                        null
+                      }
+                      icon={
+                        <Check className="w-4 h-4 text-green-500" />
+                      }
+                      companyId={
+                        company?.id
+                      }
+                    />
+
+                    <LimitCard
+                      label="Chatbots"
+                      value={
+                        limits?.max_chatbots ??
+                        null
+                      }
+                      icon={
+                        <Check className="w-4 h-4 text-green-500" />
+                      }
+                      companyId={
+                        company?.id
+                      }
+                    />
+
+                    <LimitCard
+                      label="Instâncias"
+                      value={
+                        limits?.max_whatsapp_instances ??
+                        null
+                      }
+                      icon={
+                        <Check className="w-4 h-4 text-green-500" />
+                      }
+                      companyId={
+                        company?.id
+                      }
+                    />
+
+                    <LimitCard
+                      label="Agendamentos"
+                      value={
+                        limits?.max_bookings_month ??
+                        null
+                      }
+                      icon={
+                        <Check className="w-4 h-4 text-green-500" />
+                      }
+                      companyId={
+                        company?.id
+                      }
+                    />
+
+                    <LimitCard
+                      label="Integrações"
+                      value={
+                        limits?.max_integrations ??
+                        null
+                      }
+                      icon={
+                        <Check className="w-4 h-4 text-green-500" />
+                      }
+                      companyId={
+                        company?.id
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={() =>
+                      setChangePlanOpen(
+                        true
+                      )
+                    }
+                  >
+                    Mudar de plano
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent
+            value="methods"
+            className="space-y-4"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Métodos de pagamento
+                </CardTitle>
+
+                <CardDescription>
+                  O último método utilizado vira
+                  padrão automaticamente.
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+                {methods.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum método cadastrado.
+                    Adicione um cartão ou use
+                    PIX.
+                  </p>
+                )}
+
+                {methods.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between border rounded-md p-3 gap-2"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <CreditCard className="w-5 h-5 shrink-0" />
+
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">
+                          {m.display_label ||
+                            m.type}
+                        </div>
+
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {m.type.replace(
+                            "_",
+                            " "
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {m.is_default && (
+                      <Badge className="self-start sm:self-auto">
+                        <Check className="w-3 h-3 mr-1" />
+                        Padrão
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button
+                    onClick={() =>
+                      setAddCardOpen(
+                        true
+                      )
+                    }
+                    className="w-full sm:w-auto"
+                  >
+                    Adicionar cartão
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={
+                      handleSetMethodPix
+                    }
+                    disabled={busy}
+                    className="w-full sm:w-auto"
+                  >
+                    Usar PIX
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="invoices">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Histórico de faturas
+                </CardTitle>
+
+                <CardDescription>
+                  Faturas pagas, pendentes e
+                  vencidas.
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>
+                        Vencimento
+                      </TableHead>
+
+                      <TableHead>
+                        Descrição
+                      </TableHead>
+
+                      <TableHead>
+                        Valor
+                      </TableHead>
+
+                      <TableHead>
+                        Status
+                      </TableHead>
+
+                      <TableHead className="text-right">
+                        Ações
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {invoices.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center text-muted-foreground"
+                        >
+                          Nenhuma fatura
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+                    {invoices
+                      .filter((inv) => {
+                        if (
+                          inv.status !==
+                          "pending"
+                        ) {
+                          return true;
+                        }
+
+                        const hasPaidSameDay =
+                          invoices.some(
+                            (s) =>
+                              s.status ===
+                                "paid" &&
+                              s.due_date ===
+                                inv.due_date
+                          );
+
+                        return !hasPaidSameDay;
+                      })
+                      .map((i) => {
+                        const payable =
+                          isInvoicePayable(
+                            i.status
+                          );
+
+                        return (
+                          <TableRow
+                            key={i.id}
+                          >
+                            <TableCell>
+                              {formatDate(
+                                i.due_date
+                              )}
+                            </TableCell>
+
+                            <TableCell>
+                              {translateInvoiceDescription(
+                                i.description
+                              )}
+                            </TableCell>
+
+                            <TableCell>
+                              R${" "}
+                              {Number(
+                                i.amount
+                              ).toFixed(
+                                2
+                              )}
+                            </TableCell>
+
+                            <TableCell>
+                              <Badge
+                                variant={statusVariant(
+                                  i.status
+                                )}
+                              >
+                                {labelStatus(
+                                  i.status
+                                )}
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="text-right">
+                              <div className="flex flex-wrap justify-end gap-2">
+                                {payable &&
+                                  i.pix_payload && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() =>
+                                        setPixInvoice(
+                                          i
+                                        )
+                                      }
+                                    >
+                                      <QrCode className="w-3 h-3 mr-1" />
+                                      PIX
+                                    </Button>
+                                  )}
+
+                                {payable &&
+                                  i.bank_slip_url && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      asChild
+                                    >
+                                      <a
+                                        href={
+                                          i.bank_slip_url
+                                        }
+                                        target="_blank"
+                                        rel="noreferrer"
+                                      >
+                                        <FileText className="w-3 h-3 mr-1" />
+                                        Boleto
+                                      </a>
+                                    </Button>
+                                  )}
+
+                                {i.status ===
+                                  "paid" &&
+                                  i.invoice_url && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      asChild
+                                    >
+                                      <a
+                                        href={
+                                          i.invoice_url
+                                        }
+                                        target="_blank"
+                                        rel="noreferrer"
+                                      >
+                                        <Download className="w-3 h-3 mr-1" />
+                                        Recibo
+                                      </a>
+                                    </Button>
+                                  )}
+
+                                {payable &&
+                                  i.invoice_url && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      asChild
+                                    >
+                                      <a
+                                        href={
+                                          i.invoice_url
+                                        }
+                                        target="_blank"
+                                        rel="noreferrer"
+                                      >
+                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                        Pagar
+                                      </a>
+                                    </Button>
+                                  )}
+
+                                {payable &&
+                                  !i.invoice_url &&
+                                  !i.pix_payload &&
+                                  !i.bank_slip_url && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={
+                                        busy
+                                      }
+                                      onClick={() =>
+                                        handleGenerateCharge(
+                                          i,
+                                          "PIX"
+                                        )
+                                      }
+                                    >
+                                      <CreditCard className="w-3 h-3 mr-1" />
+                                      Gerar cobrança
+                                    </Button>
+                                  )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* DIALOGO CPF/CNPJ */}
+      <Dialog
+        open={!!docPrompt}
+        onOpenChange={(o) =>
+          !o &&
+          setDocPrompt(null)
+        }
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>
+              Informe o CPF ou CNPJ
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              O gateway de pagamento exige o
+              documento do responsável para emitir
+              a cobrança. Ele fica salvo para as
+              próximas faturas.
+            </p>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="billing-doc">
+                CPF ou CNPJ
+              </Label>
+
+              <Input
+                id="billing-doc"
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                value={docValue}
+                onChange={(e) =>
+                  setDocValue(
+                    e.target.value
+                  )
+                }
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() =>
+                setDocPrompt(null)
+              }
+              disabled={busy}
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              disabled={
+                busy ||
+                ![11, 14].includes(
+                  docValue.replace(
+                    /\D/g,
+                    ""
+                  ).length
+                )
+              }
+              onClick={() => {
+                if (!docPrompt) return;
+
+                handleGenerateCharge(
+                  docPrompt.invoice,
+                  docPrompt.billingType,
+                  docValue
+                );
+              }}
+            >
+              {busy && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
+
+              Gerar cobrança
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOGO PIX */}
+      <Dialog
+        open={!!pixInvoice}
+        onOpenChange={(o) =>
+          !o &&
+          setPixInvoice(null)
+        }
+      >
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle>
+              Pagar com PIX
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 text-center">
+            {pixInvoice?.pix_qr_code && (
+              <img
+                src={`data:image/png;base64,${pixInvoice.pix_qr_code}`}
+                alt="QR Code PIX da fatura"
+                className="mx-auto h-48 w-48 rounded-lg border bg-background p-2"
+              />
+            )}
+
+            <p className="text-sm text-muted-foreground">
+              Valor: R${" "}
+              {Number(
+                pixInvoice?.amount ||
+                  0
+              ).toFixed(2)}
+            </p>
+
+            <Button
+              className="w-full"
+              onClick={async () => {
+                if (
+                  !pixInvoice?.pix_payload
+                ) {
+                  return;
+                }
+
+                await navigator.clipboard.writeText(
+                  pixInvoice.pix_payload
+                );
+
+                toast({
+                  title:
+                    "Código PIX copiado",
+                });
+              }}
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copiar código PIX
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOGO MUDAR PLANO */}
+      <Dialog
+        open={changePlanOpen}
+        onOpenChange={
+          setChangePlanOpen
+        }
+      >
+        <DialogContent className="sm:max-w-[450px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-2">
+            <DialogTitle>
+              Mudar de plano
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Novo Plano</Label>
+
+              <Select
+                value={selectedPlan}
+                onValueChange={(val) => {
+                  setSelectedPlan(
+                    val
+                  );
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione um plano" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  {allPlans.map((p) => (
+                    <SelectItem
+                      key={p.id}
+                      value={p.id}
+                    >
+                      {p.name} —{" "}
+                      {formatBRL(
+                        selectedPeriod ===
+                          "annual"
+                          ? PLAN_PRICES[
+                              p.name.toLowerCase()
+                            ]?.annual ||
+                              0
+                          : selectedPeriod ===
+                            "quarterly"
+                          ? PLAN_PRICES[
+                              p.name.toLowerCase()
+                            ]?.quarterly ||
+                              0
+                          : PLAN_PRICES[
+                              p.name.toLowerCase()
+                            ]?.monthly ||
+                            0
+                      )}
+                      /
+                      {periodLabel(
+                        selectedPeriod
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Periodicidade
+              </Label>
+
+              <Select
+                value={selectedPeriod}
+                onValueChange={
+                  setSelectedPeriod
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="monthly">
+                    Mensal
+                  </SelectItem>
+
+                  <SelectItem value="quarterly">
+                    Trimestral (10% OFF)
+                  </SelectItem>
+
+                  <SelectItem value="annual">
+                    Anual (20% OFF)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {subscription &&
+              selectedPlan && (
+                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                  {(() => {
+                    const change =
+                      calculateSubscriptionChange(
+                        subscription.subscription_plans.name.toLowerCase(),
+                        subscription.billing_period as any,
+                        new Date(
+                          subscription.next_billing_date ||
+                            new Date()
+                        ),
+                        allPlans
+                          .find(
+                            (p) =>
+                              p.id ===
+                              selectedPlan
+                          )
+                          ?.name.toLowerCase() ||
+                          "",
+                        selectedPeriod as any
+                      );
+
+                    return (
+                      <>
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                          {change.isImmediate ? (
+                            <Check className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Package className="w-4 h-4 text-amber-500" />
+                          )}
+
+                          Informações da alteração
+                        </h4>
+
+                        <div className="space-y-1.5 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Tipo da alteração:
+                            </span>
+
+                            <span className="font-medium">
+                              {change.changeType ===
+                                "plan_upgrade" &&
+                                "Upgrade de Plano"}
+
+                              {change.changeType ===
+                                "plan_downgrade" &&
+                                "Downgrade Agendado"}
+
+                              {change.changeType ===
+                                "cycle_change" &&
+                                "Mudança de Ciclo Agendada"}
+
+                              {change.changeType ===
+                                "upgrade_with_cycle_change" &&
+                                "Upgrade Imediato + Ciclo Agendado"}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Dias restantes:
+                            </span>
+
+                            <span className="font-medium">
+                              {change.remainingDays} dias
+                            </span>
+                          </div>
+
+                          {change.upgradeAmount >
+                            0 && (
+                            <div className="flex justify-between border-t border-border/50 pt-2">
+                              <span className="text-muted-foreground font-semibold">
+                                Valor proporcional a
+                                pagar:
+                              </span>
+
+                              <span className="font-bold text-green-600">
+                                {formatBRL(
+                                  change.upgradeAmount
+                                )}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Data da alteração:
+                            </span>
+
+                            <span className="font-medium">
+                              {formatDate(
+                                change.effectiveDate.toISOString()
+                              )}
+                            </span>
+                          </div>
+                        </div>
+
+                        {(subscription.plan_id !==
+                          selectedPlan ||
+                          subscription.billing_period !==
+                            selectedPeriod) && (
+                          <div className="mt-3 p-2 rounded border border-blue-500/20 bg-blue-500/5 text-[11px] text-blue-700 leading-tight">
+                            <p className="font-semibold mb-1">
+                              Resumo do Ciclo:
+                            </p>
+
+                            <p>
+                              Atualmente em{" "}
+                              <strong>
+                                {periodLabel(
+                                  subscription.billing_period
+                                )}
+                              </strong>
+                              .
+
+                              {change.upgradeAmount >
+                                0 &&
+                                ` A diferença cobrada agora (${formatBRL(
+                                  change.upgradeAmount
+                                )}) refere-se ao upgrade proporcional.`}
+                            </p>
+
+                            <p className="mt-1">
+                              No próximo ciclo (
+                              {formatDate(
+                                change.effectiveDate.toISOString()
+                              )}
+                              ), você passará a
+                              ser cobrado o valor total
+                              de{" "}
+                              {formatBRL(
+                                selectedPeriod ===
+                                  "annual"
+                                  ? PLAN_PRICES[
+                                      allPlans.find(
+                                        (p) =>
+                                          p.id ===
+                                          selectedPlan
+                                      )?.name.toLowerCase() ||
+                                        ""
+                                    ]?.annual ||
+                                    0
+                                  : selectedPeriod ===
+                                    "quarterly"
+                                  ? PLAN_PRICES[
+                                      allPlans.find(
+                                        (p) =>
+                                          p.id ===
+                                          selectedPlan
+                                      )?.name.toLowerCase() ||
+                                        ""
+                                    ]?.quarterly ||
+                                    0
+                                  : PLAN_PRICES[
+                                      allPlans.find(
+                                        (p) =>
+                                          p.id ===
+                                          selectedPlan
+                                      )?.name.toLowerCase() ||
+                                        ""
+                                    ]?.monthly ||
+                                    0
+                              )} referente ao plano{" "}
+                              <strong>
+                                {
+                                  allPlans.find(
+                                    (p) =>
+                                      p.id ===
+                                      selectedPlan
+                                  )?.name
+                                }{" "}
+                                (
+                                {periodLabel(
+                                  selectedPeriod
+                                )}
+                                )
+                              </strong>
+                              .
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
+                          {change.isImmediate
+                            ? "O upgrade será aplicado imediatamente após a confirmação do pagamento proporcional."
+                            : "A alteração será aplicada automaticamente na próxima data de renovação."}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="ghost"
+              onClick={() =>
+                setChangePlanOpen(
+                  false
+                )
+              }
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              onClick={
+                handleChangePlan
+              }
+              disabled={busy}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {busy ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4 mr-2" />
+              )}
+
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOGO ADICIONAR CARTÃO */}
+      <Dialog
+        open={addCardOpen}
+        onOpenChange={
+          setAddCardOpen
+        }
+      >
+        <DialogContent className="max-w-lg max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Adicionar cartão
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Label>
+                Nome impresso
+              </Label>
+
+              <Input
+                value={
+                  card.holderName
+                }
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    holderName:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="col-span-2">
+              <Label>Número</Label>
+
+              <Input
+                value={card.number}
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    number:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Mês</Label>
+
+              <Input
+                maxLength={2}
+                value={
+                  card.expiryMonth
+                }
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    expiryMonth:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Ano</Label>
+
+              <Input
+                maxLength={4}
+                value={
+                  card.expiryYear
+                }
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    expiryYear:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>CCV</Label>
+
+              <Input
+                maxLength={4}
+                value={card.ccv}
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    ccv:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>
+                CPF/CNPJ
+              </Label>
+
+              <Input
+                value={
+                  card.cpfCnpj
+                }
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    cpfCnpj:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>CEP</Label>
+
+              <Input
+                value={
+                  card.postalCode
+                }
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    postalCode:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>
+                Número endereço
+              </Label>
+
+              <Input
+                value={
+                  card.addressNumber
+                }
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    addressNumber:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label>
+                Telefone
+              </Label>
+
+              <Input
+                value={card.phone}
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    phone:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="col-span-2">
+              <Label>Email</Label>
+
+              <Input
+                value={card.email}
+                onChange={(e) =>
+                  setCard({
+                    ...card,
+                    email:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setAddCardOpen(
+                  false
+                )
+              }
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              onClick={
+                handleAddCard
+              }
+              disabled={busy}
+            >
+              {busy && (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              )}
+
+              Salvar cartão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </BusinessLayout>
+  );
+}
+
+function LimitCard({
+  label,
+  value,
+  icon,
+  companyId,
+}: {
+  label: string;
+  value: number | null;
+  icon?: React.ReactNode;
+  companyId?: string;
+}) {
+  const [usage, setUsage] =
+    useState<number | null>(null);
+
+  useEffect(() => {
+    if (!companyId) return;
+
+    const fetchUsage =
+      async () => {
+        const labelMap: Record<
+          string,
+          string
+        > = {
+          Mensagens:
+            "chatbot_messages",
+          Funcionários:
+            "employees",
+          Serviços:
+            "services",
+          Chatbots:
+            "chatbots",
+          Instâncias:
+            "whatsapp_instances",
+          Agendamentos:
+            "bookings_month",
+          Integrações:
+            "integrations",
+        };
+
+        const resource =
+          labelMap[label];
+
+        if (!resource) return;
+
+        try {
+          const {
+            data,
+            error,
+          } = await supabase.rpc(
+            "check_plan_limit",
+            {
+              _company_id:
+                companyId,
+              _resource:
+                resource,
+            }
+          );
+
+          if (
+            !error &&
+            data
+          ) {
+            setUsage(
+              (data as any)
+                .current
+            );
+          }
+        } catch (e) {
+          console.error(
+            `Error fetching usage for ${label}:`,
+            e
+          );
+        }
+      };
+
+    fetchUsage();
+  }, [label, companyId]);
+
+  const displayValue =
+    value === null ||
+    value === -1 ||
+    value >= 999999
+      ? "Ilimitado"
+      : value;
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border bg-card p-4 shadow-sm transition-all hover:border-green-500/50">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
+        {icon}
+      </div>
+
+      <div className="flex-1">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-medium text-muted-foreground">
+            {label}
+          </p>
+
+          {usage !== null && (
+            <span className="text-[10px] font-bold bg-muted px-1.5 py-0.5 rounded uppercase">
+              Em uso: {usage}
+            </span>
+          )}
+        </div>
+
+        <p className="text-xl font-bold">
+          {displayValue}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function formatDate(
+  d?: string | null
+) {
+  if (!d) return "—";
+
+  const [y, m, day] = d
+    .split("T")[0]
+    .split("-")
+    .map(Number);
+
+  return new Date(
+    y,
+    m - 1,
+    day
+  ).toLocaleDateString(
+    "pt-BR"
+  );
+}
+
+function labelPeriod(
+  p: string
+) {
+  return p === "annual"
+    ? "ano"
+    : p === "quarterly"
+    ? "trimestre"
+    : "mês";
+}
+
+function translateInvoiceDescription(
+  desc?: string | null
+) {
+  if (!desc) return "—";
+
+  return desc
+    .replace(
+      /\bmonthly\b/gi,
+      "mensal"
+    )
+    .replace(
+      /\bquarterly\b/gi,
+      "trimestral"
+    )
+    .replace(
+      /\bannual\b|\byearly\b/gi,
+      "anual"
+    )
+    .replace(
+      /\bSubscription\b/g,
+      "Assinatura"
+    )
+    .replace(
+      /\bcycle\b/gi,
+      "ciclo"
+    )
+    .replace(
+      /\bto\b/g,
+      "a"
+    );
+}
+
+function labelStatus(
+  s: string
+) {
+  return (
+    {
+      paid: "Paga",
+      pending: "Pendente",
+      overdue: "Vencida",
+      refunded: "Estornada",
+      cancelled: "Cancelada",
+      processing:
+        "Processando",
+    } as any
+  )[s] || s;
+}
+
+function statusVariant(
+  s: string
+): any {
+  if (s === "paid")
+    return "default";
+
+  if (s === "overdue")
+    return "destructive";
+
+  return "secondary";
+}
+
+/**
+ * O status financeiro real vive em billing_status.
+ */
+// function effectiveSubStatus(
+//   sub: {
+//     status?: string;
+//     billing_status?:
+//       | string
+//       | null;
+//   } | null
+// ): string {
+//   if (!sub)
+//     return "inativo";
+
+//   const billing = (
+//     sub.billing_status ||
+//     ""
+//   ).toLowerCase();
+
+//   if (
+//     billing &&
+//     billing !== "active"
+//   ) {
+//     return billing;
+//   }
+
+//   return (
+//     sub.status ||
+//     "inativo"
+//   ).toLowerCase();
+// }
+function effectiveSubStatus(
+  sub: {
+    status?: string;
+    billing_status?: string | null;
+  } | null,
+  invoices: Invoice[] = []
+): string {
+  if (!sub) return "inativo";
+
+  const billing = (
+    sub.billing_status || ""
+  ).toLowerCase();
+
+  /*
+   * "past_due" só deve aparecer como "Em atraso"
+   * quando realmente existe uma cobrança financeira
+   * pendente, vencida ou em processamento.
+   *
+   * Isso evita mostrar "Em atraso" quando o banco
+   * deixou billing_status=past_due, mas não existe
+   * nenhuma fatura correspondente em company_invoices.
+   */
+  if (billing === "past_due") {
+    const hasOpenInvoice = invoices.some((invoice) =>
+      ["pending", "overdue", "processing"].includes(
+        String(invoice.status || "").toLowerCase()
+      )
+    );
+
+    if (!hasOpenInvoice) {
+      return "active";
+    }
+  }
+
+  if (billing && billing !== "active") {
+    return billing;
+  }
+
+  return (
+    sub.status || "inativo"
+  ).toLowerCase();
+}
+
+function labelSubStatus(
+  s: string
+) {
+  return (
+    {
+      active: "Ativa",
+      inativo: "Inativa",
+      inactive: "Inativa",
+      suspended: "Suspensa",
+      blocked: "Bloqueada",
+      paused: "Pausada",
+      past_due:
+        "Em atraso",
+      cancelled:
+        "Cancelada",
+      canceled:
+        "Cancelada",
+      trialing:
+        "Em teste",
+    } as Record<
+      string,
+      string
+    >
+  )[s] || s;
+}
