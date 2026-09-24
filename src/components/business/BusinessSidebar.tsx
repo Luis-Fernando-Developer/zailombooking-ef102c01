@@ -127,7 +127,7 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   }, [currentUser]);
 
   const sidebarUser = currentUser !== undefined ? currentUser : resolvedUser;
-  const { hasPermission, loading: permissionsLoading, userRole: permissionUserRole } = usePermissions(companyId, sidebarUser);
+  const { hasPermission, permissionCodes, loading: permissionsLoading, userRole: permissionUserRole } = usePermissions(companyId, sidebarUser);
 
   const effectiveUserRole =
     userRole === 'owner' || userRole === 'admin'
@@ -178,6 +178,13 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
   const canAccessPermission = (permission?: PermissionCode) => {
     if (!permission) return false;
     if (effectiveUserRole === 'owner' || effectiveUserRole === 'admin') return true;
+
+    // Configurações permanece visível enquanto houver qualquer
+    // permissão ativa do módulo settings, independentemente do tipo.
+    if (permission === 'settings.view') {
+      return Array.from(permissionCodes).some((code) => code.startsWith('settings.'));
+    }
+
     return hasPermission(permission);
   };
 
