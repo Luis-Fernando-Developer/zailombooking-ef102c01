@@ -280,250 +280,101 @@ export default function BusinessSettings() {
           <p className="text-muted-foreground">Gerencie as configurações da sua empresa</p>
         </div>
 
-        {/* Informações da Empresa */}
-        <Card className=" flex w-full lg:w-full flex-col ">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="w-5 h-5" />
-              Informações da Empresa
-            </CardTitle>
-            <CardDescription>
-              Dados básicos da sua empresa
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome da Empresa</Label>
-                <Input
-                  id="name"
-                  value={companyData.name}
-                  onChange={(e) => setCompanyData(prev => ({...prev, name: e.target.value}))}
-                  disabled={!canEditSettings}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Endereço</Label>
-                <Input
-                  id="address"
-                  value={companyData.address}
-                  onChange={(e) => setCompanyData(prev => ({...prev, address: e.target.value}))}
-                  disabled={!canEditSettings}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição da Empresa (Sobre)</Label>
-              <Textarea
-                id="description"
-                value={companyData.description}
-                onChange={(e) => setCompanyData(prev => ({...prev, description: e.target.value}))}
-                placeholder="Digite a descrição da sua empresa que será exibida na landing page..."
-                disabled={!canEditSettings}
-                rows={4}
-              />
-              <p className="text-xs text-muted-foreground">Esta descrição será exibida na seção 'Sobre a Empresa' da landing page</p>
-            </div>
-
-            {canEditSettings && (
-              <Button onClick={handleSaveCompanyInfo} disabled={saving} className="gap-2">
-                <Save className="w-4 h-4" />
-                {saving ? "Salvando..." : "Salvar Informações"}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Configurações de Agendamento */}
-        <Card className=" flex w-full flex-col ">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Configurações de Agendamento
-            </CardTitle>
-            <CardDescription>
-              Configure como os agendamentos funcionam
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Permitir Agendamento Online</Label>
-                <p className="text-sm text-muted-foreground">
-                  Permite que clientes façam agendamentos através do site
-                </p>
-              </div>
-              <Switch
-                checked={businessSettings.allowOnlineBooking}
-                onCheckedChange={(checked) => 
-                  setBusinessSettings(prev => ({...prev, allowOnlineBooking: checked}))
-                }
-                disabled={!canEditSettings}
-              />
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Requer Confirmação</Label>
-                <p className="text-sm text-muted-foreground">
-                  Agendamentos precisam ser confirmados antes de serem válidos
-                </p>
-              </div>
-              <Switch
-                checked={businessSettings.requireConfirmation}
-                onCheckedChange={(checked) => 
-                  setBusinessSettings(prev => ({...prev, requireConfirmation: checked}))
-                }
-                disabled={!canEditSettings}
-              />
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Enviar Lembretes</Label>
-                <p className="text-sm text-muted-foreground">
-                  Envia lembretes automáticos via WhatsApp (usa o template "Lembrete de agendamento").
-                </p>
-              </div>
-              <Switch
-                checked={businessSettings.sendReminders}
-                onCheckedChange={(checked) => 
-                  setBusinessSettings(prev => ({...prev, sendReminders: checked}))
-                }
-                disabled={!canEditSettings}
-              />
-            </div>
-
-            {businessSettings.sendReminders && (
-              <div className="space-y-2 rounded-md border border-border p-4">
-                <Label>Quando enviar os lembretes</Label>
-                <p className="text-sm text-muted-foreground">
-                  Selecione um ou mais momentos antes do horário do agendamento.
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
-                  {REMINDER_OFFSET_OPTIONS.map((opt) => {
-                    const active = businessSettings.reminderOffsetsMinutes.includes(opt.value);
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => canEditSettings && toggleReminderOffset(opt.value)}
-                        disabled={!canEditSettings}
-                        className={`text-sm rounded-md border px-3 py-2 transition-colors ${
-                          active
-                            ? "border-primary bg-primary/10 text-foreground"
-                            : "border-border bg-background text-muted-foreground hover:border-primary/50"
-                        } ${!canEditSettings ? "opacity-60 cursor-not-allowed" : ""}`}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {businessSettings.reminderOffsetsMinutes.length === 0 && (
-                  <p className="text-xs text-destructive pt-1">
-                    Selecione ao menos um horário ou desative os lembretes.
-                  </p>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="advanceDays">Antecedência Máxima (dias)</Label>
-              <Input
-                id="advanceDays"
-                type="number"
-                value={businessSettings.advanceBookingDays}
-                onChange={(e) => setBusinessSettings(prev => ({
-                  ...prev, 
-                  advanceBookingDays: parseInt(e.target.value) || 30
-                }))}
-                disabled={!canEditSettings}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cancellationPolicy">Política de Cancelamento</Label>
-              <Textarea
-                id="cancellationPolicy"
-                value={businessSettings.cancellationPolicy}
-                onChange={(e) => setBusinessSettings(prev => ({
-                  ...prev, 
-                  cancellationPolicy: e.target.value
-                }))}
-                placeholder="Descreva sua política de cancelamento..."
-                disabled={!canEditSettings}
-              />
-            </div>
-
-            {canEditSettings && (
-              <Button onClick={handleSaveBookingSettings} disabled={saving} className="gap-2">
-                <Save className="w-4 h-4" />
-                {saving ? "Salvando..." : "Salvar Configurações"}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Personalização da Landing Page */}
-        <LandingPageCustomizer 
-          companyId={company.id}
-          companyPlan={company.plan_id ? (plans?.find(p => p.id === company.plan_id)?.name?.toLowerCase() || subscription?.subscription_plans?.name?.toLowerCase() || "starter") : (subscription?.subscription_plans?.name?.toLowerCase() || "starter")}
-          canEdit={canManageSettings}
-          className=" flex w-full flex-col "
-          
-        />
-
-        {/* Pagamentos */}
-        {canEditSettings && (
-          <Card className=" flex w-full flex-col ">
+        {canViewCompanyInfo && (
+          <Card className="flex w-full flex-col">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wallet className="w-5 h-5" />
-                Pagamentos online
-              </CardTitle>
-              <CardDescription>
-                Configure como receber pagamentos dos clientes finais
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2"><Building className="w-5 h-5" />Informações da Empresa</CardTitle>
+              <CardDescription>Dados básicos da sua empresa</CardDescription>
             </CardHeader>
-            <CardContent>
-              <PaymentSettings
-                companyId={company.id}
-                companyName={company.name}
-                ownerEmail={company.owner_email}
-                ownerPhone={company.owner_phone}
-              />
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label htmlFor="name">Nome da Empresa</Label><Input id="name" value={companyData.name} onChange={(e) => setCompanyData(prev => ({...prev, name: e.target.value}))} disabled={!canManageSettings} /></div>
+                <div className="space-y-2"><Label htmlFor="address">Endereço</Label><Input id="address" value={companyData.address} onChange={(e) => setCompanyData(prev => ({...prev, address: e.target.value}))} disabled={!canManageSettings} /></div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição da Empresa (Sobre)</Label>
+                <Textarea id="description" value={companyData.description} onChange={(e) => setCompanyData(prev => ({...prev, description: e.target.value}))} placeholder="Digite a descrição da sua empresa que será exibida na landing page..." disabled={!canManageSettings} rows={4} />
+                <p className="text-xs text-muted-foreground">Esta descrição será exibida na seção 'Sobre a Empresa' da landing page</p>
+              </div>
+              {canManageSettings && <Button onClick={handleSaveCompanyInfo} disabled={saving} className="gap-2"><Save className="w-4 h-4" />{saving ? "Salvando..." : "Salvar Informações"}</Button>}
             </CardContent>
           </Card>
         )}
 
-        {/* Plano Atual */}
-        <Card className=" flex w-full flex-col ">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="w-5 h-5" />
-              Plano Atual
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold capitalize">
-                  {company.plan_id ? (plans?.find(p => p.id === company.plan_id)?.name || subscription?.subscription_plans?.name || "Sem Plano") : (subscription?.subscription_plans?.name || "Sem Plano")}
-                </h3>
-                <p className="text-sm text-muted-foreground">Status: {subscription?.status || 'Inativo'}</p>
+        {canViewBooking && (
+          <Card className="flex w-full flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5" />Configurações de Agendamento</CardTitle>
+              <CardDescription>Configure como os agendamentos funcionam</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>Permitir Agendamento Online</Label><p className="text-sm text-muted-foreground">Permite que clientes façam agendamentos através do site</p></div><Switch checked={businessSettings.allowOnlineBooking} onCheckedChange={(checked) => setBusinessSettings(prev => ({...prev, allowOnlineBooking: checked}))} disabled={!canManageSettings} /></div>
+              <Separator />
+              <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>Requer Confirmação</Label><p className="text-sm text-muted-foreground">Agendamentos precisam ser confirmados antes de serem válidos</p></div><Switch checked={businessSettings.requireConfirmation} onCheckedChange={(checked) => setBusinessSettings(prev => ({...prev, requireConfirmation: checked}))} disabled={!canManageSettings} /></div>
+              <Separator />
+              <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>Enviar Lembretes</Label><p className="text-sm text-muted-foreground">Envia lembretes automáticos via WhatsApp (usa o template "Lembrete de agendamento").</p></div><Switch checked={businessSettings.sendReminders} onCheckedChange={(checked) => setBusinessSettings(prev => ({...prev, sendReminders: checked}))} disabled={!canManageSettings} /></div>
+              {businessSettings.sendReminders && (
+                <div className="space-y-2 rounded-md border border-border p-4">
+                  <Label>Quando enviar os lembretes</Label><p className="text-sm text-muted-foreground">Selecione um ou mais momentos antes do horário do agendamento.</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
+                    {REMINDER_OFFSET_OPTIONS.map((opt) => {
+                      const active = businessSettings.reminderOffsetsMinutes.includes(opt.value);
+                      return <button key={opt.value} type="button" onClick={() => canManageSettings && toggleReminderOffset(opt.value)} disabled={!canManageSettings} className={`text-sm rounded-md border px-3 py-2 transition-colors ${active ? "border-primary bg-primary/10 text-foreground" : "border-border bg-background text-muted-foreground hover:border-primary/50"} ${!canManageSettings ? "opacity-60 cursor-not-allowed" : ""}`}>{opt.label}</button>;
+                    })}
+                  </div>
+                  {businessSettings.reminderOffsetsMinutes.length === 0 && <p className="text-xs text-destructive pt-1">Selecione ao menos um horário ou desative os lembretes.</p>}
+                </div>
+              )}
+              <div className="space-y-2"><Label htmlFor="advanceDays">Antecedência Máxima (dias)</Label><Input id="advanceDays" type="number" value={businessSettings.advanceBookingDays} onChange={(e) => setBusinessSettings(prev => ({...prev, advanceBookingDays: parseInt(e.target.value) || 30}))} disabled={!canManageSettings} /></div>
+              <div className="space-y-2"><Label htmlFor="cancellationPolicy">Política de Cancelamento</Label><Textarea id="cancellationPolicy" value={businessSettings.cancellationPolicy} onChange={(e) => setBusinessSettings(prev => ({...prev, cancellationPolicy: e.target.value}))} placeholder="Descreva sua política de cancelamento..." disabled={!canManageSettings} /></div>
+              {canManageSettings && <Button onClick={handleSaveBookingSettings} disabled={saving} className="gap-2"><Save className="w-4 h-4" />{saving ? "Salvando..." : "Salvar Configurações"}</Button>}
+            </CardContent>
+          </Card>
+        )}
+
+        {canViewLandingPage && (
+          <LandingPageCustomizer
+            companyId={company.id}
+            companyPlan={company.plan_id ? (plans?.find(p => p.id === company.plan_id)?.name?.toLowerCase() || subscription?.subscription_plans?.name?.toLowerCase() || "starter") : (subscription?.subscription_plans?.name?.toLowerCase() || "starter")}
+            canEdit={canManageSettings}
+            className="flex w-full flex-col"
+          />
+        )}
+
+        {canViewPayments && (
+          <Card className="flex w-full flex-col">
+            <CardHeader><CardTitle className="flex items-center gap-2"><Wallet className="w-5 h-5" />Pagamentos online</CardTitle><CardDescription>Configure como receber pagamentos dos clientes finais</CardDescription></CardHeader>
+            <CardContent>
+              <PaymentSettings companyId={company.id} companyName={company.name} ownerEmail={company.owner_email} ownerPhone={company.owner_phone} canManage={canManageSettings} showOnlinePayment showPayoutFlow={false} showPaymentMethods={false} />
+            </CardContent>
+          </Card>
+        )}
+
+        {canViewPayoutFlow && (
+          <Card className="flex w-full flex-col">
+            <CardHeader><CardTitle>Fluxo de repasse para autônomos</CardTitle><CardDescription>Define o caminho padrão do dinheiro quando um cliente paga um agendamento de um profissional autônomo. Você pode sobrescrever caso a caso na ficha de cada autônomo (Equipe → Editar).</CardDescription></CardHeader>
+            <CardContent><PaymentSettings companyId={company.id} companyName={company.name} canManage={canManageSettings} showOnlinePayment={false} showPayoutFlow showPaymentMethods={false} /></CardContent>
+          </Card>
+        )}
+
+        {canViewPaymentMethods && (
+          <Card className="flex w-full flex-col">
+            <CardHeader><CardTitle>Métodos aceitos</CardTitle><CardDescription>Habilite as formas de pagamento aceitas pelos clientes.</CardDescription></CardHeader>
+            <CardContent><PaymentSettings companyId={company.id} companyName={company.name} canManage={canManageSettings} showOnlinePayment={false} showPayoutFlow={false} showPaymentMethods /></CardContent>
+          </Card>
+        )}
+
+        {canViewPlan && (
+          <Card className="flex w-full flex-col">
+            <CardHeader><CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5" />Plano Atual</CardTitle></CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div><h3 className="font-semibold capitalize">{company.plan_id ? (plans?.find(p => p.id === company.plan_id)?.name || subscription?.subscription_plans?.name || "Sem Plano") : (subscription?.subscription_plans?.name || "Sem Plano")}</h3><p className="text-sm text-muted-foreground">Status: {subscription?.status || 'Inativo'}</p></div>
+                {canManagePlan && <Button variant="outline" onClick={() => navigate(`/${slug}/admin/billing`)}>Gerenciar Plano</Button>}
               </div>
-              <Button variant="outline" onClick={() => navigate(`/${slug}/admin/billing`)}>
-                Gerenciar Plano
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </BusinessLayout>
   );
