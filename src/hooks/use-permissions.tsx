@@ -121,10 +121,6 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
       const normalizedOwnerEmail = String(company?.owner_email ?? '').trim().toLowerCase();
       const normalizedUserEmail = String(user.email ?? '').trim().toLowerCase();
-      const isCompanyOwner =
-        !!normalizedOwnerEmail &&
-        !!normalizedUserEmail &&
-        normalizedOwnerEmail === normalizedUserEmail;
 
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
@@ -134,6 +130,15 @@ export function usePermissions(companyId?: string, user?: User | null) {
         .maybeSingle();
 
       if (employeeError) throw employeeError;
+
+      // Keep the employee role as the primary authorization source, while
+      // also recognizing the company owner by owner_email when no employee
+      // row exists for the authenticated owner.
+      const isCompanyOwner =
+        (!!normalizedOwnerEmail &&
+          !!normalizedUserEmail &&
+          normalizedOwnerEmail === normalizedUserEmail) ||
+        employee?.role === 'owner';
 
       if (isCompanyOwner) {
         setUserRole('owner');
