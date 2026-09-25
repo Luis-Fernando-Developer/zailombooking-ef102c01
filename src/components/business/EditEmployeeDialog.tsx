@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { composeFullName, sanitizeNoSpaces, splitFullName, validateNoSpaces } from "@/lib/employeeName";
+import { BriefcaseBusiness, Contact, Handshake, InfoIcon, Package2Icon, Plug, ShieldCheck, User2 } from "lucide-react";
 
 interface Service { id: string; name: string; }
 interface Permission { id: string; code: string; name: string; description: string | null; module: string; sort_order: number; }
@@ -92,57 +93,412 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
   if (!employee) return null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Editar Colaborador</DialogTitle><DialogDescription>Edite as informações do colaborador</DialogDescription></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div className="space-y-2"><Label htmlFor="first_name">Primeiro nome *</Label><Input id="first_name" value={formData.first_name} onChange={(e) => setFormData(prev => ({ ...prev, first_name: sanitizeNoSpaces(e.target.value) }))} placeholder="João" required /></div>
-            <div className="space-y-2"><Label htmlFor="second_name">Segundo nome</Label><Input id="second_name" value={formData.second_name} onChange={(e) => setFormData(prev => ({ ...prev, second_name: sanitizeNoSpaces(e.target.value) }))} placeholder="Pedro" /></div>
-            <div className="space-y-2"><Label htmlFor="last_name">Sobrenome</Label><Input id="last_name" value={formData.last_name} onChange={(e) => setFormData(prev => ({ ...prev, last_name: sanitizeNoSpaces(e.target.value) }))} placeholder="Silva" /></div>
-          </div>
-          <p className="text-xs text-muted-foreground -mt-2">Cada campo aceita apenas uma palavra (sem espaços).</p>
-          <div className="space-y-2"><Label htmlFor="nickname">Apelido</Label><Input id="nickname" value={formData.nickname} onChange={(e) => setFormData(prev => ({ ...prev, nickname: e.target.value }))} placeholder="Como prefere ser chamado" /></div>
-          <div className="space-y-2"><Label htmlFor="email">E-mail *</Label><Input id="email" type="email" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} required /></div>
-          <div className="space-y-2"><Label htmlFor="phone">Telefone</Label><Input id="phone" value={formData.phone} onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} placeholder="(00) 00000-0000" /></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label htmlFor="role">Função</Label><Select value={formData.role} onValueChange={(v) => setFormData(prev => ({ ...prev, role: v }))}><SelectTrigger id="role"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="employee">Colaborador</SelectItem><SelectItem value="manager">Gerente</SelectItem><SelectItem value="admin">Administrador</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><Label htmlFor="employee_type">Tipo de colaborador</Label><Select value={formData.employee_type} onValueChange={(v) => setFormData(prev => ({ ...prev, employee_type: v }))}><SelectTrigger id="employee_type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="fixo">Fixo</SelectItem><SelectItem value="autonomo">Autônomo</SelectItem></SelectContent></Select></div>
-          </div>
-          {formData.employee_type === 'autonomo' && (<div className="space-y-2"><Label htmlFor="payout_flow_override">Fluxo de pagamento</Label><Select value={formData.payout_flow_override || "__default__"} onValueChange={(v) => setFormData(prev => ({ ...prev, payout_flow_override: v === "__default__" ? "" : (v as any) }))}><SelectTrigger id="payout_flow_override"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="__default__">Usar padrão da empresa</SelectItem><SelectItem value="via_company">Empresa recebe e repassa</SelectItem><SelectItem value="direct_to_autonomous">Autônomo recebe e repassa</SelectItem></SelectContent></Select><p className="text-xs text-muted-foreground">Define para qual conta vai o pagamento do cliente neste profissional.</p></div>)}
-          <div className="space-y-2"><Label htmlFor="system_profile">Perfil do Sistema</Label><Select value={formData.system_profile_id} onValueChange={(v) => setFormData(prev => ({ ...prev, system_profile_id: v }))}><SelectTrigger id="system_profile"><SelectValue placeholder="Selecione o perfil" /></SelectTrigger><SelectContent>{systemProfiles.map((sp) => (<SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>))}</SelectContent></Select></div>
-          <div className="space-y-2"><Label htmlFor="base_occupation">Ocupação Base</Label><Select value={formData.base_occupation_id} onValueChange={(v) => setFormData(prev => ({ ...prev, base_occupation_id: v }))}><SelectTrigger id="base_occupation"><SelectValue placeholder="Selecione a ocupação" /></SelectTrigger><SelectContent>{occupations.map((o) => (<SelectItem key={o.id} value={o.id}>{o.name}{o.company_id === null ? "" : " (personalizada)"}</SelectItem>))}</SelectContent></Select></div>
-          <div className="space-y-2"><Label htmlFor="internal_job_title">Cargo Interno</Label><Input id="internal_job_title" value={formData.internal_job_title} onChange={(e) => setFormData(prev => ({ ...prev, internal_job_title: e.target.value }))} placeholder="Ex: Barbeiro Master, Gerente Unidade Centro" /><p className="text-xs text-muted-foreground">Campo livre — apenas organizacional/visual.</p></div>
-          <div className="space-y-3">
-            <div><Label>Permissões de Acesso</Label><p className="text-xs text-muted-foreground mt-1">Defina manualmente o que este colaborador pode acessar. A função não altera estas permissões automaticamente.</p></div>
-            <div className="space-y-2"><Label htmlFor="permission_preset">Preset de permissões</Label><Select value={selectedPreset} onValueChange={handlePresetChange}><SelectTrigger id="permission_preset"><SelectValue placeholder="Selecione um preset" /></SelectTrigger><SelectContent>{permissionPresets.map((preset) => (<SelectItem key={preset.id} value={preset.id}>{preset.name}</SelectItem>))}</SelectContent></Select></div>
-            <div className="space-y-3 max-h-64 overflow-y-auto rounded-md border p-3">
-              {Object.entries(groupedPermissions).map(([module, permissions]) => {
-                const moduleState = getModuleState(permissions);
-                return (
-                  <div key={module} className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id={`edit-module-${module}`} checked={moduleState} onCheckedChange={() => toggleModulePermissions(permissions)} aria-label={`Selecionar todas as permissões de ${MODULE_LABELS[module] || module}`} />
-                      <Label htmlFor={`edit-module-${module}`} className="text-sm font-medium leading-tight cursor-pointer">{MODULE_LABELS[module] || module}</Label>
-                    </div>
-                    <div className="space-y-2 pl-6">
-                      {permissions.map((permission) => (
-                        <div key={permission.id} className="flex items-start space-x-2">
-                          <Checkbox id={`edit-permission-${permission.id}`} checked={selectedPermissions.includes(permission.id)} onCheckedChange={(checked) => togglePermission(permission.id, checked === true)} />
-                          <Label htmlFor={`edit-permission-${permission.id}`} className="text-sm font-normal leading-tight cursor-pointer">{permission.name}{permission.description && (<span className="block text-xs text-muted-foreground mt-0.5">{permission.description}</span>)}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-              {permissionsCatalog.length === 0 && (<p className="text-sm text-muted-foreground">Nenhuma permissão cadastrada.</p>)}
+      <DialogContent className="sm:max-w-[425px] max-h-[90%] flex flex-col overflow-hidden p-0">
+        {/* <div className='overflow-y-auto h-full '> */}
+
+          <DialogHeader className="sticky left-0 px-6  h-44 top-0 py-6 bg-background border-b">
+            <DialogTitle>Editar Colaborador</DialogTitle>
+            <DialogDescription>Edite as informações do colaborador</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="!m-0 flex p-0 border-none overflow-y-auto">
+           <div className='overflow-y-auto pl-6 pr-4 py-6 gap-3 flex flex-col h-full'>
+
+            <div className="flex space-x-2 items-center">
+              <User2 className="w-6 h-6 text-muted-foreground" />
+              <p className="text-lg font-semibold uppercase">Perfil</p>
             </div>
-          </div>
-          <div className="space-y-3"><Label>Serviços Vinculados</Label><div className="space-y-2 max-h-32 overflow-y-auto">{services.map((service) => (<div key={service.id} className="flex items-center space-x-2"><Checkbox id={service.id} checked={formData.services.includes(service.id)} onCheckedChange={(checked) => { if (checked) setFormData(prev => ({ ...prev, services: [...prev.services, service.id] })); else setFormData(prev => ({ ...prev, services: prev.services.filter(s => s !== service.id) })); }} /><Label htmlFor={service.id} className="text-sm font-normal">{service.name}</Label></div>))}{services.length === 0 && (<p className="text-sm text-muted-foreground">Nenhum serviço cadastrado</p>)}</div></div>
-          <div className="space-y-3 rounded-md border border-destructive/30 p-3"><div><Label htmlFor="termination_effective_date" className="text-destructive">Data de desligamento</Label><Input id="termination_effective_date" type="date" value={formData.termination_effective_date} onChange={(e) => setFormData(prev => ({ ...prev, termination_effective_date: e.target.value }))} /><p className="text-xs text-muted-foreground mt-1">A partir desta data, todas as escalas futuras do colaborador serão marcadas como Desligado (D) e ele deixa de aparecer na disponibilidade.</p></div>{formData.termination_effective_date && (<div><Label htmlFor="termination_reason">Motivo (opcional)</Label><Input id="termination_reason" value={formData.termination_reason} onChange={(e) => setFormData(prev => ({ ...prev, termination_reason: e.target.value }))} placeholder="Ex: Pedido de demissão, fim de contrato..." /></div>)}</div>
-          <div className="flex items-center space-x-2"><Switch id="is_active" checked={formData.is_active} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))} /><Label htmlFor="is_active">Colaborador ativo</Label></div>
-          <div className="flex gap-4 pt-4"><Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">Cancelar</Button><Button type="submit" disabled={loading} className="flex-1">{loading ? "Salvando..." : "Salvar Alterações"}</Button></div>
-        </form>
+            <div className="space-y-3 border border-border rounded-md p-3 bg-slate-400/10">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="first_name">Primeiro nome *</Label>
+                  <Input
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        first_name: sanitizeNoSpaces(e.target.value),
+                      }))
+                    }
+                    placeholder="João"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="second_name">Segundo nome</Label>
+                  <Input
+                    id="second_name"
+                    value={formData.second_name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        second_name: sanitizeNoSpaces(e.target.value),
+                      }))
+                    }
+                    placeholder="Pedro"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="last_name">Sobrenome</Label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        last_name: sanitizeNoSpaces(e.target.value),
+                      }))
+                    }
+                    placeholder="Silva"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                <InfoIcon className="w-5 h-5 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground ">
+                  Cada campo aceita apenas uma palavra (sem espaços).
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nickname">Apelido</Label>
+                <Input
+                  id="nickname"
+                  value={formData.nickname}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, nickname: e.target.value }))}
+                  placeholder="Como prefere ser chamado"
+                />
+              </div>
+            </div>
+            <div className="flex space-x-2 items-center">
+              <Contact className="w-6 h-6 text-muted-foreground" />
+              <p className="text-lg font-semibold uppercase">Contato</p>
+            </div>
+            <div className="space-y-3 border border-border rounded-md p-3 bg-slate-400/10">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+            </div>
+            <div className="flex space-x-2 items-center">
+              <BriefcaseBusiness className="w-6 h-6 text-muted-foreground" />
+              <p className="text-lg font-semibold uppercase">Profissão</p>
+            </div>
+            <div className="space-y-3 border border-border rounded-md p-3 bg-slate-400/10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="role">Função</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, role: v }))}
+                  >
+                    <SelectTrigger id="role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="employee">Colaborador</SelectItem>
+                      <SelectItem value="manager">Gerente</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="employee_type">Tipo de colaborador</Label>
+                  <Select
+                    value={formData.employee_type}
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, employee_type: v }))}
+                  >
+                    <SelectTrigger id="employee_type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixo">Fixo</SelectItem>
+                      <SelectItem value="autonomo">Autônomo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {formData.employee_type === "autonomo" && (
+                <div className="space-y-2">
+                  <Label htmlFor="payout_flow_override">Fluxo de pagamento</Label>
+                  <Select
+                    value={formData.payout_flow_override || "__default__"}
+                    onValueChange={(v) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        payout_flow_override: v === "__default__" ? "" : (v as any),
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="payout_flow_override">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__default__">Usar padrão da empresa</SelectItem>
+                      <SelectItem value="via_company">Empresa recebe e repassa</SelectItem>
+                      <SelectItem value="direct_to_autonomous">Autônomo recebe e repassa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Define para qual conta vai o pagamento do cliente neste profissional.
+                  </p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="system_profile">Perfil do Sistema</Label>
+                <Select
+                  value={formData.system_profile_id}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, system_profile_id: v }))}
+                >
+                  <SelectTrigger id="system_profile">
+                    <SelectValue placeholder="Selecione o perfil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {systemProfiles.map((sp) => (
+                      <SelectItem key={sp.id} value={sp.id}>
+                        {sp.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="base_occupation">Ocupação Base</Label>
+                <Select
+                  value={formData.base_occupation_id}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, base_occupation_id: v }))}
+                >
+                  <SelectTrigger id="base_occupation">
+                    <SelectValue placeholder="Selecione a ocupação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {occupations.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        {o.name}
+                        {o.company_id === null ? "" : " (personalizada)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="internal_job_title">Cargo Interno</Label>
+                <Input
+                  id="internal_job_title"
+                  value={formData.internal_job_title}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, internal_job_title: e.target.value }))
+                  }
+                  placeholder="Ex: Barbeiro Master, Gerente Unidade Centro"
+                />
+                <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                  <InfoIcon className="w-5 h-5 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">
+                    Campo livre — apenas organizacional/visual.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-2 items-center">
+              <ShieldCheck className="w-6 h-6 text-muted-foreground" />
+              <p className="text-lg font-semibold uppercase">Permissões</p>
+            </div>
+            <div className="space-y-3 border border-border rounded-md p-3 bg-slate-400/10">
+              <div>
+                <Label>Permissões de Acesso</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Defina manualmente o que este colaborador pode acessar. A função não altera estas
+                  permissões automaticamente.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="permission_preset">Preset de permissões</Label>
+                <Select value={selectedPreset} onValueChange={handlePresetChange}>
+                  <SelectTrigger id="permission_preset">
+                    <SelectValue placeholder="Selecione um preset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {permissionPresets.map((preset) => (
+                      <SelectItem key={preset.id} value={preset.id}>
+                        {preset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-3 max-h-64 overflow-y-auto rounded-md border p-3">
+                {Object.entries(groupedPermissions).map(([module, permissions]) => {
+                  const moduleState = getModuleState(permissions);
+                  return (
+                    <div key={module} className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-module-${module}`}
+                          checked={moduleState}
+                          onCheckedChange={() => toggleModulePermissions(permissions)}
+                          aria-label={`Selecionar todas as permissões de ${MODULE_LABELS[module] || module}`}
+                        />
+                        <Label
+                          htmlFor={`edit-module-${module}`}
+                          className="text-sm font-medium leading-tight cursor-pointer"
+                        >
+                          {MODULE_LABELS[module] || module}
+                        </Label>
+                      </div>
+                      <div className="space-y-2 pl-6">
+                        {permissions.map((permission) => (
+                          <div key={permission.id} className="flex items-start space-x-2">
+                            <Checkbox
+                              id={`edit-permission-${permission.id}`}
+                              checked={selectedPermissions.includes(permission.id)}
+                              onCheckedChange={(checked) =>
+                                togglePermission(permission.id, checked === true)
+                              }
+                            />
+                            <Label
+                              htmlFor={`edit-permission-${permission.id}`}
+                              className="text-sm font-normal leading-tight cursor-pointer"
+                            >
+                              {permission.name}
+                              {permission.description && (
+                                <span className="block text-xs text-muted-foreground mt-0.5">
+                                  {permission.description}
+                                </span>
+                              )}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {permissionsCatalog.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Nenhuma permissão cadastrada.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex space-x-2 items-center">
+              <Plug className="w-6 h-6 text-muted-foreground" />
+              <p className="text-lg font-semibold uppercase">Vinculos</p>
+            </div>
+            <div className="space-y-3 border border-border rounded-md p-3 bg-slate-400/10">
+              <div className="space-y-3">
+                <Label>Serviços Vinculados</Label>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {services.map((service) => (
+                    <div key={service.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={service.id}
+                        checked={formData.services.includes(service.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked)
+                            setFormData((prev) => ({
+                              ...prev,
+                              services: [...prev.services, service.id],
+                            }));
+                          else
+                            setFormData((prev) => ({
+                              ...prev,
+                              services: prev.services.filter((s) => s !== service.id),
+                            }));
+                        }}
+                      />
+                      <Label htmlFor={service.id} className="text-sm font-normal">
+                        {service.name}
+                      </Label>
+                    </div>
+                  ))}
+                  {services.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Nenhum serviço cadastrado</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex space-x-2 items-center">
+              <Handshake className="w-6 h-6 text-muted-foreground" />
+              <p className="text-lg font-semibold uppercase">Contrato</p>
+            </div>
+
+            <div className="space-y-3 flex flex-col gap-3 border border-border rounded-md p-3 bg-slate-400/10">
+              <div className="space-y-3 rounded-md border border-destructive/30 p-3">
+                <div className=' gap-3 flex flex-col'>
+                  <Label htmlFor="termination_effective_date" className="text-destructive">
+                    Data de desligamento
+                  </Label>
+                  <div className='w-full'>
+                    <Input
+                      id="termination_effective_date"
+                      className=' bg-white/50 flexm max-w-[92.4%] placeholder:text-destructive text-red-600'
+                      placeholder="Selecione a data"
+                      type="date"
+                      value={formData.termination_effective_date}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, termination_effective_date: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    A partir desta data, todas as escalas futuras do colaborador serão marcadas como
+                    Desligado (D) e ele deixa de aparecer na disponibilidade.
+                  </p>
+                </div>
+                {formData.termination_effective_date && (
+                  <div>
+                    <Label htmlFor="termination_reason">Motivo (opcional)</Label>
+                    <Input
+                      id="termination_reason"
+                      value={formData.termination_reason}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, termination_reason: e.target.value }))
+                      }
+                      placeholder="Ex: Pedido de demissão, fim de contrato..."
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, is_active: checked }))
+                  }
+                />
+                <Label htmlFor="is_active">Colaborador ativo</Label>
+              </div>
+            </div>
+            <div className="flex gap-4 pt-4 items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
+           </div>
+          </form>
+        {/* </div> */}
       </DialogContent>
     </Dialog>
   );
