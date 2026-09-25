@@ -61,7 +61,7 @@ BEGIN
 
   IF v_employee_id IS NULL THEN RETURN false; END IF;
 
-  IF v_role IN ('owner','admin') THEN
+  IF v_role::text IN ('owner','admin') THEN
     RETURN EXISTS (
       SELECT 1 FROM public.permissions p
       WHERE p.code=_permission_code AND p.is_active=true
@@ -120,7 +120,7 @@ BEGIN
     RAISE EXCEPTION 'Employees cannot change their own permissions';
   END IF;
 
-  IF v_actor_role IN ('owner','admin') THEN
+  IF v_actor_role::text IN ('owner','admin') THEN
     v_has_permission:=true;
   ELSE
     SELECT EXISTS (
