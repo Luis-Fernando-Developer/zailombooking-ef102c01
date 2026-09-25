@@ -186,7 +186,7 @@ USING (
     WHERE actor.user_id=auth.uid()
       AND actor.company_id=(SELECT e2.company_id FROM public.employees e2 WHERE e2.id=employee_permissions.employee_id)
       AND actor.is_active=true
-      AND actor.role IN ('owner','admin')
+      AND actor.role::text IN ('owner','admin')
   )
 );
 
