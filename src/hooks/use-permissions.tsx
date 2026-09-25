@@ -33,8 +33,6 @@ export interface PermissionLevel {
   canManageSettings: boolean;
   canManageSubscription: boolean;
   canDeleteOwner: boolean;
-
-  /** New permission API. */
   hasPermission: (code: string) => boolean;
 }
 
@@ -56,11 +54,6 @@ const EMPTY_PERMISSIONS: Omit<PermissionLevel, 'hasPermission'> = {
   canDeleteOwner: false,
 };
 
-/**
- * Converts the new relational permission codes into the old boolean API.
- * This compatibility layer will be removed in FASE 12 after all consumers
- * have migrated to hasPermission().
- */
 function buildPermissionLevel(permissionCodes: Set<string>): PermissionLevel {
   const hasPermission = (code: string) => permissionCodes.has(code);
 
@@ -71,13 +64,11 @@ function buildPermissionLevel(permissionCodes: Set<string>): PermissionLevel {
       hasPermission('employees.edit') ||
       hasPermission('employees.delete'),
     canViewEmployees: hasPermission('employees.view'),
-
     canManageServices:
       hasPermission('services.create') ||
       hasPermission('services.edit') ||
       hasPermission('services.delete'),
     canViewServices: hasPermission('services.view'),
-
     canManageAllBookings:
       hasPermission('bookings.create') ||
       hasPermission('bookings.edit') ||
@@ -85,29 +76,24 @@ function buildPermissionLevel(permissionCodes: Set<string>): PermissionLevel {
       hasPermission('bookings.manage_all'),
     canViewAllBookings: hasPermission('bookings.view'),
     canManageOwnBookings: hasPermission('bookings.manage_own'),
-
     canManageClients:
       hasPermission('clients.create') ||
       hasPermission('clients.edit') ||
       hasPermission('clients.delete'),
     canViewClients: hasPermission('clients.view'),
-
     canViewFinancialReports: hasPermission('reports.view_financial'),
     canViewBasicReports: hasPermission('reports.view_basic'),
     canViewDashboard: hasPermission('dashboard.view'),
-
     canManageSettings: hasPermission('settings.manage'),
     canManageSubscription: hasPermission('subscription.manage'),
-
-    // This remains false until a dedicated permission exists.
     canDeleteOwner: false,
-
     hasPermission,
   };
 }
 
 export function usePermissions(companyId?: string, user?: User | null) {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [permissionCodes, setPermissionCodes] = useState<Set<string>>(new Set());
   const [permissions, setPermissions] = useState<PermissionLevel | null>(null);
   const [loading, setLoading] = useState(true);
@@ -115,6 +101,7 @@ export function usePermissions(companyId?: string, user?: User | null) {
   const fetchPermissions = useCallback(async () => {
     if (!user || !companyId) {
       setUserRole(null);
+      setEmployeeId(null);
       setPermissionCodes(new Set());
       setPermissions(null);
       setLoading(false);
@@ -124,8 +111,21 @@ export function usePermissions(companyId?: string, user?: User | null) {
     setLoading(true);
 
     try {
-      // Role is read only for compatibility/display. It does NOT determine
-      // permissions for normal employees.
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('owner_email')
+        .eq('id', companyId)
+        .maybeSingle();
+
+      if (companyError) throw companyError;
+
+      const normalizedOwnerEmail = String(company?.owner_email ?? '').trim().toLowerCase();
+      const normalizedUserEmail = String(user.email ?? '').trim().toLowerCase();
+      const isCompanyOwner =
+        !!normalizedOwnerEmail &&
+        !!normalizedUserEmail &&
+        normalizedOwnerEmail === normalizedUserEmail;
+
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('id, role')
@@ -135,44 +135,23 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
       if (employeeError) throw employeeError;
 
-      if (!employee) {
+      if (isCompanyOwner) {
+        setUserRole('owner');
+        setEmployeeId(employee?.id ?? null);
+      } else if (employee) {
+        setUserRole(employee.role as UserRole);
+        setEmployeeId(employee.id);
+      } else {
         setUserRole(null);
+        setEmployeeId(null);
         setPermissionCodes(new Set());
         setPermissions(null);
         return;
       }
 
-      const role = employee.role as UserRole;
-      setUserRole(role);
-
-      const { data: rows, error: permissionsError } = await supabase
-        .from('employee_permissions')
-        .select('permission_id, permissions!inner(code, is_active)')
-        .eq('employee_id', employee.id);
-
-      if (permissionsError) throw permissionsError;
-
       const codes = new Set<string>();
 
-      for (const row of rows ?? []) {
-        const permission = row.permissions as
-          | { code?: string; is_active?: boolean }
-          | { code?: string; is_active?: boolean }[]
-          | null;
-
-        const item = Array.isArray(permission) ? permission[0] : permission;
-
-        if (item?.code && item.is_active !== false) {
-          codes.add(item.code);
-        }
-      }
-
-      /**
-       * Owner/admin are system-level company administrators. Their access is
-       * intentionally preserved while the employee permission model is being
-       * migrated. All other employees depend exclusively on assigned rows.
-       */
-      if (role === 'owner' || role === 'admin') {
+      if (isCompanyOwner || employee?.role === 'owner' || employee?.role === 'admin') {
         const { data: activePermissions, error: catalogError } = await supabase
           .from('permissions')
           .select('code')
@@ -183,6 +162,26 @@ export function usePermissions(companyId?: string, user?: User | null) {
         for (const permission of activePermissions ?? []) {
           if (permission.code) codes.add(permission.code);
         }
+      } else if (employee) {
+        const { data: rows, error: permissionsError } = await supabase
+          .from('employee_permissions')
+          .select('permission_id, permissions!inner(code, is_active)')
+          .eq('employee_id', employee.id);
+
+        if (permissionsError) throw permissionsError;
+
+        for (const row of rows ?? []) {
+          const permission = row.permissions as
+            | { code?: string; is_active?: boolean }
+            | { code?: string; is_active?: boolean }[]
+            | null;
+
+          const item = Array.isArray(permission) ? permission[0] : permission;
+
+          if (item?.code && item.is_active !== false) {
+            codes.add(item.code);
+          }
+        }
       }
 
       setPermissionCodes(codes);
@@ -190,6 +189,7 @@ export function usePermissions(companyId?: string, user?: User | null) {
     } catch (error) {
       console.error('Error fetching employee permissions:', error);
       setUserRole(null);
+      setEmployeeId(null);
       setPermissionCodes(new Set());
       setPermissions(null);
     } finally {
@@ -208,6 +208,7 @@ export function usePermissions(companyId?: string, user?: User | null) {
 
   return {
     userRole,
+    employeeId,
     permissions,
     permissionCodes,
     hasPermission,
