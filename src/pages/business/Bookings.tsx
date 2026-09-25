@@ -33,6 +33,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { ReallocateDialog } from "@/components/business/ReallocateDialog";
+import { usePermissions } from "@/hooks/use-permissions";
 
 
 const statusConfig = {
@@ -54,6 +55,7 @@ const paymentMethodConfig: Record<string, { label: string; color: string }> = {
   online:  { label: "Pago online",     color: "bg-green-500" },
   local:   { label: "Pagar no local",  color: "bg-yellow-500" },
   pending: { label: "Método pendente", color: "bg-gray-500" },
+  reward:  { label: "Brinde",           color: "bg-blue-500" },
 };
 
 const FINAL_LOCKED_STATUSES = new Set(["cancelled", "completed"]);
@@ -91,6 +93,7 @@ export default function BusinessBookings() {
   const [reallocateBooking, setReallocateBooking] = useState<any>(null);
   const [reallocateMode, setReallocateMode] = useState<"swap" | "reschedule" | "cancel">("swap");
   const { toast } = useToast();
+  const { hasPermission, loading: permissionsLoading } = usePermissions(company?.id, currentUser);
 
   useEffect(() => {
     fetchData();
@@ -270,10 +273,25 @@ export default function BusinessBookings() {
     }
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ booking_status: status })
-        .eq('id', bookingId);
+      let error: any = null;
+
+      if (
+        status === 'confirmed' &&
+        current.booking_status === 'pending' &&
+        current.payment_method === 'local'
+      ) {
+        const { error: confirmError } = await supabase.rpc('confirm_local_booking', {
+          p_booking_id: bookingId,
+        });
+        error = confirmError;
+      } else {
+        const result = await supabase
+          .from('bookings')
+          .update({ booking_status: status })
+          .eq('id', bookingId);
+
+        error = result.error;
+      }
 
       if (error) throw error;
 
@@ -379,8 +397,30 @@ export default function BusinessBookings() {
     );
   }
 
-  // Verificar se pode gerenciar agendamentos — recepcionista só visualiza (botão "Novo Agendamento" oculto)
-  const canManageBookings = ['owner', 'admin', 'manager', 'supervisor'].includes(employee?.role || '');
+  // A UI segue as mesmas permissões usadas pelo RLS.
+  // Ter acesso à tela (bookings.view) não concede ações de gerenciamento.
+  const canCreateBooking =
+    hasPermission('bookings.create') || hasPermission('bookings.manage_all');
+
+  const canManageAllBookings =
+    hasPermission('bookings.edit') ||
+    hasPermission('bookings.cancel') ||
+    hasPermission('bookings.manage_all');
+
+  const canManageOwnBookings = hasPermission('bookings.manage_own');
+
+  const canActOnBooking = (booking: any) =>
+    canManageAllBookings ||
+    (canManageOwnBookings && booking.employee_id === employee?.id);
+
+  const canEditBooking = (booking: any) =>
+    hasPermission('bookings.edit') ||
+    hasPermission('bookings.manage_all') ||
+    (canManageOwnBookings && booking.employee_id === employee?.id);
+
+  const canCancelBooking = (booking: any) =>
+    hasPermission('bookings.cancel') ||
+    hasPermission('bookings.manage_all');
 
   return (
     <BusinessLayout 
@@ -399,7 +439,7 @@ export default function BusinessBookings() {
               Gerencie todos os agendamentos do estabelecimento
             </p>
           </div>
-          {canManageBookings && (
+          {canCreateBooking && !permissionsLoading && (
             <AddBookingDialog
               companyId={company.id}
               companySlug={company.slug}
@@ -501,6 +541,16 @@ export default function BusinessBookings() {
             filteredBookings.map((booking) => {
               const finalLocked = isFinalLockedStatus(booking.booking_status);
               const noShow = canOnlyReschedule(booking.booking_status);
+              const canAct = canActOnBooking(booking);
+              const canEdit = canEditBooking(booking);
+              const canCancel = canCancelBooking(booking);
+              // "Confirmar" é uma ação manual exclusiva de pagamentos no local.
+              // Agendamentos automáticos (online confirmado ou brinde) não podem ser
+              // confirmados novamente pelo painel.
+              const canManuallyConfirm =
+                booking.booking_status === 'pending' &&
+                booking.payment_method === 'local';
+              const showActions = !permissionsLoading && (canEdit || canCancel);
 
               return (
               <Card key={booking.id} className="flex flex-col card-glow bg-card/50 backdrop-blur-sm border-primary/20 ">
@@ -582,49 +632,68 @@ export default function BusinessBookings() {
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="absolute top-5 right-3">
-                      <DropdownMenu >
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={finalLocked}>
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-card border-primary/20">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {!noShow && (
-                            <>
-                              <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
-                                <Check className="mr-2 h-4 w-4" />
-                                Confirmar
+                    {/* Actions — somente aparece quando o funcionário possui alguma permissão de ação */}
+                    {showActions && (
+                      <div className="absolute top-5 right-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" disabled={finalLocked}>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-card border-primary/20">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+
+                            {!noShow && canEdit && (
+                              <>
+                                {canManuallyConfirm && (
+                                  <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
+                                    <Check className="mr-2 h-4 w-4" />
+                                    Confirmar
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
+                                  <Check className="mr-2 h-4 w-4" />
+                                  Marcar como Concluído
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'no_show')}>
+                                  <AlertCircle className="mr-2 h-4 w-4" />
+                                  Não Realizado
+                                </DropdownMenuItem>
+                                {canCancel && (
+                                  <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'cancelled')}>
+                                    <X className="mr-2 h-4 w-4" />
+                                    Cancelar
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                {canAct && (
+                                  <DropdownMenuItem onClick={() => { setReallocateBooking(booking); setReallocateMode("swap"); }}>
+                                    <UserCog className="mr-2 h-4 w-4" />
+                                    Realocar p/ outro profissional
+                                  </DropdownMenuItem>
+                                )}
+                              </>
+                            )}
+
+                            {canEdit && (
+                              <DropdownMenuItem onClick={() => { setReallocateBooking(booking); setReallocateMode("reschedule"); }}>
+                                <CalendarClock className="mr-2 h-4 w-4" />
+                                Reagendar
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
-                                <Check className="mr-2 h-4 w-4" />
-                                Marcar como Concluído
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'no_show')}>
-                                <AlertCircle className="mr-2 h-4 w-4" />
-                                Não Realizado
-                              </DropdownMenuItem>
+                            )}
+
+                            {canCancel && !canEdit && (
                               <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'cancelled')}>
                                 <X className="mr-2 h-4 w-4" />
                                 Cancelar
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => { setReallocateBooking(booking); setReallocateMode("swap"); }}>
-                                <UserCog className="mr-2 h-4 w-4" />
-                                Realocar p/ outro profissional
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          <DropdownMenuItem onClick={() => { setReallocateBooking(booking); setReallocateMode("reschedule"); }}>
-                            <CalendarClock className="mr-2 h-4 w-4" />
-                            Reagendar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
                   </div>
 
                   {booking.notes && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { User } from "@supabase/supabase-js";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import {
@@ -55,6 +56,7 @@ import {
   Copy,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useToast } from "@/hooks/use-toast";
 import {
   calculateSubscriptionChange,
@@ -145,6 +147,8 @@ export default function BillingManagement() {
   const [selectedPeriod, setSelectedPeriod] =
     useState<string>("monthly");
   const [busy, setBusy] = useState(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const { hasPermission, loading: permissionsLoading } = usePermissions(company?.id, authUser);
 
   const [pixInvoice, setPixInvoice] =
     useState<Invoice | null>(null);
@@ -485,6 +489,7 @@ export default function BillingManagement() {
   }
 
   async function handleChangePlan() {
+    if (!hasPermission("subscription.manage")) return;
     if (!subscription || !selectedPlan) return;
 
     setBusy(true);
@@ -579,6 +584,7 @@ export default function BillingManagement() {
   }
 
   async function handleSetMethodPix() {
+    if (!hasPermission("subscription.manage")) return;
     if (!company) return;
 
     setBusy(true);
@@ -672,21 +678,23 @@ export default function BillingManagement() {
     }
   }
 
-  if (loading) {
+  if (loading || permissionsLoading) {
     return (
-      <BusinessLayout
-        companySlug={slug || ""}
-        companyName="Carregando..."
-        companyId=""
-        userRole="loading"
-      >
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="animate-spin" />
-        </div>
+      <BusinessLayout companySlug={slug || ""} companyName="Carregando..." companyId="" userRole="loading">
+        <div className="flex items-center justify-center h-64">Carregando...</div>
       </BusinessLayout>
     );
   }
 
+  if (!hasPermission("subscription.view") && !hasPermission("subscription.manage")) {
+    return (
+      <BusinessLayout companySlug={slug || ""} companyName={company?.name || "Acesso Negado"} companyId={company?.id || ""} userRole="unauthorized">
+        <div className="flex items-center justify-center h-64 text-center">
+          <div><h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2><p className="text-muted-foreground">Você não tem permissão para acessar o gerenciamento do plano.</p></div>
+        </div>
+      </BusinessLayout>
+    );
+  }
   const plan =
     subscription?.subscription_plans;
 

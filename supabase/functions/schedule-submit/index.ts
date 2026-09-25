@@ -9,6 +9,7 @@
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { checkEmployeePermission, permissionDeniedResponse } from '../_shared/employee-permissions.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -22,7 +23,6 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Cliente com o JWT do usuário — necessário para RPCs que usam auth.uid()
     const asUser = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -47,6 +47,14 @@ Deno.serve(async (req) => {
       return json({ error: 'Selecione ao menos um destinatário' }, 400);
     }
 
+    const permission = await checkEmployeePermission(
+      admin,
+      user.id,
+      tenant_id,
+      'hr.manage_attendance',
+    );
+    if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
+
     const { data: belongs } = await admin.rpc('user_belongs_to_company', {
       _user_id: user.id, _company_id: tenant_id,
     });
@@ -56,8 +64,6 @@ Deno.serve(async (req) => {
       _user_id: user.id, _company_id: tenant_id,
     });
     if (!canCreate) {
-      // Diagnóstico: o usuário não tem system_profile_id na employees,
-      // ou o perfil dele não tem can_create_schedule = true.
       const { data: emp } = await admin.from('employees')
         .select('id, system_profile_id, role')
         .eq('user_id', user.id).eq('company_id', tenant_id).maybeSingle();
@@ -75,7 +81,6 @@ Deno.serve(async (req) => {
       return json({ error: 'schedule_not_submittable', status: schedule.status }, 400);
     }
 
-    // Resolver destinatários (RPC depende de auth.uid() → usa cliente do usuário)
     let recipients: string[] = [];
     if (target_mode === 'levels_above') {
       const { data: above } = await asUser.rpc('list_approvers_above', { _company_id: tenant_id });
@@ -93,7 +98,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Criar request vinculada
     const reqTitle = title || `Escala: ${schedule.name}`;
     const reqDesc  = description || `Aprovação de escala — período ${schedule.period_start} → ${schedule.period_end}.`;
     const { data: created, error: rErr } = await admin.from('requests').insert({
@@ -106,7 +110,6 @@ Deno.serve(async (req) => {
     }).select('*').single();
     if (rErr) throw rErr;
 
-    // Atualizar escala
     await admin.from('schedules').update({
       status: 'pending_approval',
       request_id: created.id,
@@ -114,13 +117,11 @@ Deno.serve(async (req) => {
       submitted_to_levels: target_mode === 'levels_above',
     }).eq('id', schedule_id);
 
-    // Audit log
     await admin.from('schedule_audit_log').insert({
       schedule_id, tenant_id, action: 'submitted', actor_user_id: user.id,
       snapshot: { target_mode, recipients_count: recipients.length },
     });
 
-    // Notificações direcionadas
     if (recipients.length > 0) {
       const link = `/admin/solicitacoes?request=${created.id}`;
       const notifs = recipients.map((uid) => ({

@@ -2,6 +2,7 @@
 // Body: { tenant_id, schedule_id, reason? }
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { checkEmployeePermission, permissionDeniedResponse } from '../_shared/employee-permissions.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -15,6 +16,9 @@ Deno.serve(async (req) => {
 
     const { tenant_id, schedule_id, reason } = await req.json();
     if (!tenant_id || !schedule_id) return j({ error: 'tenant_id, schedule_id obrigatórios' }, 400);
+
+    const permission = await checkEmployeePermission(admin, user.id, tenant_id, 'hr.manage_attendance');
+    if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
 
     const { data: canApprove } = await admin.rpc('user_can_approve_schedule', {
       _user_id: user.id, _schedule_id: schedule_id,
@@ -33,7 +37,6 @@ Deno.serve(async (req) => {
       schedule_id, tenant_id, action: 'approved', actor_user_id: user.id, reason: reason ?? null,
     });
 
-    // notifica o criador
     if (schedule.created_by) {
       await admin.from('company_notifications').insert({
         company_id: tenant_id, type: 'schedule_approved',

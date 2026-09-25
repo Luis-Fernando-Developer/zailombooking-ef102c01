@@ -20,9 +20,22 @@ interface Service {
 
 interface SystemProfile { id: string; code: string; name: string; }
 interface BaseOccupation { id: string; name: string; company_id: string | null; }
+interface Permission {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  module: string;
+  sort_order: number;
+}
+interface PermissionPreset {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+}
 
-// Sugestão de ocupações relacionadas a cada perfil do sistema.
-// Perfis ausentes ou listados como "*" exibem todas as ocupações.
 const PROFILE_OCCUPATION_MAP: Record<string, string[] | "*"> = {
   OWNER: "*",
   GERENTE: "*",
@@ -43,6 +56,23 @@ const PROFILE_OCCUPATION_MAP: Record<string, string[] | "*"> = {
   DESIGNER_GRAFICO: [],
 };
 
+const MODULE_LABELS: Record<string, string> = {
+  employees: "Funcionários",
+  services: "Serviços",
+  bookings: "Agendamentos",
+  clients: "Clientes",
+  reports: "Relatórios",
+  dashboard: "Dashboard",
+  settings: "Configurações",
+  subscription: "Assinatura",
+  reallocation: "Realocação",
+  chat: "Chat",
+  marketing: "Marketing",
+  chatbot: "Chatbot",
+  whatsapp: "WhatsApp",
+  finance: "Financeiro",
+};
+
 interface AddEmployeeDialogProps {
   companyId: string;
   onEmployeeAdded: () => void;
@@ -54,6 +84,10 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
   const [services, setServices] = useState<Service[]>([]);
   const [systemProfiles, setSystemProfiles] = useState<SystemProfile[]>([]);
   const [occupations, setOccupations] = useState<BaseOccupation[]>([]);
+  const [permissionsCatalog, setPermissionsCatalog] = useState<Permission[]>([]);
+  const [permissionPresets, setPermissionPresets] = useState<PermissionPreset[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [selectedPreset, setSelectedPreset] = useState("");
   const { toast } = useToast();
   const { guard } = usePlanLimits(companyId);
   
@@ -79,6 +113,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
       fetchServices();
       fetchSystemProfiles();
       fetchOccupations();
+      fetchPermissions();
     }
   }, [open, companyId]);
 
@@ -101,7 +136,6 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
     setOccupations(data || []);
   };
 
-
   const fetchServices = async () => {
     try {
       const { data } = await supabase
@@ -116,10 +150,81 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
     }
   };
 
+  const fetchPermissions = async () => {
+    try {
+      const [{ data: permissions, error: permissionsError }, { data: presets, error: presetsError }] = await Promise.all([
+        supabase
+          .from('permissions')
+          .select('id, code, name, description, module, sort_order')
+          .eq('is_active', true)
+          .order('module')
+          .order('sort_order'),
+        supabase
+          .from('permission_presets')
+          .select('id, code, name, description, sort_order')
+          .eq('is_active', true)
+          .order('sort_order'),
+      ]);
+
+      if (permissionsError) throw permissionsError;
+      if (presetsError) throw presetsError;
+
+      setPermissionsCatalog(permissions || []);
+      setPermissionPresets(presets || []);
+    } catch (error) {
+      console.error('Error fetching permission catalog:', error);
+      toast({
+        title: "Erro ao carregar permissões",
+        description: "Não foi possível carregar o catálogo de permissões.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePresetChange = async (presetId: string) => {
+    setSelectedPreset(presetId);
+
+    if (!presetId) {
+      setSelectedPermissions([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('permission_preset_items')
+      .select('permission_id')
+      .eq('preset_id', presetId);
+
+    if (error) {
+      console.error('Error fetching preset permissions:', error);
+      toast({
+        title: "Erro ao carregar preset",
+        description: "Não foi possível carregar as permissões do preset.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedPermissions((data || []).map(item => item.permission_id));
+  };
+
+  const togglePermission = (permissionId: string, checked: boolean) => {
+    setSelectedPermissions(prev =>
+      checked
+        ? prev.includes(permissionId) ? prev : [...prev, permissionId]
+        : prev.filter(id => id !== permissionId)
+    );
+    setSelectedPreset("");
+  };
+
+  const groupedPermissions = permissionsCatalog.reduce<Record<string, Permission[]>>((groups, permission) => {
+    if (!groups[permission.module]) groups[permission.module] = [];
+    groups[permission.module].push(permission);
+    return groups;
+  }, {});
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validação: sem espaços em first_name / second_name / last_name
     for (const [field, label] of [
       ["first_name", "Primeiro nome"],
       ["second_name", "Segundo nome"],
@@ -145,7 +250,6 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
     setLoading(true);
 
     try {
-      // Criar conta no Auth do Supabase
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -171,44 +275,56 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
         return;
       }
 
-      {
-        // Criar registro do funcionário com user_id
-        const { data: employeeData, error: employeeError } = await supabase
-          .from('employees')
-          .insert([{
-            company_id: companyId,
-            user_id: authData.user.id,
-            name: fullName,
-            first_name: formData.first_name || null,
-            second_name: formData.second_name || null,
-            last_name: formData.last_name || null,
-            nickname: formData.nickname || null,
-            email: formData.email,
-            phone: formData.phone,
-            role: formData.role,
-            employee_type: formData.employee_type,
-            is_active: formData.is_active,
-            system_profile_id: formData.system_profile_id || null,
-            base_occupation_id: formData.base_occupation_id || null,
-            internal_job_title: formData.internal_job_title || null,
-          }])
-          .select();
+      const { data: employeeData, error: employeeError } = await supabase
+        .from('employees')
+        .insert([{
+          company_id: companyId,
+          user_id: authData.user.id,
+          name: fullName,
+          first_name: formData.first_name || null,
+          second_name: formData.second_name || null,
+          last_name: formData.last_name || null,
+          nickname: formData.nickname || null,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+          employee_type: formData.employee_type,
+          is_active: formData.is_active,
+          system_profile_id: formData.system_profile_id || null,
+          base_occupation_id: formData.base_occupation_id || null,
+          internal_job_title: formData.internal_job_title || null,
+        }])
+        .select();
 
-        if (employeeError) throw employeeError;
+      if (employeeError) throw employeeError;
 
-        // Vincular serviços ao funcionário
-        if (employeeData && employeeData[0] && formData.services.length > 0) {
-          const serviceInserts = formData.services.map(serviceId => ({
-            employee_id: employeeData[0].id,
-            service_id: serviceId
-          }));
+      const employeeId = employeeData?.[0]?.id;
+      if (!employeeId) throw new Error('Funcionário criado sem ID.');
 
-          const { error: servicesError } = await supabase
-            .from('employee_services')
-            .insert(serviceInserts);
+      if (selectedPermissions.length > 0) {
+        const permissionInserts = selectedPermissions.map(permissionId => ({
+          employee_id: employeeId,
+          permission_id: permissionId,
+        }));
 
-          if (servicesError) throw servicesError;
-        }
+        const { error: permissionsError } = await supabase
+          .from('employee_permissions')
+          .insert(permissionInserts);
+
+        if (permissionsError) throw permissionsError;
+      }
+
+      if (formData.services.length > 0) {
+        const serviceInserts = formData.services.map(serviceId => ({
+          employee_id: employeeId,
+          service_id: serviceId
+        }));
+
+        const { error: servicesError } = await supabase
+          .from('employee_services')
+          .insert(serviceInserts);
+
+        if (servicesError) throw servicesError;
       }
 
       toast({
@@ -216,7 +332,6 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
         description: "O colaborador foi convidado com sucesso. Ele receberá um email para ativar a conta.",
       });
 
-      // Resetar formulário
       setFormData({
         first_name: "",
         second_name: "",
@@ -233,14 +348,14 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
         base_occupation_id: "",
         internal_job_title: "",
       });
-
+      setSelectedPermissions([]);
+      setSelectedPreset("");
 
       setOpen(false);
       onEmployeeAdded();
     } catch (error: any) {
       console.error('Error creating employee:', error);
       
-      // Verificar se é erro de email duplicado
       if (error?.code === '23505') {
         toast({
           title: "Email já cadastrado",
@@ -261,13 +376,13 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild  className=''>
+      <DialogTrigger asChild className=''>
         <Button className="gap-2">
           <Plus className="w-4 h-4" />
           Convidar Colaborador
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[380px] sm:min-w-[425px] max-h-[600px] overflow-y-auto ">
+      <DialogContent className="max-w-[380px] sm:min-w-[425px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Convidar Colaborador</DialogTitle>
           <DialogDescription>
@@ -275,7 +390,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 ">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="space-y-2">
               <Label htmlFor="first_name">Primeiro nome *</Label>
@@ -370,7 +485,6 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             </p>
           </div>
 
-
           <div className="space-y-2">
             <Label htmlFor="role">Função *</Label>
             <Select value={formData.role} onValueChange={(value: any) => setFormData(prev => ({ ...prev, role: value }))}>
@@ -384,6 +498,54 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
                 <SelectItem value="manager">Gerente</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">A função é apenas um rótulo. As permissões abaixo definem o acesso.</p>
+          </div>
+
+          <div className="space-y-2 rounded-lg border p-3">
+            <Label htmlFor="permission_preset">Preset de Permissões</Label>
+            <Select value={selectedPreset} onValueChange={handlePresetChange}>
+              <SelectTrigger id="permission_preset">
+                <SelectValue placeholder="Selecione um preset (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {permissionPresets.map((preset) => (
+                  <SelectItem key={preset.id} value={preset.id}>{preset.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              O preset apenas preenche as permissões. Você pode ajustar qualquer item manualmente.
+            </p>
+
+            <div className="space-y-4 pt-2">
+              {Object.entries(groupedPermissions).map(([module, permissions]) => (
+                <div key={module} className="space-y-2">
+                  <p className="text-sm font-medium">{MODULE_LABELS[module] || module}</p>
+                  <div className="space-y-2 rounded-md bg-muted/30 p-2">
+                    {permissions.map((permission) => (
+                      <div key={permission.id} className="flex items-start gap-2">
+                        <Checkbox
+                          id={`permission-${permission.id}`}
+                          checked={selectedPermissions.includes(permission.id)}
+                          onCheckedChange={(checked) => togglePermission(permission.id, checked === true)}
+                        />
+                        <div className="grid gap-0.5">
+                          <Label htmlFor={`permission-${permission.id}`} className="text-sm font-normal cursor-pointer">
+                            {permission.name}
+                          </Label>
+                          {permission.description && (
+                            <span className="text-xs text-muted-foreground">{permission.description}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {permissionsCatalog.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhuma permissão disponível.</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -410,7 +572,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Define o conjunto de permissões (uso futuro).</p>
+            <p className="text-xs text-muted-foreground">Perfil organizacional legado. Não define as permissões.</p>
           </div>
 
           <div className="space-y-2">
@@ -453,9 +615,6 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             />
             <p className="text-xs text-muted-foreground">Campo livre — apenas organizacional/visual.</p>
           </div>
-
-
-
 
           <div className="space-y-3">
             <Label>Serviços Vinculados</Label>

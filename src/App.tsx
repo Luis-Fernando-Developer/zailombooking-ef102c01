@@ -28,6 +28,9 @@ import BusinessDashboard from "./pages/business/Dashboard";
 import BusinessBookings from "./pages/business/Bookings";
 import BusinessServices from "./pages/business/Services";
 import BusinessEmployees from "./pages/business/Employees";
+import BusinessClients from "./pages/business/Clients";
+import BusinessReports from "./pages/business/Reports";
+import BusinessFinance from "./pages/business/Finance";
 import BusinessSettings from "./pages/business/Settings";
 import BillingManagement from "./pages/business/BillingManagement";
 import BusinessProfile from "./pages/business/Profile";
@@ -42,21 +45,24 @@ import AutomacoesGatilhos from "./pages/business/automacoes/Gatilhos";
 import BusinessSchedule from "./pages/business/Schedule";
 import BusinessRealocacao from "./pages/business/Realocacao";
 import BusinessAusencias from "./pages/business/Ausencias";
-
 import BusinessSolicitacoes from "./pages/business/Solicitacoes";
 import BusinessNotifications from "./pages/business/Notifications";
 import BusinessChat from "./pages/business/Chat";
 import BusinessMarketing from "./pages/business/Marketing";
+import HumanResources from "./pages/business/HumanResources";
+import HrDocuments from "./pages/business/HrDocuments";
+import HrEvaluations from "./pages/business/HrEvaluations";
+import HrHistory from "./pages/business/HrHistory";
 import ClientBooking from "./pages/client/Booking";
 import ClientLogin from "./pages/client/Login";
 import ClientSignup from "./pages/client/Signup";
 import ClientBookings from "./pages/client/Bookings";
 import ClientProfile from "./pages/client/Profile";
 import ClientDashboard from "./pages/client/Dashboard";
+import ClientRewards from "./pages/client/Rewards";
 import ConfirmLink from "./pages/client/ConfirmLink";
 import SetPassword from "./pages/client/SetPassword";
 import NotFound from "./pages/NotFound";
-
 
 const queryClient = new QueryClient();
 
@@ -91,12 +97,17 @@ const App = () => (
             <Route path="/super-admin/add-company" element={<RequireSuperAdmin><CreateCompany /></RequireSuperAdmin>} />
             <Route path="/:slug/admin/dashboard" element={<RequireBusinessAuth><BusinessDashboard /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/agendamentos" element={<RequireBusinessAuth><BusinessBookings /></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/realocacao" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessRealocacao /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/clientes" element={<RequireBusinessAuth><BusinessClients /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/relatorios" element={<RequireBusinessAuth><BusinessReports /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/financeiro" element={<RequireBusinessAuth><BusinessFinance /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/realocacao" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessRealocacao /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/ausencias" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessAusencias /></RequireRole></RequireBusinessAuth>} />
-
-            <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessServices /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><BusinessServices /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/colaboradores" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessEmployees /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/recursos-humanos" element={<RequireBusinessAuth><HumanResources /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/recursos-humanos/documentos" element={<RequireBusinessAuth><HrDocuments /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/recursos-humanos/avaliacoes" element={<RequireBusinessAuth><HrEvaluations /></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/recursos-humanos/historico" element={<RequireBusinessAuth><HrHistory /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/configuracoes" element={<RequireBusinessAuth><RequireRole allow={['owner','manager']}><BusinessSettings /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/billing" element={<RequireBusinessAuth><BillingManagement /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/perfil" element={<RequireBusinessAuth><BusinessProfile /></RequireBusinessAuth>} />
@@ -122,11 +133,11 @@ const App = () => (
             <Route path="/:slug/agendar" element={<ClientBooking />} />
             <Route path="/:slug/entrar" element={<ClientLogin />} />
             <Route path="/:slug/cadastro" element={<ClientSignup />} />
-             <Route path="/:slug/agendamentos" element={<ClientBookings />} />
+            <Route path="/:slug/agendamentos" element={<ClientBookings />} />
             <Route path="/confirmar-vincular" element={<ConfirmLink />} />
             <Route path="/:slug/criar-senha" element={<SetPassword />} />
-
             <Route path="/:slug/client/dashboard" element={<ClientDashboard />} />
+            <Route path="/:slug/client/premios" element={<ClientRewards />} />
             <Route path="/:slug/client/perfil" element={<ClientProfile />} />
             <Route path="/:slug/client/agendamentos" element={<ClientBookings />} />
             <Route path="*" element={<NotFound />} />

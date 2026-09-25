@@ -36,21 +36,22 @@ export default function SetPassword() {
     resolver: zodResolver(passwordSchema),
   });
 
-  // Verifica sessão ativa na carga (fluxo 1º cadastro via hash do Supabase)
   useEffect(() => {
     (async () => {
-      // Se tem token na URL, não precisa verificar sessão
+      // O fluxo atual de senha contextual usa sempre o token próprio da confirmação.
+      // Não usamos supabase.auth.updateUser() porque a senha pertence ao vínculo
+      // cliente + empresa e não à identidade global do Auth.
       if (urlToken) {
         setReady(true);
         return;
       }
 
-      // Caso contrário, tenta pegar a sessão ativa (Supabase injeta via hash após confirmação de email)
+      // Compatibilidade com links antigos: só permitimos continuar se houver uma
+      // sessão Auth ativa. A senha continuará sendo salva exclusivamente em clients.
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setReady(true);
       } else {
-        // Espera um pouco caso o Supabase ainda vá injetar o hash
         const timer = setTimeout(async () => {
           const { data: { session: retrySession } } = await supabase.auth.getSession();
           setReady(!!retrySession);
@@ -63,7 +64,6 @@ export default function SetPassword() {
   const onSubmit = async (values: PasswordFormValues) => {
     setLoading(true);
     try {
-      // Fluxo COM token na URL (link customizado)
       if (urlToken) {
         const { data, error } = await supabase.rpc("confirm_client_company_link", {
           p_token: urlToken,
@@ -72,34 +72,28 @@ export default function SetPassword() {
         if (error) throw error;
         if (!data?.success) throw new Error(data?.error || "Erro ao definir senha.");
 
-        toast({ title: "Sucesso!", description: "Sua senha foi definida com sucesso. Agora você pode entrar." });
+        toast({ title: "Sucesso!", description: "Sua senha exclusiva para esta empresa foi definida. Agora você pode entrar." });
         navigate(`/${slug}/entrar${returnToParam ? `?returnTo=${returnToParam}` : ''}`);
         return;
       }
 
-      // Fluxo SEM token — usa sessão ativa via hash do Supabase (1º cadastro)
+      // Fluxo legado sem token: exige uma sessão existente para identificar o cliente,
+      // mas NÃO grava a senha no Supabase Auth.
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
-        throw new Error("Sessão não encontrada. Tente confirmar o link de confirmação novamente.");
+        throw new Error("Sessão não encontrada. Tente confirmar o link de acesso novamente.");
       }
 
-      const { error: updateError } = await supabase.auth.updateUser({ password: values.password });
-      if (updateError) throw updateError;
-
-      // Salva o password_hash na tabela clients para validar via validate_client_password
       const { error: hashError } = await supabase.rpc('set_client_password_hash', {
         p_company_slug: slug,
         p_password: values.password,
       });
-      if (hashError) {
-        console.error('Erro ao salvar password_hash na clients:', hashError);
-        // Não bloqueia o fluxo — a senha já foi definida no Auth
-      }
+      if (hashError) throw hashError;
 
-      toast({ title: "Sucesso!", description: "Sua senha foi definida com sucesso. Agora você pode entrar." });
+      toast({ title: "Sucesso!", description: "Sua senha exclusiva para esta empresa foi definida. Agora você pode entrar." });
       navigate(`/${slug}/entrar${returnToParam ? `?returnTo=${returnToParam}` : ''}`);
     } catch (error: any) {
-      console.error("Error setting password:", error);
+      console.error("Error setting contextual password:", error);
       toast({
         title: "Erro",
         description: error.message || "Ocorreu um erro ao definir sua senha.",
@@ -138,30 +132,14 @@ export default function SetPassword() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Nova Senha</Label>
-              <PasswordInput
-                id="password"
-                placeholder="********"
-                {...register("password")}
-                showLeftIcon={false}
-                className="bg-background/50"
-              />
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
-              )}
+              <PasswordInput id="password" placeholder="********" {...register("password")} showLeftIcon={false} className="bg-background/50" />
+              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-              <PasswordInput
-                id="confirmPassword"
-                placeholder="********"
-                {...register("confirmPassword")}
-                showLeftIcon={false}
-                className="bg-background/50"
-              />
-              {errors.confirmPassword && (
-                <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
-              )}
+              <PasswordInput id="confirmPassword" placeholder="********" {...register("confirmPassword")} showLeftIcon={false} className="bg-background/50" />
+              {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>

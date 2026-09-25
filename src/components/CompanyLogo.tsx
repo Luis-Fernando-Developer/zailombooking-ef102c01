@@ -15,7 +15,7 @@ interface Company {
     logo_type: string;
     logo_url: string;
     logo_upload_path: string;
-  };
+  } | null;
 }
 
 export function CompanyLogo({ companySlug, showText = true, className }: CompanyLogoProps) {
@@ -31,32 +31,37 @@ export function CompanyLogo({ companySlug, showText = true, className }: Company
   const fetchCompanyLogo = async () => {
     try {
       const { data, error } = await supabase
-        .from('companies')
+        .from("companies")
         .select(`
           id,
           name,
-          company_customizations!inner(
+          company_customizations(
             logo_type,
             logo_url,
             logo_upload_path
           )
         `)
-        .eq('slug', companySlug)
-        .eq('status', 'active')
-        .single();
+        .eq("slug", companySlug)
+        .eq("status", "active")
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
 
       if (data) {
+        const customization = Array.isArray(data.company_customizations)
+          ? data.company_customizations[0] || null
+          : data.company_customizations || null;
+
         setCompany({
           id: data.id,
           name: data.name,
-          customizations: data.company_customizations?.[0] || null
+          customizations: customization,
         });
+      } else {
+        setCompany(null);
       }
     } catch (error) {
-      console.error('Error fetching company logo:', error);
-      // Fallback to system logo
+      console.error("Error fetching company logo:", error);
       setCompany(null);
     } finally {
       setLoading(false);
@@ -67,25 +72,22 @@ export function CompanyLogo({ companySlug, showText = true, className }: Company
     return <div className="w-8 h-8 bg-muted animate-pulse rounded" />;
   }
 
-  // If no company data or no customization, use system logo
   if (!company || !company.customizations) {
     return <BookingLogo showText={showText} className={className} />;
   }
 
   const { logo_type, logo_url, logo_upload_path } = company.customizations;
 
-  // Determine logo source
-  let logoSrc = '';
-  if (logo_type === 'url' && logo_url) {
+  let logoSrc = "";
+  if (logo_type === "url" && logo_url) {
     logoSrc = logo_url;
-  } else if (logo_type === 'upload' && logo_upload_path) {
+  } else if (logo_type === "upload" && logo_upload_path) {
     const { data } = supabase.storage
-      .from('company-logos')
+      .from("company-logos")
       .getPublicUrl(logo_upload_path);
     logoSrc = data.publicUrl;
   }
 
-  // If no logo configured, show company name or system logo
   if (!logoSrc) {
     if (showText && company.name) {
       return (
@@ -99,14 +101,13 @@ export function CompanyLogo({ companySlug, showText = true, className }: Company
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <img 
-        src={logoSrc} 
-        alt={`${company.name} logo`} 
+      <img
+        src={logoSrc}
+        alt={`${company.name} logo`}
         className="h-8 w-auto object-contain"
         onError={(e) => {
-          // Fallback to system logo if image fails to load
-          e.currentTarget.style.display = 'none';
-          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+          e.currentTarget.style.display = "none";
+          e.currentTarget.nextElementSibling?.classList.remove("hidden");
         }}
       />
       <BookingLogo showText={showText} className="hidden" />

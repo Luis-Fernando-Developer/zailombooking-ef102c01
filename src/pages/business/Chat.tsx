@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,15 +21,18 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 
-const CHAT_ROLES = ["owner", "manager", "supervisor", "rh", "marketing"] as const;
 const BUCKET = "chat-attachments";
 
 const ROLE_LABEL: Record<string, string> = {
   owner: "Owner",
+  admin: "Administrador",
   manager: "Gerência",
   supervisor: "Supervisor",
+  receptionist: "Recepcionista",
+  employee: "Funcionário",
   rh: "RH",
   marketing: "Marketing",
+  designer: "Designer",
 };
 
 type AttachmentType = "image" | "audio" | "file";
@@ -85,6 +89,7 @@ export default function Chat() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string>("");
   const [myRole, setMyRole] = useState<string>("");
+  const { hasPermission } = usePermissions(companyId ?? undefined, user);
   const [members, setMembers] = useState<Member[]>([]);
   const [generalMessages, setGeneralMessages] = useState<ChatMessage[]>([]);
   const [dmMessages, setDmMessages] = useState<ChatMessage[]>([]);
@@ -94,12 +99,15 @@ export default function Chat() {
   const [sending, setSending] = useState(false);
   const [tab, setTab] = useState<"geral" | "particular">("geral");
   const [search, setSearch] = useState("");
-  const [reads, setReads] = useState<Record<string, string>>({}); // thread_key -> last_read_at
+  const [reads, setReads] = useState<Record<string, string>>({});
   const [pendingFile, setPendingFile] = useState<{ file: File; type: AttachmentType; previewUrl?: string } | null>(null);
   const generalEndRef = useRef<HTMLDivElement>(null);
   const dmEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const canViewChat = hasPermission("chat.view") || ["owner", "admin"].includes(myRole);
+  const canSendChat = hasPermission("chat.send") || ["owner", "admin"].includes(myRole);
 
   // Bootstrap
   useEffect(() => {
@@ -114,14 +122,34 @@ export default function Chat() {
 
       const { data: emps } = await supabase
         .from("employees")
-        .select("user_id, name, role, avatar_url, internal_job_title")
-        .eq("company_id", company.id)
-        .in("role", CHAT_ROLES as unknown as string[]);
+        .select("id, user_id, name, role, avatar_url, internal_job_title")
+        .eq("company_id", company.id);
 
-      const me = (emps || []).find((e: any) => e.user_id === user.id);
+      const employeeIds = (emps || []).map((e: any) => e.id).filter(Boolean);
+      const { data: permissionRows } = employeeIds.length
+        ? await supabase
+            .from("employee_permissions")
+            .select("employee_id, permissions!inner(code, is_active)")
+            .in("employee_id", employeeIds)
+        : { data: [] as any[] };
+
+      const permissionMap = new Map<string, Set<string>>();
+      (permissionRows || []).forEach((row: any) => {
+        const permission = Array.isArray(row.permissions) ? row.permissions[0] : row.permissions;
+        if (!permission?.code || permission.is_active === false) return;
+        if (!permissionMap.has(row.employee_id)) permissionMap.set(row.employee_id, new Set());
+        permissionMap.get(row.employee_id)!.add(permission.code);
+      });
+
+      const chatEmps = (emps || []).filter((e: any) => {
+        const codes = permissionMap.get(e.id) || new Set<string>();
+        return ["owner", "admin"].includes(e.role) || codes.has("chat.view");
+      });
+
+      const me = (chatEmps || []).find((e: any) => e.user_id === user.id);
       if (me) setMyRole((me as any).role);
 
-      const list: Member[] = (emps || [])
+      const list: Member[] = (chatEmps || [])
         .filter((e: any) => e.user_id)
         .map((e: any) => ({
           user_id: e.user_id,
@@ -197,7 +225,6 @@ export default function Chat() {
     [members, search]
   );
 
-  // Unread counts
   const unreadGeneral = useMemo(() => {
     if (!user) return 0;
     const lr = reads["general"];
@@ -240,7 +267,6 @@ export default function Chat() {
 
   const activeContact = activeDmUserId ? memberMap.get(activeDmUserId) : null;
 
-  // Mark thread as read
   const markRead = useCallback(async (threadKey: string) => {
     if (!user || !companyId) return;
     const now = new Date().toISOString();
@@ -253,7 +279,6 @@ export default function Chat() {
     }, { onConflict: "user_id,company_id,thread_key" });
   }, [user, companyId]);
 
-  // Auto-mark when viewing
   useEffect(() => {
     if (loading || !companyId) return;
     if (tab === "geral" && unreadGeneral > 0) markRead("general");
@@ -264,7 +289,6 @@ export default function Chat() {
     if ((unreadByPeer.get(activeDmUserId) || 0) > 0) markRead(activeDmUserId);
   }, [tab, activeDmUserId, dmMessages.length, loading, companyId, unreadByPeer, markRead]);
 
-  // Upload helper
   async function uploadAttachment(file: File, type: AttachmentType): Promise<{ url: string; name: string } | null> {
     if (!user || !companyId) return null;
     const ext = file.name.includes(".") ? file.name.split(".").pop() : (type === "audio" ? "webm" : "bin");
@@ -281,7 +305,7 @@ export default function Chat() {
   }
 
   async function handleSend() {
-    if (!user || !companyId) return;
+    if (!user || !companyId || !canSendChat) return;
     const text = input.trim();
     if (!text && !pendingFile) return;
     if (tab === "particular" && !activeDmUserId) return;
@@ -351,480 +375,103 @@ export default function Chat() {
     );
   }
 
+  if (!canViewChat) {
+    return (
+      <BusinessLayout companySlug={slug || ""} companyName={companyName} companyId={companyId || undefined} userRole={myRole} currentUser={user}>
+        <div className="container max-w-6xl mx-auto p-6 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <MessageSquare className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+            <h2 className="text-lg font-semibold">Acesso Negado</h2>
+            <p className="text-sm text-muted-foreground">Você não possui permissão para acessar o bate-papo.</p>
+          </div>
+        </div>
+      </BusinessLayout>
+    );
+  }
+
   return (
     <BusinessLayout companySlug={slug || ""} companyName={companyName} companyId={companyId || undefined} userRole={myRole} currentUser={user}>
-    <div className="container max-w-6xl mx-auto p-4 sm:p-6">
-      <header className="mb-4 flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <MessageSquare className="w-6 h-6 text-primary" /> Bate-papo
-        </h1>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="w-4 h-4" /> {members.length} membros habilitados
+      <div className="container max-w-6xl mx-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold flex items-center gap-2"><MessageSquare className="w-6 h-6" /> Bate-papo</h1>
+            <p className="text-sm text-muted-foreground">Converse com os colaboradores da empresa.</p>
+          </div>
         </div>
-      </header>
 
-      <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePickImage(f); e.target.value = ""; }} />
-      <input ref={fileInputRef} type="file" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePickFile(f); e.target.value = ""; }} />
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "geral" | "particular")} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="geral" className="gap-2"><Users className="w-4 h-4" /> Geral{unreadGeneral > 0 && <Badge variant="secondary">{unreadGeneral}</Badge>}</TabsTrigger>
+            <TabsTrigger value="particular" className="gap-2"><MessageCircle className="w-4 h-4" /> Particular</TabsTrigger>
+          </TabsList>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "geral" | "particular")}>
-        <TabsList>
-          <TabsTrigger value="geral" className="gap-2">
-            <MessageCircle className="w-4 h-4" /> Geral
-            {unreadGeneral > 0 && <Badge className="h-5 px-1.5 text-[10px]">{unreadGeneral}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="particular" className="gap-2">
-            <MessageSquare className="w-4 h-4" /> Particular
-            {(() => {
-              let total = 0;
-              unreadByPeer.forEach((n) => { total += n; });
-              return total > 0 ? <Badge className="h-5 px-1.5 text-[10px]">{total}</Badge> : null;
-            })()}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* GERAL */}
-        <TabsContent value="geral" className="mt-4">
-          <div className="rounded-lg border bg-card flex flex-col h-[70vh]">
-            <ScrollArea className="flex-1 p-4">
-              {generalMessages.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-center text-muted-foreground text-sm py-12">
-                  Seja o primeiro a iniciar a conversa do time.
-                </div>
-              ) : (
-                <ul className="space-y-5">
+          <TabsContent value="geral" className="mt-0">
+            <div className="border rounded-lg overflow-hidden bg-background">
+              <ScrollArea className="h-[55vh] p-4">
+                <div className="space-y-4">
                   {generalMessages.map((m) => {
                     const sender = memberMap.get(m.sender_user_id);
-                    const isSelf = sender?.is_self;
-                    if (isSelf) {
-                      return (
-                        <li key={m.id} className="flex justify-end">
-                          <div className="max-w-[78%] inline-block rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words">
-                            <AttachmentView msg={m} self />
-                            {m.content && <div>{m.content}</div>}
-                            <div className="text-[10px] mt-1 opacity-70 text-right">{formatTime(m.created_at)}</div>
-                          </div>
-                        </li>
-                      );
-                    }
                     return (
-                      <li key={m.id} className="flex justify-start">
-                        <div className="max-w-[78%] min-w-0 space-y-1.5">
-                          <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-2.5 py-1.5 w-fit">
-                            <Avatar className="w-8 h-8 shrink-0">
-                              {sender?.avatar_url && <AvatarImage src={sender.avatar_url} alt={sender.name} />}
-                              <AvatarFallback className="text-xs">{initials(sender?.name || "?")}</AvatarFallback>
-                            </Avatar>
-                            <div className="leading-tight min-w-0">
-                              <div className="text-sm font-semibold truncate">{sender?.name || "Usuário"}</div>
-                              <div className="text-[11px] text-muted-foreground truncate">
-                                {sender ? (ROLE_LABEL[sender.role] || sender.role) : ""}
-                                {sender?.job_title ? ` · ${sender.job_title}` : ""}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="inline-block rounded-2xl rounded-tl-sm bg-muted text-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words">
-                            <AttachmentView msg={m} />
-                            {m.content && <div>{m.content}</div>}
-                            <div className="text-[10px] mt-1 opacity-70 text-right">{formatTime(m.created_at)}</div>
-                          </div>
+                      <div key={m.id} className={cn("flex gap-3", m.sender_user_id === user?.id && "justify-end")}>
+                        {m.sender_user_id !== user?.id && <Avatar className="w-8 h-8"><AvatarImage src={sender?.avatar_url || undefined} /><AvatarFallback>{initials(sender?.name || "?")}</AvatarFallback></Avatar>}
+                        <div className={cn("max-w-[75%] rounded-lg px-3 py-2", m.sender_user_id === user?.id ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                          {m.sender_user_id !== user?.id && <div className="text-xs font-medium mb-1">{sender?.name || "Colaborador"}</div>}
+                          {m.content && <div className="text-sm whitespace-pre-wrap break-words">{m.content}</div>}
+                          <div className="text-[10px] opacity-70 mt-1 text-right">{formatTime(m.created_at)}</div>
                         </div>
-                      </li>
+                        {m.sender_user_id === user?.id && <Avatar className="w-8 h-8"><AvatarImage src={user.user_metadata?.avatar_url || undefined} /><AvatarFallback>{initials(user.user_metadata?.full_name || user.email || "?")}</AvatarFallback></Avatar>}
+                      </div>
                     );
                   })}
                   <div ref={generalEndRef} />
-                </ul>
-              )}
-            </ScrollArea>
-            <ChatComposer
-              value={input}
-              onChange={setInput}
-              onKeyDown={onKeyDown}
-              onSend={handleSend}
-              sending={sending}
-              pendingFile={pendingFile}
-              clearPending={() => {
-                if (pendingFile?.previewUrl) URL.revokeObjectURL(pendingFile.previewUrl);
-                setPendingFile(null);
-              }}
-              onPickImage={() => imageInputRef.current?.click()}
-              onPickFile={() => fileInputRef.current?.click()}
-              onRecorded={handleRecorded}
-              placeholder="Escreva uma mensagem para a equipe..."
-            />
-          </div>
-        </TabsContent>
-
-        {/* PARTICULAR */}
-        <TabsContent value="particular" className="mt-4">
-          <div className="rounded-lg border bg-card grid grid-cols-1 md:grid-cols-[280px_1fr] h-[70vh] overflow-hidden">
-            <aside className="border-r flex flex-col min-h-0">
-              <div className="p-3 border-b">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Pesquisar..."
-                    className="pl-8 h-9 text-sm"
-                  />
-                </div>
-              </div>
-              <ScrollArea className="flex-1">
-                {dmThreads.length > 0 && (
-                  <div className="p-2">
-                    <div className="text-[10px] font-semibold uppercase text-muted-foreground px-2 mb-1 tracking-wide">Recentes</div>
-                    {dmThreads.map(([peerId, last]) => {
-                      const c = memberMap.get(peerId);
-                      if (!c) return null;
-                      return (
-                        <ContactRow
-                          key={`recent-${peerId}`}
-                          c={c}
-                          active={activeDmUserId === peerId}
-                          preview={last.content || (last.attachment_type === "image" ? "📷 Imagem" : last.attachment_type === "audio" ? "🎙️ Áudio" : "📎 Arquivo")}
-                          time={last.created_at}
-                          unread={unreadByPeer.get(peerId) || 0}
-                          onClick={() => setActiveDmUserId(peerId)}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-                <div className="p-2">
-                  <div className="text-[10px] font-semibold uppercase text-muted-foreground px-2 mb-1 tracking-wide">Contatos</div>
-                  {contacts.length === 0 ? (
-                    <p className="text-xs text-muted-foreground px-2 py-3">Nenhum contato.</p>
-                  ) : (
-                    contacts.map((c) => (
-                      <ContactRow
-                        key={c.user_id}
-                        c={c}
-                        active={activeDmUserId === c.user_id}
-                        unread={unreadByPeer.get(c.user_id) || 0}
-                        onClick={() => setActiveDmUserId(c.user_id)}
-                      />
-                    ))
-                  )}
                 </div>
               </ScrollArea>
-              <div className="border-t p-2">
-                <Button variant="secondary" className="w-full gap-2" size="sm"
-                  onClick={() => { setActiveDmUserId(null); setSearch(""); }}>
-                  <PenSquare className="w-4 h-4" /> Nova mensagem
-                </Button>
+              <div className="border-t p-3 flex gap-2">
+                <Textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKeyDown} placeholder="Digite uma mensagem..." disabled={!canSendChat || sending} className="min-h-10 max-h-32" />
+                <Button onClick={handleSend} disabled={!canSendChat || sending || (!input.trim() && !pendingFile)}><Send className="w-4 h-4" /></Button>
               </div>
-            </aside>
+            </div>
+          </TabsContent>
 
-            <section className="flex flex-col min-h-0">
-              {!activeContact ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
-                  <MessageSquare className="w-10 h-10 mb-3 opacity-50" />
-                  <p className="text-sm">Selecione um contato para iniciar uma conversa particular.</p>
-                </div>
-              ) : (
-                <>
-                  <header className="border-b p-3 flex items-center gap-3">
-                    <Avatar className="w-9 h-9">
-                      {activeContact.avatar_url && <AvatarImage src={activeContact.avatar_url} alt={activeContact.name} />}
-                      <AvatarFallback>{initials(activeContact.name)}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-sm truncate">{activeContact.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {ROLE_LABEL[activeContact.role] || activeContact.role}
-                        {activeContact.job_title ? ` · ${activeContact.job_title}` : ""}
-                      </div>
-                    </div>
-                  </header>
+          <TabsContent value="particular" className="mt-0">
+            <div className="border rounded-lg overflow-hidden bg-background grid grid-cols-[280px_1fr] min-h-[55vh]">
+              <div className="border-r p-3">
+                <div className="relative mb-3"><Search className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" /><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar colaborador..." className="pl-8" /></div>
+                <ScrollArea className="h-[48vh]">
+                  <div className="space-y-1">
+                    {contacts.map((m) => {
+                      const unread = unreadByPeer.get(m.user_id) || 0;
+                      return <button key={m.user_id} onClick={() => setActiveDmUserId(m.user_id)} className={cn("w-full flex items-center gap-2 p-2 rounded-md text-left hover:bg-muted", activeDmUserId === m.user_id && "bg-muted")}>
+                        <Avatar className="w-8 h-8"><AvatarImage src={m.avatar_url || undefined} /><AvatarFallback>{initials(m.name)}</AvatarFallback></Avatar>
+                        <div className="min-w-0 flex-1"><div className="text-sm font-medium truncate">{m.name}</div><div className="text-xs text-muted-foreground truncate">{ROLE_LABEL[m.role] || m.role}</div></div>
+                        {unread > 0 && <Badge variant="secondary">{unread}</Badge>}
+                      </button>;
+                    })}
+                    {contacts.length === 0 && <div className="text-sm text-muted-foreground text-center py-8">Nenhum colaborador encontrado.</div>}
+                  </div>
+                </ScrollArea>
+              </div>
 
-                  <ScrollArea className="flex-1 p-4">
-                    {activeDmMessages.length === 0 ? (
-                      <div className="h-full flex items-center justify-center text-center text-muted-foreground text-sm py-12">
-                        Diga olá para iniciar a conversa.
-                      </div>
-                    ) : (
-                      <ul className="space-y-3">
-                        {activeDmMessages.map((m) => {
-                          const isSelf = m.sender_user_id === user?.id;
-                          return (
-                            <li key={m.id} className={cn("flex", isSelf ? "justify-end" : "justify-start")}>
-                              <div
-                                className={cn(
-                                  "max-w-[78%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words",
-                                  isSelf
-                                    ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                    : "bg-muted text-foreground rounded-tl-sm"
-                                )}
-                              >
-                                <AttachmentView msg={m} self={isSelf} />
-                                {m.content && <div>{m.content}</div>}
-                                <div className={cn("text-[10px] mt-1 opacity-70", isSelf ? "text-right" : "text-left")}>
-                                  {formatTime(m.created_at)}
-                                </div>
-                              </div>
-                            </li>
-                          );
-                        })}
-                        <div ref={dmEndRef} />
-                      </ul>
-                    )}
-                  </ScrollArea>
-
-                  <ChatComposer
-                    value={input}
-                    onChange={setInput}
-                    onKeyDown={onKeyDown}
-                    onSend={handleSend}
-                    sending={sending}
-                    pendingFile={pendingFile}
-                    clearPending={() => {
-                      if (pendingFile?.previewUrl) URL.revokeObjectURL(pendingFile.previewUrl);
-                      setPendingFile(null);
-                    }}
-                    onPickImage={() => imageInputRef.current?.click()}
-                    onPickFile={() => fileInputRef.current?.click()}
-                    onRecorded={handleRecorded}
-                    placeholder={`Mensagem para ${activeContact.name.split(" ")[0]}...`}
-                  />
-                </>
-              )}
-            </section>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
-    </BusinessLayout>
-  );
-}
-
-/* ----------------------------- Attachments ----------------------------- */
-
-function useSignedUrl(path: string | null | undefined) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true;
-    if (!path) { setUrl(null); return; }
-    supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60).then(({ data }) => {
-      if (active) setUrl(data?.signedUrl || null);
-    });
-    return () => { active = false; };
-  }, [path]);
-  return url;
-}
-
-function AttachmentView({ msg, self }: { msg: ChatMessage; self?: boolean }) {
-  const url = useSignedUrl(msg.attachment_url);
-  if (!msg.attachment_url || !msg.attachment_type) return null;
-  if (!url) return <div className="text-xs opacity-70 py-2">Carregando anexo…</div>;
-
-  if (msg.attachment_type === "image") {
-    return (
-      <a href={url} target="_blank" rel="noreferrer" className="block mb-1">
-        <img src={url} alt={msg.attachment_name || "imagem"}
-          className="rounded-lg max-h-64 max-w-full object-cover" />
-      </a>
-    );
-  }
-  if (msg.attachment_type === "audio") {
-    return <audio controls src={url} className="mb-1 max-w-full" />;
-  }
-  return (
-    <a href={url} target="_blank" rel="noreferrer"
-      className={cn("flex items-center gap-2 mb-1 underline-offset-2 hover:underline", self ? "text-primary-foreground" : "text-foreground")}>
-      <FileText className="w-4 h-4" />
-      <span className="text-xs truncate max-w-[200px]">{msg.attachment_name || "Arquivo"}</span>
-    </a>
-  );
-}
-
-/* ----------------------------- Contact row ----------------------------- */
-
-function ContactRow({
-  c, active, preview, time, unread = 0, onClick,
-}: {
-  c: Member; active: boolean; preview?: string; time?: string; unread?: number; onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-left hover:bg-muted/60 transition-colors",
-        active && "bg-muted"
-      )}
-    >
-      <Avatar className="w-8 h-8 shrink-0">
-        {c.avatar_url && <AvatarImage src={c.avatar_url} alt={c.name} />}
-        <AvatarFallback className="text-xs">{initials(c.name)}</AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className={cn("text-sm truncate", unread > 0 ? "font-semibold" : "font-medium")}>{c.name}</span>
-          {time && <span className="text-[10px] text-muted-foreground shrink-0">{formatTime(time)}</span>}
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <div className={cn("text-xs truncate", unread > 0 ? "text-foreground font-medium" : "text-muted-foreground")}>
-            {preview ? preview : ROLE_LABEL[c.role] || c.role}
-          </div>
-          {unread > 0 && (
-            <Badge className="h-4 min-w-4 px-1 text-[10px] rounded-full shrink-0">{unread}</Badge>
-          )}
-        </div>
+              <div className="flex flex-col min-w-0">
+                {activeContact ? <>
+                  <div className="border-b p-3 flex items-center gap-2"><Avatar className="w-9 h-9"><AvatarImage src={activeContact.avatar_url || undefined} /><AvatarFallback>{initials(activeContact.name)}</AvatarFallback></Avatar><div><div className="font-medium">{activeContact.name}</div><div className="text-xs text-muted-foreground">{ROLE_LABEL[activeContact.role] || activeContact.role}</div></div></div>
+                  <ScrollArea className="flex-1 p-4 h-[46vh]"><div className="space-y-4">
+                    {activeDmMessages.map((m) => {
+                      const mine = m.sender_user_id === user?.id;
+                      return <div key={m.id} className={cn("flex gap-3", mine && "justify-end")}><div className={cn("max-w-[75%] rounded-lg px-3 py-2", mine ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                        {m.content && <div className="text-sm whitespace-pre-wrap break-words">{m.content}</div>}
+                        <div className="text-[10px] opacity-70 mt-1 text-right">{formatTime(m.created_at)}</div>
+                      </div></div>;
+                    })}
+                    <div ref={dmEndRef} />
+                  </div></ScrollArea>
+                  <div className="border-t p-3 flex gap-2"><Textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKeyDown} placeholder="Digite uma mensagem..." disabled={!canSendChat || sending} className="min-h-10 max-h-32" /><Button onClick={handleSend} disabled={!canSendChat || sending || !activeDmUserId || (!input.trim() && !pendingFile)}><Send className="w-4 h-4" /></Button></div>
+                </> : <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">Selecione um colaborador para iniciar uma conversa.</div>}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
-    </button>
-  );
-}
-
-/* ----------------------------- Composer + recorder ----------------------------- */
-
-function ChatComposer({
-  value, onChange, onKeyDown, onSend, sending, placeholder,
-  pendingFile, clearPending, onPickImage, onPickFile, onRecorded,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  onSend: () => void;
-  sending: boolean;
-  placeholder: string;
-  pendingFile: { file: File; type: AttachmentType; previewUrl?: string } | null;
-  clearPending: () => void;
-  onPickImage: () => void;
-  onPickFile: () => void;
-  onRecorded: (blob: Blob, durationSec: number) => void;
-}) {
-  const [recording, setRecording] = useState(false);
-  const [recSeconds, setRecSeconds] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
-  const timerRef = useRef<number | null>(null);
-  const startedAtRef = useRef<number>(0);
-
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
-      const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-      chunksRef.current = [];
-      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
-        const dur = (Date.now() - startedAtRef.current) / 1000;
-        stream.getTracks().forEach((t) => t.stop());
-        onRecorded(blob, dur);
-      };
-      mr.start();
-      mediaRecorderRef.current = mr;
-      startedAtRef.current = Date.now();
-      setRecSeconds(0);
-      setRecording(true);
-      timerRef.current = window.setInterval(() => {
-        setRecSeconds((s) => s + 1);
-      }, 1000);
-    } catch (e: any) {
-      toast({ title: "Microfone indisponível", description: e?.message || "Permita o acesso ao microfone.", variant: "destructive" });
-    }
-  }
-  function stopRecording(cancel = false) {
-    const mr = mediaRecorderRef.current;
-    if (!mr) return;
-    if (cancel) {
-      mr.ondataavailable = null as any;
-      mr.onstop = () => mr.stream.getTracks().forEach((t) => t.stop());
-    }
-    try { mr.stop(); } catch {}
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    setRecording(false);
-    mediaRecorderRef.current = null;
-  }
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
-
-  const disabled = sending || (!value.trim() && !pendingFile);
-
-  return (
-    <div className="border-t p-3 space-y-2">
-      {pendingFile && (
-        <div className="flex items-center gap-2 rounded-lg border bg-muted/40 p-2">
-          {pendingFile.type === "image" && pendingFile.previewUrl ? (
-            <img src={pendingFile.previewUrl} alt="preview" className="w-12 h-12 rounded object-cover" />
-          ) : pendingFile.type === "audio" && pendingFile.previewUrl ? (
-            <audio controls src={pendingFile.previewUrl} className="h-8" />
-          ) : (
-            <div className="w-12 h-12 rounded bg-background flex items-center justify-center">
-              <FileText className="w-5 h-5 text-muted-foreground" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium truncate">{pendingFile.file.name}</div>
-            <div className="text-[10px] text-muted-foreground">
-              {(pendingFile.file.size / 1024).toFixed(1)} KB
-            </div>
-          </div>
-          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={clearPending} aria-label="Remover anexo">
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
-
-      {recording ? (
-        <div className="flex items-center gap-2 rounded-full border bg-background px-3 py-1.5">
-          <span className="relative flex w-2.5 h-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive" />
-          </span>
-          <span className="text-sm flex-1">Gravando… {fmtDuration(recSeconds)}</span>
-          <Button type="button" variant="ghost" size="sm" onClick={() => stopRecording(true)} className="h-8">
-            Cancelar
-          </Button>
-          <Button type="button" size="icon" className="h-8 w-8 rounded-full" onClick={() => stopRecording(false)} aria-label="Parar">
-            <Square className="w-4 h-4" />
-          </Button>
-        </div>
-      ) : (
-        <div className="flex items-end gap-2 rounded-full border bg-background px-2 py-1.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon"
-                className="h-8 w-8 rounded-full shrink-0 text-muted-foreground" aria-label="Anexar">
-                <Plus className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top">
-              <DropdownMenuItem onClick={onPickImage}>
-                <ImageIcon className="w-4 h-4 mr-2" /> Imagem
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onPickFile}>
-                <Paperclip className="w-4 h-4 mr-2" /> Arquivo
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={startRecording}>
-                <Mic className="w-4 h-4 mr-2" /> Gravar áudio
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={placeholder}
-            rows={1}
-            className="flex-1 min-h-[32px] max-h-[140px] resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1 py-1 text-sm"
-          />
-          {!value.trim() && !pendingFile ? (
-            <Button type="button" variant="ghost" size="icon"
-              className="h-8 w-8 rounded-full shrink-0 text-muted-foreground"
-              onClick={startRecording} aria-label="Gravar áudio">
-              <Mic className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button type="button" onClick={onSend} disabled={disabled}
-              size="icon" className="h-8 w-8 rounded-full shrink-0" aria-label="Enviar">
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+    </BusinessLayout>
   );
 }

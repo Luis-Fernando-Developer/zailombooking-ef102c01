@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
+import type { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Save, Lock, Monitor, Smartphone, Tablet, Palette, Type, Image, Layout, Code } from "lucide-react";
+import { Save, Lock, Monitor, Smartphone, Tablet, Palette } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 import { BodySettings } from "./personalization/BodySettings";
 import { HeaderSettings } from "./personalization/HeaderSettings";
 import { HeroSettings } from "./personalization/HeroSettings";
@@ -29,10 +31,13 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const { toast } = useToast();
+  const { hasPermission, loading: permissionsLoading } = usePermissions(companyId, authUser);
 
   const isPremiumPlan = companyPlan !== "starter";
-  const isLocked = !isPremiumPlan || !canEdit;
+  const canManageLandingPage = canEdit || hasPermission("settings.manage");
+  const isLocked = !isPremiumPlan || !canManageLandingPage;
 
   const defaultData: CustomizationData = {
     body: { font_family: 'Inter', background_color: '#ffffff' },
@@ -74,6 +79,10 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
     extra: { custom_css: '' },
     steps: defaultStepsConfig
   };
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setAuthUser(data.user));
+  }, []);
 
   useEffect(() => {
     fetchCustomization();
@@ -127,6 +136,8 @@ export function LandingPageCustomizer({ companyId, companyPlan, canEdit, classNa
     }
   };
 
+  if (permissionsLoading) return <div className="p-8 text-center">Carregando permissões...</div>;
+  if (!hasPermission('settings.view_landing_page')) return null;
   if (loading) return <div className="p-8 text-center">Carregando...</div>;
   if (!customization) return null;
 

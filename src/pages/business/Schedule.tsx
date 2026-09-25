@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import type { User } from "@supabase/supabase-js";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 import { BusinessHoursConfig } from "@/components/business/schedule/BusinessHoursConfig";
 import { EmployeeScheduleConfig } from "@/components/business/schedule/EmployeeScheduleConfig";
 import { FixedEmployeesList } from "@/components/business/schedule/FixedEmployeesList";
@@ -29,6 +30,7 @@ export default function BusinessSchedule() {
   const { toast } = useToast();
   const [company, setCompany] = useState<Company | null>(null);
   const [currentEmployee, setCurrentEmployee] = useState<any>(null);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,6 +41,7 @@ export default function BusinessSchedule() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setAuthUser(user);
 
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
@@ -69,7 +72,9 @@ export default function BusinessSchedule() {
     }
   };
 
-  if (loading) {
+  const { hasPermission, loading: permissionsLoading } = usePermissions(company?.id, authUser);
+
+  if (loading || permissionsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -85,43 +90,33 @@ export default function BusinessSchedule() {
     );
   }
 
-  // Determinar role/tipo (owner é detectado por email se não tiver registro em employees)
   const role: string = currentEmployee?.role || 'owner';
   const employeeType: string = currentEmployee?.employee_type || 'fixo';
-  const isOwner = !currentEmployee; // sem registro em employees, é o owner
-  const isManager = isOwner || role === 'owner' || role === 'manager';
-  const isSupervisor = role === 'supervisor';
-  const isReceptionist = role === 'receptionist';
   const isEmployee = role === 'employee';
+  const isManager = role === 'owner' || role === 'admin' || role === 'manager' || !currentEmployee;
+  const isSupervisor = role === 'supervisor';
 
-  // employee só pode acessar Horários se for autônomo
-  if (isEmployee && employeeType !== 'autonomo') {
-    return <Navigate to={`/${company.slug}/admin/dashboard`} replace />;
-  }
+  const canSeeBusinessHours = hasPermission('schedules.view_establishment');
+  const canSeeFixed = hasPermission('schedules.view_fixed');
+  const canSeeAutonomous = hasPermission('schedules.view_autonomous');
+  const canSeeAbsences = hasPermission('schedules.view_absences');
+  const canSeeBlocked = hasPermission('schedules.view_blocks');
+  const canSeeScales = hasPermission('schedules.view_shifts');
+  const canSeeBreaks = hasPermission('schedules.view_breaks');
+  const canSeeRules = hasPermission('schedules.view_rules');
 
-  // Visibilidade de cada aba
-  const canSeeBusinessHours = isManager;
-  const canSeeFixed = isManager || isSupervisor || isReceptionist;
-  const canSeeAutonomous = isManager || isSupervisor || isReceptionist || (isEmployee && employeeType === 'autonomo');
-  const canSeeAbsences = isManager || isSupervisor || isReceptionist;
-  const canSeeBlocked = isManager; // somente owner/gerente
-  const canSeeRules = isManager;
-  const canSeeScales = isManager;
-  const canSeeBreaks = isManager || isSupervisor;
-  const canManageBreaks = isManager || isSupervisor;
+  const visibleTabsCount = [
+    canSeeBusinessHours,
+    canSeeFixed,
+    canSeeAutonomous,
+    canSeeAbsences,
+    canSeeBlocked,
+    canSeeScales,
+    canSeeBreaks,
+    canSeeRules,
+  ].filter(Boolean).length;
 
-  const defaultTab = canSeeBusinessHours
-    ? 'business-hours'
-    : canSeeAutonomous && isEmployee
-    ? 'autonomous'
-    : canSeeFixed
-    ? 'fixed-schedules'
-    : 'autonomous';
-
-  const visibleTabsCount = [canSeeBusinessHours, canSeeFixed, canSeeAutonomous, canSeeAbsences, canSeeBlocked, canSeeScales, canSeeBreaks, canSeeRules].filter(Boolean).length;
-
-  // Layout dedicado para Supervisor (Encarregado)
-  if (isSupervisor) {
+  if (visibleTabsCount === 0) {
     return (
       <BusinessLayout
         companySlug={company.slug}
@@ -129,90 +124,53 @@ export default function BusinessSchedule() {
         companyId={company.id}
         userRole={role}
       >
-        <div className="space-y-6 px-10 w-full py-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gradient">Jornada dos Colaboradores</h1>
-            <p className="text-muted-foreground mt-2">
-              Configure a jornada de trabalho semanal para cada colaborador, incluindo horário de intervalo.
-            </p>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
+            <p className="text-muted-foreground mt-2">Você não possui nenhuma permissão de acesso às abas de Horários.</p>
           </div>
-
-          <Tabs defaultValue="fixed-schedules" className="w-full">
-            <TabsList className="grid lg:w-full items-center justify-center h-full" style={{ gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }}>
-              <TabsTrigger value="fixed-schedules" className="flex items-center gap-2">
-                <Users className="w-4 h-full" />
-                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Fixos</span>
-              </TabsTrigger>
-              <TabsTrigger value="autonomous" className="flex items-center gap-2">
-                <Calendar className="w-4 h-full" />
-                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Autônomos</span>
-              </TabsTrigger>
-              <TabsTrigger value="absences" className="flex items-center gap-2">
-                <UserX className="w-4 h-full" />
-                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Ausências</span>
-              </TabsTrigger>
-              <TabsTrigger value="blocked" className="flex items-center gap-2">
-                <Ban className="w-4 h-full" />
-                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Bloqueios</span>
-              </TabsTrigger>
-              <TabsTrigger value="scales" className="flex items-center gap-2">
-                <Settings className="w-4 h-full" />
-                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Escalas</span>
-              </TabsTrigger>
-              <TabsTrigger value="breaks" className="flex items-center gap-2">
-                <Coffee className="w-4 h-full" />
-                <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Intervalos</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="fixed-schedules" className="mt-6">
-              <FixedEmployeesList companyId={company.id} />
-            </TabsContent>
-            <TabsContent value="autonomous" className="mt-6">
-              <AutonomousAvailabilityConfig companyId={company.id} readOnly={true} />
-            </TabsContent>
-            <TabsContent value="absences" className="mt-6">
-              <AbsencesManager
-                companyId={company.id}
-                viewerRole={role}
-                viewerEmployeeId={currentEmployee?.id}
-              />
-            </TabsContent>
-            <TabsContent value="blocked" className="mt-6">
-              <BlockedSlotsManager companyId={company.id} />
-            </TabsContent>
-            <TabsContent value="scales" className="mt-6">
-              <SchedulesList tenantId={company.id} canManage={true} currentEmployeeId={currentEmployee?.id} />
-
-            </TabsContent>
-            <TabsContent value="breaks" className="mt-6">
-              <BreaksManager companyId={company.id} canManage={true} />
-            </TabsContent>
-          </Tabs>
         </div>
       </BusinessLayout>
     );
   }
 
+  const defaultTab = canSeeBusinessHours
+    ? 'business-hours'
+    : canSeeFixed
+    ? 'fixed-schedules'
+    : canSeeAutonomous
+    ? 'autonomous'
+    : canSeeAbsences
+    ? 'absences'
+    : canSeeBlocked
+    ? 'blocked'
+    : canSeeScales
+    ? 'scales'
+    : canSeeBreaks
+    ? 'breaks'
+    : 'rules';
+
+  const canManageBreaks = isManager || isSupervisor;
+
   return (
-    <BusinessLayout 
-      companySlug={company.slug} 
+    <BusinessLayout
+      companySlug={company.slug}
       companyName={company.name}
       companyId={company.id}
       userRole={role}
     >
-      <div className="space-y-6 px-10 w-full py-8"> 
-        <div className="">
+      <div className="space-y-6 px-10 w-full py-8">
+        <div>
           <h1 className="text-3xl font-bold text-gradient">Horários e Disponibilidade</h1>
           <p className="text-muted-foreground mt-2">
             Configure horários de funcionamento, jornadas e ausências
           </p>
         </div>
 
-        <Tabs defaultValue={defaultTab} className="w-full ">
-          <TabsList className={`grid lg:w-full items-center justify-center h-full`} style={{ gridTemplateColumns: `repeat(${visibleTabsCount}, minmax(0, 1fr))` }}>
+        <Tabs defaultValue={defaultTab} className="w-full">
+          <TabsList className="grid lg:w-full items-center justify-center h-full" style={{ gridTemplateColumns: `repeat(${visibleTabsCount}, minmax(0, 1fr))` }}>
             {canSeeBusinessHours && (
-              <TabsTrigger value="business-hours" className=" flex items-end justify-center h-full px-2 py-0 gap-2">
+              <TabsTrigger value="business-hours" className="flex items-end justify-center h-full px-2 py-0 gap-2">
                 <Clock className="w-4 h-full" />
                 <span className="hidden sm:flex pt-0.5 sm:items-center sm:justify-center h-full">Estabelecimento</span>
               </TabsTrigger>
@@ -295,9 +253,7 @@ export default function BusinessSchedule() {
 
           {canSeeBlocked && (
             <TabsContent value="blocked" className="mt-6">
-              <BlockedSlotsManager
-                companyId={company.id}
-              />
+              <BlockedSlotsManager companyId={company.id} />
             </TabsContent>
           )}
 
@@ -305,7 +261,7 @@ export default function BusinessSchedule() {
             <TabsContent value="scales" className="mt-6 space-y-6">
               <ScheduleCycleConfig tenantId={company.id} />
               <ScheduleTemplatesManager tenantId={company.id} />
-              <SchedulesList tenantId={company.id} canManage={true} currentEmployeeId={currentEmployee?.id} />
+              <SchedulesList tenantId={company.id} canManage={isManager || isSupervisor} currentEmployeeId={currentEmployee?.id} />
             </TabsContent>
           )}
 

@@ -38,6 +38,7 @@ interface BookingData {
   notes?: string;
   client_id: string;
   booking_status?: string;
+  availability_service_id?: string | null;
 }
 
 // interface Props {
@@ -48,7 +49,7 @@ interface BookingData {
 //   amount: number;
 //   payerInitial: { name: string; email?: string; phone?: string; cpf_cnpj?: string };
 //   // onPaid: () => void;
-//   onPaid: (paymentId: string) => void;
+//   onPaid: (paymentId: string, holdId: string | null) => void;
 //   allowPayLater?: boolean;
 //   onPayLater?: () => void;
 //   /** Dados para criar booking novo quando bookingId não é fornecido */
@@ -69,6 +70,7 @@ interface Props {
   onPaid: (paymentId: string) => void;
   allowPayLater?: boolean;
   onPayLater?: () => void;
+  onSlotUnavailable?: () => void;
   bookingData?: BookingData;
 }
 
@@ -76,7 +78,7 @@ const ICON: Record<string, any> = { PIX: QrCode, CREDIT_CARD: CreditCard, DEBIT_
 const LABEL: Record<string, string> = { PIX: "PIX", CREDIT_CARD: "Cartão de Crédito", DEBIT_CARD: "Cartão de Débito", BOLETO: "Boleto" };
 const KEY_TO_METHOD: Record<string, string> = { pix: "PIX", credit_card: "CREDIT_CARD", debit_card: "DEBIT_CARD", boleto: "BOLETO" };
 
-export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater, bookingData }: Props) {
+export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater, onSlotUnavailable, bookingData }: Props) {
   const { toast } = useToast();
   const [methods, setMethods] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>("PIX");
@@ -85,6 +87,9 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   const [payment, setPayment] = useState<any>(null);
   const [isPaid, setIsPaid] = useState(false);
   const [activeBookingId, setActiveBookingId] = useState<string | undefined>(bookingId);
+  const [holdId, setHoldId] = useState<string | null>(null);
+  const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
+  const [holdSecondsLeft, setHoldSecondsLeft] = useState<number | null>(null);
 
   // Mantém activeBookingId em sync com prop
   useEffect(() => {
@@ -173,6 +178,20 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   // }, [payment?.id, isPaid, open]);
 
   useEffect(() => {
+    if (!holdExpiresAt || !open) return;
+    const update = () => {
+      const seconds = Math.max(0, Math.ceil((new Date(holdExpiresAt).getTime() - Date.now()) / 1000));
+      setHoldSecondsLeft(seconds);
+      if (seconds <= 0) {
+        setHoldId(null);
+      }
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [holdExpiresAt, open]);
+
+  useEffect(() => {
   if (!payment?.id || isPaid || !open) return;
 
     let isSubscribed = true;
@@ -187,7 +206,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   
       // Devolve o ID do registro em booking_payments
       // para o Booking.tsx criar o booking e depois vinculá-lo.
-      onPaid(payment.id);
+      onPaid(payment.id, holdId);
   
       toast({
         title: "Pagamento confirmado!",
@@ -292,25 +311,68 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   async function generate() {
     setLoading(true);
     try {
-      // let currentBookingId = activeBookingId;
-      // if (!currentBookingId) {
-      //   currentBookingId = await createBooking();
-      //   setActiveBookingId(currentBookingId);
-      //   console.log("[PAYMENT_DIALOG] Booking criado:", currentBookingId);
-      // }
+      if (!bookingData) throw new Error("Dados do agendamento não encontrados.");
+
+      // O hold é adquirido somente quando o cliente realmente inicia o pagamento.
+      // Assim, "pagar no local" continua sem bloquear o horário.
+      let currentHoldId = holdId;
+
+      if (!currentHoldId) {
+        const { data: hold, error: holdError } = await supabase.rpc("create_online_booking_hold", {
+          p_company_id: bookingData.company_id,
+          p_employee_id: bookingData.employee_id,
+          p_service_id: bookingData.availability_service_id || bookingData.service_id || null,
+          p_client_id: bookingData.client_id,
+          p_booking_date: bookingData.booking_date,
+          p_booking_time: bookingData.booking_time,
+          p_start_time: bookingData.start_time,
+          p_end_time: bookingData.end_time,
+          p_hold_minutes: 10,
+        });
+
+        if (holdError) {
+          const detail = String((holdError as any).details || "");
+          const rawMessage = String(holdError.message || "");
+          const slotConflict = detail.includes("slot_already_held") || rawMessage.toLowerCase().includes("acabou de ser reservado");
+          const message = slotConflict
+            ? "Esse horário acabou de ser reservado por outra pessoa. Escolha outro horário."
+            : rawMessage || "Não foi possível reservar este horário.";
+          if (slotConflict) onSlotUnavailable?.();
+          throw new Error(message);
+        }
+
+        const row = Array.isArray(hold) ? hold[0] : hold;
+        currentHoldId = row?.hold_id;
+        if (!currentHoldId) throw new Error("O servidor não retornou o hold do horário.");
+
+        setHoldId(currentHoldId);
+        setHoldExpiresAt(row.expires_at);
+      }
 
       const { data, error } = await supabase.functions.invoke("booking-create-payment", {
-        // body: { booking_id: currentBookingId, method: selected, payer, amount },
         body: {
           booking_id: null,
           company_id: companyId,
           method: selected,
           payer,
           amount,
-          booking_data: bookingData,
+          hold_id: currentHoldId,
+          bookingData: bookingData,
         },
       });
-      if (error) throw new Error(error.message || "Erro ao gerar pagamento");
+      if (error) {
+        let serverMessage = error.message || "Erro ao gerar pagamento";
+        try {
+          const response = (error as any)?.context;
+          if (response && typeof response.json === "function") {
+            const payload = await response.json();
+            if (payload?.error) serverMessage = String(payload.error);
+          }
+        } catch {
+          // Mantém a mensagem original quando a resposta da Edge Function não puder ser lida.
+        }
+        throw new Error(serverMessage);
+      }
       if ((data as any)?.error) throw new Error((data as any).error);
       setPayment((data as any).payment);
     } catch (e: any) {
@@ -323,7 +385,19 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Pagamento do agendamento</DialogTitle>
-          <DialogDescription>Valor: <strong>R$ {amount.toFixed(2)}</strong></DialogDescription>
+          <DialogDescription>
+            Valor: <strong>R$ {amount.toFixed(2)}</strong>
+            {holdSecondsLeft != null && holdSecondsLeft > 0 && (
+              <span className="block mt-1 text-amber-600 font-medium">
+                Horário reservado para você por {Math.floor(holdSecondsLeft / 60)}:{String(holdSecondsLeft % 60).padStart(2, "0")}
+              </span>
+            )}
+            {holdSecondsLeft === 0 && (
+              <span className="block mt-1 text-destructive font-medium">
+                O tempo da reserva terminou. O horário foi liberado.
+              </span>
+            )}
+          </DialogDescription>
         </DialogHeader>
 
         {isPaid ? (
@@ -343,7 +417,9 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         ) : (
           <>
             {!methods.length && (
-              <p className="text-sm text-muted-foreground">Esta empresa não aceita pagamento online.</p>
+              <p className="text-sm text-muted-foreground">
+                {amount === 0 ? "Este benefício é gratuito. Confirme para reservar seu horário." : "Esta empresa não aceita pagamento online."}
+              </p>
             )}
 
             {!payment && methods.length > 0 && (
@@ -372,7 +448,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
                   />
                 </div>
 
-                <Button onClick={generate} disabled={loading} className="w-full">
+                <Button onClick={generate} disabled={loading || holdSecondsLeft === 0} className="w-full">
                   {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Gerar pagamento
                 </Button>
               </div>
@@ -428,7 +504,9 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
         <DialogFooter className="flex-col gap-2 sm:flex-col">
           {allowPayLater && !payment && !isPaid && (
-            <Button variant="outline" onClick={onPayLater} className="w-full">Pagar no local</Button>
+            <Button variant="outline" onClick={onPayLater} className="w-full">
+              {amount === 0 ? "Resgatar brinde" : "Pagar no local"}
+            </Button>
           )}
           {!isPaid && <Button variant="ghost" onClick={onClose}>Fechar</Button>}
         </DialogFooter>

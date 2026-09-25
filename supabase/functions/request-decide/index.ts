@@ -4,6 +4,7 @@
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { checkEmployeePermission, permissionDeniedResponse } from '../_shared/employee-permissions.ts';
 
 type Decision = 'approve' | 'partial_approve' | 'reject' | 'request_revision' | 'cancel';
 
@@ -61,6 +62,25 @@ Deno.serve(async (req) => {
     const isOwner = (comp?.owner_email ?? '').toLowerCase() === (user.email ?? '').toLowerCase();
     const actor_role = isOwner ? 'owner' : (emp?.role ?? 'employee');
 
+    const isAbsencePermissionControlled =
+      reqRow.request_type === 'absence_request' && decision !== 'cancel';
+    const isSchedulePermissionControlled =
+      reqRow.request_type === 'schedule_change' && decision !== 'cancel';
+
+    if (isAbsencePermissionControlled || isSchedulePermissionControlled) {
+      const permissionCode = isAbsencePermissionControlled
+        ? 'hr.manage_absences'
+        : 'hr.manage_attendance';
+
+      const permission = await checkEmployeePermission(
+        supabase,
+        user.id,
+        reqRow.tenant_id,
+        permissionCode,
+      );
+      if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
+    }
+
     step = 'fetch_rule';
     const { data: rule } = await supabase
       .from('request_approval_rules').select('*')
@@ -68,8 +88,9 @@ Deno.serve(async (req) => {
     const approverRoles: string[] = rule?.approver_roles ?? ['owner', 'manager'];
 
     const canCancel = decision === 'cancel' && reqRow.created_by === user.id;
+    const isPermissionControlled = isAbsencePermissionControlled || isSchedulePermissionControlled;
     const isApprover = approverRoles.includes(actor_role);
-    if (!canCancel && !isApprover) {
+    if (!canCancel && !isApprover && !isPermissionControlled) {
       return j({ error: 'forbidden_role', actor_role, approverRoles }, 403);
     }
 
@@ -91,7 +112,6 @@ Deno.serve(async (req) => {
       .from('requests').update(patch).eq('id', request_id).select('*').single();
     if (updErr) return j({ error: 'update_request_failed', step, detail: updErr.message }, 500);
 
-    // Se for schedule_change, propaga a decisão para a escala
     const scheduleId = reqRow.request_type === 'schedule_change'
       ? reqRow.request_payload?.schedule_id
       : null;
@@ -117,10 +137,7 @@ Deno.serve(async (req) => {
       if (Object.keys(schedPatch).length > 0) {
         const { error: sErr } = await supabase.from('schedules')
           .update(schedPatch).eq('id', scheduleId).eq('tenant_id', reqRow.tenant_id);
-        if (sErr) {
-          console.error('schedule update failed', sErr);
-          // não bloqueia — apenas registra
-        }
+        if (sErr) console.error('schedule update failed', sErr);
       }
     }
 
@@ -137,7 +154,7 @@ Deno.serve(async (req) => {
       const { error: cErr } = await supabase.from('request_comments').insert({
         request_id, author_id: user.id, author_role: actor_role, message: comment,
       });
-      if (cErr) console.error('comment insert failed', cErr);
+      if (cErr) console.error('request comment insert failed', cErr);
     }
 
     return j({ request: updated });

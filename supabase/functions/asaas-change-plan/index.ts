@@ -8,11 +8,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-// ---------------------------------------------------------------------------
-// Inlined de _shared/gateway-config.ts — o editor do painel Supabase não
-// resolve imports relativos fora da pasta da própria função.
-// Ordem: variável de ambiente -> tabela public.super_admin_gateway_configs.
-// ---------------------------------------------------------------------------
+import { checkEmployeePermission, permissionDeniedResponse } from "../_shared/employee-permissions.ts";
+
 async function getGatewayConfig(
   adminClient: any,
   provider: string,
@@ -104,7 +101,6 @@ serve(async (req) => {
 
     const ASAAS_API_KEY = (await getGatewayConfig(admin, "asaas", "ASAAS_API_KEY") ?? "").trim();
 
-    // ---- Autenticação ----------------------------------------------------
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "Não autorizado." }, 401);
 
@@ -117,9 +113,7 @@ serve(async (req) => {
     if (claimsErr || !claimsData?.claims) return json({ error: "Não autorizado." }, 401);
 
     const userId = claimsData.claims.sub as string;
-    const userEmail = String(claimsData.claims.email ?? "").toLowerCase();
 
-    // ---- Payload ---------------------------------------------------------
     const body = await req.json().catch(() => null);
     const companyId: string | undefined = body?.company_id;
     const newPlanId: string | undefined = body?.new_plan_id;
@@ -130,7 +124,14 @@ serve(async (req) => {
       return json({ error: "billing_period inválido." }, 400);
     }
 
-    // ---- Autorização -----------------------------------------------------
+    const permission = await checkEmployeePermission(
+      admin,
+      userId,
+      companyId,
+      'subscription.manage',
+    );
+    if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders);
+
     const { data: company } = await admin
       .from("companies")
       .select("id, name, owner_email, owner_name, owner_phone, owner_cpf, cnpj, asaas_customer_id")
@@ -138,19 +139,6 @@ serve(async (req) => {
       .maybeSingle();
     if (!company) return json({ error: "Empresa não encontrada." }, 404);
 
-    let allowed = String(company.owner_email ?? "").toLowerCase() === userEmail;
-    if (!allowed) {
-      const { data: emp } = await admin
-        .from("employees")
-        .select("id, role")
-        .eq("company_id", company.id)
-        .eq("user_id", userId)
-        .maybeSingle();
-      allowed = !!emp && ["owner", "admin", "manager"].includes(String(emp.role ?? ""));
-    }
-    if (!allowed) return json({ error: "Sem permissão para esta empresa." }, 403);
-
-    // ---- Estado atual ----------------------------------------------------
     const { data: sub } = await admin
       .from("company_subscriptions")
       .select("*, subscription_plans(*)")
@@ -186,7 +174,6 @@ serve(async (req) => {
     const isUpgrade = newLevel > currentLevel;
     const newPrice = priceOf(newPlan, newPeriod);
 
-    // ---- DOWNGRADE / troca de ciclo: agenda ------------------------------
     if (!isUpgrade) {
       const pending = {
         plan_id: newPlanId,
@@ -210,13 +197,11 @@ serve(async (req) => {
       });
     }
 
-    // ---- UPGRADE: proração imediata --------------------------------------
     const currentDaily = priceOf(currentPlan, currentPeriod) / (PERIOD_DAYS[currentPeriod] || 30);
     const newDaily = newPrice / (PERIOD_DAYS[newPeriod] || 30);
     const prorationRaw = Math.max(0, (newDaily - currentDaily) * remainingDays);
     const prorationAmount = Math.round(prorationRaw * 100) / 100;
 
-    // Diferença desprezível: aplica direto, sem cobrança.
     if (prorationAmount < 1) {
       await admin
         .from("company_subscriptions")
@@ -242,7 +227,6 @@ serve(async (req) => {
       return json({ error: "Gateway da plataforma não configurado (ASAAS_API_KEY)." }, 500);
     }
 
-    // Fatura interna da proração
     const { data: invoice, error: invErr } = await admin
       .from("company_invoices")
       .insert({
@@ -266,7 +250,6 @@ serve(async (req) => {
 
     if (invErr || !invoice) return json({ error: `Falha ao criar fatura: ${invErr?.message}` }, 500);
 
-    // ---- Asaas -----------------------------------------------------------
     const isSandbox = ASAAS_API_KEY.includes("hmlg") || !ASAAS_API_KEY.startsWith("$aact_");
     const baseUrl = isSandbox ? "https://sandbox.asaas.com/api/v3" : "https://www.asaas.com/api/v3";
     const headers = { access_token: ASAAS_API_KEY, "Content-Type": "application/json" };
@@ -303,7 +286,6 @@ serve(async (req) => {
     }
     if (!customerId) return json({ error: "Falha ao criar cliente no Asaas." }, 502);
 
-    // Cartão tokenizado padrão?
     const { data: defaultMethod } = await admin
       .from("company_payment_methods")
       .select("id, type")

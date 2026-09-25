@@ -67,6 +67,7 @@ function translateNotificationText(value: string | null): string | null {
 
 export function NotificationsBell({ companyId, companySlug }: Props) {
   const [open, setOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [tab, setTab] = useState<"notifs" | "news">("notifs");
   const [companyNotifs, setCompanyNotifs] = useState<CompanyNotif[]>([]);
   const [platformNotifs, setPlatformNotifs] = useState<PlatformNotif[]>([]);
@@ -81,8 +82,9 @@ export function NotificationsBell({ companyId, companySlug }: Props) {
       const [cn, vn, pn] = await Promise.all([
         supabase
           .from("company_notifications")
-          .select("id,title,message,link,is_read,created_at")
+          .select("id,title,message,link,is_read,created_at,target_user_id")
           .eq("company_id", companyId)
+          .or(userId ? "target_user_id.is.null,target_user_id.eq." + userId : "target_user_id.is.null")
           .order("created_at", { ascending: false })
           .limit(50),
         supabase
@@ -110,7 +112,13 @@ export function NotificationsBell({ companyId, companySlug }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, [companyId, userId]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id ?? null);
+    });
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 

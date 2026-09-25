@@ -95,6 +95,8 @@ export default function ClientBooking() {
   const [pendingEmployeeRestore, setPendingEmployeeRestore] = useState<string | null>(null);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [paymentSettings, setPaymentSettings] = useState<{ enabled: boolean; mode: string }>({ enabled: false, mode: 'none' });
+  const [rewardAchievementId] = useState(() => new URLSearchParams(window.location.search).get('reward_id'));
+  const [rewardAchievement, setRewardAchievement] = useState<any>(null);
   // const [paymentDialog, setPaymentDialog] = useState<{
   //   open: boolean;
   //   bookingId?: string;
@@ -154,6 +156,21 @@ export default function ClientBooking() {
       checkAuthState();
     }
   }, [company]);
+
+  useEffect(() => {
+    const loadReward = async () => {
+      if (!rewardAchievementId || !company || !user || !client || services.length === 0) return;
+      const { data, error } = await supabase.from('client_reward_achievements').select('id,reward_name,reward_description,reward_value,reward_service_ids,status,expires_at').eq('id', rewardAchievementId).eq('company_id', company.id).eq('client_id', client.id).maybeSingle();
+      if (error || !data) { toast({ title: 'Brinde indisponível', description: 'Esse brinde não está disponível para resgate.', variant: 'destructive' }); return; }
+      if (data.status !== 'available' || new Date(data.expires_at) <= new Date()) { toast({ title: 'Brinde expirado', description: 'Esse brinde não pode mais ser resgatado.', variant: 'destructive' }); return; }
+      const allowedIds = (data.reward_service_ids || []) as string[];
+      const allowedServices = services.filter(s => allowedIds.includes(s.id));
+      if (!allowedServices.length) { toast({ title: 'Brinde indisponível', description: 'Nenhum serviço deste brinde está disponível para agendamento.', variant: 'destructive' }); return; }
+      setRewardAchievement(data);
+      if (!selectedService || !allowedIds.includes(selectedService.id)) { setSelectedService(allowedServices[0]); setStep(2); }
+    };
+    loadReward();
+  }, [rewardAchievementId, company, user, client, services, toast]);
 
   useEffect(() => {
     if (selectedService) {
@@ -685,13 +702,72 @@ export default function ClientBooking() {
         throw new Error('Não foi possível identificar o cliente.');
       }
 
+      // Fluxo específico de brinde grátis: não abre pagamento.
+      if (rewardAchievement && effectivePrice === 0) {
+        const bookingData = buildBookingData(clientId);
+        const { data: booking, error: bookingError } = await supabase
+          .from('bookings')
+          .insert([{
+            ...bookingData,
+            booking_status: 'confirmed',
+            payment_status: 'free',
+            payment_method: 'reward',
+          }])
+          .select()
+          .single();
+
+        if (bookingError || !booking) {
+          throw bookingError ?? new Error('Não foi possível registrar o agendamento do brinde.');
+        }
+
+        const { data: redeemed, error: redeemError } = await supabase.rpc('redeem_client_reward', {
+          p_achievement_id: rewardAchievementId,
+          p_booking_id: booking.id,
+        });
+
+        if (redeemError || !redeemed) {
+          console.error('[REWARD] Falha ao marcar brinde grátis como resgatado:', redeemError);
+          toast({
+            title: 'Atenção',
+            description: 'O agendamento foi criado, mas não foi possível concluir o resgate do brinde. Entre em contato com a empresa.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        setCreatedBookingId(booking.id);
+        setPaymentDialog(prev => ({
+          ...prev,
+          open: false,
+          wasPaid: false,
+          bookingId: booking.id,
+        }));
+        setStep(6);
+
+        supabase.functions
+          .invoke('notify-booking-event', {
+            body: {
+              booking_id: booking.id,
+              event_key: 'booking_confirmed',
+            },
+          })
+          .catch((e: any) => console.warn('[notify-booking-event] failed:', e));
+
+        toast({
+          title: 'Brinde resgatado!',
+          description: 'Seu agendamento foi confirmado gratuitamente.',
+        });
+        return;
+      }
+
+      // Fluxo normal ou brinde com valor:
       // NÃO cria booking aqui. Apenas abre o dialog de pagamento.
       // O booking será criado SOMENTE dentro de onPaid (após pagamento confirmado)
       // ou onPayLater (usuário escolhe explicitamente 'Pagar no local').
       setPaymentDialog({
         open: true,
         bookingId: undefined, // ainda não existe
-        amount: selectedService?.price || 0,
+        amount: effectivePrice,
         allowLater: true,
         openedOnce: false,
         // Dados do cliente para o dialog usar na criação do booking
@@ -726,7 +802,7 @@ export default function ClientBooking() {
     setPaymentDialog({
       open: true,
       bookingId: createdBookingId,
-      amount: selectedService?.price || 0,
+      amount: effectivePrice,
       allowLater: false,
       openedOnce: true,
     });
@@ -777,6 +853,7 @@ export default function ClientBooking() {
 
   const isPayLater = paymentDialog._clientId != null && createdBookingId == null;
   const isPaid = paymentDialog.wasPaid === true;
+  const effectivePrice = rewardAchievement ? Number(rewardAchievement.reward_value ?? 0) : Number(selectedService?.price ?? 0);
 
   const renderStep = () => {
     switch (step) {
@@ -842,7 +919,7 @@ export default function ClientBooking() {
                     </div>
                   );
                 })}
-                {services.map((service) => (
+                {(rewardAchievement ? services.filter(s => (rewardAchievement.reward_service_ids || []).includes(s.id)) : services).map((service) => (
                   <div
                     key={service.id}
                     className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
@@ -873,7 +950,7 @@ export default function ClientBooking() {
                             </div>
                             <div className="flex items-center gap-1" style={stepCardTypography("services", "price_typography")}>
                               <DollarSign className="w-4 h-4" />
-                              R$ {service.price.toFixed(2)}
+                              R$ {(rewardAchievement ? effectivePrice : service.price).toFixed(2)}
                             </div>
 
                           </div>
@@ -1176,7 +1253,11 @@ export default function ClientBooking() {
                       <span className="text-muted-foreground">Valor:</span>
                       <span className="font-medium" style={{
                         fontFamily: customStyles["--font-family"],
-                      }}>R$ {selectedService?.price.toFixed(2)}</span>
+                      }}>
+                        {rewardAchievement
+                          ? (effectivePrice === 0 ? 'Grátis — Brinde' : 'R$ ' + effectivePrice.toFixed(2) + ' — Valor do brinde')
+                          : 'R$ ' + Number(selectedService?.price ?? 0).toFixed(2)}
+                      </span>
                     </div>
                   </div>
 
@@ -1291,27 +1372,36 @@ export default function ClientBooking() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Valor:</span>
-                  <span className="font-medium">R$ {selectedService?.price.toFixed(2)}</span>
+                  <span className="font-medium">
+                    {rewardAchievement
+                      ? (effectivePrice === 0 ? 'Grátis — Brinde' : 'R$ ' + effectivePrice.toFixed(2) + ' — Valor do brinde')
+                      : 'R$ ' + Number(selectedService?.price ?? 0).toFixed(2)}
+                  </span>
                 </div>
               </div>
 
               <div className="text-center space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Você receberá um e-mail de confirmação em breve.
+                  {rewardAchievement && effectivePrice === 0
+                    ? "Seu brinde foi resgatado e o agendamento foi confirmado automaticamente."
+                    : "Você receberá um e-mail de confirmação em breve."}
                 </p>
                 <Badge
-                  variant={isPaid ? "default" : "secondary"}
-                  className={isPaid ? "bg-green-500 hover:bg-green-600" : ""}
+                  variant="default"
+                  className="bg-green-500 hover:bg-green-600"
                 >
-                  {isPaid
-                    ? "Pago"
-                    : paymentSettings.enabled
-                      ? "Aguardando pagamento"
-                      : "Aguardando confirmação"}
+                  {rewardAchievement && effectivePrice === 0
+                    ? "Brinde resgatado • Agendamento confirmado"
+                    : isPaid
+                      ? "Pago"
+                      : paymentSettings.enabled
+                        ? "Aguardando pagamento"
+                        : "Aguardando confirmação"}
                 </Badge>
               </div>
 
-              {paymentSettings.enabled && createdBookingId && !isPaid && (
+              {!(rewardAchievement && effectivePrice === 0) &&
+                paymentSettings.enabled && createdBookingId && !isPaid && (
                 <Button
                   onClick={openPaymentDialog}
                   className="w-full"
@@ -1370,9 +1460,10 @@ export default function ClientBooking() {
       end_time: endISO,
       booking_date: bookingDate,
       duration_minutes: duration,
-      price: selectedService!.price,
+      price: effectivePrice,
       notes: formData.notes,
       client_id: clientId,
+      created_source: 'landingpage',
       booking_status: 'pending',
     };
   };
@@ -1415,9 +1506,7 @@ export default function ClientBooking() {
           bookingId={paymentDialog.bookingId}
           companyId={company.id}
           amount={
-            paymentDialog.amount ||
-            selectedService?.price ||
-            0
+            paymentDialog.amount ?? effectivePrice
           }
           payerInitial={{
             name:
@@ -1450,6 +1539,13 @@ export default function ClientBooking() {
               : undefined
           }
         
+          onSlotUnavailable={() => {
+            setPaymentDialog(prev => ({ ...prev, open: false }));
+            setSelectedTime("");
+            setStep(4);
+            fetchAvailableTimes();
+          }}
+
           onPayLater={async () => {
             // Criar booking agora (pagará no local)
             let clientId =
@@ -1505,7 +1601,7 @@ export default function ClientBooking() {
                   ...buildBookingData(
                     clientId!
                   ),
-                   booking_status: "confirmed",
+                   booking_status: "pending",
                    payment_status: "pending",
                    payment_method: "local",
                 },
@@ -1525,6 +1621,11 @@ export default function ClientBooking() {
             }
         
             const newId = booking.id;
+
+            if (rewardAchievementId) {
+              const { data: redeemed, error: redeemError } = await supabase.rpc('redeem_client_reward', { p_achievement_id: rewardAchievementId, p_booking_id: newId });
+              if (redeemError || !redeemed) console.error('[REWARD] Falha ao marcar brinde como resgatado:', redeemError);
+            }
         
             setCreatedBookingId(
               newId
@@ -1563,12 +1664,13 @@ export default function ClientBooking() {
               title:
                 "Agendamento registrado!",
               description:
-                "Você pagará no local do atendimento.",
+                "Seu agendamento ficou pendente de confirmação pela empresa. Você pagará no local do atendimento.",
             });
           }}
         
           onPaid={async (
-            paymentId
+            paymentId,
+            holdId
           ) => {
             let clientId =
               paymentDialog._clientId;
@@ -1601,65 +1703,48 @@ export default function ClientBooking() {
               clientId = cd?.id;
             }
         
-            /*
-             * O pagamento foi confirmado.
-             * AGORA sim criamos o booking.
-             */
-            const {
-              data: booking,
-              error: bErr,
-            } = await supabase
-              .from("bookings")
-              .insert([
-                {
-                  ...buildBookingData(
-                    clientId!
-                  ),
-                   booking_status: "confirmed",
-                   payment_status: "confirmed",
-                   payment_method: "online",
-                },
-              ])
-              .select()
-              .single();
-        
-            if (bErr || !booking) {
+            if (!holdId) {
               toast({
-                title: "Erro",
-                description:
-                  "Não foi possível confirmar o agendamento.",
-                variant:
-                  "destructive",
+                title: "Horário não reservado",
+                description: "Não foi possível validar a reserva temporária deste horário. Escolha o horário novamente.",
+                variant: "destructive",
               });
+              setPaymentDialog(prev => ({ ...prev, open: false }));
+              setStep(4);
               return;
             }
-        
-            const newId =
-              booking.id;
-        
-            /*
-             * Agora vinculamos o pagamento
-             * ao booking recém-criado.
-             */
-            const {
-              error:
-                paymentLinkError,
-            } = await supabase
-              .from("booking_payments")
-              .update({
-                booking_id:
-                  newId,
-              })
-              .eq(
-                "id",
-                paymentId
-              );
-        
-            if (paymentLinkError) {
-              console.error(
-                "[BOOKING] Erro ao vincular pagamento ao booking:",
-                paymentLinkError
-              );
+
+            // O pagamento confirmado só vira agendamento quando o banco
+            // valida atomicamente o hold do cliente.
+            const { data: newId, error: confirmError } = await supabase.rpc(
+              "confirm_online_booking_payment",
+              {
+                p_hold_id: holdId,
+                p_payment_id: paymentId,
+              }
+            );
+
+            if (confirmError || !newId) {
+              const detail = String((confirmError as any)?.details || "");
+              const message = detail.includes("hold_expired")
+                ? "O tempo para concluir a reserva acabou. O horário foi liberado. Escolha outro horário."
+                : (confirmError?.message || "O horário não está mais disponível.");
+
+              toast({
+                title: "Não foi possível confirmar o agendamento",
+                description: message,
+                variant: "destructive",
+              });
+              setPaymentDialog(prev => ({ ...prev, open: false }));
+              setCreatedBookingId(null);
+              setStep(4);
+              await fetchAvailableTimes();
+              return;
+            }
+
+            if (rewardAchievementId) {
+              const { data: redeemed, error: redeemError } = await supabase.rpc('redeem_client_reward', { p_achievement_id: rewardAchievementId, p_booking_id: newId });
+              if (redeemError || !redeemed) console.error('[REWARD] Falha ao marcar brinde como resgatado:', redeemError);
             }
         
             setCreatedBookingId(

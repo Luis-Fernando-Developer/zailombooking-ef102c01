@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkEmployeePermission, permissionDeniedResponse } from '../_shared/employee-permissions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -208,6 +209,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const jwt = authHeader.replace('Bearer ', '')
+    if (!jwt) {
+      return new Response(JSON.stringify({ error: 'missing_authorization' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(jwt)
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'invalid_token' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
+
     const body = await req.json()
     console.log('[ADMIN_CREATE_BOOKING] Request body:', body)
 
@@ -230,6 +248,21 @@ serve(async (req) => {
       payment_status: payment_status_input,
       booking_status: booking_status_input,
     } = body
+
+    if (!company_id) {
+      return new Response(JSON.stringify({ error: 'company_id obrigatório' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+
+    const permission = await checkEmployeePermission(
+      supabaseClient,
+      user.id,
+      company_id,
+      'bookings.create',
+    )
+    if (!permission.allowed) return permissionDeniedResponse(permission, corsHeaders)
 
     const allowedPaymentStatuses = ['pending', 'confirmed', 'paid', 'refunded', 'failed']
     const allowedBookingStatuses = ['pending', 'confirmed', 'cancelled', 'canceled', 'completed', 'no_show']
@@ -324,7 +357,8 @@ serve(async (req) => {
         duration_minutes,
         price: price,
         booking_status: bookingStatus,
-        payment_status: paymentStatus
+        payment_status: paymentStatus,
+        created_source: 'business_panel'
       })
       .select()
       .single()

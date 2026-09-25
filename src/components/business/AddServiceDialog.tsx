@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ interface AddServiceDialogProps {
 export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
   const { toast } = useToast();
   const { guard } = usePlanLimits(companyId);
   
@@ -34,10 +35,15 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.is_active && !(await guard("services"))) return;
+
+    // Bloqueia submits duplicados antes mesmo de aguardar qualquer operação assíncrona.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
 
     try {
+      if (formData.is_active && !(await guard("services"))) return;
+
       const { error } = await supabase
         .from('services')
         .insert([{
@@ -78,6 +84,7 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
         variant: "destructive",
       });
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -90,7 +97,7 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
           Novo Serviço
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[300px] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Adicionar Novo Serviço</DialogTitle>
           <DialogDescription>
@@ -98,7 +105,7 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 h-full overflow-auto">
           <div className="space-y-2">
             <Label htmlFor="name">Nome do Serviço *</Label>
             <Input

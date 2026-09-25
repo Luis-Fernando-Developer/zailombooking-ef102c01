@@ -1,0 +1,258 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, Download, FileText, Plus, Trash2 } from "lucide-react";
+import { BusinessLayout } from "@/components/business/BusinessLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabaseClient";
+import { usePermissions } from "@/hooks/use-permissions";
+
+export default function HrDocuments() {
+  const { slug } = useParams<{ slug: string }>();
+  const { toast } = useToast();
+  const [company, setCompany] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [employeeId, setEmployeeId] = useState("");
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState("outro");
+  const [description, setDescription] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    load();
+  }, [slug]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+      setUser(auth.user);
+
+      const { data: c, error: ce } = await supabase
+        .from("companies")
+        .select("id,name,slug,owner_email")
+        .eq("slug", slug)
+        .single();
+      if (ce) throw ce;
+      setCompany(c);
+
+      const [{ data: emps, error: ee }, { data: docs, error: de }] = await Promise.all([
+        supabase.from("employees").select("id,name,is_active,role").eq("company_id", c.id).order("name"),
+        supabase.from("employee_documents").select("id,employee_id,title,document_type,description,file_path,file_url,expires_at,created_at").eq("company_id", c.id).order("created_at", { ascending: false }),
+      ]);
+
+      if (ee) throw ee;
+      if (de) throw de;
+      setEmployees(emps || []);
+      setDocuments(docs || []);
+    } catch (e: any) {
+      toast({ title: "Erro ao carregar documentos", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const { hasPermission, loading: permissionLoading, userRole } = usePermissions(company?.id, user);
+  const isAdmin = userRole === "owner" || userRole === "admin";
+  const canManage = isAdmin || hasPermission("hr.manage_documents");
+  const employeeName = useMemo(() => Object.fromEntries(employees.map((e) => [e.id, e.name])), [employees]);
+
+  function reset() {
+    setEmployeeId("");
+    setTitle("");
+    setType("outro");
+    setDescription("");
+    setExpiresAt("");
+    setFile(null);
+  }
+
+  async function save() {
+    if (!company || !employeeId || !title.trim()) {
+      toast({ title: "Preencha colaborador e título", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let filePath: string | null = null;
+
+      if (file) {
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        filePath = `${company.id}/${employeeId}/${Date.now()}-${Math.random().toString(36).slice(2)}-${safe}`;
+        const { error } = await supabase.storage.from("employee-documents").upload(filePath, file, { upsert: false });
+        if (error) throw error;
+      }
+
+      const { error } = await supabase.from("employee_documents").insert({
+        company_id: company.id,
+        employee_id: employeeId,
+        title: title.trim(),
+        document_type: type,
+        description: description.trim() || null,
+        expires_at: expiresAt || null,
+        file_path: filePath,
+        created_by: user?.id,
+      });
+
+      if (error) {
+        if (filePath) await supabase.storage.from("employee-documents").remove([filePath]);
+        throw error;
+      }
+
+      toast({ title: "Documento cadastrado" });
+      setOpen(false);
+      reset();
+      await load();
+    } catch (e: any) {
+      toast({ title: "Não foi possível salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeDocument(doc: any) {
+    if (!confirm(`Excluir o documento "${doc.title}"?`)) return;
+
+    try {
+      if (doc.file_path) await supabase.storage.from("employee-documents").remove([doc.file_path]);
+      const { error } = await supabase.from("employee_documents").delete().eq("id", doc.id);
+      if (error) throw error;
+      toast({ title: "Documento excluído" });
+      await load();
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    }
+  }
+
+  async function download(doc: any) {
+    if (!doc.file_path) return;
+    const { data, error } = await supabase.storage.from("employee-documents").createSignedUrl(doc.file_path, 60);
+    if (error) {
+      toast({ title: "Não foi possível abrir o arquivo", description: error.message, variant: "destructive" });
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
+  if (loading || permissionLoading) {
+    return (
+      <BusinessLayout companySlug={slug || ""} companyName="Carregando..." companyId="" userRole="loading">
+        <div className="p-10 text-center">Carregando...</div>
+      </BusinessLayout>
+    );
+  }
+
+  if (!company || !canManage) {
+    return (
+      <BusinessLayout companySlug={slug || ""} companyName="Documentos" companyId={company?.id || ""} userRole={isAdmin ? "owner" : userRole}>
+        <div className="p-10 text-center">Acesso negado.</div>
+      </BusinessLayout>
+    );
+  }
+
+  return (
+    <BusinessLayout companySlug={company.slug} companyName={company.name} companyId={company.id} userRole={isAdmin ? "owner" : userRole} currentUser={user}>
+      <div className="p-4 sm:p-6 sm:px-10 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Button variant="ghost" asChild className="px-0 mb-2">
+              <Link to={`/${company.slug}/admin/recursos-humanos`}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Recursos Humanos
+              </Link>
+            </Button>
+            <h1 className="text-3xl font-bold">Documentos</h1>
+            <p className="text-muted-foreground">Documentos administrativos dos colaboradores.</p>
+          </div>
+
+          <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) reset(); }}>
+            <DialogTrigger asChild>
+              <Button variant="neon"><Plus className="w-4 h-4 mr-2" />Novo documento</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader><DialogTitle>Cadastrar documento</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Colaborador</Label>
+                  <Select value={employeeId} onValueChange={setEmployeeId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {employees.filter((e) => e.is_active !== false).map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Título</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Contrato de trabalho" /></div>
+                <div>
+                  <Label>Tipo</Label>
+                  <Select value={type} onValueChange={setType}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contrato">Contrato</SelectItem>
+                      <SelectItem value="documento_pessoal">Documento pessoal</SelectItem>
+                      <SelectItem value="comprovante">Comprovante</SelectItem>
+                      <SelectItem value="atestado">Atestado</SelectItem>
+                      <SelectItem value="outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Validade (opcional)</Label><Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} /></div>
+                <div><Label>Descrição</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Observações" /></div>
+                <div><Label>Arquivo (opcional)</Label><Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} /></div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button variant="neon" disabled={saving} onClick={save}>{saving ? "Salvando..." : "Salvar documento"}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Documentos cadastrados</CardTitle>
+            <CardDescription>{documents.length} documento(s)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {documents.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">Nenhum documento cadastrado.</div>
+            ) : (
+              <div className="space-y-3">
+                {documents.map((doc) => (
+                  <div key={doc.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <FileText className="w-5 h-5 text-primary mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="font-medium">{doc.title}</p>
+                        <p className="text-sm text-muted-foreground">{employeeName[doc.employee_id] || "Colaborador"} · {doc.document_type}</p>
+                        {doc.description && <p className="text-sm mt-1">{doc.description}</p>}
+                        {doc.expires_at && <Badge variant="outline" className="mt-2">Validade: {new Date(doc.expires_at + "T00:00:00").toLocaleDateString("pt-BR")}</Badge>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {doc.file_path && <Button variant="outline" size="sm" onClick={() => download(doc)}><Download className="w-4 h-4 mr-2" />Abrir</Button>}
+                      <Button variant="ghost" size="sm" onClick={() => removeDocument(doc)}><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </BusinessLayout>
+  );
+}
