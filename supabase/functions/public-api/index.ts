@@ -758,16 +758,29 @@ const listBookingsForClient: Handler = async (ctx, req, { clientId }) => {
 const listPaymentMethods: Handler = async (ctx) => {
   const { data, error } = await ctx.sb
     .from("company_payment_settings")
-    .select("accepts_pix, accepts_credit_card, accepts_debit_card, accepts_cash, payout_flow")
+    .select("payment_mode, accepted_methods, own_gateway_provider, payout_flow")
     .eq("company_id", ctx.companyId)
     .maybeSingle();
+
   if (error) return err(error.message, 500);
-  const methods: string[] = [];
-  if (data?.accepts_pix) methods.push("pix");
-  if (data?.accepts_credit_card) methods.push("credit_card");
-  if (data?.accepts_debit_card) methods.push("debit_card");
-  if (data?.accepts_cash) methods.push("cash");
-  return json({ methods, payout_flow: data?.payout_flow ?? "via_company" });
+
+  const acceptedMethods =
+    data?.accepted_methods &&
+    typeof data.accepted_methods === "object" &&
+    !Array.isArray(data.accepted_methods)
+      ? data.accepted_methods as Record<string, unknown>
+      : {};
+
+  const methods = Object.entries(acceptedMethods)
+    .filter(([, enabled]) => enabled === true)
+    .map(([method]) => method);
+
+  return json({
+    payment_mode: data?.payment_mode ?? "none",
+    provider: data?.own_gateway_provider ?? null,
+    methods,
+    payout_flow: data?.payout_flow ?? "via_company",
+  });
 };
 
 const createPayment: Handler = async (ctx, req) => {
