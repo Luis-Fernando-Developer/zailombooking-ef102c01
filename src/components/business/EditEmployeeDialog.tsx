@@ -84,8 +84,11 @@ export function EditEmployeeDialog({ employee, companyId, open, onOpenChange, on
       if (employeeError) throw employeeError;
       const { error: deleteError } = await supabase.from('employee_services').delete().eq('employee_id', employee.id); if (deleteError) throw deleteError;
       if (formData.services.length > 0) { const serviceInserts = formData.services.map(serviceId => ({ employee_id: employee.id, service_id: serviceId })); const { error: servicesError } = await supabase.from('employee_services').insert(serviceInserts); if (servicesError) throw servicesError; }
-      const { error: deletePermissionsError } = await supabase.from('employee_permissions').delete().eq('employee_id', employee.id); if (deletePermissionsError) throw deletePermissionsError;
-      if (selectedPermissions.length > 0) { const permissionInserts = selectedPermissions.map(permissionId => ({ employee_id: employee.id, permission_id: permissionId })); const { error: permissionsError } = await supabase.from('employee_permissions').insert(permissionInserts); if (permissionsError) throw permissionsError; }
+      const { error: permissionsError } = await supabase.rpc('update_employee_permissions', {
+        p_target_employee_id: employee.id,
+        p_permission_ids: selectedPermissions,
+      });
+      if (permissionsError) throw permissionsError;
       toast({ title: "Colaborador atualizado", description: "Os dados do colaborador foram atualizados com sucesso." }); onOpenChange(false); onEmployeeUpdated();
     } catch (error: any) { console.error('Error updating employee:', error); toast({ title: "Erro", description: "Não foi possível atualizar o colaborador.", variant: "destructive" }); } finally { setLoading(false); }
   };
