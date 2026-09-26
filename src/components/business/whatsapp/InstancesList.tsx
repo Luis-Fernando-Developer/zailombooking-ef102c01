@@ -173,7 +173,17 @@ export function InstancesList({ companyId }: { companyId: string }) {
     setLimits((limitsRes.data as PlanLimits | null) ?? null);
     setLoading(false);
   };
-  useEffect(() => { load(); }, [companyId]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await load();
+      if (cancelled) return;
+      // Reconcile the local status with wa-service once when the panel opens.
+      await call({ action: "refresh-status" }).catch(() => undefined);
+      if (!cancelled) await load();
+    })();
+    return () => { cancelled = true; };
+  }, [companyId]);
 
   const saveRouting = async (value: Pref) => {
     setRoutingSaving(true);
