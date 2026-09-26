@@ -428,15 +428,17 @@ serve(async (req) => {
         const rawState =
           (b?.status as string | undefined) ??
           (b?.state as string | undefined) ??
+          (b?.connectionStatus as string | undefined) ??
           ((b?.instance as Record<string, unknown> | undefined)?.status as string | undefined) ??
           ((b?.instance as Record<string, unknown> | undefined)?.state as string | undefined) ??
+          ((b?.instance as Record<string, unknown> | undefined)?.connectionStatus as string | undefined) ??
           "unknown";
-        const state = String(rawState).toLowerCase();
+        const state = String(rawState).trim().toLowerCase();
         const mapped =
-          ["open", "connected", "online"].includes(state)         ? "connected"
-          : ["close", "disconnected", "offline"].includes(state)  ? "disconnected"
-          : ["connecting", "pairing"].includes(state)             ? "connecting"
-          : ["qrcode", "qr"].includes(state)                      ? "qrcode"
+          ["open", "connected", "online", "open_connection", "connection_open"].includes(state) ? "connected"
+          : ["close", "closed", "disconnected", "offline", "connection_closed"].includes(state) ? "disconnected"
+          : ["connecting", "pairing", "connecting...", "connection_pending"].includes(state) ? "connecting"
+          : ["qrcode", "qr", "qr_code", "waiting_qr"].includes(state) ? "qrcode"
           : "unknown";
 
         // Deep-scan any string field that looks like a phone / jid.
