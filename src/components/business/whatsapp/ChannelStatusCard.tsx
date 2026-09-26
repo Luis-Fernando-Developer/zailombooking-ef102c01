@@ -16,6 +16,12 @@ interface CompanyChannelRow {
   whatsapp_channel_preference: Pref | null;
 }
 
+interface InstanceChannelRow {
+  channel_preference: Pref | null;
+  status: string;
+  is_default: boolean;
+}
+
 const prefLabel: Record<Pref, string> = {
   auto: "Automático — Chatbot Zailom primeiro, API WhatsApp como fallback",
   flow_only: "Somente Chatbot Zailom",
@@ -44,12 +50,22 @@ export function ChannelStatusCard({ companyId }: Props) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: comp }, { data: channel }] = await Promise.all([
+    const [{ data: comp }, { data: instances }, { data: channel }] = await Promise.all([
       supabase.from("companies").select("whatsapp_channel_preference").eq("id", companyId).maybeSingle(),
+      supabase.from("whatsapp_instances")
+        .select("channel_preference,status,is_default")
+        .eq("company_id", companyId)
+        .eq("status", "connected")
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: true })
+        .limit(1),
       supabase.rpc("resolve_whatsapp_channel", { p_company: companyId }),
     ]);
     const company = comp as CompanyChannelRow | null;
-    setPref(isPref(company?.whatsapp_channel_preference) ? company.whatsapp_channel_preference : "auto");
+    const instance = (instances?.[0] ?? null) as InstanceChannelRow | null;
+    const companyPref = isPref(company?.whatsapp_channel_preference) ? company.whatsapp_channel_preference : "auto";
+    const effectivePref = isPref(instance?.channel_preference) ? instance.channel_preference : companyPref;
+    setPref(effectivePref);
     setActive(isActiveChannel(channel) ? channel : "none");
     setLoading(false);
   };
