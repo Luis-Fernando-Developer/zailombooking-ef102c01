@@ -507,7 +507,52 @@ serve(async (req) => {
       if (!message) return json({ error: "message_required" }, 400);
       if (recipients.length === 0) return json({ error: "no_recipients" }, 400);
 
-      // Resolve via RPC (respeita canal do painel)
+      // Sincroniza o estado remoto antes de resolver a rota. Isso evita que
+      // uma conexão já autenticada no WhatsApp permaneça localmente como
+      // "connecting" e seja descartada pelo disparo.
+      const cred = await ensure();
+      if ("errorResp" in cred) return cred.errorResp;
+      const { data: statusRows } = await supabase.from("whatsapp_instances")
+        .select("id, wa_instance_id")
+        .eq("company_id", company_id);
+      for (const row of (statusRows ?? []) as { id: string; wa_instance_id: string | null }[]) {
+        if (!row.wa_instance_id) continue;
+        try {
+          const sync = await waFetch(
+            cred.apiKey,
+            `/v1/instances/${row.wa_instance_id}/refresh-status`,
+            { method: "POST" },
+          );
+          if (!sync.ok) continue;
+          const sb = sync.body as Record<string, unknown> | null;
+          const raw = String(
+            sb?.status ??
+            sb?.state ??
+            sb?.connectionStatus ??
+            ((sb?.instance as Record<string, unknown> | undefined)?.status ?? "") ??
+            ((sb?.instance as Record<string, unknown> | undefined)?.state ?? "") ??
+            "",
+          ).trim().toLowerCase();
+          const status =
+            ["open", "connected", "online"].includes(raw) ? "connected" :
+            ["close", "closed", "disconnected", "offline"].includes(raw) ? "disconnected" :
+            ["connecting", "pairing"].includes(raw) ? "connecting" :
+            ["qrcode", "qr", "qr_code"].includes(raw) ? "qrcode" :
+            null;
+          if (status) {
+            await supabase.from("whatsapp_instances")
+              .update({
+                status,
+                last_synced_at: new Date().toISOString(),
+              })
+              .eq("id", row.id);
+          }
+        } catch {
+          // O disparo continua; a consulta abaixo usa o último estado conhecido.
+        }
+      }
+
+      // Resolve via RPC somente depois da sincronização.
       const { data: channel } = await supabase.rpc("resolve_whatsapp_channel", { p_company: company_id });
       if (!channel || channel === "none") return json({ error: "channel_disabled" }, 400);
 
