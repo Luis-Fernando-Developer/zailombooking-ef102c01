@@ -117,6 +117,40 @@ serve(async (req) => {
       if (!holdClient) throw new Error('Reserva temporária não pertence ao cliente autenticado.');
     }
 
+    // O checkout web envia payer explicitamente. O Agent/API pode enviar apenas
+    // booking_id; nesse caso, resolve os dados do pagador pelo cliente do agendamento.
+    let resolvedPayer = payer && typeof payer === 'object' ? { ...payer } : {}
+    const payerClientId = booking?.client_id ?? bookingData?.client_id ?? null
+    if (payerClientId) {
+      const { data: clientRow } = await supabaseClient
+        .from('clients')
+        .select('id,name,email,phone,cpf')
+        .eq('id', payerClientId)
+        .eq('company_id', companyId)
+        .maybeSingle()
+
+      if (clientRow) {
+        resolvedPayer = {
+          name: resolvedPayer.name || clientRow.name || 'Cliente',
+          email: resolvedPayer.email || clientRow.email || undefined,
+          phone: resolvedPayer.phone || clientRow.phone || undefined,
+          cpf_cnpj: resolvedPayer.cpf_cnpj || clientRow.cpf || undefined,
+        }
+      }
+    }
+    const paymentMethod = String(method || 'PIX').trim().toUpperCase()
+    const normalizedMethod = paymentMethod === 'PIX' ? 'PIX'
+      : paymentMethod === 'CREDIT_CARD' ? 'CREDIT_CARD'
+      : paymentMethod === 'DEBIT_CARD' ? 'DEBIT_CARD'
+      : paymentMethod === 'BOLETO' ? 'BOLETO'
+      : paymentMethod
+
+    // A cobrança precisa de um cliente identificável no gateway. Se o Agent
+    // não enviou payer, não falha com TypeError: usa o cliente do booking.
+    if (!resolvedPayer.name && !resolvedPayer.email && !resolvedPayer.phone && !resolvedPayer.cpf_cnpj) {
+      throw new Error('Dados do cliente não encontrados para gerar o pagamento.')
+    }
+
     // 3. Buscar configurações de pagamento
     const { data: settings, error: sErr } = await supabaseClient
       .from('company_payment_settings')
@@ -221,8 +255,8 @@ serve(async (req) => {
 
     // A) Cliente
     const urlParams = new URLSearchParams()
-    if (payer.cpf_cnpj) urlParams.append('cpfCnpj', payer.cpf_cnpj)
-    else if (payer.email) urlParams.append('email', payer.email)
+    if (resolvedPayer.cpf_cnpj) urlParams.append('cpfCnpj', resolvedPayer.cpf_cnpj)
+    else if (resolvedPayer.email) urlParams.append('email', resolvedPayer.email)
     
     let customerId
     const customers = await asaasFetch(`${baseUrl}/customers?${urlParams.toString()}`, {
@@ -238,17 +272,17 @@ serve(async (req) => {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
-          name: payer.name || 'Cliente',
-          email: payer.email,
-          phone: payer.phone,
-          cpfCnpj: payer.cpf_cnpj
+          name: resolvedPayer.name || 'Cliente',
+          email: resolvedPayer.email,
+          phone: resolvedPayer.phone,
+          cpfCnpj: resolvedPayer.cpf_cnpj
         })
       })
       customerId = newCustomer.id
     }
 
     // B) Pagamento
-    const billingType = method === 'PIX' ? 'PIX' : (method === 'CREDIT_CARD' ? 'CREDIT_CARD' : (method === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
+    const billingType = normalizedMethod === 'PIX' ? 'PIX' : (normalizedMethod === 'CREDIT_CARD' ? 'CREDIT_CARD' : (normalizedMethod === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
     
     const bookingAmount = Number(booking?.total_price ?? booking?.price ?? bookingData?.price ?? 0)
     const amount = Number(bodyAmount || bookingAmount || 0)
