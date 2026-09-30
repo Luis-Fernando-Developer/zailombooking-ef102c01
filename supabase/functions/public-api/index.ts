@@ -335,7 +335,7 @@ const listServices: Handler = async (ctx) => {
 
   const { data: combos, error: combosError } = await ctx.sb
     .from("service_combos")
-    .select("id, name, description, combo_price, original_total_price, total_duration_minutes, is_active, image_url, items:service_combo_items(*)")
+    .select("id, name, description, price, original_total_price, total_duration_minutes, is_active, image_url, items:service_combo_items(*)")
     .eq("company_id", ctx.companyId)
     .eq("is_active", true)
     .order("name");
@@ -353,7 +353,7 @@ const listServices: Handler = async (ctx) => {
     combo_id: combo.id,
     name: combo.name,
     description: combo.description ?? null,
-    price: combo.combo_price ?? 0,
+    price: combo.price ?? 0,
     original_total_price: combo.original_total_price ?? null,
     duration_minutes: combo.total_duration_minutes ?? 0,
     is_active: combo.is_active,
