@@ -207,8 +207,8 @@ export function usePermissions(companyId?: string, user?: User | null) {
   }, [fetchPermissions]);
 
   const hasPermission = useCallback(
-    (code: string) => permissionCodes.has(code),
-    [permissionCodes]
+    (code: string) => userRole === 'owner' || permissionCodes.has(code),
+    [permissionCodes, userRole]
   );
 
   return {
