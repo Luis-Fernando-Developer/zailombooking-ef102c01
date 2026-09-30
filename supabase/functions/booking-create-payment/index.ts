@@ -31,8 +31,16 @@ serve(async (req) => {
       })
     }
 
-    const { data: authData, error: authError } = await supabaseClient.auth.getUser(jwt)
-    if (authError || !authData?.user) {
+    const isTrustedInternalCall = Boolean(
+      jwt &&
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') &&
+      jwt === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    )
+    const { data: authData, error: authError } = isTrustedInternalCall
+      ? { data: { user: null }, error: null }
+      : await supabaseClient.auth.getUser(jwt)
+
+    if (!isTrustedInternalCall && (authError || !authData?.user)) {
       console.error('[BOOKING_PAYMENT] Auth error:', authError?.message)
       return new Response(JSON.stringify({ error: 'Sessão inválida ou expirada.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -111,10 +119,21 @@ serve(async (req) => {
         .select('id')
         .eq('id', hold.client_id)
         .eq('company_id', companyId)
-        .eq('user_id', authData.user.id)
         .maybeSingle();
 
-      if (!holdClient) throw new Error('Reserva temporária não pertence ao cliente autenticado.');
+      if (!isTrustedInternalCall) {
+        // Em chamadas diretas do navegador, o hold precisa pertencer ao usuário autenticado.
+        const { data: authenticatedHoldClient } = await supabaseClient
+          .from('clients')
+          .select('id')
+          .eq('id', hold.client_id)
+          .eq('company_id', companyId)
+          .eq('user_id', authData.user.id)
+          .maybeSingle();
+        if (!authenticatedHoldClient) throw new Error('Reserva temporária não pertence ao cliente autenticado.');
+      } else if (!holdClient) {
+        throw new Error('Cliente da reserva temporária não encontrado.');
+      }
     }
 
     // O checkout web envia payer explicitamente. O Agent/API pode enviar apenas
