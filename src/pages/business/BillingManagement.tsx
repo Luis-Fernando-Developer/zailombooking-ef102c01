@@ -148,7 +148,8 @@ export default function BillingManagement() {
     useState<string>("monthly");
   const [busy, setBusy] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
-  const { hasPermission, loading: permissionsLoading } = usePermissions(company?.id, authUser);
+  const { hasPermission, userRole, loading: permissionsLoading } = usePermissions(company?.id, authUser);
+  const canManageSubscription = userRole === "owner" || hasPermission("subscription.manage");
 
   const [pixInvoice, setPixInvoice] =
     useState<Invoice | null>(null);
@@ -489,7 +490,7 @@ export default function BillingManagement() {
   }
 
   async function handleChangePlan() {
-    if (!hasPermission("subscription.manage")) return;
+    if (!canManageSubscription) return;
     if (!subscription || !selectedPlan) return;
 
     setBusy(true);
@@ -584,7 +585,7 @@ export default function BillingManagement() {
   }
 
   async function handleSetMethodPix() {
-    if (!hasPermission("subscription.manage")) return;
+    if (!canManageSubscription) return;
     if (!company) return;
 
     setBusy(true);
@@ -686,7 +687,7 @@ export default function BillingManagement() {
     );
   }
 
-  if (!hasPermission("subscription.view") && !hasPermission("subscription.manage")) {
+  if (userRole !== "owner" && !hasPermission("subscription.view") && !canManageSubscription) {
     return (
       <BusinessLayout companySlug={slug || ""} companyName={company?.name || "Acesso Negado"} companyId={company?.id || ""} userRole="unauthorized">
         <div className="flex items-center justify-center h-64 text-center">
