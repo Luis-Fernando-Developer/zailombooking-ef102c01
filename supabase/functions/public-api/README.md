@@ -82,7 +82,8 @@ A mesma lógica usada pela interface web.
 | Método | Rota | Descrição |
 | --- | --- | --- |
 | GET | `/clients?phone=` | Busca por WhatsApp/telefone |
-| POST | `/clients` | Cria ou atualiza (upsert por telefone) |
+| POST | `/clients` | Cria cliente (retorna 409 se o telefone já existir) |
+| PATCH | `/clients/:clientId` | Atualiza cliente existente (não cria) |
 | GET | `/clients/:clientId/bookings?scope=upcoming\|past\|all` | Histórico / próximos |
 
 ### Agendamentos
