@@ -69,7 +69,7 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
     pix_key: "",
     payout_rule: "per_service",
     payout_interval_days: 7,
-    is_active: true,
+    is_active: false,
   });
   const [resolvedFlow, setResolvedFlow] = useState<"via_company" | "direct_to_autonomous">("via_company");
 
@@ -171,6 +171,25 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border bg-primary/5 p-4">
+            <div className="space-y-1">
+              <Label>Ativar conta de recebimento autônomo</Label>
+              <p className="text-xs text-muted-foreground">
+                Ative somente se este perfil também receber pagamentos como profissional autônomo.
+              </p>
+            </div>
+            <Switch
+              checked={settings.is_active}
+              onCheckedChange={(checked) => setSettings({ ...settings, is_active: checked })}
+            />
+          </div>
+
+          {!settings.is_active ? (
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+              Conta de recebimento autônomo desativada. Nenhum repasse será enviado para esta conta.
+            </div>
+          ) : (
+          <>
           <div className="rounded-lg border bg-muted/40 p-3 text-sm">
             <div className="font-medium mb-1">Fluxo de repasse acordado com a empresa</div>
             <p className="text-xs text-muted-foreground">
@@ -264,6 +283,9 @@ export function AutonomousPayoutSettings({ employeeId, companyId }: Props) {
               Abrir painel {info.label} <ExternalLink className="w-3 h-3" />
             </a>
           </div>
+
+          </>
+          )}
 
           <div className="flex justify-end">
             <Button onClick={save} disabled={saving}>
