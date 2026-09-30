@@ -576,37 +576,79 @@ const findClientByPhone: Handler = async (ctx, req) => {
   return json({ data: data ?? null });
 };
 
-const upsertClient: Handler = async (ctx, req) => {
+const createClient: Handler = async (ctx, req) => {
   const body = await req.json().catch(() => ({}));
   const name = String(body.name ?? "").trim();
   const phone = normalizePhone(body.phone ?? "");
   const email = body.email ? String(body.email).trim().toLowerCase() : null;
   if (!name || !phone) return err("name and phone are required", 400);
 
-  const { data: existing } = await ctx.sb
+  const { data: existing, error: existingError } = await ctx.sb
     .from("clients")
     .select("id")
     .eq("company_id", ctx.companyId)
-    .ilike("phone", `%${phone}%`)
+    .ilike("phone", phone)
     .maybeSingle();
 
-  if (existing?.id) {
-    const { data, error } = await ctx.sb
-      .from("clients")
-      .update({ name, phone, ...(email ? { email } : {}) })
-      .eq("id", existing.id)
-      .select("id, name, email, phone")
-      .single();
-    if (error) return err(error.message, 500);
-    return json({ data, created: false });
-  }
+  if (existingError) return err(existingError.message, 500);
+  if (existing?.id) return err("Client already exists for this phone", 409, { client_id: existing.id });
+
   const { data, error } = await ctx.sb
     .from("clients")
     .insert({ company_id: ctx.companyId, name, phone, email })
     .select("id, name, email, phone")
     .single();
   if (error) return err(error.message, 500);
-  return json({ data, created: true }, 201);
+  return json({ data }, 201);
+};
+
+const updateClient: Handler = async (ctx, req, { clientId }) => {
+  const body = await req.json().catch(() => ({}));
+  const updates: Record<string, unknown> = {};
+
+  if (body.name !== undefined) {
+    const name = String(body.name ?? "").trim();
+    if (!name) return err("name cannot be empty", 400);
+    updates.name = name;
+  }
+
+  if (body.phone !== undefined) {
+    const phone = normalizePhone(body.phone ?? "");
+    if (!phone) return err("phone cannot be empty", 400);
+
+    const { data: duplicate, error: duplicateError } = await ctx.sb
+      .from("clients")
+      .select("id")
+      .eq("company_id", ctx.companyId)
+      .ilike("phone", phone)
+      .neq("id", clientId)
+      .maybeSingle();
+
+    if (duplicateError) return err(duplicateError.message, 500);
+    if (duplicate?.id) return err("Another client already exists for this phone", 409, { client_id: duplicate.id });
+
+    updates.phone = phone;
+  }
+
+  if (body.email !== undefined) {
+    updates.email = body.email ? String(body.email).trim().toLowerCase() : null;
+  }
+
+  if (!Object.keys(updates).length) {
+    return err("At least one field is required: name, phone, email", 400);
+  }
+
+  const { data, error } = await ctx.sb
+    .from("clients")
+    .update(updates)
+    .eq("company_id", ctx.companyId)
+    .eq("id", clientId)
+    .select("id, name, email, phone")
+    .maybeSingle();
+
+  if (error) return err(error.message, 500);
+  if (!data) return err("Client not found", 404);
+  return json({ data });
 };
 
 // =============================================================================
@@ -944,7 +986,8 @@ const routes: Route[] = [
 
   // Clients
   { method: "GET",  pattern: "/v1/clients",                       scope: "read",  handler: findClientByPhone },
-  { method: "POST", pattern: "/v1/clients",                       scope: "write", handler: upsertClient },
+  { method: "POST",  pattern: "/v1/clients",                       scope: "write", handler: createClient },
+  { method: "PATCH", pattern: "/v1/clients/:clientId",                  scope: "write", handler: updateClient },
   { method: "GET",  pattern: "/v1/clients/:clientId/bookings",    scope: "read",  handler: listBookingsForClient },
 
   // Bookings
