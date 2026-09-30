@@ -81,7 +81,17 @@ export async function checkEmployeePermission(
     };
   }
 
-  if (employee.role === 'owner' || employee.role === 'admin') {
+  if (employee.role === 'owner') {
+    return {
+      allowed: true,
+      userId,
+      companyId,
+      employeeId: employee.id,
+      role: employee.role,
+    };
+  }
+
+  if (employee.role === 'admin') {
     const { data: permission, error: permissionError } = await supabase
       .from('permissions')
       .select('code')
