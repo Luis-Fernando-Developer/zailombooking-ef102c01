@@ -186,6 +186,24 @@ export function RewardsConfig({
       return;
     }
 
+    if (formData.count_specific_service && !formData.specific_service_id) {
+      toast({
+        title: "Erro",
+        description: "Selecione o serviço que será contado para este brinde.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.reward_service_ids.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Selecione pelo menos um serviço que será dado como brinde.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const rewardData = {
         company_id: companyId,
@@ -240,11 +258,11 @@ export function RewardsConfig({
 
       setDialogOpen(false);
       fetchData();
-    } catch (error) {
-      console.error('Error saving reward:', error);
+    } catch (error: any) {
+      console.error("[RewardsConfig] Error saving reward:", error);
       toast({
-        title: "Erro",
-        description: "Erro ao salvar brinde.",
+        title: "Erro ao salvar brinde",
+        description: error?.message || "Erro desconhecido ao salvar o brinde.",
         variant: "destructive",
       });
     }
