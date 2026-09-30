@@ -1060,11 +1060,11 @@ const spec = {
             }
           },
           "409": {
-            "description": "Conflito (ex.: slot indisponível)",
+            "description": "Conflito (ex.: cliente já existente ou telefone em uso)",
             "content": {
               "application/json": {
                 "example": {
-                  "error": "slot_unavailable"
+                  "error": "Client already exists for this phone"
                 }
               }
             }
@@ -1093,9 +1093,9 @@ const spec = {
         "tags": [
           "Clientes"
         ],
-        "summary": "Criar/atualizar cliente",
-        "description": "Faz upsert por telefone. Ideal para o fluxo do WhatsApp.",
-        "operationId": "upsert_client",
+        "summary": "Criar cliente",
+        "description": "Cria um novo cliente. Se o telefone já estiver cadastrado, retorna conflito e não altera o cliente existente.",
+        "operationId": "create_client",
         "requestBody": {
           "required": true,
           "content": {
@@ -1137,6 +1137,20 @@ const spec = {
                   "id": "uuid",
                   "name": "Maria",
                   "phone": "5511999998888"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Cliente criado",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "id": "uuid",
+                    "name": "Maria",
+                    "phone": "5511999998888"
+                  }
                 }
               }
             }
@@ -1183,11 +1197,11 @@ const spec = {
             }
           },
           "409": {
-            "description": "Conflito (ex.: slot indisponível)",
+            "description": "Conflito (ex.: cliente já existente ou telefone em uso)",
             "content": {
               "application/json": {
                 "example": {
-                  "error": "slot_unavailable"
+                  "error": "Client already exists for this phone"
                 }
               }
             }
@@ -1212,6 +1226,142 @@ const spec = {
           }
         ]
       }
+    },
+    "/clients/{clientId}": {
+      "tags": [
+        "Clientes"
+      ],
+      "summary": "Atualizar cliente",
+      "description": "Atualiza um cliente existente. Não cria cliente novo.",
+      "operationId": "update_client",
+      "parameters": [
+        {
+          "name": "clientId",
+          "in": "path",
+          "required": true,
+          "description": "ID do cliente",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Novo nome"
+                },
+                "phone": {
+                  "type": "string",
+                  "description": "Novo telefone/WhatsApp"
+                },
+                "email": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Novo e-mail; envie null para remover"
+                }
+              }
+            },
+            "example": {
+              "name": "Maria Silva",
+              "phone": "5511999998888"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Sucesso",
+          "content": {
+            "application/json": {
+              "example": {
+                "data": {
+                  "id": "uuid",
+                  "name": "Maria Silva",
+                  "phone": "5511999998888"
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Requisição inválida",
+          "content": {
+            "application/json": {
+              "example": {
+                "error": "invalid_request",
+                "message": "At least one field is required: name, phone, email"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "API key ausente/ inválida",
+          "content": {
+            "application/json": {
+              "example": {
+                "error": "unauthorized"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Escopo insuficiente",
+          "content": {
+            "application/json": {
+              "example": {
+                "error": "forbidden"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Recurso não encontrado",
+          "content": {
+            "application/json": {
+              "example": {
+                "error": "Client not found"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflito (ex.: telefone em uso)",
+          "content": {
+            "application/json": {
+              "example": {
+                "error": "Another client already exists for this phone"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Erro interno",
+          "content": {
+            "application/json": {
+              "example": {
+                "error": "internal_error"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "ApiKeyAuth": []
+        },
+        {
+          "BearerAuth": []
+        }
+      ]
     },
     "/clients/{clientId}/bookings": {
       "get": {
