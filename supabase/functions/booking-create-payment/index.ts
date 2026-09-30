@@ -128,7 +128,7 @@ serve(async (req) => {
           .select('id')
           .eq('id', hold.client_id)
           .eq('company_id', companyId)
-          .eq('user_id', authData.user.id)
+          .eq('user_id', authData?.user?.id ?? '')
           .maybeSingle();
         if (!authenticatedHoldClient) throw new Error('Reserva temporária não pertence ao cliente autenticado.');
       } else if (!holdClient) {
