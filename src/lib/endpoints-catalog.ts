@@ -154,12 +154,12 @@ export const ENDPOINTS: Endpoint[] = [
     responseExample: { id: "uuid", name: "Maria", phone: "5511999998888" },
   },
   {
-    id: "upsert-client",
+    id: "create-client",
     group: "Clientes",
     method: "POST",
     path: "/clients",
-    title: "Criar/atualizar cliente",
-    description: "Faz upsert por telefone. Ideal para o fluxo do WhatsApp.",
+    title: "Criar cliente",
+    description: "Cria um novo cliente. Se o telefone já estiver cadastrado, retorna conflito e não altera o cliente existente.",
     params: [
       { name: "name", type: "string", location: "body", required: true, description: "Nome do cliente" },
       { name: "phone", type: "string", location: "body", required: true, description: "Telefone/WhatsApp" },
@@ -167,6 +167,22 @@ export const ENDPOINTS: Endpoint[] = [
     ],
     bodyExample: { name: "Maria", phone: "5511999998888" },
     responseExample: { id: "uuid", name: "Maria", phone: "5511999998888" },
+  },
+  {
+    id: "update-client",
+    group: "Clientes",
+    method: "PATCH",
+    path: "/clients/:clientId",
+    title: "Atualizar cliente",
+    description: "Atualiza um cliente existente. Não cria cliente novo.",
+    params: [
+      { name: "clientId", type: "uuid", location: "path", required: true, description: "ID do cliente" },
+      { name: "name", type: "string", location: "body", description: "Novo nome" },
+      { name: "phone", type: "string", location: "body", description: "Novo telefone/WhatsApp" },
+      { name: "email", type: "string", location: "body", description: "Novo e-mail; envie null para remover" },
+    ],
+    bodyExample: { name: "Maria Silva", phone: "5511999998888" },
+    responseExample: { id: "uuid", name: "Maria Silva", phone: "5511999998888" },
   },
   {
     id: "client-bookings",
