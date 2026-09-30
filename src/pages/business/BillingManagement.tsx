@@ -194,6 +194,16 @@ export default function BillingManagement() {
     setLoading(true);
 
     try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError) throw authError;
+      if (!user) throw new Error("Usuário não autenticado.");
+
+      setAuthUser(user);
+
       const { data: comp } = await supabase
         .from("companies")
         .select("*")
