@@ -29,9 +29,11 @@ export type { Endpoint, Param };
 
 const GROUPS = Array.from(new Set(ENDPOINTS.map((e) => e.group)));
 
-// Slug used in the URL for an endpoint. Ex.: "/services/:id" -> "v1/services/:id"
+// Slug used in the URL for an endpoint. The HTTP method is part of the slug
+// because different methods can share the same path (ex.: GET/POST /clients).
+// Ex.: GET /services/:id -> "get/v1/services/:id"
 function endpointSlug(e: Endpoint) {
-  return `v1${e.path}`;
+  return `${e.method.toLowerCase()}/v1${e.path}`;
 }
 function findEndpointBySlug(slug: string): Endpoint | undefined {
   const norm = slug.replace(/^\/+|\/+$/g, "");
@@ -811,7 +813,7 @@ x-api-key: zlm_XXXXXXXXXXXXXXXX`}
             Consulte <code>/availability/slots</code> para o dia escolhido e
             deixe o usuário selecionar o horário.
           </li>
-          <li>Faça upsert do cliente pelo telefone com <code>POST /clients</code>.</li>
+          <li>Consulte o cliente pelo telefone e, se necessário, use <code>POST /clients</code> para criar ou <code>PATCH /clients/:clientId</code> para atualizar.</li>
           <li>
             Reconsulte <code>/availability/slots</code> imediatamente antes de
             confirmar (os slots podem ficar stale em segundos) e então chame{" "}
