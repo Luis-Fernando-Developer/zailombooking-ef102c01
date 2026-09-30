@@ -266,6 +266,7 @@ export default function ApiDocs() {
                         {ENDPOINTS.filter((e) => e.group === g).map((e) => (
                           <li key={e.id}>
                             <NavLink
+                              end
                               to={`/api-docs/endpoint/${endpointSlug(e)}`}
                               onClick={() => setResult(null)}
                               className={({ isActive }) =>
@@ -373,6 +374,7 @@ export default function ApiDocs() {
                 {ENDPOINTS.filter((e) => e.group === g).map((e) => (
                   <li key={e.id}>
                     <NavLink
+                      end
                       to={`/api-docs/endpoint/${endpointSlug(e)}`}
                       onClick={() => setResult(null)}
                       className={({ isActive }) =>
