@@ -324,14 +324,46 @@ function match(pattern: string, path: string): Record<string, string> | null {
 // =============================================================================
 
 const listServices: Handler = async (ctx) => {
-  const { data, error } = await ctx.sb
+  const { data: services, error: servicesError } = await ctx.sb
     .from("services")
     .select("id, name, description, price, duration_minutes, is_active, image_url")
     .eq("company_id", ctx.companyId)
     .eq("is_active", true)
     .order("name");
-  if (error) return err(error.message, 500);
-  return json({ data });
+
+  if (servicesError) return err(servicesError.message, 500);
+
+  const { data: combos, error: combosError } = await ctx.sb
+    .from("service_combos")
+    .select("id, name, description, combo_price, original_total_price, total_duration_minutes, is_active, image_url, items:service_combo_items(*)")
+    .eq("company_id", ctx.companyId)
+    .eq("is_active", true)
+    .order("name");
+
+  if (combosError) return err(combosError.message, 500);
+
+  const serviceData = (services ?? []).map((service) => ({
+    ...service,
+    type: "service",
+    service_type: "service",
+  }));
+
+  const comboData = (combos ?? []).map((combo: any) => ({
+    id: `combo:${combo.id}`,
+    combo_id: combo.id,
+    name: combo.name,
+    description: combo.description ?? null,
+    price: combo.combo_price ?? 0,
+    original_total_price: combo.original_total_price ?? null,
+    duration_minutes: combo.total_duration_minutes ?? 0,
+    is_active: combo.is_active,
+    image_url: combo.image_url ?? null,
+    type: "combo",
+    service_type: "combo",
+    items: combo.items ?? [],
+  }));
+
+  return json({ data: [...serviceData, ...comboData] });
 };
 
 const getService: Handler = async (ctx, _req, { id }) => {
