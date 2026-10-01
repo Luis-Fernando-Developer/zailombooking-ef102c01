@@ -24,18 +24,23 @@ serve(async (req) => {
     // então a autenticação do POST é validada aqui.
     const authHeader = req.headers.get('Authorization') ?? ''
     const jwt = authHeader.replace(/^Bearer\s+/i, '').trim()
-    if (!jwt) {
+    const apiKeyHeader = (req.headers.get('apikey') ?? '').trim()
+    const serviceRoleKey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
+
+    // public-api uses a service-role Supabase client to invoke this function.
+    // Depending on the Functions client/runtime, the service-role credential can
+    // arrive as apikey instead of Authorization. Trust only the exact secret.
+    const isTrustedInternalCall = Boolean(
+      serviceRoleKey &&
+      ((jwt && jwt === serviceRoleKey) || (apiKeyHeader && apiKeyHeader === serviceRoleKey))
+    )
+
+    if (!jwt && !isTrustedInternalCall) {
       return new Response(JSON.stringify({ error: 'Sessão não autenticada.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       })
     }
-
-    const isTrustedInternalCall = Boolean(
-      jwt &&
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') &&
-      jwt === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    )
     const { data: authData, error: authError } = isTrustedInternalCall
       ? { data: { user: null }, error: null }
       : await supabaseClient.auth.getUser(jwt)
