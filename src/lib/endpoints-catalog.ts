@@ -314,16 +314,6 @@ export const ENDPOINTS: Endpoint[] = [
     responseExample: ["pix", "credit_card", "cash"],
   },
   {
-    id: "payment-methods",
-    group: "Pagamentos",
-    method: "GET",
-    path: "/payments/methods",
-    title: "Formas de pagamento",
-    description: "Retorna as formas aceitas pela empresa.",
-    params: [],
-    responseExample: ["pix", "credit_card", "cash"],
-  },
-  {
     id: "create-payment",
     group: "Pagamentos",
     method: "POST",
