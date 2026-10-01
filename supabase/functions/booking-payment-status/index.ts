@@ -29,12 +29,17 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const serviceRoleKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "").trim();
+    const isTrustedInternalCall = Boolean(serviceRoleKey && jwt === serviceRoleKey);
+
     if (!jwt) return json({ error: "Sessão não autenticada." }, 401);
 
-    const { data: authData, error: authError } = await supabase.auth.getUser(jwt);
-    if (authError || !authData?.user) {
-      console.error("[BOOKING_STATUS] Auth error:", authError?.message);
-      return json({ error: "Sessão inválida ou expirada." }, 401);
+    if (!isTrustedInternalCall) {
+      const { data: authData, error: authError } = await supabase.auth.getUser(jwt);
+      if (authError || !authData?.user) {
+        console.error("[BOOKING_STATUS] Auth error:", authError?.message);
+        return json({ error: "Sessão inválida ou expirada." }, 401);
+      }
     }
 
     const body = await req.json().catch(() => ({}));
