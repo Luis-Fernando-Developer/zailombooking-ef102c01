@@ -825,6 +825,211 @@ const listBookingsForClient: Handler = async (ctx, req, { clientId }) => {
 };
 
 // =============================================================================
+// RESERVAS TEMPORÁRIAS (CHECKOUT ONLINE)
+// Usa a RPC canônica create_online_booking_hold. A API apenas normaliza
+// entrada/saída e mantém o isolamento por company da API key.
+// =============================================================================
+
+const createBookingHold: Handler = async (ctx, req) => {
+  const raw = await req.json().catch(() => ({}));
+  const b = unwrapBookingBody(raw);
+
+  const employee_id = String(b.employee_id ?? "").trim();
+  const service_id = b.service_id ? String(b.service_id) : null;
+  const client_id = String(b.client_id ?? "").trim();
+  const booking_date = getBookingDate(b);
+  const booking_time = getBookingClockTime(b);
+  const hold_minutes = Number(b.hold_minutes ?? b.holdMinutes ?? 10);
+
+  if (!employee_id || !client_id || !booking_date || !booking_time) {
+    return err(
+      "employee_id, client_id, booking_date/date (YYYY-MM-DD ou DD/MM/YYYY) e booking_time/time/horario (HH:mm) são obrigatórios",
+      400,
+    );
+  }
+
+  if (!Number.isInteger(hold_minutes) || hold_minutes < 1 || hold_minutes > 30) {
+    return err("hold_minutes deve ser um inteiro entre 1 e 30", 400);
+  }
+
+  const { data: client, error: clientError } = await ctx.sb
+    .from("clients")
+    .select("id")
+    .eq("company_id", ctx.companyId)
+    .eq("id", client_id)
+    .maybeSingle();
+  if (clientError) return err(clientError.message, 500);
+  if (!client) return err("Client not found", 404);
+
+  const { data: employee, error: employeeError } = await ctx.sb
+    .from("employees")
+    .select("id")
+    .eq("company_id", ctx.companyId)
+    .eq("id", employee_id)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (employeeError) return err(employeeError.message, 500);
+  if (!employee) return err("Employee not found", 404);
+
+  if (service_id) {
+    const { data: service, error: serviceError } = await ctx.sb
+      .from("services")
+      .select("id, duration_minutes")
+      .eq("company_id", ctx.companyId)
+      .eq("id", service_id)
+      .maybeSingle();
+    if (serviceError) return err(serviceError.message, 500);
+    if (!service) return err("Service not found", 404);
+  }
+
+  const { data: serviceRow } = service_id
+    ? await ctx.sb.from("services").select("duration_minutes").eq("company_id", ctx.companyId).eq("id", service_id).maybeSingle()
+    : { data: null };
+
+  const durationMinutes = Math.max(1, Number(serviceRow?.duration_minutes ?? b.duration_minutes ?? 60));
+  const start_time = b.start_time && String(b.start_time).includes("T")
+    ? String(b.start_time)
+    : `${booking_date}T${booking_time}:00-03:00`;
+  const end_time = b.end_time && String(b.end_time).includes("T")
+    ? String(b.end_time)
+    : new Date(new Date(start_time).getTime() + durationMinutes * 60000).toISOString();
+
+  const { data, error } = await ctx.sb.rpc("create_online_booking_hold", {
+    p_company_id: ctx.companyId,
+    p_employee_id: employee_id,
+    p_service_id: service_id,
+    p_client_id: client_id,
+    p_booking_date: booking_date,
+    p_booking_time: `${booking_time}:00`,
+    p_start_time: start_time,
+    p_end_time: end_time,
+    p_hold_minutes: hold_minutes,
+  });
+
+  if (error) {
+    const message = error.message || "Não foi possível reservar o horário.";
+    const status = error.details === "slot_already_held" || /acabou de ser reservado/i.test(message) ? 409 : 400;
+    return err(message, status, {
+      code: error.details === "slot_already_held" ? "slot_already_held" : "hold_creation_failed",
+    });
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.hold_id) return err("A API não recebeu o hold_id da reserva temporária.", 500);
+
+  return json({
+    data: {
+      hold_id: row.hold_id,
+      expires_at: row.expires_at,
+      status: "active",
+      booking_date,
+      booking_time,
+      employee_id,
+      service_id,
+      client_id,
+    },
+  }, 201);
+};
+
+const getBookingHold: Handler = async (ctx, _req, { id }) => {
+  const { data, error } = await ctx.sb
+    .from("booking_slot_holds")
+    .select("id, company_id, employee_id, service_id, client_id, booking_date, booking_time, start_time, end_time, status, expires_at, created_at, updated_at")
+    .eq("company_id", ctx.companyId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) return err(error.message, 500);
+  if (!data) return err("Booking hold not found", 404);
+
+  const expired = data.status === "active" && new Date(data.expires_at).getTime() <= Date.now();
+  if (expired) {
+    await ctx.sb.from("booking_slot_holds").update({ status: "expired", updated_at: new Date().toISOString() })
+      .eq("company_id", ctx.companyId).eq("id", id).eq("status", "active");
+    return json({ data: { ...data, status: "expired" } });
+  }
+
+  return json({ data });
+};
+
+const cancelBookingHold: Handler = async (ctx, _req, { id }) => {
+  const { data, error } = await ctx.sb
+    .from("booking_slot_holds")
+    .update({ status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("company_id", ctx.companyId)
+    .eq("id", id)
+    .eq("status", "active")
+    .select("id, status, expires_at, updated_at")
+    .maybeSingle();
+  if (error) return err(error.message, 500);
+  if (!data) return err("Active booking hold not found", 404);
+  return json({ data });
+};
+
+const completeBookingHold: Handler = async (ctx, req, { id }) => {
+  const body = await req.json().catch(() => ({}));
+  const payment_id = String(body.payment_id ?? body.paymentId ?? "").trim();
+  if (!payment_id) return err("payment_id is required", 400);
+
+  const { data: hold, error: holdError } = await ctx.sb
+    .from("booking_slot_holds")
+    .select("id, company_id, status, expires_at")
+    .eq("company_id", ctx.companyId)
+    .eq("id", id)
+    .maybeSingle();
+  if (holdError) return err(holdError.message, 500);
+  if (!hold) return err("Booking hold not found", 404);
+
+  const { data: payment, error: paymentError } = await ctx.sb
+    .from("booking_payments")
+    .select("id, asaas_id, booking_id, company_id, status")
+    .eq("company_id", ctx.companyId)
+    .eq("asaas_id", payment_id)
+    .maybeSingle();
+  if (paymentError) return err(paymentError.message, 500);
+  if (!payment) return err("Payment not found", 404);
+
+  if (payment.booking_id) {
+    const { data: booking } = await ctx.sb.from("bookings")
+      .select("id, booking_date, start_time, end_time, booking_status, payment_status")
+      .eq("company_id", ctx.companyId).eq("id", payment.booking_id).maybeSingle();
+    return json({ data: { booking_id: payment.booking_id, payment_id, already_completed: true, booking } });
+  }
+
+  if (!["confirmed", "paid", "received"].includes(String(payment.status).toLowerCase())) {
+    return err("Payment is not confirmed yet", 409, {
+      code: "payment_not_confirmed",
+      payment_status: payment.status,
+      hold_status: hold.status,
+      expires_at: hold.expires_at,
+    });
+  }
+
+  const { data: bookingId, error } = await ctx.sb.rpc("confirm_online_booking_payment", {
+    p_hold_id: id,
+    p_payment_id: payment_id,
+  });
+  if (error) {
+    const code = /tempo.*acabou|hold_expired/i.test(error.message) ? "hold_expired" : "booking_confirmation_failed";
+    return err(error.message, code === "hold_expired" ? 409 : 400, { code });
+  }
+
+  const { data: booking } = await ctx.sb.from("bookings")
+    .select("id, booking_date, start_time, end_time, duration_minutes, price, booking_status, payment_status, payment_method")
+    .eq("company_id", ctx.companyId).eq("id", bookingId).maybeSingle();
+
+  if (bookingId) fireBookingNotification(String(bookingId), "booking_confirmed");
+
+  return json({
+    data: {
+      booking_id: bookingId,
+      payment_id,
+      hold_id: id,
+      booking,
+    },
+  }, 201);
+};
+
+// =============================================================================
 // PAGAMENTOS — reaproveita a edge `booking-create-payment` já existente.
 // Aqui só padronizamos o contrato REST. Nada de regra local.
 // =============================================================================
@@ -904,13 +1109,33 @@ const createPayment: Handler = async (ctx, req) => {
 const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
   const { data, error } = await ctx.sb
     .from("booking_payments")
-    .select("id, booking_id, status, method, amount, external_id, created_at, paid_at")
+    .select("id, booking_id, company_id, status, method, amount, external_id, asaas_id, created_at, paid_at")
     .eq("company_id", ctx.companyId)
-    .eq("id", id)
+    .or(`id.eq.${id},asaas_id.eq.${id}`)
     .maybeSingle();
   if (error) return err(error.message, 500);
   if (!data) return err("Payment not found", 404);
-  return json({ data });
+
+  const gatewayId = data.asaas_id ?? id;
+  const { data: gateway, error: gatewayError } = await ctx.sb.functions.invoke("booking-payment-status", {
+    body: { payment_id: gatewayId },
+  });
+
+  if (gatewayError) {
+    return json({ data, gateway: null, gateway_error: gatewayError.message });
+  }
+
+  const { data: refreshed } = await ctx.sb
+    .from("booking_payments")
+    .select("id, booking_id, company_id, status, method, amount, external_id, asaas_id, created_at, paid_at")
+    .eq("company_id", ctx.companyId)
+    .eq("id", data.id)
+    .maybeSingle();
+
+  return json({
+    data: refreshed ?? data,
+    gateway: gateway ?? null,
+  });
 };
 
 const confirmPayment: Handler = async (ctx, _req, { id }) => {
@@ -1024,6 +1249,12 @@ const routes: Route[] = [
   { method: "POST",  pattern: "/v1/clients",                       scope: "write", handler: createClient },
   { method: "PATCH", pattern: "/v1/clients/:clientId",                  scope: "write", handler: updateClient },
   { method: "GET",  pattern: "/v1/clients/:clientId/bookings",    scope: "read",  handler: listBookingsForClient },
+
+  // Booking holds — checkout online
+  { method: "POST", pattern: "/v1/booking-holds",                scope: "write", handler: createBookingHold },
+  { method: "GET",  pattern: "/v1/booking-holds/:id",             scope: "read",  handler: getBookingHold },
+  { method: "POST", pattern: "/v1/booking-holds/:id/cancel",      scope: "write", handler: cancelBookingHold },
+  { method: "POST", pattern: "/v1/booking-holds/:id/complete",    scope: "write", handler: completeBookingHold },
 
   // Bookings
   { method: "POST", pattern: "/v1/bookings",                      scope: "write", handler: createBooking },
