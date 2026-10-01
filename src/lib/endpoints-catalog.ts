@@ -198,6 +198,45 @@ export const ENDPOINTS: Endpoint[] = [
     responseExample: [{ id: "uuid", booking_date: "2026-07-10", start_time: "14:00", status: "confirmed" }],
   },
 
+  // -------------------- Reservas temporárias --------------------
+  {
+    id: "create-booking-hold", group: "Reservas temporárias", method: "POST", path: "/booking-holds",
+    title: "Criar reserva temporária",
+    description: "Reserva temporariamente o horário escolhido antes do pagamento. O hold expira automaticamente se não for concluído.",
+    params: [
+      { name: "client_id", type: "uuid", location: "body", required: true, description: "ID do cliente" },
+      { name: "service_id", type: "uuid", location: "body", required: true, description: "ID do serviço" },
+      { name: "employee_id", type: "uuid", location: "body", required: true, description: "ID do colaborador" },
+      { name: "booking_date", type: "date", location: "body", required: true, description: "YYYY-MM-DD" },
+      { name: "booking_time", type: "time", location: "body", required: true, description: "HH:mm" },
+    ],
+    bodyExample: { client_id: "uuid", service_id: "uuid", employee_id: "uuid", booking_date: "2026-10-05", booking_time: "15:00" },
+    responseExample: { id: "hold_xxx", status: "active", expires_at: "2026-10-05T18:10:00.000Z", booking_date: "2026-10-05", booking_time: "15:00" },
+  },
+  {
+    id: "get-booking-hold", group: "Reservas temporárias", method: "GET", path: "/booking-holds/:id",
+    title: "Consultar reserva temporária",
+    description: "Consulta o estado da reserva temporária e identifica se ela ainda está ativa ou expirou.",
+    params: [{ name: "id", type: "uuid", location: "path", required: true, description: "ID da reserva temporária" }],
+    responseExample: { id: "hold_xxx", status: "active", expires_at: "2026-10-05T18:10:00.000Z" },
+  },
+  {
+    id: "cancel-booking-hold", group: "Reservas temporárias", method: "POST", path: "/booking-holds/:id/cancel",
+    title: "Cancelar reserva temporária", description: "Libera o horário reservado antes do pagamento ou conclusão do checkout.",
+    params: [{ name: "id", type: "uuid", location: "path", required: true, description: "ID da reserva temporária" }],
+    responseExample: { ok: true, status: "cancelled" },
+  },
+  {
+    id: "complete-booking-hold", group: "Reservas temporárias", method: "POST", path: "/booking-holds/:id/complete",
+    title: "Finalizar reserva temporária", description: "Conclui o checkout e transforma o hold em agendamento somente quando o pagamento informado está confirmado.",
+    params: [
+      { name: "id", type: "uuid", location: "path", required: true, description: "ID da reserva temporária" },
+      { name: "payment_id", type: "string", location: "body", required: true, description: "ID do pagamento confirmado" },
+    ],
+    bodyExample: { payment_id: "pay_xxx" },
+    responseExample: { booking_id: "uuid", hold_id: "hold_xxx", payment_id: "pay_xxx", status: "confirmed" },
+  },
+
   // -------------------- Agendamentos --------------------
   {
     id: "create-booking",
@@ -275,18 +314,41 @@ export const ENDPOINTS: Endpoint[] = [
     responseExample: ["pix", "credit_card", "cash"],
   },
   {
+    id: "payment-methods",
+    group: "Pagamentos",
+    method: "GET",
+    path: "/payments/methods",
+    title: "Formas de pagamento",
+    description: "Retorna as formas aceitas pela empresa.",
+    params: [],
+    responseExample: ["pix", "credit_card", "cash"],
+  },
+  {
     id: "create-payment",
     group: "Pagamentos",
     method: "POST",
     path: "/payments",
     title: "Gerar cobrança",
-    description: "Gera cobrança para um agendamento (Pix / link de cartão).",
+    description: "Gera uma cobrança para um agendamento existente ou para uma reserva temporária do checkout online. Para checkout com hold, envie hold_id em vez de booking_id.",
     params: [
-      { name: "booking_id", type: "uuid", location: "body", required: true, description: "ID do agendamento" },
+      { name: "booking_id", type: "uuid", location: "body", description: "ID do agendamento existente. Não envie junto com hold_id." },
+      { name: "hold_id", type: "uuid", location: "body", description: "ID da reserva temporária criada por POST /booking-holds. Não envie junto com booking_id." },
       { name: "method", type: "enum", location: "body", required: true, description: "pix | credit_card" },
     ],
-    bodyExample: { booking_id: "uuid", method: "pix" },
-    responseExample: { id: "uuid", qr_code: "00020126...", status: "pending" },
+    bodyExample: { hold_id: "uuid", method: "pix" },
+    responseExample: { id: "pay_xxx", method: "PIX", invoice_url: "https://sandbox.asaas.com/i/xxx", pix_qr_code: "data:image/png;base64,...", pix_payload: "00020126...", status: "pending" },
+  },
+  {
+    id: "get-payment",
+    group: "Pagamentos",
+    method: "GET",
+    path: "/payments/:id",
+    title: "Consultar pagamento",
+    description: "Consulta o pagamento local e atualiza seu status com o gateway quando necessário. O ID pode ser o ID interno do pagamento ou o ID da cobrança no gateway.",
+    params: [
+      { name: "id", type: "string", location: "path", required: true, description: "ID do pagamento ou identificador da cobrança no gateway" },
+    ],
+    responseExample: { id: "pay_xxx", status: "pending", gateway_status: "PENDING", method: "PIX" },
   },
 
   // -------------------- Notificações --------------------
