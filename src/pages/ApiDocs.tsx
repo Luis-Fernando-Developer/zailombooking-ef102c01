@@ -573,31 +573,48 @@ export default function ApiDocs() {
             </pre>
           </div>
 
-          {/* Request body */}
-          {endpoint.bodyExample && (
-            <div className="rounded-lg border border-border bg-background">
-              <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold">Corpo da requisição</span>
-                  <span className="text-[10px] text-muted-foreground">application/json — exemplo enviado no body</span>
-                </div>
-                <button
-                  onClick={() => copy(JSON.stringify(endpoint.bodyExample, null, 2), "req")}
-                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
-                  aria-label="Copiar corpo"
-                >
-                  {copied === "req" ? (
-                    <><Check className="h-3 w-3 text-emerald-400" /> copiado</>
-                  ) : (
-                    <><Copy className="h-3 w-3" /> copiar</>
-                  )}
-                </button>
+          {/* Request example */}
+          <div className="rounded-lg border border-border bg-background">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2">
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold">Exemplo de requisição</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {endpoint.params.some((p) => p.location === "body")
+                    ? "URL + body que serão enviados pela chamada"
+                    : "URL completa com os parâmetros de query preenchidos"}
+                </span>
               </div>
-              <pre className="max-h-56 overflow-auto p-3 font-mono text-[11px] leading-relaxed">
-                <code>{JSON.stringify(endpoint.bodyExample, null, 2)}</code>
-              </pre>
+              <button
+                onClick={() => copy(curl, "req")}
+                className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Copiar exemplo de requisição"
+              >
+                {copied === "req" ? (
+                  <><Check className="h-3 w-3 text-emerald-400" /> copiado</>
+                ) : (
+                  <><Copy className="h-3 w-3" /> copiar</>
+                )}
+              </button>
             </div>
-          )}
+            <div className="border-b border-border px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">URL</div>
+              <code className="mt-1 block break-all font-mono text-[11px] leading-relaxed">{url}</code>
+            </div>
+            {body ? (
+              <div>
+                <div className="px-3 pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Body — application/json
+                </div>
+                <pre className="max-h-56 overflow-auto p-3 pt-1 font-mono text-[11px] leading-relaxed">
+                  <code>{JSON.stringify(body, null, 2)}</code>
+                </pre>
+              </div>
+            ) : (
+              <div className="px-3 py-3 text-[10px] text-muted-foreground">
+                Esta requisição não possui body. Os valores são enviados na URL como parâmetros de query.
+              </div>
+            )}
+          </div>
 
           {/* Response */}
           <div className="rounded-lg border border-border bg-background">
