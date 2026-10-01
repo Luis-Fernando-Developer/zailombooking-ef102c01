@@ -817,10 +817,16 @@ x-api-key: zlm_XXXXXXXXXXXXXXXX`}
           </li>
           <li>Consulte o cliente pelo telefone e, se necessário, use <code>POST /clients</code> para criar ou <code>PATCH /clients/:clientId</code> para atualizar.</li>
           <li>
-            Reconsulte <code>/availability/slots</code> imediatamente antes de
-            confirmar (os slots podem ficar stale em segundos) e então chame{" "}
-            <code>POST /bookings</code> com <code>booking_date</code> +{" "}
-            <code>booking_time</code>.
+            Reconsulte <code>/availability/slots</code> imediatamente antes de reservar (os slots podem ficar stale em segundos) e então chame <code>POST /booking-holds</code> com <code>booking_date</code> + <code>booking_time</code> para segurar o horário durante o checkout.
+          </li>
+          <li>
+            Gere a cobrança com <code>POST /payments</code> usando o <code>hold_id</code>. A resposta fornece o identificador do pagamento e, para PIX, os dados do QR Code e do copia-e-cola.
+          </li>
+          <li>
+            Consulte <code>GET /payments/:id</code> até o pagamento estar confirmado.
+          </li>
+          <li>
+            Finalize com <code>POST /booking-holds/:id/complete</code> enviando <code>payment_id</code>. Só então o hold vira um agendamento definitivo.
           </li>
           <li>
             Opcionalmente crie uma cobrança via <code>POST /payments</code> e
