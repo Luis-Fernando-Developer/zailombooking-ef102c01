@@ -61,10 +61,22 @@ function MethodBadge({ method }: { method: Endpoint["method"] }) {
   );
 }
 
+function exampleValueForParam(param: Param): string {
+  if (param.example) return String(param.example);
+  if (param.type === "uuid") return "00000000-0000-0000-0000-000000000000";
+  if (param.type === "date") return "2026-10-05";
+  if (param.type === "time") return "15:00";
+  if (param.type === "boolean") return "true";
+  if (param.type === "number" || param.type === "integer") return "1";
+  if (param.type === "enum") return "pix";
+  return `<${param.name.toUpperCase()}>`;
+}
+
 function buildUrl(endpoint: Endpoint, values: Record<string, string>, base: string) {
   let path = endpoint.path;
   for (const p of endpoint.params.filter((x) => x.location === "path")) {
-    path = path.replace(`:${p.name}`, encodeURIComponent(values[p.name] || `:${p.name}`));
+    const value = values[p.name] || exampleValueForParam(p);
+    path = path.replace(`:${p.name}`, encodeURIComponent(value));
   }
   const query = endpoint.params
     .filter((x) => x.location === "query" && values[x.name])
@@ -73,13 +85,35 @@ function buildUrl(endpoint: Endpoint, values: Record<string, string>, base: stri
   return `${base}${path}${query ? `?${query}` : ""}`;
 }
 
+function coerceBodyValue(value: string, sample: unknown): unknown {
+  if (typeof sample === "boolean") return value === "true";
+  if (typeof sample === "number") {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? value : parsed;
+  }
+  if (sample === null) return value === "null" ? null : value;
+  return value;
+}
+
 function buildBody(endpoint: Endpoint, values: Record<string, string>) {
   const bodyParams = endpoint.params.filter((x) => x.location === "body");
   if (bodyParams.length === 0) return undefined;
-  const obj: Record<string, unknown> = {};
+
+  const example = endpoint.bodyExample && typeof endpoint.bodyExample === "object" && !Array.isArray(endpoint.bodyExample)
+    ? endpoint.bodyExample as Record<string, unknown>
+    : {};
+
+  const obj: Record<string, unknown> = { ...example };
+
   for (const p of bodyParams) {
-    if (values[p.name] !== undefined && values[p.name] !== "") obj[p.name] = values[p.name];
+    const value = values[p.name];
+    if (value !== undefined && value !== "") {
+      obj[p.name] = coerceBodyValue(value, example[p.name]);
+    } else if (!(p.name in obj)) {
+      obj[p.name] = exampleValueForParam(p);
+    }
   }
+
   return obj;
 }
 
@@ -181,6 +215,32 @@ export default function ApiDocs() {
     () => (selectedId ? ENDPOINTS.find((e) => e.id === selectedId) : undefined),
     [selectedId],
   );
+
+  useEffect(() => {
+    if (!selectedId || !endpoint) return;
+    setParamsByEndpoint((prev) => {
+      const current = prev[selectedId] ?? {};
+      const next = { ...current };
+
+      for (const param of endpoint.params) {
+        if (next[param.name] === undefined || next[param.name] === "") {
+          if (param.location === "path" || param.location === "query" || param.location === "body") {
+            next[param.name] = exampleValueForParam(param);
+          }
+        }
+      }
+
+      if (endpoint.bodyExample && typeof endpoint.bodyExample === "object" && !Array.isArray(endpoint.bodyExample)) {
+        for (const [name, value] of Object.entries(endpoint.bodyExample as Record<string, unknown>)) {
+          if (next[name] === undefined || next[name] === "") {
+            next[name] = String(value ?? "");
+          }
+        }
+      }
+
+      return { ...prev, [selectedId]: next };
+    });
+  }, [selectedId, endpoint]);
 
   const url = useMemo(() => (endpoint ? buildUrl(endpoint, paramValues, baseUrl) : ""), [endpoint, paramValues, baseUrl]);
   const body = useMemo(() => (endpoint ? buildBody(endpoint, paramValues) : undefined), [endpoint, paramValues]);
@@ -708,9 +768,12 @@ function EditableParam({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={param.example || `Digite ${param.name}...`}
+        placeholder={param.example || exampleValueForParam(param)}
         className="mt-2 w-full rounded-md border border-border bg-background px-3 py-1.5 font-mono text-xs outline-none focus:ring-2 focus:ring-primary"
       />
+      <p className="mt-1 text-[10px] text-muted-foreground">
+        Exemplo: <code>{exampleValueForParam(param)}</code>
+      </p>
     </div>
   );
 }
