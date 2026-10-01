@@ -134,6 +134,7 @@ function toCurl(endpoint: Endpoint, url: string, body: unknown, apiKey: string) 
 // ---------------------------------------------------------------------------
 const STATUS_META: Record<number, { label: string; tone: "success" | "error" }> = {
   200: { label: "Sucesso", tone: "success" },
+  201: { label: "Criado", tone: "success" },
   400: { label: "Requisição inválida", tone: "error" },
   401: { label: "Não autenticado", tone: "error" },
   403: { label: "Sem permissão", tone: "error" },
@@ -142,7 +143,7 @@ const STATUS_META: Record<number, { label: string; tone: "success" | "error" }> 
   500: { label: "Erro do servidor", tone: "error" },
 };
 
-const STATUS_LIST = [200, 400, 401, 403, 404, 409, 500] as const;
+const STATUS_LIST = [200, 201, 400, 401, 403, 404, 409, 500] as const;
 
 function exampleForStatus(endpoint: Endpoint, status: number): unknown {
   if (status === 200) return endpoint.responseExample;
@@ -635,7 +636,7 @@ export default function ApiDocs() {
                   </span>
                 )}
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {!result && <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {STATUS_LIST.map((s) => {
                   const meta = STATUS_META[s];
                   const isActive = selectedStatus === s;
@@ -657,21 +658,32 @@ export default function ApiDocs() {
                     </button>
                   );
                 })}
-              </div>
+              </div>}
               <div className="mt-2 text-[11px] text-muted-foreground">
-                <b className={STATUS_META[selectedStatus].tone === "success" ? "text-emerald-400" : "text-rose-400"}>
-                  {selectedStatus}
-                </b>{" "}
-                — {STATUS_META[selectedStatus].label}
+                {result ? (
+                  <>
+                    <b className={result.status >= 200 && result.status < 300 ? "text-emerald-400" : "text-rose-400"}>
+                      HTTP {result.status || "ERRO"}
+                    </b>{" "}
+                    — resultado real da última chamada
+                  </>
+                ) : (
+                  <>
+                    <b className={STATUS_META[selectedStatus].tone === "success" ? "text-emerald-400" : "text-rose-400"}>
+                      {selectedStatus}
+                    </b>{" "}
+                    — {STATUS_META[selectedStatus].label}
+                  </>
+                )}
               </div>
             </div>
             <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {result && result.status === selectedStatus ? "resposta real (testada)" : "exemplo"}
+                {result ? "resposta real (testada)" : "exemplo"}
               </span>
               <button
                 onClick={() => {
-                  const useReal = result && result.status === selectedStatus;
+                  const useReal = Boolean(result);
                   const txt = useReal
                     ? result!.body
                     : JSON.stringify(exampleForStatus(endpoint, selectedStatus), null, 2);
@@ -688,7 +700,7 @@ export default function ApiDocs() {
             </div>
             <pre className="max-h-[45vh] overflow-auto p-3 font-mono text-[11px] leading-relaxed">
               <code>
-                {result && result.status === selectedStatus
+                {result
                   ? result.body
                   : JSON.stringify(exampleForStatus(endpoint, selectedStatus), null, 2)}
               </code>
