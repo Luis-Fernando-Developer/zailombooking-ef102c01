@@ -862,7 +862,42 @@ const createPayment: Handler = async (ctx, req) => {
   const { data, error } = await ctx.sb.functions.invoke("booking-create-payment", {
     body: { ...body, company_id: ctx.companyId },
   });
-  if (error) return err(error.message, 500);
+
+  if (error) {
+    // Preserve the real Edge Function response instead of masking payment
+    // failures as a generic HTTP 500 from public-api.
+    let detail: Record<string, unknown> | null = null;
+    let status = 500;
+
+    try {
+      const context = (error as any).context;
+      if (context instanceof Response) {
+        status = context.status || 500;
+        const raw = await context.text();
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") detail = parsed;
+          else if (raw) detail = { error: raw };
+        } catch {
+          if (raw) detail = { error: raw };
+        }
+      }
+    } catch (readError) {
+      console.error("[public-api] payment error detail read failed:", readError);
+    }
+
+    console.error("[public-api] booking-create-payment failed:", {
+      message: error.message,
+      status,
+      detail,
+    });
+
+    return json({
+      error: detail?.error ?? error.message ?? "payment_creation_failed",
+      ...(detail ?? {}),
+    }, status);
+  }
+
   return json({ data });
 };
 
