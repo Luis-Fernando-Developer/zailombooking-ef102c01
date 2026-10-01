@@ -50,7 +50,7 @@ export const ENDPOINTS: Endpoint[] = [
     title: "Detalhes do serviço",
     description: "Retorna os detalhes completos de um serviço.",
     params: [
-      { name: "id", type: "uuid", location: "path", required: true, description: "ID do serviço" },
+      { name: "id", type: "uuid", location: "path", required: true, description: "ID do serviço", example: "00000000-0000-0000-0000-000000000000" },
     ],
     responseExample: { id: "uuid", name: "Corte masculino", duration_minutes: 30, price: 50.0 },
   },
@@ -76,7 +76,7 @@ export const ENDPOINTS: Endpoint[] = [
     title: "Listar colaboradores",
     description: "Lista colaboradores ativos. Filtre por serviço com `service_id`.",
     params: [
-      { name: "service_id", type: "uuid", location: "query", description: "Filtra por serviço" },
+      { name: "service_id", type: "uuid", location: "query", description: "Filtra por serviço", example: "00000000-0000-0000-0000-000000000000" },
     ],
     responseExample: [{ id: "uuid", name: "João", role: "Barbeiro" }],
   },
@@ -88,9 +88,9 @@ export const ENDPOINTS: Endpoint[] = [
     title: "Agenda ocupada",
     description: "Retorna os agendamentos ativos do colaborador num intervalo.",
     params: [
-      { name: "id", type: "uuid", location: "path", required: true, description: "ID do colaborador" },
-      { name: "from", type: "date", location: "query", required: true, description: "Data inicial (YYYY-MM-DD)" },
-      { name: "to", type: "date", location: "query", required: true, description: "Data final (YYYY-MM-DD)" },
+      { name: "id", type: "uuid", location: "path", required: true, description: "ID do colaborador", example: "00000000-0000-0000-0000-000000000000" },
+      { name: "from", type: "date", location: "query", required: true, description: "Data inicial (YYYY-MM-DD)", example: "2026-10-05" },
+      { name: "to", type: "date", location: "query", required: true, description: "Data final (YYYY-MM-DD)", example: "2026-10-31" },
     ],
     responseExample: [{ id: "uuid", booking_date: "2026-07-10", start_time: "14:00", end_time: "14:30" }],
   },
@@ -122,7 +122,7 @@ export const ENDPOINTS: Endpoint[] = [
     params: [
       { name: "employee_id", type: "uuid", location: "query", required: true, description: "ID do colaborador" },
       { name: "service_id", type: "uuid", location: "query", required: true, description: "ID do serviço" },
-      { name: "date", type: "date", location: "query", required: true, description: "Data (YYYY-MM-DD)" },
+      { name: "date", type: "date", location: "query", required: true, description: "Data (YYYY-MM-DD)", example: "2026-10-05" },
     ],
     responseExample: ["09:00", "09:30", "10:00", "14:30"],
   },
@@ -149,7 +149,7 @@ export const ENDPOINTS: Endpoint[] = [
     title: "Buscar cliente por telefone",
     description: "Localiza um cliente pelo WhatsApp/telefone (E.164 ou nacional).",
     params: [
-      { name: "phone", type: "string", location: "query", required: true, description: "Ex.: 5511999998888" },
+      { name: "phone", type: "string", location: "query", required: true, description: "Telefone/WhatsApp (E.164 ou nacional)", example: "5511999998888" },
     ],
     responseExample: { id: "uuid", name: "Maria", phone: "5511999998888" },
   },
@@ -193,7 +193,7 @@ export const ENDPOINTS: Endpoint[] = [
     description: "Lista agendamentos passados/futuros do cliente.",
     params: [
       { name: "clientId", type: "uuid", location: "path", required: true, description: "ID do cliente" },
-      { name: "scope", type: "enum", location: "query", description: "upcoming | past | all (default: all)" },
+      { name: "scope", type: "enum", location: "query", description: "upcoming | past | all (default: all)", example: "upcoming" },
     ],
     responseExample: [{ id: "uuid", booking_date: "2026-07-10", start_time: "14:00", status: "confirmed" }],
   },
