@@ -232,7 +232,7 @@ serve(async (req) => {
     let receiverProvider: string = settings.own_gateway_provider || 'asaas'
     let receiverKey: string = (settings.own_gateway_api_key_encrypted || '').trim()
     let receiverLabel: 'company' | 'autonomous' = 'company'
-    const targetEmployeeId = booking?.employee_id ?? (resolvedBookingData?.employee_id ? String(bookingData.employee_id) : null)
+    const targetEmployeeId = booking?.employee_id ?? (resolvedBookingData?.employee_id ? String(resolvedBookingData.employee_id) : null)
 
     try {
       if (!targetEmployeeId) throw new Error('Profissional do agendamento não informado')
