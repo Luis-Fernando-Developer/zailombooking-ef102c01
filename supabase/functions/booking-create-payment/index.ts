@@ -67,11 +67,14 @@ serve(async (req) => {
     const { booking_id, method, payer, amount: bodyAmount, bookingData, hold_id } = body
 
     // --- RESOLUÇÃO DO CONTEXTO ---
-    // Online: booking_id ainda não existe. Usamos bookingData para descobrir
-    // empresa/profissional e criamos somente o registro de pagamento.
+    // Online: o booking definitivo ainda não existe. Quando o consumidor
+    // envia apenas hold_id, o próprio hold é a fonte de verdade para empresa,
+    // cliente, profissional, serviço, data e horário.
     let resolvedBookingId: string | undefined = booking_id || undefined
     let booking: any = null
     let companyId: string | undefined = undefined
+    let resolvedBookingData: Record<string, any> | null =
+      bookingData && typeof bookingData === 'object' ? { ...(bookingData as Record<string, any>) } : null
 
     if (resolvedBookingId) {
       const { data: existingBooking, error: bErr } = await supabaseClient
@@ -83,16 +86,57 @@ serve(async (req) => {
       if (bErr || !existingBooking) throw new Error('Agendamento não encontrado')
       booking = existingBooking
       companyId = String(existingBooking.company_id)
-    } else if (bookingData) {
-      const bd = bookingData as Record<string, unknown>
+    } else if (resolvedBookingData) {
+      const bd = resolvedBookingData
       const required = ['company_id', 'client_id', 'employee_id', 'booking_date', 'booking_time']
       const missing = required.filter((f) => !bd[f])
       if (missing.length) {
         throw new Error(`bookingData campos obrigatórios faltando: ${missing.join(', ')}`)
       }
       companyId = String(bd.company_id)
+    } else if (hold_id) {
+      // Contrato público simplificado: hold_id + method é suficiente.
+      // O hold já contém todo o contexto necessário para o checkout.
+      const { data: hold, error: holdError } = await supabaseClient
+        .from('booking_slot_holds')
+        .select('id, company_id, employee_id, service_id, client_id, booking_date, booking_time, start_time, end_time, expires_at, status')
+        .eq('id', hold_id)
+        .maybeSingle();
+
+      if (holdError || !hold) throw new Error('Reserva temporária do horário não encontrada.');
+      if (hold.status !== 'active' || new Date(hold.expires_at).getTime() <= Date.now()) {
+        throw new Error('O tempo para concluir a reserva acabou. O horário foi liberado.');
+      }
+
+      if (!hold.service_id) {
+        throw new Error('O serviço da reserva temporária não foi identificado.');
+      }
+
+      const { data: service, error: serviceError } = await supabaseClient
+        .from('services')
+        .select('id, price')
+        .eq('id', hold.service_id)
+        .eq('company_id', hold.company_id)
+        .maybeSingle();
+
+      if (serviceError || !service) {
+        throw new Error('Serviço da reserva temporária não encontrado.');
+      }
+
+      companyId = String(hold.company_id)
+      resolvedBookingData = {
+        company_id: hold.company_id,
+        client_id: hold.client_id,
+        employee_id: hold.employee_id,
+        service_id: hold.service_id,
+        booking_date: hold.booking_date,
+        booking_time: String(hold.booking_time).slice(0, 5),
+        start_time: hold.start_time,
+        end_time: hold.end_time,
+        price: Number(service.price ?? 0),
+      }
     } else {
-      throw new Error('booking_id ou bookingData é obrigatório')
+      throw new Error('booking_id, hold_id ou bookingData é obrigatório')
     }
 
     // Para pagamento online sem booking pré-criado, o hold é obrigatório.
@@ -101,7 +145,7 @@ serve(async (req) => {
 
       const { data: hold, error: holdError } = await supabaseClient
         .from('booking_slot_holds')
-        .select('id, company_id, employee_id, client_id, booking_date, booking_time, expires_at, status')
+        .select('id, company_id, employee_id, service_id, client_id, booking_date, booking_time, start_time, end_time, expires_at, status')
         .eq('id', hold_id)
         .maybeSingle();
 
@@ -111,10 +155,10 @@ serve(async (req) => {
       }
       if (
         String(hold.company_id) !== String(companyId) ||
-        String(hold.employee_id) !== String(bookingData?.employee_id) ||
-        String(hold.client_id) !== String(bookingData?.client_id) ||
-        String(hold.booking_date) !== String(bookingData?.booking_date) ||
-        String(hold.booking_time).slice(0, 5) !== String(bookingData?.booking_time).slice(0, 5)
+        String(hold.employee_id) !== String(resolvedBookingData?.employee_id) ||
+        String(hold.client_id) !== String(resolvedBookingData?.client_id) ||
+        String(hold.booking_date) !== String(resolvedBookingData?.booking_date) ||
+        String(hold.booking_time).slice(0, 5) !== String(resolvedBookingData?.booking_time).slice(0, 5)
       ) {
         throw new Error('Reserva temporária não corresponde aos dados deste agendamento.');
       }
@@ -144,7 +188,7 @@ serve(async (req) => {
     // O checkout web envia payer explicitamente. O Agent/API pode enviar apenas
     // booking_id; nesse caso, resolve os dados do pagador pelo cliente do agendamento.
     let resolvedPayer = payer && typeof payer === 'object' ? { ...payer } : {}
-    const payerClientId = booking?.client_id ?? bookingData?.client_id ?? null
+    const payerClientId = booking?.client_id ?? resolvedBookingData?.client_id ?? null
     if (payerClientId) {
       const { data: clientRow } = await supabaseClient
         .from('clients')
@@ -188,7 +232,7 @@ serve(async (req) => {
     let receiverProvider: string = settings.own_gateway_provider || 'asaas'
     let receiverKey: string = (settings.own_gateway_api_key_encrypted || '').trim()
     let receiverLabel: 'company' | 'autonomous' = 'company'
-    const targetEmployeeId = booking?.employee_id ?? (bookingData?.employee_id ? String(bookingData.employee_id) : null)
+    const targetEmployeeId = booking?.employee_id ?? (resolvedBookingData?.employee_id ? String(bookingData.employee_id) : null)
 
     try {
       if (!targetEmployeeId) throw new Error('Profissional do agendamento não informado')
@@ -308,7 +352,7 @@ serve(async (req) => {
     // B) Pagamento
     const billingType = normalizedMethod === 'PIX' ? 'PIX' : (normalizedMethod === 'CREDIT_CARD' ? 'CREDIT_CARD' : (normalizedMethod === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
     
-    const bookingAmount = Number(booking?.total_price ?? booking?.price ?? bookingData?.price ?? 0)
+    const bookingAmount = Number(booking?.total_price ?? booking?.price ?? resolvedBookingData?.price ?? 0)
     const amount = Number(bodyAmount || bookingAmount || 0)
     console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType} | Amount: ${amount}`)
 
@@ -326,16 +370,16 @@ serve(async (req) => {
         dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // 24h
         description: booking
           ? `Agendamento #${booking.id}`
-          : `Pagamento de agendamento online - ${String(bookingData?.booking_date)} ${String(bookingData?.booking_time)}`,
+          : `Pagamento de agendamento online - ${String(resolvedBookingData?.booking_date)} ${String(resolvedBookingData?.booking_time)}`,
         externalReference: booking?.id ?? `pending:${crypto.randomUUID()}`,
         metadata: {
           booking_id: booking?.id ?? null,
           company_id: companyId,
-          client_id: booking?.client_id ?? bookingData?.client_id ?? null,
-          employee_id: booking?.employee_id ?? bookingData?.employee_id ?? null,
-          service_id: booking?.service_id ?? bookingData?.service_id ?? null,
+          client_id: booking?.client_id ?? resolvedBookingData?.client_id ?? null,
+          employee_id: booking?.employee_id ?? resolvedBookingData?.employee_id ?? null,
+          service_id: booking?.service_id ?? resolvedBookingData?.service_id ?? null,
           hold_id: hold_id ?? null,
-          reward_payment: Boolean(bookingData?.reward_id),
+          reward_payment: Boolean(resolvedBookingData?.reward_id),
         },
         postalCode: '12345678', // Postal code fallback for webhooks
         // Removemos o callback manual que estava causando conflitos com o webhook global configurado no painel do Asaas.
@@ -387,8 +431,8 @@ serve(async (req) => {
       metadata: {
         booking_data: bookingData ?? null,
         company_id: companyId,
-        client_id: booking?.client_id ?? bookingData?.client_id ?? null,
-        employee_id: booking?.employee_id ?? bookingData?.employee_id ?? null,
+        client_id: booking?.client_id ?? resolvedBookingData?.client_id ?? null,
+        employee_id: booking?.employee_id ?? resolvedBookingData?.employee_id ?? null,
         hold_id: hold_id ?? null,
       }
     })
