@@ -1017,7 +1017,10 @@ const completeBookingHold: Handler = async (ctx, req, { id }) => {
     .select("id, booking_date, start_time, end_time, duration_minutes, price, booking_status, payment_status, payment_method")
     .eq("company_id", ctx.companyId).eq("id", bookingId).maybeSingle();
 
-  if (bookingId) fireBookingNotification(String(bookingId), "booking_confirmed");
+  if (bookingId) {
+    fireBookingNotification(String(bookingId), "payment_confirmed");
+    fireBookingNotification(String(bookingId), "booking_confirmed");
+  }
 
   return json({
     data: {
@@ -1109,7 +1112,7 @@ const createPayment: Handler = async (ctx, req) => {
 const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
   const { data, error } = await ctx.sb
     .from("booking_payments")
-    .select("id, booking_id, company_id, status, method, amount, external_id, asaas_id, created_at, paid_at")
+    .select("id, booking_id, company_id, status, method, amount, asaas_id, created_at, paid_at")
     .eq("company_id", ctx.companyId)
     .or(`id.eq.${id},asaas_id.eq.${id}`)
     .maybeSingle();
@@ -1127,7 +1130,7 @@ const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
 
   const { data: refreshed } = await ctx.sb
     .from("booking_payments")
-    .select("id, booking_id, company_id, status, method, amount, external_id, asaas_id, created_at, paid_at")
+    .select("id, booking_id, company_id, status, method, amount, asaas_id, created_at, paid_at")
     .eq("company_id", ctx.companyId)
     .eq("id", data.id)
     .maybeSingle();
@@ -1173,21 +1176,70 @@ const sendNotification: Handler = async (ctx, req) => {
   const body = await req.json().catch(() => ({}));
   const { channel = "whatsapp", event, booking_id, payload } = body;
   if (!event) return err("event is required", 400);
-  if (event.startsWith("booking.")) {
-    const { data, error } = await ctx.sb.functions.invoke("notify-booking-change", {
-      body: { company_id: ctx.companyId, booking_id, channel, event, payload },
+
+  const rawEvent = String(event).trim();
+  const eventAliases: Record<string, string> = {
+    "booking.created": "booking_created",
+    "booking.pending": "booking_pending",
+    "booking.confirmed": "booking_confirmed",
+    "booking.cancelled": "booking_cancelled",
+    "booking.completed": "booking_completed",
+    "booking.no_show": "booking_no_show",
+    "booking.rescheduled": "booking_rescheduled",
+    "booking.reallocated": "booking_reallocated",
+    "booking.reminder": "booking_reminder",
+    "payment.confirmed": "payment_confirmed",
+    "payment.pending": "payment_pending",
+  };
+  const eventKey = eventAliases[rawEvent] ?? rawEvent;
+
+  const canonicalEvents = new Set([
+    "booking_created",
+    "booking_pending",
+    "booking_confirmed",
+    "booking_cancelled",
+    "booking_completed",
+    "booking_no_show",
+    "booking_rescheduled",
+    "booking_reallocated",
+    "booking_reminder",
+    "payment_confirmed",
+    "payment_pending",
+  ]);
+
+  if (canonicalEvents.has(eventKey)) {
+    if (!booking_id) return err("booking_id is required for this event", 400);
+
+    const { data, error } = await ctx.sb.functions.invoke("notify-booking-event", {
+      body: {
+        booking_id,
+        event_key: eventKey,
+        channel,
+        payload: payload ?? null,
+      },
     });
     if (error) return err(error.message, 500);
-    return json({ data, dispatched: true });
+
+    return json({
+      data,
+      dispatched: true,
+      event: eventKey,
+      booking_id,
+    });
   }
-  // Outros canais/eventos: apenas registrar intenção (estrutura pronta).
-  return json({
-    dispatched: false,
-    queued: true,
-    channel,
-    event,
-    note: "channel not yet wired; contract stable",
-  }, 202);
+
+  // Keep the existing change-notification contract for change-specific payloads.
+  if (rawEvent.startsWith("booking.")) {
+    const { data, error } = await ctx.sb.functions.invoke("notify-booking-change", {
+      body: { company_id: ctx.companyId, booking_id, channel, event: rawEvent, payload },
+    });
+    if (error) return err(error.message, 500);
+    return json({ data, dispatched: true, event: rawEvent, booking_id });
+  }
+
+  return err("Unsupported notification event: " + rawEvent, 400, {
+    supported_events: Array.from(canonicalEvents),
+  });
 };
 
 const TEMPLATE_KEYS = [
