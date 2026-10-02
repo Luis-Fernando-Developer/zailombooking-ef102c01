@@ -109,7 +109,7 @@ function buildBody(endpoint: Endpoint, values: Record<string, string>) {
     const value = values[p.name];
     if (value !== undefined && value !== "") {
       obj[p.name] = coerceBodyValue(value, example[p.name]);
-    } else if (!(p.name in obj)) {
+    } else if (p.required && !(p.name in obj)) {
       obj[p.name] = exampleValueForParam(p);
     }
   }
@@ -225,7 +225,7 @@ export default function ApiDocs() {
 
       for (const param of endpoint.params) {
         if (next[param.name] === undefined || next[param.name] === "") {
-          if (param.location === "path" || param.location === "query" || param.location === "body") {
+          if (param.location === "path" || param.required) {
             next[param.name] = exampleValueForParam(param);
           }
         }
