@@ -227,47 +227,63 @@ export default function ClientBooking() {
     const searchParams = new URLSearchParams(window.location.search);
     const shouldRestore = searchParams.get('restore') === 'true';
 
-    if (shouldRestore && user && services.length > 0) {
+    // O estado do agendamento precisa sobreviver ao login/cadastro.
+    // Não podemos depender do catálogo completo estar carregado para restaurar:
+    // o usuário já escolheu o serviço/profissional antes de autenticar.
+    if (shouldRestore && user) {
       const savedState = sessionStorage.getItem('pendingBooking');
-      if (savedState) {
-        try {
-          const state = JSON.parse(savedState);
+      if (!savedState) return;
 
-          const savedId: string = state.serviceId || '';
-          const isComboId = savedId.startsWith('combo:');
-          const rawId = isComboId ? savedId.replace('combo:', '') : savedId;
+      try {
+        const state = JSON.parse(savedState);
 
-          const service = !isComboId ? services.find(s => s.id === rawId) : null;
-          const combo = isComboId ? combos.find(c => c.id === rawId) : null;
+        const savedId: string = state.serviceId || '';
+        const isComboId = savedId.startsWith('combo:');
+        const rawId = isComboId ? savedId.replace('combo:', '') : savedId;
 
-          if (service) {
-            setSelectedService(service);
-          } else if (combo) {
-            const comboAsService: Service = {
-              id: `combo:${combo.id}`,
-              name: combo.name,
-              description: combo.description || '',
-              price: combo.price || combo.combo_price || 0,
-              duration_minutes: combo.total_duration_minutes ?? (combo.items?.reduce((s: number, it: any) => s + (it.service?.duration_minutes || 0), 0) || 0),
-              image_url: combo.image_url || combo.items?.[0]?.service?.image_url,
-            };
-            setSelectedService(comboAsService);
-          }
+        // Primeiro tenta o objeto já carregado. Se o catálogo ainda não estiver
+        // disponível (ou estiver vazio após a troca anon -> authenticated),
+        // usa o snapshot salvo antes do login.
+        const service = !isComboId ? services.find(s => s.id === rawId) : null;
+        const combo = isComboId ? combos.find(c => c.id === rawId) : null;
 
-          if (state.employeeId) {
-            setPendingEmployeeRestore(state.employeeId);
-          }
-
-          if (state.date) setSelectedDate(new Date(state.date));
-          if (state.time) setSelectedTime(state.time);
-
-          setStep(5);
-
-          sessionStorage.removeItem('pendingBooking');
-          window.history.replaceState({}, '', `/${slug}/agendar`);
-        } catch (e) {
-          console.error('Error restoring booking state:', e);
+        if (service) {
+          setSelectedService(service);
+        } else if (combo) {
+          const comboAsService: Service = {
+            id: `combo:${combo.id}`,
+            name: combo.name,
+            description: combo.description || '',
+            price: combo.price || combo.combo_price || 0,
+            duration_minutes: combo.total_duration_minutes ?? (combo.items?.reduce((s: number, it: any) => s + (it.service?.duration_minutes || 0), 0) || 0),
+            image_url: combo.image_url || combo.items?.[0]?.service?.image_url,
+          };
+          setSelectedService(comboAsService);
+        } else if (state.service) {
+          setSelectedService(state.service as Service);
         }
+
+        if (state.employeeId) {
+          setPendingEmployeeRestore(state.employeeId);
+        }
+        if (state.employee) {
+          setSelectedEmployee(state.employee as Employee);
+        }
+
+        if (state.date) setSelectedDate(new Date(state.date));
+        if (state.time) setSelectedTime(state.time);
+        if (state.formData) {
+          setFormData((current) => ({ ...current, ...state.formData }));
+        }
+
+        // O login é feito a partir do step 5. Depois da autenticação,
+        // retomamos exatamente a confirmação, sem voltar ao catálogo.
+        setStep(state.resumeStep || 5);
+
+        sessionStorage.removeItem('pendingBooking');
+        window.history.replaceState({}, '', `/${slug}/agendar`);
+      } catch (e) {
+        console.error('Error restoring booking state:', e);
       }
     }
   }, [user, services, combos, slug]);
@@ -1308,14 +1324,32 @@ export default function ClientBooking() {
                 </div>
                 <div className="space-y-3">
                   <Button className="w-full" style={stepBtnStyle(cfgLogin.continue_button)} onClick={() => {
-                    const bookingState = { serviceId: selectedService?.id, employeeId: selectedEmployee?.id, date: selectedDate?.toISOString(), time: selectedTime };
+                    const bookingState = {
+                      serviceId: selectedService?.id,
+                      service: selectedService,
+                      employeeId: selectedEmployee?.id,
+                      employee: selectedEmployee,
+                      date: selectedDate?.toISOString(),
+                      time: selectedTime,
+                      formData,
+                      resumeStep: 5,
+                    };
                     sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
                     navigate(`/${slug}/entrar?returnTo=agendar`);
                   }}>
                     {cfgLogin.continue_button?.typography?.text || 'Já tenho conta - Entrar'}
                   </Button>
                   <Button className="w-full" style={stepBtnStyle(cfgLogin.secondary_button)} onClick={() => {
-                    const bookingState = { serviceId: selectedService?.id, employeeId: selectedEmployee?.id, date: selectedDate?.toISOString(), time: selectedTime };
+                    const bookingState = {
+                      serviceId: selectedService?.id,
+                      service: selectedService,
+                      employeeId: selectedEmployee?.id,
+                      employee: selectedEmployee,
+                      date: selectedDate?.toISOString(),
+                      time: selectedTime,
+                      formData,
+                      resumeStep: 5,
+                    };
                     sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
                     navigate(`/${slug}/cadastro?returnTo=agendar`);
                   }}>
