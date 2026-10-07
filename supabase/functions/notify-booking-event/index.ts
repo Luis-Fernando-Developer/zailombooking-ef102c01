@@ -21,8 +21,10 @@ const corsHeaders = {
 const WA_BASE = (Deno.env.get("WA_SERVICE_BASE_URL") ?? "https://wa.zailom.com").replace(/\/$/, "");
 
 const legacyTemplateEventKeys: Record<string, string[]> = {
-  booking_pending: ["booking.created"],
-  booking_confirmed: ["booking.confirmed", "booking.created"],
+  // Mantém compatibilidade com o template antigo de "agendamento registrado",
+  // mas NÃO reutiliza esse template para o estado pendente.
+  booking_created: ["booking.created"],
+  booking_confirmed: ["booking.confirmed"],
   booking_cancelled: ["booking.cancelled"],
   booking_rescheduled: ["booking.rescheduled"],
   booking_reminder: ["booking.reminder"],
