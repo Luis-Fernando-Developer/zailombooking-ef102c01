@@ -263,7 +263,7 @@ serve(async (req) => {
       const { data: pData, error: pErr } = await supabaseClient
         .from('booking_payments')
         .update({ 
-          status: 'paid', 
+          status: 'confirmed',
           updated_at: now,
           asaas_id: asaasPaymentId
         })
@@ -274,7 +274,7 @@ serve(async (req) => {
       const { data: bData, error: bErr } = await supabaseClient
         .from('bookings')
         .update({
-          payment_status: 'paid',
+          payment_status: 'confirmed',
           booking_status: 'confirmed',
           updated_at: now
         })
