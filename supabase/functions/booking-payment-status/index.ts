@@ -45,6 +45,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     let booking_id = body?.booking_id ?? null;
     const payment_id = body?.payment_id ?? null;
+    let company_id_from_body = body?.company_id ?? null;
 
     let paymentRow: any = null;
     let company_id: string | null = null;
@@ -57,6 +58,17 @@ serve(async (req) => {
         .select("id, booking_id, company_id, asaas_id, provider, status, metadata")
         .eq("asaas_id", payment_id)
         .maybeSingle();
+
+      // Compatibilidade: alguns fluxos podem entregar o UUID interno de
+      // booking_payments em vez do ID do Asaas.
+      if (!row && payment_id) {
+        const { data: internalRow } = await supabase
+          .from("booking_payments")
+          .select("id, booking_id, company_id, asaas_id, provider, status, metadata")
+          .eq("id", payment_id)
+          .maybeSingle();
+        paymentRow = internalRow ?? null;
+      }
 
       paymentRow = row ?? null;
       booking_id = paymentRow?.booking_id ?? booking_id;
@@ -72,7 +84,11 @@ serve(async (req) => {
       company_id = bookingContext?.company_id ?? company_id;
     }
 
-    if (!booking_id && !paymentRow) {
+    if (!company_id && company_id_from_body) {
+      company_id = String(company_id_from_body);
+    }
+
+    if (!booking_id && !paymentRow && !payment_id) {
       return json({ error: "booking_id ou payment_id é obrigatório" }, 400);
     }
 
