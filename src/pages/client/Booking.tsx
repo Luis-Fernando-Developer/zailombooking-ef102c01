@@ -821,6 +821,10 @@ export default function ClientBooking() {
       amount: effectivePrice,
       allowLater: false,
       openedOnce: true,
+      // O booking já foi criado pelo fluxo "Pagar no local".
+      // Ao reabrir o pagamento, o dialog ainda precisa dos dados do
+      // agendamento para criar o hold e gerar o pagamento online.
+      bookingData: client?.id ? buildBookingData(client.id) : undefined,
     });
   };
 
@@ -1670,6 +1674,13 @@ export default function ClientBooking() {
             }
 
             setCreatedBookingId(newId);
+
+            // Mantém o cliente associado ao dialog para que "Pagar agora",
+            // após um pagamento no local, consiga reconstruir os dados do booking.
+            setPaymentDialog(prev => ({
+              ...prev,
+              _clientId: clientId,
+            }));
 
             supabase.functions
               .invoke("notify-booking-event", {
