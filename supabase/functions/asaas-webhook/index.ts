@@ -303,9 +303,10 @@ serve(async (req) => {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
             body: JSON.stringify({ booking_id: bookingId, event_key: 'booking_confirmed' }),
           });
-        } catch (e) {SOString()
-        })
-        .eq('id', bookingId);
+        } catch (e) {
+          console.error(`[ASAAS_WEBHOOK][${requestId}] notify error:`, (e as any)?.message);
+        }
+      }
     }
 
     return jsonResponse({ success: true, kind: 'booking' }, 200)
