@@ -1845,7 +1845,15 @@ export default function ClientBooking() {
             supabase.functions
               .invoke("notify-booking-event", {
                 body: { booking_id: newId, event_key: "payment_confirmed" },
+              });
+            
+            supabase.functions
+              .invoke("notify-booking-event", {
+                body: { booking_id: newId, event_key: "booking_confirmed" },
               })
+              .catch((e: any) =>
+                console.warn("[notify-booking-event] booking_confirmed failed:", e)
+              )
               .catch(
                 (e: any) =>
                   console.warn(
