@@ -44,8 +44,10 @@ async function loadWhatsAppTemplate(supabase: any, companyId: string, eventKey: 
   const rows = (data ?? []) as Array<{ event_key: string; template: string; enabled: boolean }>;
   const exact = rows.find((row) => row.event_key === eventKey);
   if (exact) return exact.enabled === false ? null : exact.template;
-  const fallback = rows.find((row) => row.enabled !== false);
-  return fallback?.template ?? null;
+  // Nunca usar um template arbitrário de outro evento. Se não existir
+  // template específico nem alias legado válido, cai no defaultMessage()
+  // correspondente ao eventKey.
+  return null;
 }
 
 async function sendWhatsApp(supabase: any, companyId: string, to: string, message: string, eventKey?: string) {
