@@ -67,7 +67,7 @@ interface Props {
     phone?: string;
     cpf_cnpj?: string;
   };
-  onPaid: (paymentId: string) => void;
+  onPaid: (paymentId: string, holdId: string | null) => void;
   allowPayLater?: boolean;
   onPayLater?: () => void;
   onSlotUnavailable?: () => void;
@@ -313,11 +313,13 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
     try {
       if (!bookingData) throw new Error("Dados do agendamento não encontrados.");
 
-      // O hold é adquirido somente quando o cliente realmente inicia o pagamento.
-      // Assim, "pagar no local" continua sem bloquear o horário.
+      // Existem dois cenários diferentes:
+      // 1) checkout online direto: ainda não existe booking -> criamos um hold temporário.
+      // 2) "Pagar no local" -> o booking pending já existe e já ocupa o slot.
+      // Nesse segundo caso NÃO podemos criar outro hold: o próprio booking é a reserva.
       let currentHoldId = holdId;
 
-      if (!currentHoldId) {
+      if (!bookingId && !currentHoldId) {
         const { data: hold, error: holdError } = await supabase.rpc("create_online_booking_hold", {
           p_company_id: bookingData.company_id,
           p_employee_id: bookingData.employee_id,
@@ -351,12 +353,14 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
 
       const { data, error } = await supabase.functions.invoke("booking-create-payment", {
         body: {
-          booking_id: null,
+          // Se o booking já existe (ex.: Pagar no local -> Pagar agora),
+          // ele é a fonte de verdade e o pagamento fica vinculado a ele.
+          booking_id: bookingId || null,
           company_id: companyId,
           method: selected,
           payer,
           amount,
-          hold_id: currentHoldId,
+          hold_id: currentHoldId || null,
           bookingData: bookingData,
         },
       });
