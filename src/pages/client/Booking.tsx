@@ -123,6 +123,7 @@ export default function ClientBooking() {
     _clientPhone?: string;
     _notes?: string;
     bookingData?: any;
+    sessionKey?: number;
   }>({ open: false });
 
   useEffect(() => {
@@ -784,6 +785,7 @@ export default function ClientBooking() {
       setPaymentDialog({
         open: true,
         bookingId: undefined, // ainda não existe
+        sessionKey: Date.now(),
         amount: effectivePrice,
         allowLater: true,
         openedOnce: false,
@@ -816,7 +818,8 @@ export default function ClientBooking() {
    */
   const openPaymentDialog = () => {
     if (!createdBookingId || !company) return;
-    setPaymentDialog({
+    setPaymentDialog(prev => ({
+      ...prev,
       open: true,
       bookingId: createdBookingId,
       amount: effectivePrice,
@@ -827,8 +830,8 @@ export default function ClientBooking() {
       // agendamento para criar o hold e gerar o pagamento online.
       bookingData: (client?.id || paymentDialog._clientId)
         ? buildBookingData(client?.id || paymentDialog._clientId!)
-        : undefined,
-    });
+        : prev.bookingData,
+    }));
   };
 
   const stepCardStyles = (section: "services" | "professionals"): Record<string, any> => {
@@ -1535,8 +1538,9 @@ export default function ClientBooking() {
         {renderStep()}
       </div>
 
-      {paymentDialog.open && company && (
+      {company && (
         <BookingPaymentDialog
+          key={paymentDialog.sessionKey ?? "payment-dialog"}
           open={paymentDialog.open}
           onClose={() => {
             setPaymentDialog(prev => ({
