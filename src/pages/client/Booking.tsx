@@ -1680,15 +1680,16 @@ export default function ClientBooking() {
               bookingData,
             }));
 
-            for (const eventKey of ["booking_created", "booking_pending"]) {
-              supabase.functions
-                .invoke("notify-booking-event", {
-                  body: { booking_id: newId, event_key: eventKey },
-                })
-                .catch((e: any) =>
-                  console.warn(`[notify-booking-event] ${eventKey} failed:`, e)
-                );
-            }
+            // O booking já foi criado neste fluxo. O cliente recebe apenas
+            // "pendente" aqui; "booking_created" pertence ao momento da criação
+            // inicial e não deve ser reenviado quando ele optar por pagar depois.
+            supabase.functions
+              .invoke("notify-booking-event", {
+                body: { booking_id: newId, event_key: "booking_pending" },
+              })
+              .catch((e: any) =>
+                console.warn("[notify-booking-event] booking_pending failed:", e)
+              );
 
             setPaymentDialog(prev => ({
               ...prev,
@@ -1745,16 +1746,29 @@ export default function ClientBooking() {
               }));
               setStep(6);
 
-              supabase.functions
-                .invoke("notify-booking-event", {
+              // O RPC acima já confirmou o pagamento e o agendamento.
+              // Enviamos os dois eventos em sequência para garantir a ordem:
+              // pagamento recebido -> agendamento confirmado.
+              try {
+                await supabase.functions.invoke("notify-booking-event", {
                   body: {
                     booking_id: paidBookingId,
                     event_key: "payment_confirmed",
                   },
-                })
-                .catch((e: any) =>
-                  console.warn("[notify-booking-event] failed:", e)
+                });
+
+                await supabase.functions.invoke("notify-booking-event", {
+                  body: {
+                    booking_id: paidBookingId,
+                    event_key: "booking_confirmed",
+                  },
+                });
+              } catch (e: any) {
+                console.warn(
+                  "[notify-booking-event] existing booking notification failed:",
+                  e
                 );
+              }
 
               toast({
                 title: "Pagamento confirmado!",
