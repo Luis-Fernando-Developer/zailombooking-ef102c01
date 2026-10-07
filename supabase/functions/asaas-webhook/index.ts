@@ -257,6 +257,15 @@ serve(async (req) => {
 
     if (bookingId && isConfirmed) {
       const now = new Date().toISOString();
+      const { data: beforeBooking } = await supabaseClient
+        .from('bookings')
+        .select('payment_status, booking_status')
+        .eq('id', bookingId)
+        .maybeSingle();
+      const wasAlreadyConfirmed =
+        String(beforeBooking?.payment_status ?? '').toLowerCase() === 'confirmed' &&
+        String(beforeBooking?.booking_status ?? '').toLowerCase() === 'confirmed';
+
       console.info(`[ASAAS_WEBHOOK][${requestId}] Marcando booking ${bookingId} como PAGO. Event: ${event}, Status: ${currentStatus}`);
 
       // Update payment record FIRST with asaas_id for polling stability
@@ -287,19 +296,14 @@ serve(async (req) => {
       if (pErr) console.error(`[ASAAS_WEBHOOK][${requestId}] Booking_payments update error:`, pErr);
       else console.info(`[ASAAS_WEBHOOK][${requestId}] Booking_payments update success:`, pData);
 
-      try {
-        await fetch(`${supabaseUrl}/functions/v1/notify-booking-event`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
-          body: JSON.stringify({ booking_id: bookingId, event_key: 'booking_confirmed' }),
-        });
-      } catch (e) { console.error(`[ASAAS_WEBHOOK][${requestId}] notify error:`, (e as any)?.message); }
-    } else if (bookingId && (event === 'PAYMENT_CREATED' || currentStatus === 'PENDING')) {
-      await supabaseClient
-        .from('bookings')
-        .update({ 
-          payment_status: 'pending',
-          updated_at: new Date().toISOString()
+      if (!wasAlreadyConfirmed && !bErr && !pErr) {
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/notify-booking-event`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
+            body: JSON.stringify({ booking_id: bookingId, event_key: 'booking_confirmed' }),
+          });
+        } catch (e) {SOString()
         })
         .eq('id', bookingId);
     }
