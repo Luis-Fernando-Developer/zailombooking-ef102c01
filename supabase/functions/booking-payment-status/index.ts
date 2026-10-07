@@ -194,7 +194,7 @@ serve(async (req) => {
       if (booking_id) {
         const { error: bookingUpdateError } = await supabase
           .from("bookings")
-          .update({ payment_status: "paid" })
+          .update({ payment_status: "confirmed" })
           .eq("id", booking_id);
 
         if (bookingUpdateError) {
@@ -214,7 +214,7 @@ serve(async (req) => {
       source: "gateway",
       transaction_status: remoteStatus || local.transaction_status,
       booking_status: local.booking_status,
-      payment_status: paid ? "paid" : local.payment_status,
+      payment_status: paid ? "confirmed" : local.payment_status,
     });
   } catch (error: any) {
     console.error("[BOOKING_STATUS] Error:", error?.message);
