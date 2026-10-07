@@ -135,7 +135,7 @@ function defaultMessage(eventKey: string, vars: Record<string, string>): string 
   const line = `📋 Serviço: ${vars.service_name}\n👤 Profissional: ${vars.employee_name}\n📅 Data: ${vars.date}\n⏰ Horário: ${vars.time}`;
   switch (eventKey) {
     case "booking_pending":
-      return `⏳ Olá ${vars.client_name}! Recebemos sua solicitação em *${vars.company_name}*. O agendamento está *pendente* de confirmação.\n\n${line}`;
+      return `⏳ Olá ${vars.client_name}! Recebemos sua solicitação em *${vars.company_name}*. O agendamento está *pendente* de confirmação. Se desejar, você pode *pagar agora* para priorizar a confirmação.\n\n${line}`;
     case "booking_confirmed":
       return `✅ Olá ${vars.client_name}! Seu agendamento em *${vars.company_name}* foi *confirmado*.\n\n${line}`;
     case "booking_cancelled":
