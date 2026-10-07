@@ -440,6 +440,16 @@ serve(async (req) => {
     if (dbErr) {
       console.error('[BOOKING_PAYMENT] DB Insert Error:', dbErr.message)
       // Não falha a requisição se o pagamento no Asaas foi criado, mas tenta logar o erro
+    } else if (booking?.id) {
+      fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify-booking-event`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+        },
+        body: JSON.stringify({ booking_id: booking.id, event_key: 'payment_pending' }),
+      }).catch((e) => console.warn('[BOOKING_PAYMENT] payment_pending notification failed:', e?.message ?? e))
     }
 
     return new Response(JSON.stringify(responseData), {
