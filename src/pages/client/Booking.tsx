@@ -824,7 +824,9 @@ export default function ClientBooking() {
       // O booking já foi criado pelo fluxo "Pagar no local".
       // Ao reabrir o pagamento, o dialog ainda precisa dos dados do
       // agendamento para criar o hold e gerar o pagamento online.
-      bookingData: client?.id ? buildBookingData(client.id) : undefined,
+      bookingData: (client?.id || paymentDialog._clientId)
+        ? buildBookingData(client?.id || paymentDialog._clientId!)
+        : undefined,
     });
   };
 
