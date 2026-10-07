@@ -122,6 +122,7 @@ export default function ClientBooking() {
     _clientEmail?: string;
     _clientPhone?: string;
     _notes?: string;
+    bookingData?: any;
   }>({ open: false });
 
   useEffect(() => {
@@ -1571,13 +1572,7 @@ export default function ClientBooking() {
            * Enviamos os dados necessários para que o
            * booking-payment possa ser criado sem booking_id.
            */
-          bookingData={
-            paymentDialog._clientId
-              ? buildBookingData(
-                  paymentDialog._clientId
-                )
-              : undefined
-          }
+          bookingData={paymentDialog.bookingData}
         
           onSlotUnavailable={() => {
             setPaymentDialog(prev => ({ ...prev, open: false }));
@@ -1677,11 +1672,12 @@ export default function ClientBooking() {
 
             setCreatedBookingId(newId);
 
-            // Mantém o cliente associado ao dialog para que "Pagar agora",
-            // após um pagamento no local, consiga reconstruir os dados do booking.
+            // Persiste um snapshot completo. O booking já existe, então
+            // "Pagar agora" não deve depender de reconstruir dados do step atual.
             setPaymentDialog(prev => ({
               ...prev,
               _clientId: clientId,
+              bookingData,
             }));
 
             supabase.functions
