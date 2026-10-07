@@ -1680,16 +1680,15 @@ export default function ClientBooking() {
               bookingData,
             }));
 
-            supabase.functions
-              .invoke("notify-booking-event", {
-                body: {
-                  booking_id: newId,
-                  event_key: "booking_confirmed",
-                },
-              })
-              .catch((e: any) =>
-                console.warn("[notify-booking-event] failed:", e)
-              );
+            for (const eventKey of ["booking_created", "booking_pending"]) {
+              supabase.functions
+                .invoke("notify-booking-event", {
+                  body: { booking_id: newId, event_key: eventKey },
+                })
+                .catch((e: any) =>
+                  console.warn(`[notify-booking-event] ${eventKey} failed:`, e)
+                );
+            }
 
             setPaymentDialog(prev => ({
               ...prev,
@@ -1750,7 +1749,7 @@ export default function ClientBooking() {
                 .invoke("notify-booking-event", {
                   body: {
                     booking_id: paidBookingId,
-                    event_key: "booking_confirmed",
+                    event_key: "payment_confirmed",
                   },
                 })
                 .catch((e: any) =>
@@ -1844,17 +1843,9 @@ export default function ClientBooking() {
             );
         
             supabase.functions
-              .invoke(
-                "notify-booking-event",
-                {
-                  body: {
-                    booking_id:
-                      newId,
-                    event_key:
-                      "booking_confirmed",
-                  },
-                }
-              )
+              .invoke("notify-booking-event", {
+                body: { booking_id: newId, event_key: "payment_confirmed" },
+              })
               .catch(
                 (e: any) =>
                   console.warn(
