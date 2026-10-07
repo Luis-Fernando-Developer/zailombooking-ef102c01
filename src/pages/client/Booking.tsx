@@ -1710,6 +1710,60 @@ export default function ClientBooking() {
             paymentId,
             holdId
           ) => {
+            // Se o cliente já tinha escolhido "Pagar no local", o booking pending
+            // já existe e é ele que ocupa o slot. Não tentamos convertê-lo via hold.
+            if (paymentDialog.bookingId) {
+              const { data: paidBookingId, error: existingBookingError } = await supabase.rpc(
+                "confirm_existing_booking_payment",
+                {
+                  p_booking_id: paymentDialog.bookingId,
+                  p_payment_id: paymentId,
+                }
+              );
+
+              if (existingBookingError || !paidBookingId) {
+                console.error(
+                  "[ONLINE_PAYMENT_EXISTING_BOOKING] Falha ao confirmar pagamento:",
+                  existingBookingError
+                );
+                toast({
+                  title: "Pagamento recebido, mas não foi possível concluir o agendamento",
+                  description:
+                    existingBookingError?.message ||
+                    "Tente novamente em alguns instantes.",
+                  variant: "destructive",
+                });
+                return;
+              }
+
+              setCreatedBookingId(paidBookingId);
+              setPaymentDialog(prev => ({
+                ...prev,
+                open: false,
+                wasPaid: true,
+                paymentId,
+                bookingId: paidBookingId,
+              }));
+              setStep(6);
+
+              supabase.functions
+                .invoke("notify-booking-event", {
+                  body: {
+                    booking_id: paidBookingId,
+                    event_key: "booking_confirmed",
+                  },
+                })
+                .catch((e: any) =>
+                  console.warn("[notify-booking-event] failed:", e)
+                );
+
+              toast({
+                title: "Pagamento confirmado!",
+                description: "Seu agendamento foi validado.",
+              });
+              return;
+            }
+
             let clientId =
               paymentDialog._clientId;
         
