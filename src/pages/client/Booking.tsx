@@ -1581,127 +1581,122 @@ export default function ClientBooking() {
           }}
 
           onPayLater={async () => {
-            // Criar booking agora (pagará no local)
-            let clientId =
-              paymentDialog._clientId;
-        
+            // O cliente final não grava diretamente em bookings porque a RLS
+            // administrativa exige bookings.create. A RPC valida a sessão,
+            // o vínculo do cliente com a empresa e cria pending/local.
+            let clientId = paymentDialog._clientId;
+
             if (!clientId) {
-              const { data: cd } =
-                await supabase
-                  .from("clients")
-                  .upsert(
-                    [
-                      {
-                        company_id:
-                          company.id,
-                        name:
-                          formData.client_name,
-                        email:
-                          formData.client_email,
-                        phone:
-                          formData.client_phone,
-                      },
-                    ],
-                    {
-                      onConflict:
-                        "company_id,email",
-                    }
-                  )
-                  .select()
-                  .single();
-        
+              const { data: cd, error: clientError } = await supabase
+                .from("clients")
+                .upsert(
+                  [{
+                    company_id: company.id,
+                    name: formData.client_name,
+                    email: formData.client_email,
+                    phone: formData.client_phone,
+                  }],
+                  { onConflict: "company_id,email" }
+                )
+                .select()
+                .single();
+
+              if (clientError) {
+                toast({
+                  title: "Erro",
+                  description: clientError.message || "Não foi possível identificar o cliente.",
+                  variant: "destructive",
+                });
+                return;
+              }
+
               clientId = cd?.id;
             }
-        
-            // const {
-            //   data: booking,
-            //   error: bErr,
-            // } = await supabase
-            //   .from("bookings")
-            //   .insert([
-            //     buildBookingData(
-            //       clientId!
-            //     ),
-            //   ])
-            //   .select()
-            //   .single();
-            const {
-              data: booking,
-              error: bErr,
-            } = await supabase
-              .from("bookings")
-              .insert([
-                {
-                  ...buildBookingData(
-                    clientId!
-                  ),
-                   booking_status: "pending",
-                   payment_status: "pending",
-                   payment_method: "local",
-                },
-              ])
-              .select()
-              .single();
-        
-            if (bErr || !booking) {
+
+            if (!clientId) {
               toast({
                 title: "Erro",
-                description:
-                  "Não foi possível registrar o agendamento.",
-                variant:
-                  "destructive",
+                description: "Não foi possível identificar o cliente.",
+                variant: "destructive",
               });
               return;
             }
-        
-            const newId = booking.id;
+
+            const bookingData = buildBookingData(clientId);
+
+            const { data: newId, error: bookingError } = await supabase.rpc(
+              "create_local_booking",
+              {
+                p_company_id: bookingData.company_id,
+                p_employee_id: bookingData.employee_id,
+                p_service_id: bookingData.service_id,
+                p_combo_id: bookingData.combo_id,
+                p_client_id: bookingData.client_id,
+                p_booking_date: bookingData.booking_date,
+                p_booking_time: bookingData.booking_time,
+                p_start_time: bookingData.start_time,
+                p_end_time: bookingData.end_time,
+                p_duration_minutes: bookingData.duration_minutes,
+                p_price: bookingData.price,
+                p_notes: bookingData.notes || "",
+              }
+            );
+
+            if (bookingError || !newId) {
+              console.error("[LOCAL_BOOKING] Falha ao criar agendamento:", bookingError);
+              toast({
+                title: "Erro",
+                description:
+                  bookingError?.message ||
+                  "Não foi possível registrar o agendamento.",
+                variant: "destructive",
+              });
+              return;
+            }
 
             if (rewardAchievementId) {
-              const { data: redeemed, error: redeemError } = await supabase.rpc('redeem_client_reward', { p_achievement_id: rewardAchievementId, p_booking_id: newId });
-              if (redeemError || !redeemed) console.error('[REWARD] Falha ao marcar brinde como resgatado:', redeemError);
+              const { data: redeemed, error: redeemError } =
+                await supabase.rpc("redeem_client_reward", {
+                  p_achievement_id: rewardAchievementId,
+                  p_booking_id: newId,
+                });
+
+              if (redeemError || !redeemed) {
+                console.error(
+                  "[REWARD] Falha ao marcar brinde como resgatado:",
+                  redeemError
+                );
+              }
             }
-        
-            setCreatedBookingId(
-              newId
-            );
-        
+
+            setCreatedBookingId(newId);
+
             supabase.functions
-              .invoke(
-                "notify-booking-event",
-                {
-                  body: {
-                    booking_id:
-                      newId,
-                      event_key: "booking_confirmed",
-                  },
-                }
-              )
-              .catch(
-                (e: any) =>
-                  console.warn(
-                    "[notify-booking-event] failed:",
-                    e
-                  )
-              );
-        
-            setPaymentDialog(
-              prev => ({
-                ...prev,
-                open: false,
-                wasPaid: false,
+              .invoke("notify-booking-event", {
+                body: {
+                  booking_id: newId,
+                  event_key: "booking_confirmed",
+                },
               })
-            );
-        
+              .catch((e: any) =>
+                console.warn("[notify-booking-event] failed:", e)
+              );
+
+            setPaymentDialog(prev => ({
+              ...prev,
+              open: false,
+              wasPaid: false,
+            }));
+
             setStep(6);
-        
+
             toast({
-              title:
-                "Agendamento registrado!",
+              title: "Agendamento registrado!",
               description:
                 "Seu agendamento ficou pendente de confirmação pela empresa. Você pagará no local do atendimento.",
             });
           }}
-        
+
           onPaid={async (
             paymentId,
             holdId
