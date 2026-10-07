@@ -179,7 +179,7 @@ serve(async (req) => {
     const { data: bk, error: bkErr } = await supabase
       .from("bookings")
       .select(`
-        id, company_id, booking_date, booking_time,
+        id, company_id, booking_date, booking_time, booking_status, payment_status, payment_method,
         client:clients(name, phone),
         company:companies(name),
         service:services(name),
@@ -195,6 +195,45 @@ serve(async (req) => {
     }
 
     const c: any = bk;
+
+    // Nunca enviar "agendamento confirmado" apenas porque alguém chamou
+    // esta Edge Function com esse event_key. O estado persistido do booking
+    // é a fonte de verdade.
+    if (event_key === "booking_confirmed") {
+      const bookingStatus = String(c.booking_status ?? "").toLowerCase();
+      if (bookingStatus !== "confirmed") {
+        console.warn(
+          "[notify-booking-event] bloqueando booking_confirmed para booking não confirmado:",
+          booking_id,
+          { booking_status: c.booking_status, payment_status: c.payment_status, payment_method: c.payment_method },
+        );
+        return new Response(JSON.stringify({
+          ok: false,
+          skipped: "booking_not_confirmed",
+          booking_status: c.booking_status ?? null,
+          payment_status: c.payment_status ?? null,
+          payment_method: c.payment_method ?? null,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    if (event_key === "booking_pending") {
+      const bookingStatus = String(c.booking_status ?? "").toLowerCase();
+      if (bookingStatus !== "pending") {
+        return new Response(JSON.stringify({
+          ok: false,
+          skipped: "booking_not_pending",
+          booking_status: c.booking_status ?? null,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const phone = c.client?.phone;
     if (!phone) {
       return new Response(JSON.stringify({ ok: false, skipped: "no_client_phone" }), {
