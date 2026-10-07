@@ -67,10 +67,10 @@ serve(async (req) => {
           .select("id, booking_id, company_id, asaas_id, provider, status, metadata")
           .eq("id", payment_id)
           .maybeSingle();
-        paymentRow = internalRow ?? null;
+          paymentRow = internalRow ?? null;
+      } else {
+        paymentRow = row ?? null;
       }
-
-      paymentRow = row ?? null;
       booking_id = paymentRow?.booking_id ?? booking_id;
       company_id = paymentRow?.company_id ?? null;
     }
