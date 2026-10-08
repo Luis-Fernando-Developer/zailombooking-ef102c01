@@ -169,13 +169,7 @@ serve(async (req) => {
               .eq("id", planId ?? ownerCompany.plan_id ?? "")
               .maybeSingle();
 
-            const selectedPlan = plan ?? (await supabaseClient
-              .from("subscription_plans")
-              .select("*")
-              .ilike("name", "starter")
-              .limit(1)
-              .maybeSingle()).data;
-
+            const selectedPlan = plan;
             if (!selectedPlan) throw new Error("Plano selecionado não encontrado.");
 
             const amount = billingPeriod === "annual" ? Number(selectedPlan.annual_price ?? 0) : billingPeriod === "quarterly" ? Number(selectedPlan.quarterly_price ?? 0) : Number(selectedPlan.monthly_price ?? 0);
@@ -223,8 +217,8 @@ serve(async (req) => {
                 .from("company_invoices")
                 .insert({
                   company_id: companyId,
-                  amount,
-                  status: "pending",
+                  amount: discountPercentage === 100 ? 0 : discountedAmount,
+                  status: discountPercentage === 100 ? "cancelled" : "pending",
                   due_date: new Date().toISOString().slice(0, 10),
                   description: `Assinatura ZailomBooking - ${selectedPlan.name} (${billingPeriod})`,
                   kind: "subscription",
@@ -304,6 +298,8 @@ serve(async (req) => {
               });
 
               await supabaseClient.from("company_invoices").update({
+                subscription_id: localSub.id,
+                amount: discountPercentage === 100 ? 0 : Number(firstPayment?.value ?? discountedAmount),
                 asaas_payment_id: firstPayment?.id ?? null,
                 asaas_customer_id: customerId,
                 invoice_url: firstPayment?.invoiceUrl ?? null,
