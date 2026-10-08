@@ -8,6 +8,7 @@ AS $$
 DECLARE
   v_link RECORD;
   v_paid BOOLEAN := false;
+  v_waived BOOLEAN := false;
 BEGIN
   IF p_token IS NULL OR COALESCE(length(p_password), 0) < 8 OR octet_length(p_password) > 72 THEN
     RETURN json_build_object('success', false, 'error', 'A senha deve ter entre 8 caracteres e 72 bytes.');
@@ -23,7 +24,15 @@ BEGIN
   END IF;
   SELECT EXISTS (SELECT 1 FROM public.company_invoices i
     WHERE i.company_id = v_link.company_id AND lower(i.status) = 'paid') INTO v_paid;
-  IF NOT v_paid THEN
+  SELECT EXISTS (
+    SELECT 1 FROM public.company_subscriptions s
+    JOIN public.company_invoices i ON i.company_id = s.company_id
+    WHERE s.company_id = v_link.company_id
+      AND COALESCE(s.discount_percentage, 0) >= 100
+      AND COALESCE(i.amount, 0) = 0
+      AND lower(i.status) IN ('cancelled', 'canceled', 'paid')
+  ) INTO v_waived;
+  IF NOT v_paid AND NOT v_waived THEN
     RETURN json_build_object('success', false, 'error', 'O pagamento ainda não foi confirmado.');
   END IF;
   UPDATE public.employees
