@@ -232,27 +232,7 @@ export default function CreateCompany() {
             }]);
         }
 
-        console.log("Invocando provision-zailom-flow...");
-        const { data: provResult, error: provError } = await supabase.functions.invoke('provision-zailom-flow', {
-          body: {
-            email: formData.owner_email,
-            slug: formData.slug,
-            display_name: formData.owner_name,
-            plan_id: formData.plan_id,
-            company_id: companyData.id,
-          }
-        });
-
-        if (provError) {
-          console.error('❌ Erro RPC ao chamar Edge Function:', provError);
-          throw provError;
-        }
-
-        if (provResult?.success) {
-          console.log('✅ Conta ZailomFlow provisionada:', provResult);
-        } else {
-          console.warn('⚠️ Falha no provisionamento retornado pela função:', provResult?.error);
-        }
+        // O provisionamento do Flow foi adiado para depois do pagamento e da criação da senha.
 
       } catch (provErr) {
         console.warn('⚠️ Erro ao provisionar ZailomFlow (não bloqueante):', provErr);
