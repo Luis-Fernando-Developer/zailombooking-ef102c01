@@ -312,8 +312,8 @@ serve(async (req) => {
                 updated_at: new Date().toISOString(),
               }).eq("id", invoice.id);
 
-              // Envia ao proprietário o aviso de cadastro e, quando aplicável,
-              // a cobrança residual usando o mesmo Resend já usado no Booking.
+              // 1) Confirmação do cadastro.
+              // 2) Cobrança residual em um segundo e-mail, quando houver.
               let emailSent = false;
               let emailError: string | null = null;
               const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
@@ -321,25 +321,39 @@ serve(async (req) => {
                 const from = (Deno.env.get("BILLING_EMAIL_FROM") ||
                   Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") ||
                   "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
-                const paymentLink = firstPayment?.invoiceUrl || firstPayment?.bankSlipUrl || "";
-                const chargeValue = Number(firstPayment?.value ?? discountedAmount);
-                const html = discountPercentage === 100
-                  ? "<h2>Empresa criada e ativada</h2><p>Olá, " + (ownerCompany.owner_name || "empreendedor") + "!</p><p>A empresa <strong>" + ownerCompany.name + "</strong> foi criada e ativada no Zailom Booking.</p>"
-                  : "<h2>Cobrança para ativação</h2><p>Olá, " + (ownerCompany.owner_name || "empreendedor") + "!</p><p>A empresa <strong>" + ownerCompany.name + "</strong> foi cadastrada.</p><p>Valor para ativação: <strong>R$ " + chargeValue.toFixed(2).replace(".", ",") + "</strong>.</p>" +
-                    (paymentLink ? "<p><a href='" + paymentLink + "'>Acessar cobrança e pagar</a></p>" : "") +
-                    "<p>A conta será ativada automaticamente após a confirmação do pagamento.</p>";
-                const emailResponse = await fetch("https://api.resend.com/emails", {
+
+                const confirmationResponse = await fetch("https://api.resend.com/emails", {
                   method: "POST",
                   headers: { "Content-Type": "application/json", "Authorization": "Bearer " + resendKey },
                   body: JSON.stringify({
                     from,
                     to: [ownerCompany.owner_email],
-                    subject: discountPercentage === 100 ? "Zailom Booking — empresa criada e ativada" : "Zailom Booking — cobrança para ativação",
-                    html: html + "<p>Plano: <strong>" + selectedPlan.name + "</strong> · Ciclo: <strong>" + billingPeriod + "</strong>.</p>",
+                    subject: "Zailom Booking — cadastro confirmado",
+                    html: "<h2>Cadastro confirmado</h2><p>Olá, " + (ownerCompany.owner_name || "empreendedor") + "!</p><p>A empresa <strong>" + ownerCompany.name + "</strong> foi cadastrada no Zailom Booking.</p><p>Plano: <strong>" + selectedPlan.name + "</strong> · Ciclo: <strong>" + billingPeriod + "</strong>.</p>" +
+                      (discountPercentage === 100 ? "<p>Seu desconto é de 100%, portanto não há cobrança residual para ativação.</p>" : "<p>O acesso será liberado automaticamente após a confirmação do pagamento da cobrança enviada em seguida.</p>"),
                   }),
                 });
-                emailSent = emailResponse.ok;
-                if (!emailResponse.ok) emailError = await emailResponse.text();
+
+                emailSent = confirmationResponse.ok;
+                if (!confirmationResponse.ok) emailError = await confirmationResponse.text();
+
+                if (discountPercentage < 100 && firstPayment?.id) {
+                  const paymentLink = firstPayment.invoiceUrl || firstPayment.bankSlipUrl || "";
+                  const chargeValue = Number(firstPayment.value ?? discountedAmount);
+                  const billingResponse = await fetch("https://api.resend.com/emails", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + resendKey },
+                    body: JSON.stringify({
+                      from,
+                      to: [ownerCompany.owner_email],
+                      subject: "Zailom Booking — cobrança para ativação",
+                      html: "<h2>Cobrança para ativação</h2><p>Olá, " + (ownerCompany.owner_name || "empreendedor") + "!</p><p>Valor para ativar a empresa <strong>" + ownerCompany.name + "</strong>: <strong>R$ " + chargeValue.toFixed(2).replace(".", ",") + "</strong>.</p>" +
+                        (paymentLink ? "<p><a href='" + paymentLink + "'>Acessar cobrança e pagar</a></p>" : "") +
+                        "<p>Após a confirmação do pagamento, a conta será ativada automaticamente.</p>",
+                    }),
+                  });
+                  if (!billingResponse.ok && !emailError) emailError = await billingResponse.text();
+                }
               } else {
                 emailError = "RESEND_API_KEY não configurada.";
               }
