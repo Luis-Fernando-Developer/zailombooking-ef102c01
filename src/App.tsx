@@ -62,6 +62,7 @@ import ClientDashboard from "./pages/client/Dashboard";
 import ClientRewards from "./pages/client/Rewards";
 import ConfirmLink from "./pages/client/ConfirmLink";
 import SetPassword from "./pages/client/SetPassword";
+import ConfirmOwnerCompany from "./pages/business/ConfirmOwnerCompany";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -135,6 +136,7 @@ const App = () => (
             <Route path="/:slug/cadastro" element={<ClientSignup />} />
             <Route path="/:slug/agendamentos" element={<ClientBookings />} />
             <Route path="/confirmar-vincular" element={<ConfirmLink />} />
+            <Route path="/confirmar-empresa" element={<ConfirmOwnerCompany />} />
             <Route path="/:slug/criar-senha" element={<SetPassword />} />
             <Route path="/:slug/client/dashboard" element={<ClientDashboard />} />
             <Route path="/:slug/client/premios" element={<ClientRewards />} />
