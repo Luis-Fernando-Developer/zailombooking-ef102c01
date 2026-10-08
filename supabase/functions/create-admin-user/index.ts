@@ -149,10 +149,11 @@ serve(async (req) => {
       console.log(`[AdminCreateUser] Reutilizando identidade Auth existente: ${existingAuth.user.id}`);
     } else {
       console.log(`[AdminCreateUser] Criando identidade Auth global para: ${email}`);
-      const authPassword = `Zailom-${crypto.randomUUID()}`;
+      // A identidade global NÃO recebe a senha empresarial.
+      // O acesso do proprietário é contextual por empresa e fica em employees.password_hash,
+      // exatamente como o fluxo de identidade sem senha usado para clientes multiempresa.
       const { data: newUserData, error: createError } = await supabaseClient.auth.admin.createUser({
         email,
-        password: authPassword,
         email_confirm: true,
         user_metadata: metadata
       });
