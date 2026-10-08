@@ -95,7 +95,7 @@ serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     const body = await req.json().catch(() => null);
-    if (!body?.company || !body?.password) {
+    if (!body?.company) {
       return json({ ok: false, error: "Payload inválido." }, 200);
     }
 
@@ -306,21 +306,27 @@ serve(async (req) => {
 
     const { data: ownerAccess, error: ownerAccessError } = await admin.rpc("create_owner_company_credential", {
       p_user_id: userId!, p_company_id: companyId, p_email: c.owner_email,
-      p_password: body.password, p_name: c.owner_name, p_phone: c.owner_phone ?? null,
+      p_password: crypto.randomUUID() + crypto.randomUUID(), p_name: c.owner_name, p_phone: c.owner_phone ?? null,
     });
     if (ownerAccessError || !ownerAccess?.success) {
       await admin.from("companies").delete().eq("id", companyId);
       if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
       return json({ ok: false, error: ownerAccess?.error || ownerAccessError?.message || "Falha ao criar a credencial empresarial." }, 200);
     }
-    const siteUrl = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\/$/, "");
-    const confirmationLink = `${siteUrl}/confirmar-empresa?token=${ownerAccess.confirmation_token}`;
+    // E-mail 1: confirmação de recebimento do cadastro, sem link de senha.
     const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
     if (resendKey) {
       const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
-      await fetch("https://api.resend.com/emails", { method:"POST", headers:{"Content-Type":"application/json",Authorization:"Bearer "+resendKey},
-        body:JSON.stringify({from,to:[c.owner_email],subject:`Zailom Booking — confirme o acesso à ${c.name}`,html:`<h2>Olá, ${c.owner_name}!</h2><p>A empresa <strong>${c.name}</strong> foi cadastrada no Zailom Booking.</p><p>A senha informada é exclusiva desta empresa.</p><p><a href="${confirmationLink}">Confirmar meu acesso empresarial</a></p>`})
-      }).catch(e=>console.error("[signup-with-payment] confirmação:",e));
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
+        body: JSON.stringify({
+          from,
+          to: [c.owner_email],
+          subject: "Zailom Booking — cadastro da empresa recebido",
+          html: "<h2>Olá, " + c.owner_name + "!</h2><p>Recebemos o cadastro da empresa <strong>" + c.name + "</strong>.</p><p>Você receberá em seguida os detalhes da cobrança. Após a confirmação do pagamento, enviaremos um link para validar seu e-mail e criar a senha empresarial.</p>",
+        }),
+      }).catch((e) => console.error("[signup-with-payment] aviso de cadastro:", e));
     }
 
     // 5) Assinatura no Asaas ---------------------------------------------
