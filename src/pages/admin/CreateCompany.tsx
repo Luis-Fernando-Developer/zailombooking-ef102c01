@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BookingLogo } from "@/components/BookingLogo";
@@ -20,7 +19,6 @@ interface CompanyForm {
   slug: string;
   owner_name: string;
   owner_email: string;
-  owner_password: string;
   owner_phone: string;
   owner_cpf: string;
   address: string;
@@ -42,7 +40,6 @@ export default function CreateCompany() {
     slug: "",
     owner_name: "",
     owner_email: "",
-    owner_password: "",
     owner_phone: "",
     owner_cpf: "",
     address: "",
@@ -106,26 +103,6 @@ export default function CreateCompany() {
     setIsLoading(true);
 
     try {
-      if (formData.owner_password.length < 6) {
-        toast({
-          title: "Senha inválida",
-          description: "A senha do proprietário deve ter pelo menos 6 caracteres.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      if (new TextEncoder().encode(formData.owner_password).length > 72) {
-        toast({
-          title: "Senha muito longa",
-          description: "A senha do proprietário deve ter no máximo 72 bytes.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
       // 1. Verificar se o slug já existe
       const { data: existingCompany } = await supabase
         .from('companies')
@@ -171,7 +148,6 @@ export default function CreateCompany() {
       const { data: authData, error: authError } = await supabase.functions.invoke('create-admin-user', {
         body: {
           email: formData.owner_email,
-          password: formData.owner_password,
           metadata: {
             owner_name: formData.owner_name,
             owner_cpf: formData.owner_cpf.replace(/\D/g, ""),
@@ -260,7 +236,6 @@ export default function CreateCompany() {
         const { data: provResult, error: provError } = await supabase.functions.invoke('provision-zailom-flow', {
           body: {
             email: formData.owner_email,
-            password: formData.owner_password,
             slug: formData.slug,
             display_name: formData.owner_name,
             plan_id: formData.plan_id,
@@ -289,8 +264,8 @@ export default function CreateCompany() {
       }
 
       toast({
-        title: "Empresa criada com sucesso!",
-        description: "A empresa foi cadastrada e o proprietário pode fazer login.",
+        title: "Cadastro empresarial criado",
+        description: "A empresa ficará pendente até o pagamento e a criação da senha pelo link enviado por e-mail.",
       });
 
       navigate("/super-admin/painel");
@@ -386,24 +361,6 @@ export default function CreateCompany() {
                     placeholder="joao@exemplo.com"
                     required
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="owner_password">Senha do Proprietário *</Label>
-                  <PasswordInput
-                    id="owner_password"
-                    name="owner_password"
-                    showLeftIcon={false}
-                    value={formData.owner_password}
-                    onChange={handleInputChange}
-                    placeholder="Digite uma senha segura"
-                    minLength={6}
-                    maxLength={72}
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Mínimo de 6 caracteres. Máximo de 72 bytes.
-                  </p>
                 </div>
 
                 <div className="space-y-2">
