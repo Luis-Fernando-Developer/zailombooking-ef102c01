@@ -418,6 +418,21 @@ serve(async (req) => {
                     }),
                   });
                   if (!billingResponse.ok && !emailError) emailError = await billingResponse.text();
+                } else if (discountPercentage === 100) {
+                  const setupLink = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\\/$/, "") + "/confirmar-empresa?token=" + ownerAccess.confirmation_token;
+                  await fetch("https://api.resend.com/emails", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + resendKey },
+                    body: JSON.stringify({
+                      from,
+                      to: [ownerCompany.owner_email],
+                      subject: "Zailom Booking — cobrança zerada pelo desconto especial",
+                      html: "<h2>Seu desconto cobriu 100% do plano!</h2><p>A cobrança de ativação da empresa <strong>" + ownerCompany.name + "</strong> ficou em R$ 0,00.</p><p>Não é necessário realizar pagamento. Para concluir a ativação, confirme seu e-mail e crie sua senha empresarial:</p><p><a href='" + setupLink + "'>Confirmar e criar minha senha</a></p>",
+                    }),
+                  });
+                  await supabaseClient.from("owner_company_confirmations")
+                    .update({ password_setup_email_sent_at: new Date().toISOString() })
+                    .eq("company_id", companyId);
                 }
               } else {
                 emailError = "RESEND_API_KEY não configurada.";
