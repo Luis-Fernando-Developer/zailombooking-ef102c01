@@ -168,12 +168,34 @@ export default function CreateCompany() {
       });
 
       if (authError || !authData?.user) {
-        // Se falhar o Auth, tentamos remover a empresa para evitar dados órfãos e slug bloqueado
+        // FunctionsHttpError exibe apenas uma mensagem genérica. A Edge Function
+        // devolve o motivo real no corpo da resposta, então lemos esse corpo antes
+        // de apresentar o erro ao Super Admin.
+        let backendError = authError?.message || "Erro desconhecido na Edge Function";
+
+        if (authError && "context" in authError) {
+          try {
+            const response = (authError as any).context;
+            if (response && typeof response.json === "function") {
+              const body = await response.json();
+              backendError = body?.error || body?.message || backendError;
+            }
+          } catch {
+            // A resposta pode já ter sido consumida ou não ser JSON.
+          }
+        }
+
+        console.error("Erro no Auth via Edge Function:", {
+          message: authError?.message,
+          backendError,
+          authError,
+        });
+
+        // Se falhar o Auth, removemos a empresa para evitar dados órfãos
+        // e slug bloqueado.
         await supabase.from('companies').delete().eq('id', companyData.id);
-        
-        console.error("Erro no Auth via Edge Function:", authError);
-        
-        throw new Error(`Erro ao criar usuário: ${authError?.message || 'Erro desconhecido na Edge Function'}`);
+
+        throw new Error(`Erro ao criar usuário: ${backendError}`);
       }
 
 
