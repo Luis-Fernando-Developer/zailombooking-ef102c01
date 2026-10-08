@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,10 +7,13 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BookingLogo } from "@/components/BookingLogo";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft, Building2, Percent, MessageSquare, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { syncBuilderPlan } from "@/lib/syncBuilderPlan";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Card as UiCard, CardContent as UiCardContent } from "@/components/ui/card";
 
 interface CompanyForm {
   name: string;
@@ -21,6 +24,13 @@ interface CompanyForm {
   owner_phone: string;
   owner_cpf: string;
   address: string;
+  plan_id: string;
+  billing_period: "monthly" | "quarterly" | "annual";
+  extra_whatsapp_instances: number;
+  provision_flow: boolean;
+  discount_enabled: boolean;
+  discount_percentage: number;
+  discount_cycles: number;
 }
 
 export default function CreateCompany() {
@@ -35,8 +45,36 @@ export default function CreateCompany() {
     owner_password: "",
     owner_phone: "",
     owner_cpf: "",
-    address: ""
+    address: "",
+    plan_id: "",
+    billing_period: "monthly",
+    extra_whatsapp_instances: 0,
+    provision_flow: true,
+    discount_enabled: false,
+    discount_percentage: 0,
+    discount_cycles: 0,
   });
+  const [plans, setPlans] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPlans = async () => {
+      const { data } = await supabase.from("subscription_plans").select("id,name,monthly_price,quarterly_price,annual_price").eq("is_active", true);
+      const rows = data || [];
+      setPlans(rows);
+      const starter = rows.find((p: any) => String(p.name).toLowerCase() === "starter");
+      if (starter) setFormData(prev => ({ ...prev, plan_id: prev.plan_id || starter.id }));
+      setPlansLoading(false);
+    };
+    loadPlans();
+  }, []);
+
+  const selectedPlan = plans.find((p: any) => p.id === formData.plan_id);
+  const basePrice = selectedPlan
+    ? formData.billing_period === "annual" ? Number(selectedPlan.annual_price) : formData.billing_period === "quarterly" ? Number(selectedPlan.quarterly_price) : Number(selectedPlan.monthly_price)
+    : 0;
+  const discountValue = formData.discount_enabled ? Math.min(100, Math.max(0, formData.discount_percentage)) : 0;
+  const firstChargeValue = Number((basePrice * (1 - discountValue / 100)).toFixed(2));
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -119,7 +157,10 @@ export default function CreateCompany() {
           owner_phone: formData.owner_phone,
           owner_cpf: formData.owner_cpf.replace(/\D/g, ""),
           address: formData.address,
-          status: 'active'
+          plan_id: formData.plan_id,
+          billing_period: formData.billing_period,
+          extra_whatsapp_instances: formData.extra_whatsapp_instances,
+          status: 'pending_payment'
         }])
         .select()
         .single();
@@ -135,7 +176,13 @@ export default function CreateCompany() {
           metadata: {
             owner_name: formData.owner_name,
             owner_cpf: formData.owner_cpf.replace(/\D/g, ""),
-            company_id: companyData.id
+            company_id: companyData.id,
+            plan_id: formData.plan_id,
+            billing_period: formData.billing_period,
+            discount_percentage: discountValue,
+            discount_cycles: formData.discount_enabled ? Math.max(0, formData.discount_cycles) : 0,
+            extra_whatsapp_instances: formData.extra_whatsapp_instances,
+            provision_flow: formData.provision_flow
           }
         }
       });
@@ -221,8 +268,8 @@ export default function CreateCompany() {
         console.log("✅ Assinatura Asaas provisionada:", authData.billing);
       }
 
-      // Provisionar conta automaticamente no builder-flow-api (ZailomFlow)
-      try {
+      // Provisionar Flow somente se o Super Admin tiver ativado o toggle.
+      if (formData.provision_flow) try {
         // Verificar se já existe integração para não duplicar
         const { data: existingIntegration } = await supabase
           .from('chatbot_integration')
@@ -249,7 +296,7 @@ export default function CreateCompany() {
             password: formData.owner_password,
             slug: formData.slug,
             display_name: formData.owner_name,
-            plan_id: 'starter',
+            plan_id: formData.plan_id,
             company_id: companyData.id,
           }
         });
@@ -270,7 +317,9 @@ export default function CreateCompany() {
       }
 
       // Sincronizar tier do plano com o builder
-      syncBuilderPlan(companyData.id, 'starter', { chatbots: 1, messages: 700, integrations: 1 });
+      if (formData.provision_flow) {
+        syncBuilderPlan(companyData.id, selectedPlan?.name, { chatbots: 1, messages: 700, integrations: 1 });
+      }
 
       toast({
         title: "Empresa criada com sucesso!",
@@ -410,6 +459,75 @@ export default function CreateCompany() {
                 </div>
               </div>
 
+              <UiCard className="md:col-span-2 border-primary/20 bg-primary/5">
+                <UiCardContent className="pt-5 space-y-5">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-primary" />
+                    <h3 className="font-semibold">Plano e cobrança</h3>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Plano *</Label>
+                      <Select value={formData.plan_id} onValueChange={(v) => setFormData(prev => ({ ...prev, plan_id: v }))}>
+                        <SelectTrigger><SelectValue placeholder={plansLoading ? "Carregando planos..." : "Selecione o plano"} /></SelectTrigger>
+                        <SelectContent>
+                          {plans.map((plan: any) => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Período de cobrança *</Label>
+                      <Select value={formData.billing_period} onValueChange={(v: any) => setFormData(prev => ({ ...prev, billing_period: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                          <SelectItem value="quarterly">Trimestral</SelectItem>
+                          <SelectItem value="annual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Instâncias WhatsApp extras</Label>
+                      <Input type="number" min="0" value={formData.extra_whatsapp_instances} onChange={(e) => setFormData(prev => ({ ...prev, extra_whatsapp_instances: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <p className="text-xs text-muted-foreground">Somadas ao limite normal do plano.</p>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border border-primary/20 p-3">
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-4 h-4 text-primary" />
+                        <div><Label>Provisionar Zailom Flow</Label><p className="text-xs text-muted-foreground">Herdará o nível do plano Booking.</p></div>
+                      </div>
+                      <Switch checked={formData.provision_flow} onCheckedChange={(v) => setFormData(prev => ({ ...prev, provision_flow: v }))} />
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-primary/20 p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /><Label>Aplicar Desconto Especial</Label></div>
+                      <Switch checked={formData.discount_enabled} onCheckedChange={(v) => setFormData(prev => ({ ...prev, discount_enabled: v }))} />
+                    </div>
+                    {formData.discount_enabled && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Percentual de desconto (%)</Label>
+                          <Input type="number" min="0" max="100" value={formData.discount_percentage} onChange={(e) => setFormData(prev => ({ ...prev, discount_percentage: Math.min(100, Math.max(0, Number(e.target.value) || 0)) }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Número de ciclos</Label>
+                          <Input type="number" min="0" value={formData.discount_cycles} onChange={(e) => setFormData(prev => ({ ...prev, discount_cycles: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                          <p className="text-xs text-muted-foreground">Zero = desconto somente na cobrança inicial residual.</p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedPlan && <div className="text-sm">
+                      <span>Plano {selectedPlan.name} · {formData.billing_period === "annual" ? "Anual" : formData.billing_period === "quarterly" ? "Trimestral" : "Mensal"}: </span>
+                      <strong>R$ {basePrice.toFixed(2).replace(".", ",")}</strong>
+                      {formData.discount_enabled && <span> → cobrança inicial: <strong>R$ {firstChargeValue.toFixed(2).replace(".", ",")}</strong></span>}
+                    </div>}
+                  </div>
+                </UiCardContent>
+              </UiCard>
+
               <div className="space-y-2">
                 <Label htmlFor="address">Endereço</Label>
                 <Textarea
@@ -434,7 +552,7 @@ export default function CreateCompany() {
                 <Button
                   type="submit"
                   variant="neon"
-                  disabled={isLoading}
+                  disabled={isLoading || plansLoading || !formData.plan_id}
                   className="flex-1"
                 >
                   {isLoading ? "Criando..." : "Criar Empresa"}
