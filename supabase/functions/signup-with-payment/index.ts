@@ -532,12 +532,39 @@ serve(async (req) => {
 
       // Cartão aprovado na hora — o RPC mantém a empresa pendente até a senha ser criada.
       const status = String(firstPayment?.status ?? "").toUpperCase();
-      if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(status)) {
-        await admin.rpc("mark_subscription_invoice_paid_v2", {
+      if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(status) && invoiceId) {
+        const { error: paidError } = await admin.rpc("mark_subscription_invoice_paid_v2", {
           _asaas_payment_id: firstPayment.id,
           _invoice_id: invoiceId,
           _paid_at: new Date().toISOString(),
         });
+        if (!paidError) {
+          // Pagamento com cartão pode confirmar antes de o webhook encontrar a fatura.
+          // Garante que o link de criação de senha não se perca nessa corrida.
+          const activationResendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+          if (activationResendKey && ownerAccess?.confirmation_token) {
+            const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
+            const siteUrl = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\/$/, "");
+            const setupLink = siteUrl + "/confirmar-empresa?token=" + ownerAccess.confirmation_token;
+            const setupResponse = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: "Bearer " + activationResendKey },
+              body: JSON.stringify({
+                from,
+                to: [c.owner_email],
+                subject: "Zailom Booking — pagamento confirmado, crie sua senha",
+                html: "<h2>Pagamento confirmado!</h2><p>Recebemos o pagamento da empresa <strong>" + c.name + "</strong>.</p><p>Para concluir a ativação, confirme seu e-mail e crie sua senha empresarial:</p><p><a href='" + setupLink + "'>Confirmar e criar minha senha</a></p>",
+              }),
+            });
+            if (setupResponse.ok) {
+              await admin.from("owner_company_confirmations")
+                .update({ password_setup_email_sent_at: new Date().toISOString() })
+                .eq("company_id", companyId);
+            } else {
+              console.error("[signup-with-payment] Falha no e-mail de criação de senha:", await setupResponse.text());
+            }
+          }
+        }
       }
     }
 
