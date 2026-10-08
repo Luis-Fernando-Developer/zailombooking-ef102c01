@@ -84,7 +84,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
     owner_email: "",
     owner_phone: "",
     address: "",
-    status: "active",
+    status: "pending_payment",
     slug: "",
     manual_resource_release_until: null as string | null,
     manual_release_days: "7",
@@ -117,7 +117,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
         owner_email: company.owner_email || "",
         owner_phone: company.owner_phone || "",
         address: company.address || "",
-        status: company.status || "active",
+        status: company.status || "pending_payment",
         slug: company.slug || "",
         manual_resource_release_until: company.manual_resource_release_until || null,
         manual_release_days: "7",
@@ -502,8 +502,10 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-primary/20">
+                  <SelectItem value="pending_payment">Ativação — pagamento pendente</SelectItem>
                   <SelectItem value="active">Ativa</SelectItem>
-                  <SelectItem value="paused">Pausada</SelectItem>
+                  <SelectItem value="paused">Suspensa</SelectItem>
+                  <SelectItem value="suspended">Suspensa</SelectItem>
                   <SelectItem value="blocked">Bloqueada</SelectItem>
                 </SelectContent>
               </Select>
