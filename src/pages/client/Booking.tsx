@@ -798,6 +798,10 @@ export default function ClientBooking() {
         _clientEmail: client?.email || formData.client_email,
         _clientPhone: client?.phone || formData.client_phone,
         _notes: formData.notes,
+        // O checkout online direto ainda não possui booking_id.
+        // O dialog precisa receber o snapshot completo do agendamento
+        // para criar o hold e gerar o pagamento (PIX/cartão) sem booking prévio.
+        bookingData: buildBookingData(clientId),
       });
     } catch (error) {
       console.error("Erro ao preparar agendamento:", error);
@@ -1507,6 +1511,9 @@ export default function ClientBooking() {
       price: effectivePrice,
       notes: formData.notes,
       client_id: clientId,
+      availability_service_id: isCombo
+        ? (combos.find((combo: any) => combo.id === selectedService?.id?.replace('combo:', ''))?.items?.[0]?.service_id ?? null)
+        : selectedService?.id ?? null,
       created_source: 'landingpage',
       booking_status: 'pending',
     };
