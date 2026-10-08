@@ -262,11 +262,11 @@ export default function CreateCompany() {
       // A criação do usuário pelo Super Admin também provisiona a assinatura
       // recorrente do plano Starter mensal no Asaas. O retorno fica em
       // authData.billing; não criamos uma cobrança avulsa aqui.
-      if (authData?.billing?.error) {
-        console.warn("⚠️ Empresa criada, mas a assinatura Asaas não foi provisionada:", authData.billing.error);
-      } else if (authData?.billing?.subscription_id) {
-        console.log("✅ Assinatura Asaas provisionada:", authData.billing);
+      if (authData?.billing?.error || !authData?.billing?.subscription_id) {
+        await supabase.from('companies').delete().eq('id', companyData.id);
+        throw new Error(authData?.billing?.error || "Não foi possível criar a assinatura Asaas. A empresa não foi concluída.");
       }
+      console.log("✅ Assinatura Asaas provisionada:", authData.billing);
 
       // Provisionar Flow somente se o Super Admin tiver ativado o toggle.
       if (formData.provision_flow) try {
