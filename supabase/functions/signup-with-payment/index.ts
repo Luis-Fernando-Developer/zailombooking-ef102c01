@@ -476,7 +476,7 @@ serve(async (req) => {
     if (firstPayment?.id) {
       const invLocal: Record<string, unknown> = {
         company_id: companyId,
-        amount: Number(amount),
+        amount: Number(firstPayment?.value ?? amount),
         status: "pending",
         kind: "subscription",
         billing_type: billingType,
@@ -509,7 +509,28 @@ serve(async (req) => {
         delete invLocal[drop];
       }
 
-      // Cartão aprovado na hora — ativa imediatamente.
+      // E-mail 2: cobrança e link de pagamento enviados depois da criação da fatura.
+      const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+      if (resendKey && invoiceId) {
+        const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
+        const paymentUrl = firstPayment?.invoiceUrl || firstPayment?.bankSlipUrl || "";
+        const chargeValue = Number(firstPayment?.value ?? amount);
+        const mailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
+          body: JSON.stringify({
+            from,
+            to: [c.owner_email],
+            subject: "Zailom Booking — cobrança para ativar sua empresa",
+            html: "<h2>Cobrança para ativação</h2><p>Olá, " + c.owner_name + ".</p><p>Valor do plano " + plan.name + " (" + PERIOD_LABEL[billingPeriod] + "): <strong>R$ " + chargeValue.toFixed(2).replace(".", ",") + "</strong>.</p>" +
+              (paymentUrl ? "<p><a href=\"" + paymentUrl + "\">Acessar cobrança e pagar</a></p>" : "<p>Abra o checkout para concluir o pagamento.</p>") +
+              "<p>Após a confirmação do pagamento, enviaremos o link para validar seu e-mail e criar sua senha empresarial.</p>",
+          }),
+        });
+        if (!mailResponse.ok) console.error("[signup-with-payment] Falha no e-mail da cobrança:", await mailResponse.text());
+      }
+
+      // Cartão aprovado na hora — o RPC mantém a empresa pendente até a senha ser criada.
       const status = String(firstPayment?.status ?? "").toUpperCase();
       if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(status)) {
         await admin.rpc("mark_subscription_invoice_paid", {
