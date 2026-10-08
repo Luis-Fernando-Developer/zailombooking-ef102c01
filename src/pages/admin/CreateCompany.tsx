@@ -52,7 +52,7 @@ export default function CreateCompany() {
     provision_flow: true,
     discount_enabled: false,
     discount_percentage: 0,
-    discount_cycles: 0,
+    discount_cycles: 1,
   });
   const [plans, setPlans] = useState<any[]>([]);
   const [plansLoading, setPlansLoading] = useState(true);
@@ -180,7 +180,7 @@ export default function CreateCompany() {
             plan_id: formData.plan_id,
             billing_period: formData.billing_period,
             discount_percentage: discountValue,
-            discount_cycles: formData.discount_enabled ? Math.max(0, formData.discount_cycles) : 0,
+            discount_cycles: formData.discount_enabled ? Math.max(1, formData.discount_cycles) : 0,
             extra_whatsapp_instances: formData.extra_whatsapp_instances,
             provision_flow: formData.provision_flow
           }
@@ -504,7 +504,7 @@ export default function CreateCompany() {
                   <div className="rounded-lg border border-primary/20 p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /><Label>Aplicar Desconto Especial</Label></div>
-                      <Switch checked={formData.discount_enabled} onCheckedChange={(v) => setFormData(prev => ({ ...prev, discount_enabled: v }))} />
+                      <Switch checked={formData.discount_enabled} onCheckedChange={(v) => setFormData(prev => ({ ...prev, discount_enabled: v, discount_cycles: v ? Math.max(1, prev.discount_cycles) : prev.discount_cycles }))} />
                     </div>
                     {formData.discount_enabled && (
                       <div className="grid md:grid-cols-2 gap-4">
@@ -514,8 +514,8 @@ export default function CreateCompany() {
                         </div>
                         <div className="space-y-2">
                           <Label>Número de ciclos</Label>
-                          <Input type="number" min="0" value={formData.discount_cycles} onChange={(e) => setFormData(prev => ({ ...prev, discount_cycles: Math.max(0, parseInt(e.target.value) || 0) }))} />
-                          <p className="text-xs text-muted-foreground">Zero = desconto somente na cobrança inicial residual.</p>
+                          <Input type="number" min="1" value={formData.discount_cycles} onChange={(e) => setFormData(prev => ({ ...prev, discount_cycles: Math.max(1, parseInt(e.target.value) || 1) }))} />
+                          <p className="text-xs text-muted-foreground">Quantidade de cobranças com desconto. Mínimo de 1 ciclo.</p>
                         </div>
                       </div>
                     )}
