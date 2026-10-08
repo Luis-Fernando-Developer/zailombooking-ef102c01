@@ -106,6 +106,26 @@ export default function CreateCompany() {
     setIsLoading(true);
 
     try {
+      if (formData.owner_password.length < 6) {
+        toast({
+          title: "Senha inválida",
+          description: "A senha do proprietário deve ter pelo menos 6 caracteres.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (new TextEncoder().encode(formData.owner_password).length > 72) {
+        toast({
+          title: "Senha muito longa",
+          description: "A senha do proprietário deve ter no máximo 72 bytes.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // 1. Verificar se o slug já existe
       const { data: existingCompany } = await supabase
         .from('companies')
@@ -378,8 +398,12 @@ export default function CreateCompany() {
                     onChange={handleInputChange}
                     placeholder="Digite uma senha segura"
                     minLength={6}
+                    maxLength={72}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Mínimo de 6 caracteres. Máximo de 72 bytes.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
