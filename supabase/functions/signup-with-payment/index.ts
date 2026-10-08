@@ -302,7 +302,7 @@ serve(async (req) => {
     }
 
     const { data: ownerAccess, error: ownerAccessError } = await admin.rpc("create_owner_company_credential", {
-      p_user_id: userId, p_company_id: companyId, p_email: c.owner_email,
+      p_user_id: userId!, p_company_id: companyId, p_email: c.owner_email,
       p_password: body.password, p_name: c.owner_name, p_phone: c.owner_phone ?? null,
     });
     if (ownerAccessError || !ownerAccess?.success) {
