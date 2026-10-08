@@ -414,7 +414,7 @@ serve(async (req) => {
                       subject: "Zailom Booking — cobrança para ativação",
                       html: "<h2>Cobrança para ativação</h2><p>Olá, " + (ownerCompany.owner_name || "empreendedor") + "!</p><p>Valor para ativar a empresa <strong>" + ownerCompany.name + "</strong>: <strong>R$ " + chargeValue.toFixed(2).replace(".", ",") + "</strong>.</p>" +
                         (paymentLink ? "<p><a href='" + paymentLink + "'>Acessar cobrança e pagar</a></p>" : "") +
-                        "<p>Após a confirmação do pagamento, a conta será ativada automaticamente.</p>",
+                        "<p>Após a confirmação do pagamento, enviaremos um novo e-mail para confirmar o endereço e criar a senha empresarial.</p>",
                     }),
                   });
                   if (!billingResponse.ok && !emailError) emailError = await billingResponse.text();
