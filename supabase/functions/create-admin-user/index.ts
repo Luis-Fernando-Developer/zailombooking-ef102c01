@@ -89,6 +89,34 @@ serve(async (req) => {
       });
     }
 
+    // A credencial empresarial usa bcrypt/pgcrypto, cujo limite é 72 bytes.
+    // Validamos antes do RPC para evitar que o erro interno do hash chegue ao cliente.
+    if (typeof password !== "string") {
+      return new Response(JSON.stringify({ error: "A senha do proprietário é inválida." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const passwordBytes = new TextEncoder().encode(password).length;
+    if (passwordBytes > 72) {
+      return new Response(JSON.stringify({
+        error: "A senha do proprietário deve ter no máximo 72 bytes.",
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (password.length < 6) {
+      return new Response(JSON.stringify({
+        error: "A senha do proprietário deve ter pelo menos 6 caracteres.",
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.log(`[AdminCreateUser] Criando usuário: ${email}`);
 
     // 3. A identidade Auth é GLOBAL. A senha empresarial NÃO é a senha do Auth.
