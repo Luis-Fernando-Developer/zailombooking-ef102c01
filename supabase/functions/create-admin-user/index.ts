@@ -353,8 +353,9 @@ serve(async (req) => {
               for (let attempt = 0; attempt < 10 && !firstPayment; attempt++) {
                 const payments = await asaas(`/subscriptions/${subscriptionId}/payments`, { method: "GET" });
                 firstPayment = payments?.data?.[0] ?? null;
-                if (firstPayment?.id && discountPercentage > 0 && discountCycles === 0 && discountPercentage < 100) {
-                  firstPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
+                if (firstPayment?.id && discountPercentage > 0 && discountPercentage < 100) {
+                  const adjustedPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
+                  firstPayment = { ...firstPayment, ...adjustedPayment, value: discountedAmount };
                 }
                 if (!firstPayment && attempt < 9) await new Promise(resolve => setTimeout(resolve, 1000));
               }
@@ -365,7 +366,7 @@ serve(async (req) => {
                 plan_id: selectedPlan.id,
                 billing_period: billingPeriod,
                 extra_whatsapp_instances: extraWhatsappInstances,
-                status: discountPercentage === 100 ? "active" : "pending_payment",
+                status: "pending_payment",
               }).eq("id", companyId);
 
               const now = new Date();
@@ -380,8 +381,8 @@ serve(async (req) => {
                   company_id: companyId,
                   plan_id: selectedPlan.id,
                   billing_period: billingPeriod,
-                  status: discountPercentage === 100 ? "active" : "pending",
-                  billing_status: discountPercentage === 100 ? "active" : "suspended",
+                  status: "pending",
+                  billing_status: "suspended",
                   cycle_start_at: now.toISOString(),
                   next_renewal_at: nextBilling.toISOString(),
                   next_billing_date: nextBilling.toISOString(),
@@ -397,7 +398,7 @@ serve(async (req) => {
 
               await supabaseClient.from("company_invoices").update({
                 subscription_id: localSub.id,
-                amount: discountPercentage === 100 ? 0 : Number(firstPayment?.value ?? discountedAmount),
+                amount: discountPercentage === 100 ? 0 : discountedAmount,
                 asaas_payment_id: firstPayment?.id ?? null,
                 asaas_customer_id: customerId,
                 invoice_url: firstPayment?.invoiceUrl ?? null,
