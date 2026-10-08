@@ -157,7 +157,7 @@ serve(async (req) => {
       p_user_id: createData.user.id,
       p_company_id: companyIdForAccess,
       p_email: email,
-      p_password: crypto.randomUUID() + crypto.randomUUID(),
+      p_password: null,
       p_name: metadata?.owner_name ?? "",
       p_phone: metadata?.owner_phone ?? null,
     });
