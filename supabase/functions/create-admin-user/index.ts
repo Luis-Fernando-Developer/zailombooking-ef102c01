@@ -80,38 +80,10 @@ serve(async (req) => {
     }
 
     // 2. Pegar dados para criação do novo usuário
-    const { email, password, metadata } = await req.json();
+    const { email, metadata } = await req.json();
 
-    if (!email || !password) {
-      return new Response(JSON.stringify({ error: "Email and password are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // A credencial empresarial usa bcrypt/pgcrypto, cujo limite é 72 bytes.
-    // Validamos antes do RPC para evitar que o erro interno do hash chegue ao cliente.
-    if (typeof password !== "string") {
-      return new Response(JSON.stringify({ error: "A senha do proprietário é inválida." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const passwordBytes = new TextEncoder().encode(password).length;
-    if (passwordBytes > 72) {
-      return new Response(JSON.stringify({
-        error: "A senha do proprietário deve ter no máximo 72 bytes.",
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (password.length < 6) {
-      return new Response(JSON.stringify({
-        error: "A senha do proprietário deve ter pelo menos 6 caracteres.",
-      }), {
+    if (!email) {
+      return new Response(JSON.stringify({ error: "Email is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -185,7 +157,7 @@ serve(async (req) => {
       p_user_id: createData.user.id,
       p_company_id: companyIdForAccess,
       p_email: email,
-      p_password: password,
+      p_password: crypto.randomUUID() + crypto.randomUUID(),
       p_name: metadata?.owner_name ?? "",
       p_phone: metadata?.owner_phone ?? null,
     });
@@ -198,9 +170,8 @@ serve(async (req) => {
       });
     }
 
-    // Confirmação é por empresa, não por identidade global.
-    const siteUrl = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\/$/, "");
-    const confirmationLink = `${siteUrl}/confirmar-empresa?token=${ownerAccess.confirmation_token}`;
+    // E-mail 1: apenas notificação do cadastro. O link para criar senha
+    // será enviado pelo webhook somente após a confirmação do pagamento.
     const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
     if (resendKey) {
       const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
@@ -210,10 +181,10 @@ serve(async (req) => {
         body: JSON.stringify({
           from,
           to: [email],
-          subject: "Zailom Booking — confirme o acesso à sua empresa",
-          html: `<h2>Olá, ${metadata?.owner_name || "empreendedor"}!</h2><p>Seu acesso à empresa foi criado no Zailom Booking.</p><p>Esta senha é exclusiva desta empresa e pode ser diferente da senha usada em outras empresas.</p><p><a href="${confirmationLink}">Confirmar meu acesso empresarial</a></p>`,
+          subject: "Zailom Booking — cadastro da empresa recebido",
+          html: `<h2>Olá, ${metadata?.owner_name || "empreendedor"}!</h2><p>O cadastro da sua empresa foi recebido no Zailom Booking.</p><p>O próximo e-mail conterá a cobrança do plano escolhido. Após a confirmação do pagamento, enviaremos o link para validar seu e-mail e criar a senha empresarial.</p>`,
         }),
-      }).catch((e) => console.error("[AdminCreateUser] Erro ao enviar confirmação:", e));
+      }).catch((e) => console.error("[AdminCreateUser] Erro ao enviar aviso de cadastro:", e));
     }
 
     // Super Admin: provisiona também a assinatura recorrente da empresa criada.
