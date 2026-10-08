@@ -91,10 +91,17 @@ serve(async (req) => {
 
     console.log(`[AdminCreateUser] Criando usuário: ${email}`);
 
-    // 3. Criar um novo usuário apenas quando o proprietário ainda não possui conta.
-    // Um mesmo usuário pode ser proprietário de várias empresas.
-    const existingUserId = metadata?.existing_user_id ?? null;
+    // 3. A identidade Auth é GLOBAL. A senha empresarial NÃO é a senha do Auth.
+    // Procuramos primeiro pelo user_id informado; se não houver, pelo e-mail.
+    // Assim o mesmo empreendedor pode possuir várias empresas com senhas diferentes.
+    let existingUserId = metadata?.existing_user_id ?? null;
+    if (!existingUserId) {
+      const { data: foundUserId } = await supabaseClient.rpc("get_user_id_by_email", { _email: email });
+      existingUserId = foundUserId ?? null;
+    }
+
     let createData: any;
+    let createdNewAuthUser = false;
 
     if (existingUserId) {
       const { data: existingAuth, error: existingAuthError } = await supabaseClient.auth.admin.getUserById(existingUserId);
@@ -104,26 +111,80 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if ((existingAuth.user.email ?? "").trim().toLowerCase() !== email.trim().toLowerCase()) {
+        return new Response(JSON.stringify({ error: "O usuário existente não corresponde ao e-mail informado." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       createData = { user: existingAuth.user };
-      console.log(`[AdminCreateUser] Reutilizando usuário existente: ${existingAuth.user.id}`);
+      console.log(`[AdminCreateUser] Reutilizando identidade Auth existente: ${existingAuth.user.id}`);
     } else {
-      console.log(`[AdminCreateUser] Tentando criar usuário: ${email}`);
+      console.log(`[AdminCreateUser] Criando identidade Auth global para: ${email}`);
+      const authPassword = `Zailom-${crypto.randomUUID()}-${crypto.randomUUID()}`;
       const { data: newUserData, error: createError } = await supabaseClient.auth.admin.createUser({
         email,
-        password,
+        password: authPassword,
         email_confirm: true,
         user_metadata: metadata
       });
 
-      if (createError) {
-        console.error("[AdminCreateUser] Erro ao criar usuário:", createError);
-        return new Response(JSON.stringify({ error: createError.message }), {
+      if (createError || !newUserData?.user) {
+        console.error("[AdminCreateUser] Erro ao criar identidade:", createError);
+        return new Response(JSON.stringify({ error: createError?.message || "Falha ao criar usuário." }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
+      createdNewAuthUser = true;
       createData = newUserData;
+    }
+
+    // A senha informada pelo Super Admin é armazenada SOMENTE como credencial
+    // contextual da empresa, com hash pgcrypto. O Auth nunca é alterado com ela.
+    const companyIdForAccess = metadata?.company_id;
+    if (!companyIdForAccess) {
+      if (createdNewAuthUser) await supabaseClient.auth.admin.deleteUser(createData.user.id).catch(() => {});
+      return new Response(JSON.stringify({ error: "company_id é obrigatório para criar o acesso empresarial." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: ownerAccess, error: ownerAccessError } = await supabaseClient.rpc("create_owner_company_credential", {
+      p_user_id: createData.user.id,
+      p_company_id: companyIdForAccess,
+      p_email: email,
+      p_password: password,
+      p_name: metadata?.owner_name ?? "",
+      p_phone: metadata?.owner_phone ?? null,
+    });
+
+    if (ownerAccessError || !ownerAccess?.success) {
+      if (createdNewAuthUser) await supabaseClient.auth.admin.deleteUser(createData.user.id).catch(() => {});
+      return new Response(JSON.stringify({ error: ownerAccess?.error || ownerAccessError?.message || "Não foi possível criar a credencial empresarial." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Confirmação é por empresa, não por identidade global.
+    const siteUrl = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\/$/, "");
+    const confirmationLink = `${siteUrl}/confirmar-empresa?token=${ownerAccess.confirmation_token}`;
+    const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+    if (resendKey) {
+      const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
+        body: JSON.stringify({
+          from,
+          to: [email],
+          subject: "Zailom Booking — confirme o acesso à sua empresa",
+          html: `<h2>Olá, ${metadata?.owner_name || "empreendedor"}!</h2><p>Seu acesso à empresa foi criado no Zailom Booking.</p><p>Esta senha é exclusiva desta empresa e pode ser diferente da senha usada em outras empresas.</p><p><a href="${confirmationLink}">Confirmar meu acesso empresarial</a></p>`,
+        }),
+      }).catch((e) => console.error("[AdminCreateUser] Erro ao enviar confirmação:", e));
     }
 
     // Super Admin: provisiona também a assinatura recorrente da empresa criada.
