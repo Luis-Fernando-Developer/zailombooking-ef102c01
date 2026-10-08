@@ -125,6 +125,11 @@ serve(async (req) => {
     // Isso mantém o cadastro manual alinhado ao fluxo público /signup.
     let billing: any = null;
     const companyId = metadata?.company_id;
+    const planId = metadata?.plan_id;
+    const billingPeriod = ["monthly","quarterly","annual"].includes(String(metadata?.billing_period)) ? String(metadata.billing_period) : "monthly";
+    const discountPercentage = Math.min(100, Math.max(0, Number(metadata?.discount_percentage ?? 0)));
+    const discountCycles = Math.max(0, Math.floor(Number(metadata?.discount_cycles ?? 0)));
+    const extraWhatsappInstances = Math.max(0, Math.floor(Number(metadata?.extra_whatsapp_instances ?? 0)));
     if (companyId && requesterId) {
       try {
         const { data: ownerCompany } = await supabaseClient
@@ -161,7 +166,7 @@ serve(async (req) => {
             const { data: plan } = await supabaseClient
               .from("subscription_plans")
               .select("*")
-              .eq("id", ownerCompany.plan_id ?? "")
+              .eq("id", planId ?? ownerCompany.plan_id ?? "")
               .maybeSingle();
 
             const selectedPlan = plan ?? (await supabaseClient
@@ -171,9 +176,9 @@ serve(async (req) => {
               .limit(1)
               .maybeSingle()).data;
 
-            if (!selectedPlan) throw new Error("Plano Starter não encontrado.");
+            if (!selectedPlan) throw new Error("Plano selecionado não encontrado.");
 
-            const amount = Number(selectedPlan.monthly_price ?? 79);
+            const amount = billingPeriod === "annual" ? Number(selectedPlan.annual_price ?? 0) : billingPeriod === "quarterly" ? Number(selectedPlan.quarterly_price ?? 0) : Number(selectedPlan.monthly_price ?? 0);
             const cpfCnpj = String(ownerCompany.cnpj || ownerCompany.owner_cpf || metadata?.owner_cpf || "").replace(/\D/g, "");
             let customerId = ownerCompany.asaas_customer_id ?? null;
 
@@ -219,9 +224,9 @@ serve(async (req) => {
                   amount,
                   status: "pending",
                   due_date: new Date().toISOString().slice(0, 10),
-                  description: `Assinatura ZailomBooking - ${selectedPlan.name} (monthly)`,
+                  description: `Assinatura ZailomBooking - ${selectedPlan.name} (${billingPeriod})`,
                   kind: "subscription",
-                  billing_period: "monthly",
+                  billing_period: billingPeriod,
                   billing_type: "PIX",
                   asaas_customer_id: customerId,
                 })
@@ -239,8 +244,8 @@ serve(async (req) => {
                     billingType: "PIX",
                     value: amount,
                     nextDueDate: new Date().toISOString().slice(0, 10),
-                    cycle: "MONTHLY",
-                    description: `ZailomBooking ${selectedPlan.name} - monthly`,
+                    cycle: billingPeriod === "annual" ? "YEARLY" : billingPeriod === "quarterly" ? "QUARTERLY" : "MONTHLY",
+                    description: `ZailomBooking ${selectedPlan.name} - ${billingPeriod}`,
                     externalReference: `subscription:${invoice.id}:${companyId}`,
                   }),
                 });
@@ -263,7 +268,7 @@ serve(async (req) => {
                 asaas_customer_id: customerId,
                 asaas_subscription_id: subscriptionId,
                 plan_id: selectedPlan.id,
-                billing_period: "monthly",
+                billing_period: billingPeriod,
               }).eq("id", companyId);
 
               const now = new Date();
@@ -273,14 +278,18 @@ serve(async (req) => {
               await supabaseClient.from("company_subscriptions").insert({
                 company_id: companyId,
                 plan_id: selectedPlan.id,
-                billing_period: "monthly",
-                status: "active",
-                billing_status: "active",
+                billing_period: billingPeriod,
+                status: discountPercentage === 100 ? "active" : "pending",
+                billing_status: discountPercentage === 100 ? "active" : "suspended",
                 cycle_start_at: now.toISOString(),
                 next_renewal_at: nextBilling.toISOString(),
                 next_billing_date: nextBilling.toISOString(),
                 asaas_subscription_id: subscriptionId,
                 original_price: amount,
+                discount_percentage: discountPercentage,
+                discount_cycles_remaining: discountCycles,
+                extra_whatsapp_instances: extraWhatsappInstances,
+                manual_admin_created: true,
               });
 
               await supabaseClient.from("company_invoices").update({
