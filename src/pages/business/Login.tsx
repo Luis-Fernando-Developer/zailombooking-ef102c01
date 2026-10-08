@@ -24,55 +24,23 @@ export default function BusinessLogin() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { data, error } = await supabase.functions.invoke("login-owner-context", {
+        body: { email: email.trim(), password, company_slug: window.location.pathname.split("/")[1] || "", origin: window.location.origin }
       });
 
-      if (error) {
+      if (error || !data?.success) {
         toast({
           title: "Erro no login",
-          description: error.message,
+          description: data?.error || error?.message || "E-mail ou senha incorretos para esta empresa.",
           variant: "destructive",
         });
         return;
       }
 
-      if (data.user) {
-        // Verificar se o usuário é funcionário de alguma empresa
-        const { data: employee } = await supabase
-          .from('employees')
-          .select(`
-            *,
-            company:companies(*)
-          `)
-          .eq('user_id', data.user.id)
-          .single();
-
-        if (employee) {
-          if (employee.company?.status === "pending_payment") {
-            toast({
-              title: "Pagamento pendente",
-              description: "Conclua o pagamento para liberar o acesso.",
-            });
-            await supabase.auth.signOut();
-            navigate(`/signup/aguardando/${employee.company.id}`);
-            return;
-          }
-
-          toast({
-            title: "Login realizado com sucesso!",
-            description: `Bem-vindo ao painel de ${employee.company.name}`,
-          });
-          navigate(`/${employee.company.slug}/admin/dashboard`);
-        } else {
-          toast({
-            title: "Acesso negado",
-            description: "Usuário não está vinculado a nenhuma empresa.",
-            variant: "destructive",
-          });
-          await supabase.auth.signOut();
-        }
+      if (data.action_link) {
+        window.location.replace(data.action_link);
+      } else {
+        throw new Error("Resposta de login inválida.");
       }
     } catch (error) {
       console.error('Error signing in:', error);
