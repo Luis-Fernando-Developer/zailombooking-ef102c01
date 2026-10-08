@@ -123,15 +123,8 @@ export default function CreateCompany() {
         return;
       }
 
-      // 2. O mesmo proprietário pode ter várias empresas.
-      // Se o e-mail já existir, reutilizamos o mesmo usuário do Auth e apenas
-      // vinculamos um novo employee à nova empresa.
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', formData.owner_email)
-        .maybeSingle();
-
+      // 2. A identidade Auth é resolvida no backend.
+      // O mesmo proprietário pode ter várias empresas e reutilizamos a identidade global.
       // 3. Primeiro criar a empresa diretamente (only use fields that exist in schema)
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
@@ -169,8 +162,7 @@ export default function CreateCompany() {
             discount_percentage: discountValue,
             discount_cycles: formData.discount_enabled ? Math.max(1, formData.discount_cycles) : 0,
             extra_whatsapp_instances: formData.extra_whatsapp_instances,
-            provision_flow: formData.provision_flow,
-            existing_user_id: existingUser?.id ?? null
+            provision_flow: formData.provision_flow
           }
         }
       });
