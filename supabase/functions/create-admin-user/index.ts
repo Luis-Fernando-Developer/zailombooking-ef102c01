@@ -445,7 +445,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ user: createData.user, billing }), {
+    return new Response(JSON.stringify({ user: createData.user, owner_employee_id: ownerAccess.employee_id, billing }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
