@@ -306,7 +306,7 @@ serve(async (req) => {
 
     const { data: ownerAccess, error: ownerAccessError } = await admin.rpc("create_owner_company_credential", {
       p_user_id: userId!, p_company_id: companyId, p_email: c.owner_email,
-      p_password: crypto.randomUUID() + crypto.randomUUID(), p_name: c.owner_name, p_phone: c.owner_phone ?? null,
+      p_password: null, p_name: c.owner_name, p_phone: c.owner_phone ?? null,
     });
     if (ownerAccessError || !ownerAccess?.success) {
       await admin.from("companies").delete().eq("id", companyId);
