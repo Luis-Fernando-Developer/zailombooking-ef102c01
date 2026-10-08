@@ -324,7 +324,7 @@ serve(async (req) => {
               for (let attempt = 0; attempt < 10 && !firstPayment; attempt++) {
                 const payments = await asaas(`/subscriptions/${subscriptionId}/payments`, { method: "GET" });
                 firstPayment = payments?.data?.[0] ?? null;
-                if (firstPayment?.id && discountPercentage > 0 && discountPercentage < 100) {
+                if (firstPayment?.id && discountPercentage > 0 && discountCycles === 0 && discountPercentage < 100) {
                   const adjustedPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
                   firstPayment = { ...firstPayment, ...adjustedPayment, value: discountedAmount };
                 }
@@ -404,7 +404,7 @@ serve(async (req) => {
 
                 if (discountPercentage < 100 && firstPayment?.id) {
                   const paymentLink = firstPayment.invoiceUrl || firstPayment.bankSlipUrl || "";
-                  const chargeValue = Number(firstPayment.value ?? discountedAmount);
+                  const chargeValue = discountedAmount;
                   const billingResponse = await fetch("https://api.resend.com/emails", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + resendKey },
