@@ -21,10 +21,6 @@ CREATE TABLE IF NOT EXISTS public.owner_company_confirmations (
 ALTER TABLE public.owner_company_confirmations ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON public.owner_company_confirmations TO authenticated;
 GRANT ALL ON public.owner_company_confirmations TO service_role;
-GRANT EXECUTE ON FUNCTION public.create_owner_company_credential(UUID, UUID, TEXT, TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.validate_owner_password(TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.confirm_owner_company_link(UUID) TO anon, authenticated, service_role;
-
 CREATE OR REPLACE FUNCTION public.create_owner_company_credential(
   p_user_id UUID,
   p_company_id UUID,
@@ -179,3 +175,6 @@ BEGIN
   );
 END;
 $$;
+GRANT EXECUTE ON FUNCTION public.create_owner_company_credential(UUID, UUID, TEXT, TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.validate_owner_password(TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.confirm_owner_company_link(UUID) TO anon, authenticated, service_role;
