@@ -447,7 +447,8 @@ serve(async (req) => {
                   } else if (!emailError) {
                     emailError = await setupResponse.text();
                   }
-                  if (!zeroChargeResponse.ok && !emailError) emailError = await zeroChargeResponse.text();{
+                  if (!zeroChargeResponse.ok && !emailError) emailError = await zeroChargeResponse.text();
+              } else {
                 emailError = "RESEND_API_KEY não configurada.";
               }
 
