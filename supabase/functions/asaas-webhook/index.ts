@@ -196,7 +196,7 @@ serve(async (req) => {
             const resendKey = (Deno.env.get('RESEND_API_KEY') ?? '').trim();
             if (company && ownerLink && !ownerLink.password_setup_email_sent_at && resendKey) {
               const from = (Deno.env.get('BILLING_EMAIL_FROM') || Deno.env.get('CLIENT_ACCESS_EMAIL_FROM') || 'Zailom Booking <atendimento@suport-mail.booking.zailom.com>').trim();
-              const siteUrl = (Deno.env.get('SITE_URL') || 'https://booking.zailom.com').replace(/\\/$/, '');
+              const siteUrl = (Deno.env.get('SITE_URL') || 'https://booking.zailom.com').replace(/\/$/, '');
               const setupLink = siteUrl + '/confirmar-empresa?token=' + ownerLink.confirmation_token;
               const emailResponse = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
