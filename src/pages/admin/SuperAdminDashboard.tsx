@@ -379,7 +379,7 @@ export default function SuperAdminDashboard() {
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-medium">Status</p>
-                          {getStatusBadge(company.status ?? 'active')}
+                          {getStatusBadge(company.status ?? 'pending_payment')}
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-medium">Receita</p>
