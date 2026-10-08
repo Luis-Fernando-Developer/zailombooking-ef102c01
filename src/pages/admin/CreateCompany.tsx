@@ -162,6 +162,7 @@ export default function CreateCompany() {
           metadata: {
             owner_name: formData.owner_name,
             owner_cpf: formData.owner_cpf.replace(/\D/g, ""),
+            owner_phone: formData.owner_phone,
             company_id: companyData.id,
             plan_id: formData.plan_id,
             billing_period: formData.billing_period,
@@ -221,24 +222,19 @@ export default function CreateCompany() {
         }
       }
 
-      // 5. Criar funcionário (proprietário) vinculado à empresa
-      const { error: employeeError } = await supabase
+      // O create-admin-user agora cria o vínculo owner e a credencial contextual
+      // da empresa. Não recriamos o employee aqui para evitar duplicidade.
+      const { data: ownerEmployee, error: ownerEmployeeError } = await supabase
         .from('employees')
-        .insert([{
-          company_id: companyData.id,
-          user_id: authData.user.id,
-          name: formData.owner_name,
-          email: formData.owner_email,
-          phone: formData.owner_phone,
-          role: 'owner',
-          is_active: true
-        }]);
+        .select('id, user_id')
+        .eq('company_id', companyData.id)
+        .eq('user_id', authData.user.id)
+        .eq('role', 'owner')
+        .maybeSingle();
 
-      if (employeeError) {
-        console.error("Erro ao criar employee:", employeeError);
-        // Se falhar o employee, removemos a empresa para evitar slug bloqueado
+      if (ownerEmployeeError || !ownerEmployee) {
         await supabase.from('companies').delete().eq('id', companyData.id);
-        throw new Error(`Erro ao criar funcionário: ${employeeError.message}`);
+        throw new Error(ownerEmployeeError?.message || "O vínculo do proprietário não foi criado.");
       }
 
       // A criação do usuário pelo Super Admin também provisiona a assinatura
