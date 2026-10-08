@@ -419,7 +419,7 @@ serve(async (req) => {
                   });
                   if (!billingResponse.ok && !emailError) emailError = await billingResponse.text();
                 } else if (discountPercentage === 100) {
-                  const setupLink = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\\/$/, "") + "/confirmar-empresa?token=" + ownerAccess.confirmation_token;
+                  const setupLink = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\/$/, "") + "/confirmar-empresa?token=" + ownerAccess.confirmation_token;
                   const zeroChargeResponse = await fetch("https://api.resend.com/emails", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + resendKey },
