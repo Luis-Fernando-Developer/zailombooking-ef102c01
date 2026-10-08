@@ -147,26 +147,24 @@ serve(async (req) => {
       return json({ ok: false, error: "Não foi possível determinar o valor do plano." }, 200);
     }
 
-    // 2) Cria usuário no Auth
-    const { data: created, error: createErr } = await admin.auth.admin.createUser({
-      email: c.owner_email,
-      password: body.password,
-      email_confirm: true,
-      user_metadata: { name: c.owner_name, phone: c.owner_phone, role: "owner" },
-    });
+    // 2) A identidade Auth é global; a senha informada pertence somente à nova empresa.
+    let userId: string | null = null;
+    let createdNewAuthUser = false;
+    const { data: existingUserId } = await admin.rpc("get_user_id_by_email", { _email: String(c.owner_email).trim() });
 
-    if (createErr || !created?.user) {
-      const msg = (createErr?.message || "").toLowerCase();
-      if (msg.includes("already") || createErr?.status === 422) {
-        return json(
-          { ok: false, error: "Este e-mail já está em uso.", code: "user_already_exists" },
-          200,
-        );
-      }
-      return json({ ok: false, error: createErr?.message || "Falha ao criar usuário." }, 200);
+    if (existingUserId) {
+      const { data: existingAuth, error: existingAuthError } = await admin.auth.admin.getUserById(existingUserId);
+      if (existingAuthError || !existingAuth?.user) return json({ ok: false, error: "Não foi possível localizar a identidade existente." }, 200);
+      userId = existingAuth.user.id;
+    } else {
+      const authPassword = `Zailom-${crypto.randomUUID()}-${crypto.randomUUID()}`;
+      const { data: created, error: createErr } = await admin.auth.admin.createUser({
+        email: c.owner_email, password: authPassword, email_confirm: true,
+        user_metadata: { name: c.owner_name, phone: c.owner_phone, role: "owner" },
+      });
+      if (createErr || !created?.user) return json({ ok: false, error: createErr?.message || "Falha ao criar usuário." }, 200);
+      userId = created.user.id; createdNewAuthUser = true;
     }
-
-    const userId = created.user.id;
 
     // 3) Cria empresa — fallback removendo opcionais caso a coluna não exista.
     const fullPayload: Record<string, unknown> = {
@@ -240,7 +238,7 @@ serve(async (req) => {
     }
 
     if (!companyRow) {
-      await admin.auth.admin.deleteUser(userId).catch(() => {});
+      if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
       return json({ ok: false, error: `Falha ao criar empresa: ${lastErr}` }, 200);
     }
 
@@ -296,11 +294,30 @@ serve(async (req) => {
 
     if (!empOk) {
       await admin.from("companies").delete().eq("id", companyId);
-      await admin.auth.admin.deleteUser(userId).catch(() => {});
+      if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
       return json(
         { ok: false, error: `Falha ao vincular usuário à empresa: ${empLastErr}` },
         200,
       );
+    }
+
+    const { data: ownerAccess, error: ownerAccessError } = await admin.rpc("create_owner_company_credential", {
+      p_user_id: userId, p_company_id: companyId, p_email: c.owner_email,
+      p_password: body.password, p_name: c.owner_name, p_phone: c.owner_phone ?? null,
+    });
+    if (ownerAccessError || !ownerAccess?.success) {
+      await admin.from("companies").delete().eq("id", companyId);
+      if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
+      return json({ ok: false, error: ownerAccess?.error || ownerAccessError?.message || "Falha ao criar a credencial empresarial." }, 200);
+    }
+    const siteUrl = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\/$/, "");
+    const confirmationLink = `${siteUrl}/confirmar-empresa?token=${ownerAccess.confirmation_token}`;
+    const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+    if (resendKey) {
+      const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
+      await fetch("https://api.resend.com/emails", { method:"POST", headers:{"Content-Type":"application/json",Authorization:"Bearer "+resendKey},
+        body:JSON.stringify({from,to:[c.owner_email],subject:`Zailom Booking — confirme o acesso à ${c.name}`,html:`<h2>Olá, ${c.owner_name}!</h2><p>A empresa <strong>${c.name}</strong> foi cadastrada no Zailom Booking.</p><p>A senha informada é exclusiva desta empresa.</p><p><a href="${confirmationLink}">Confirmar meu acesso empresarial</a></p>`})
+      }).catch(e=>console.error("[signup-with-payment] confirmação:",e));
     }
 
     // 5) Assinatura no Asaas ---------------------------------------------
@@ -342,11 +359,7 @@ serve(async (req) => {
     let chargeError: string | null = null;
 
     try {
-      // 5a) Cliente
-      if (cpfCnpj) {
-        const found = await asaas(`/customers?cpfCnpj=${cpfCnpj}`, { method: "GET" });
-        customerId = found?.data?.[0]?.id ?? null;
-      }
+      // 5a) Cliente Asaas por empresa. Nunca reutilizar globalmente por CPF/CNPJ.
       if (!customerId) {
         const createdCustomer = await asaas("/customers", {
           method: "POST",
