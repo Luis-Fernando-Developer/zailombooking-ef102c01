@@ -178,7 +178,9 @@ serve(async (req) => {
 
             if (!selectedPlan) throw new Error("Plano selecionado não encontrado.");
 
-            const amount = billingPeriod === "annual" ? Number(selectedPlan.annual_price ?? 0) : billingPeriod === "quarterly" ? Number(selectedPlan.quarterly_price ?? 0) : Number(selectedPlan.monthly_price ?? 0);\n            const discountedAmount = Number((amount * (1 - discountPercentage / 100)).toFixed(2));\n            if (!(amount > 0)) throw new Error("Valor do plano inválido.");
+            const amount = billingPeriod === "annual" ? Number(selectedPlan.annual_price ?? 0) : billingPeriod === "quarterly" ? Number(selectedPlan.quarterly_price ?? 0) : Number(selectedPlan.monthly_price ?? 0);
+            const discountedAmount = Number((amount * (1 - discountPercentage / 100)).toFixed(2));
+            if (!(amount > 0)) throw new Error("Valor do plano inválido.");
             const cpfCnpj = String(ownerCompany.cnpj || ownerCompany.owner_cpf || metadata?.owner_cpf || "").replace(/\D/g, "");
             let customerId = ownerCompany.asaas_customer_id ?? null;
 
@@ -242,8 +244,12 @@ serve(async (req) => {
                   body: JSON.stringify({
                     customer: customerId,
                     billingType: "PIX",
-                    value: amount,\n                    nextDueDate: discountPercentage === 100 && discountCycles === 0\n                      ? new Date(Date.now() + (billingPeriod === "annual" ? 365 : billingPeriod === "quarterly" ? 90 : 30) * 86400000).toISOString().slice(0, 10)\n                      : new Date().toISOString().slice(0, 10),
-                    cycle: billingPeriod === "annual" ? "YEARLY" : billingPeriod === "quarterly" ? "QUARTERLY" : "MONTHLY",\n                    ...(discountPercentage > 0 && discountCycles > 0 ? { discount: { value: discountPercentage, type: "PERCENTAGE", limitDate: new Date(Date.now() + (billingPeriod === "annual" ? 365 : billingPeriod === "quarterly" ? 90 : 30) * discountCycles * 86400000).toISOString().slice(0, 10), dueDateLimitDays: 0 } } : {}),
+                    value: amount,
+                    nextDueDate: discountPercentage === 100 && discountCycles === 0
+                      ? new Date(Date.now() + (billingPeriod === "annual" ? 365 : billingPeriod === "quarterly" ? 90 : 30) * 86400000).toISOString().slice(0, 10)
+                      : new Date().toISOString().slice(0, 10),
+                    cycle: billingPeriod === "annual" ? "YEARLY" : billingPeriod === "quarterly" ? "QUARTERLY" : "MONTHLY",
+                    ...(discountPercentage > 0 && discountCycles > 0 ? { discount: { value: discountPercentage, type: "PERCENTAGE", limitDate: new Date(Date.now() + (billingPeriod === "annual" ? 365 : billingPeriod === "quarterly" ? 90 : 30) * discountCycles * 86400000).toISOString().slice(0, 10), dueDateLimitDays: 0 } } : {}),
                     description: `ZailomBooking ${selectedPlan.name} - ${billingPeriod}`,
                     externalReference: `subscription:${invoice.id}:${companyId}`,
                   }),
@@ -259,7 +265,11 @@ serve(async (req) => {
               let firstPayment: any = null;
               for (let attempt = 0; attempt < 3 && !firstPayment; attempt++) {
                 const payments = await asaas(`/subscriptions/${subscriptionId}/payments`, { method: "GET" });
-                firstPayment = payments?.data?.[0] ?? null;\n                if (firstPayment?.id && discountPercentage > 0 && discountCycles === 0 && discountPercentage < 100) {\n                  firstPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });\n                }\n                if (!firstPayment && attempt < 2) await new Promise(resolve => setTimeout(resolve, 500));
+                firstPayment = payments?.data?.[0] ?? null;
+                if (firstPayment?.id && discountPercentage > 0 && discountCycles === 0 && discountPercentage < 100) {
+                  firstPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
+                }
+                if (!firstPayment && attempt < 2) await new Promise(resolve => setTimeout(resolve, 500));
               }
 
               await supabaseClient.from("companies").update({
@@ -267,11 +277,15 @@ serve(async (req) => {
                 asaas_subscription_id: subscriptionId,
                 plan_id: selectedPlan.id,
                 billing_period: billingPeriod,
+                extra_whatsapp_instances: extraWhatsappInstances,
+                status: discountPercentage === 100 ? "active" : "pending_payment",
               }).eq("id", companyId);
 
               const now = new Date();
               const nextBilling = new Date(now);
-              nextBilling.setMonth(nextBilling.getMonth() + 1);
+              if (billingPeriod === "annual") nextBilling.setFullYear(nextBilling.getFullYear() + 1);
+              else if (billingPeriod === "quarterly") nextBilling.setMonth(nextBilling.getMonth() + 3);
+              else nextBilling.setMonth(nextBilling.getMonth() + 1);
 
               await supabaseClient.from("company_subscriptions").insert({
                 company_id: companyId,
@@ -286,7 +300,6 @@ serve(async (req) => {
                 original_price: amount,
                 discount_percentage: discountPercentage,
                 discount_cycles_remaining: discountCycles,
-                extra_whatsapp_instances: extraWhatsappInstances,
                 manual_admin_created: true,
               });
 
@@ -335,9 +348,14 @@ serve(async (req) => {
                 invoice_id: invoice.id,
                 asaas_payment_id: firstPayment?.id ?? null,
                 amount,
-                billing_period: "monthly",
-                billing_type: "PIX",
-                environment: isSandbox ? "sandbox" : "production",\n                email_sent: emailSent,\n                email_error: emailError,\n                discount_percentage: discountPercentage,\n                discount_cycles: discountCycles,\n                extra_whatsapp_instances: extraWhatsappInstances,
+                billing_period: billingPeriod,
+                  billing_type: "PIX",
+                environment: isSandbox ? "sandbox" : "production",
+                email_sent: emailSent,
+                email_error: emailError,
+                discount_percentage: discountPercentage,
+                discount_cycles: discountCycles,
+                extra_whatsapp_instances: extraWhatsappInstances,
               };
             }
           }
