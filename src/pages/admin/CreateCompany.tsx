@@ -123,28 +123,14 @@ export default function CreateCompany() {
         return;
       }
 
-      // 2. Verificar se o e-mail do proprietário já está em uso (na tabela users ou employees)
+      // 2. O mesmo proprietário pode ter várias empresas.
+      // Se o e-mail já existir, reutilizamos o mesmo usuário do Auth e apenas
+      // vinculamos um novo employee à nova empresa.
       const { data: existingUser } = await supabase
         .from('users')
         .select('id')
         .eq('email', formData.owner_email)
         .maybeSingle();
-
-      const { data: existingEmployee } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('email', formData.owner_email)
-        .maybeSingle();
-
-      if (existingUser || existingEmployee) {
-        toast({
-          title: "E-mail em uso",
-          description: "Este e-mail já está sendo usado por outra empresa ou usuário.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
 
       // 3. Primeiro criar a empresa diretamente (only use fields that exist in schema)
       const { data: companyData, error: companyError } = await supabase
@@ -182,7 +168,8 @@ export default function CreateCompany() {
             discount_percentage: discountValue,
             discount_cycles: formData.discount_enabled ? Math.max(1, formData.discount_cycles) : 0,
             extra_whatsapp_instances: formData.extra_whatsapp_instances,
-            provision_flow: formData.provision_flow
+            provision_flow: formData.provision_flow,
+            existing_user_id: existingUser?.id ?? null
           }
         }
       });
@@ -192,11 +179,6 @@ export default function CreateCompany() {
         await supabase.from('companies').delete().eq('id', companyData.id);
         
         console.error("Erro no Auth via Edge Function:", authError);
-        
-        // Se for erro de usuário já existente (vindo da Edge Function ajustada)
-        if (authError?.status === 409 || authData?.code === 'user_already_exists') {
-          throw new Error("Este e-mail já está sendo usado por outra empresa ou usuário.");
-        }
         
         throw new Error(`Erro ao criar usuário: ${authError?.message || 'Erro desconhecido na Edge Function'}`);
       }
