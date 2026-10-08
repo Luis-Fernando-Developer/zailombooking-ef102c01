@@ -149,7 +149,7 @@ serve(async (req) => {
       console.log(`[AdminCreateUser] Reutilizando identidade Auth existente: ${existingAuth.user.id}`);
     } else {
       console.log(`[AdminCreateUser] Criando identidade Auth global para: ${email}`);
-      const authPassword = `Zailom-${crypto.randomUUID()}-${crypto.randomUUID()}`;
+      const authPassword = `Zailom-${crypto.randomUUID()}`;
       const { data: newUserData, error: createError } = await supabaseClient.auth.admin.createUser({
         email,
         password: authPassword,
