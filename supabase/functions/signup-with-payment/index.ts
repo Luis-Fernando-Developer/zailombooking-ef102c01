@@ -268,7 +268,7 @@ serve(async (req) => {
       email: c.owner_email,
       phone: c.owner_phone ?? null,
       role: "owner",
-      employee_type: "owner",
+      employee_type: "fixo",
       is_active: true,
     };
     const empOptional = ["employee_type", "phone"];
