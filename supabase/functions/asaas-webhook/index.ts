@@ -244,7 +244,7 @@ serve(async (req) => {
       } else if (pendingPayment && !pendingPayment.booking_id) {
         const { error: pendingUpdateError } = await supabaseClient
           .from('booking_payments')
-          .update({ status: 'paid', updated_at: new Date().toISOString() })
+          .update({ status: 'confirmed', updated_at: new Date().toISOString() })
           .eq('id', pendingPayment.id);
 
         if (pendingUpdateError) {
@@ -262,8 +262,11 @@ serve(async (req) => {
         .select('payment_status, booking_status')
         .eq('id', bookingId)
         .maybeSingle();
-      const wasAlreadyConfirmed =
-        String(beforeBooking?.payment_status ?? '').toLowerCase() === 'confirmed' &&
+      const paymentWasAlreadyConfirmed =
+        ['confirmed', 'paid', 'received', 'settled'].includes(
+          String(beforeBooking?.payment_status ?? '').toLowerCase()
+        );
+      const bookingWasAlreadyConfirmed =
         String(beforeBooking?.booking_status ?? '').toLowerCase() === 'confirmed';
 
       console.info(`[ASAAS_WEBHOOK][${requestId}] Marcando booking ${bookingId} como PAGO. Event: ${event}, Status: ${currentStatus}`);
@@ -296,15 +299,49 @@ serve(async (req) => {
       if (pErr) console.error(`[ASAAS_WEBHOOK][${requestId}] Booking_payments update error:`, pErr);
       else console.info(`[ASAAS_WEBHOOK][${requestId}] Booking_payments update success:`, pData);
 
-      if (!wasAlreadyConfirmed && !bErr && !pErr) {
-        try {
-          await fetch(`${supabaseUrl}/functions/v1/notify-booking-event`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
-            body: JSON.stringify({ booking_id: bookingId, event_key: 'booking_confirmed' }),
-          });
-        } catch (e) {
-          console.error(`[ASAAS_WEBHOOK][${requestId}] notify error:`, (e as any)?.message);
+      if (!bErr && !pErr) {
+        const notifyHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        };
+
+        // O webhook é a fonte de verdade para confirmações feitas diretamente
+        // no Asaas. Por isso ele também dispara payment_confirmed.
+        if (!paymentWasAlreadyConfirmed) {
+          try {
+            const paymentNotify = await fetch(`${supabaseUrl}/functions/v1/notify-booking-event`, {
+              method: 'POST',
+              headers: notifyHeaders,
+              body: JSON.stringify({ booking_id: bookingId, event_key: 'payment_confirmed' }),
+            });
+            if (!paymentNotify.ok) {
+              console.error(
+                `[ASAAS_WEBHOOK][${requestId}] payment_confirmed notify HTTP ${paymentNotify.status}:`,
+                await paymentNotify.text()
+              );
+            }
+          } catch (e) {
+            console.error(`[ASAAS_WEBHOOK][${requestId}] payment_confirmed notify error:`, (e as any)?.message);
+          }
+        }
+
+        // Só envia booking_confirmed na transição real para confirmado.
+        if (!bookingWasAlreadyConfirmed) {
+          try {
+            const bookingNotify = await fetch(`${supabaseUrl}/functions/v1/notify-booking-event`, {
+              method: 'POST',
+              headers: notifyHeaders,
+              body: JSON.stringify({ booking_id: bookingId, event_key: 'booking_confirmed' }),
+            });
+            if (!bookingNotify.ok) {
+              console.error(
+                `[ASAAS_WEBHOOK][${requestId}] booking_confirmed notify HTTP ${bookingNotify.status}:`,
+                await bookingNotify.text()
+              );
+            }
+          } catch (e) {
+            console.error(`[ASAAS_WEBHOOK][${requestId}] booking_confirmed notify error:`, (e as any)?.message);
+          }
         }
       }
     }
