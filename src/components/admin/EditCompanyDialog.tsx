@@ -37,6 +37,7 @@ interface Company {
   force_early_renewal_once?: boolean;
   plan_id?: string | null;
   billing_period?: string | null;
+  extra_whatsapp_instances?: number;
 }
 
 interface Plan {
@@ -90,6 +91,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
     force_early_renewal_once: false,
     plan_id: null as string | null,
     billing_period: "monthly" as string,
+    extra_whatsapp_instances: 0,
   });
 
   const [discountData, setDiscountData] = useState({
@@ -122,6 +124,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
         force_early_renewal_once: company.force_early_renewal_once || false,
         plan_id: company.plan_id || null,
         billing_period: company.billing_period || "monthly",
+        extra_whatsapp_instances: company.extra_whatsapp_instances || 0,
       });
       if (company.plan_id) setSelectedPlanId(company.plan_id);
       if (company.billing_period) setBillingPeriod(company.billing_period);
@@ -300,6 +303,7 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
           force_early_renewal_once: formData.force_early_renewal_once,
           plan_id: selectedPlanId || null,
           billing_period: billingPeriod || 'monthly',
+          extra_whatsapp_instances: Math.max(0, Number(formData.extra_whatsapp_instances || 0)),
         })
         .eq('id', company.id);
 
@@ -712,11 +716,12 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
               <div className="flex items-center gap-4">
                 <div className="flex-1 space-y-2">
                   <Label className="text-xs">Quantidade total permitida</Label>
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
+                    min="0"
                     placeholder="Ex: 5"
-                    // Nota: Aqui precisaríamos de um campo no banco para persistir instâncias extras
-                    // Por enquanto mostramos apenas para fins de UI conforme solicitado
+                    value={formData.extra_whatsapp_instances}
+                    onChange={(e) => setFormData({ ...formData, extra_whatsapp_instances: Math.max(0, parseInt(e.target.value) || 0) })}
                   />
                 </div>
                 <div className="text-xs text-muted-foreground pt-6">
@@ -768,9 +773,9 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
                       <Label>Número de Ciclos</Label>
                       <Input
                         type="number"
-                        min="1"
+                        min="0"
                         value={discountData.cycles}
-                        onChange={(e) => setDiscountData({ ...discountData, cycles: parseInt(e.target.value) || 1 })}
+                        onChange={(e) => setDiscountData({ ...discountData, cycles: Math.max(0, parseInt(e.target.value) || 0) })}
                       />
                       <p className="text-xs text-muted-foreground">
                         Próximas {discountData.cycles} {discountData.cycles === 1 ? 'fatura' : 'faturas'} com desconto
