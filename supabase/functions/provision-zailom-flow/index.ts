@@ -109,13 +109,34 @@ serve(async (req) => {
 
     const { email, password, slug, display_name, company_id, plan_id, full_name } = await req.json();
 
+    // O Booking envia o UUID real do plano. Resolve o nome/tier no banco
+    // para que Starter -> starter, Professional -> pro e Enterprise -> business.
     let embed_plan_tier = 'starter';
-    const planInput = (plan_id || '').toLowerCase();
-    
-    if (planInput.includes('professional') || planInput.includes('pro') || planInput === '294e3c1b-55ac-49bd-803e-22657a7c8eb7') {
-      embed_plan_tier = 'pro';
-    } else if (planInput.includes('enterprise') || planInput.includes('business')) {
-      embed_plan_tier = 'business';
+    if (plan_id) {
+      const { data: selectedPlan } = await supabaseClient
+        .from("subscription_plans")
+        .select("id, name, builder_tier")
+        .eq("id", plan_id)
+        .maybeSingle();
+
+      const planName = String(selectedPlan?.name ?? plan_id).toLowerCase();
+      const builderTier = String(selectedPlan?.builder_tier ?? "").toLowerCase();
+
+      if (
+        builderTier === "business" ||
+        builderTier === "enterprise" ||
+        planName.includes("enterprise") ||
+        planName.includes("business")
+      ) {
+        embed_plan_tier = 'business';
+      } else if (
+        builderTier === "pro" ||
+        builderTier === "professional" ||
+        planName.includes("professional") ||
+        planName.includes("pro")
+      ) {
+        embed_plan_tier = 'pro';
+      }
     }
 
     if (!email || !password || !slug || !company_id) {
