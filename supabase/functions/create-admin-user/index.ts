@@ -420,21 +420,34 @@ serve(async (req) => {
                   if (!billingResponse.ok && !emailError) emailError = await billingResponse.text();
                 } else if (discountPercentage === 100) {
                   const setupLink = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\\/$/, "") + "/confirmar-empresa?token=" + ownerAccess.confirmation_token;
-                  await fetch("https://api.resend.com/emails", {
+                  const zeroChargeResponse = await fetch("https://api.resend.com/emails", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + resendKey },
                     body: JSON.stringify({
                       from,
                       to: [ownerCompany.owner_email],
-                      subject: "Zailom Booking — cobrança zerada pelo desconto especial",
-                      html: "<h2>Seu desconto cobriu 100% do plano!</h2><p>A cobrança de ativação da empresa <strong>" + ownerCompany.name + "</strong> ficou em R$ 0,00.</p><p>Não é necessário realizar pagamento. Para concluir a ativação, confirme seu e-mail e crie sua senha empresarial:</p><p><a href='" + setupLink + "'>Confirmar e criar minha senha</a></p>",
+                      subject: "Zailom Booking — cobrança de ativação zerada",
+                      html: "<h2>Seu desconto cobriu 100% do plano!</h2><p>A cobrança de ativação da empresa <strong>" + ownerCompany.name + "</strong> ficou em <strong>R$ 0,00</strong>. Não é necessário pagar uma cobrança.</p><p>Enviaremos em seguida as instruções para concluir a ativação.</p>",
                     }),
                   });
-                  await supabaseClient.from("owner_company_confirmations")
-                    .update({ password_setup_email_sent_at: new Date().toISOString() })
-                    .eq("company_id", companyId);
-                }
-              } else {
+                  const setupResponse = await fetch("https://api.resend.com/emails", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + resendKey },
+                    body: JSON.stringify({
+                      from,
+                      to: [ownerCompany.owner_email],
+                      subject: "Zailom Booking — confirme seu e-mail e crie sua senha",
+                      html: "<h2>Conclua a ativação da sua empresa</h2><p>Como o desconto especial zerou a cobrança, você já pode concluir a ativação da empresa <strong>" + ownerCompany.name + "</strong>.</p><p><a href='" + setupLink + "'>Confirmar e criar minha senha empresarial</a></p>",
+                    }),
+                  });
+                  if (setupResponse.ok) {
+                    await supabaseClient.from("owner_company_confirmations")
+                      .update({ password_setup_email_sent_at: new Date().toISOString() })
+                      .eq("company_id", companyId);
+                  } else if (!emailError) {
+                    emailError = await setupResponse.text();
+                  }
+                  if (!zeroChargeResponse.ok && !emailError) emailError = await zeroChargeResponse.text();{
                 emailError = "RESEND_API_KEY não configurada.";
               }
 
