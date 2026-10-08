@@ -31,3 +31,9 @@ verify_jwt = false
 
 [functions.booking-payment-status]
 verify_jwt = false
+
+[functions.login-owner-context]
+verify_jwt = false
+
+[functions.confirm-owner-company]
+verify_jwt = false
