@@ -165,6 +165,19 @@ serve(async (req) => {
             _invoice_id: subscriptionInvoiceId,
             _paid_at: new Date().toISOString(),
           });
+          // Mesmo no fallback legado, não liberar o painel antes da criação da senha.
+          const { data: pendingInvoice } = await supabaseClient
+            .from('company_invoices').select('company_id').eq('id', subscriptionInvoiceId).maybeSingle();
+          if (pendingInvoice?.company_id) {
+            const { data: ownerLink } = await supabaseClient
+              .from('owner_company_confirmations').select('id')
+              .eq('company_id', pendingInvoice.company_id).is('confirmed_at', null).maybeSingle();
+            if (ownerLink) {
+              await supabaseClient.from('companies').update({ status: 'pending_payment' }).eq('id', pendingInvoice.company_id);
+              await supabaseClient.from('company_subscriptions')
+                .update({ status: 'pending', billing_status: 'active' }).eq('company_id', pendingInvoice.company_id);
+            }
+          }
         }
 
         const invoiceIdForChange =
