@@ -19,6 +19,7 @@ interface CompanyForm {
   owner_email: string;
   owner_password: string;
   owner_phone: string;
+  owner_cpf: string;
   address: string;
 }
 
@@ -33,6 +34,7 @@ export default function CreateCompany() {
     owner_email: "",
     owner_password: "",
     owner_phone: "",
+    owner_cpf: "",
     address: ""
   });
 
@@ -115,6 +117,7 @@ export default function CreateCompany() {
           owner_name: formData.owner_name,
           owner_email: formData.owner_email,
           owner_phone: formData.owner_phone,
+          owner_cpf: formData.owner_cpf.replace(/\D/g, ""),
           address: formData.address,
           status: 'active'
         }])
@@ -131,6 +134,7 @@ export default function CreateCompany() {
           password: formData.owner_password,
           metadata: {
             owner_name: formData.owner_name,
+            owner_cpf: formData.owner_cpf.replace(/\D/g, ""),
             company_id: companyData.id
           }
         }
@@ -206,6 +210,15 @@ export default function CreateCompany() {
         // Se falhar o employee, removemos a empresa para evitar slug bloqueado
         await supabase.from('companies').delete().eq('id', companyData.id);
         throw new Error(`Erro ao criar funcionário: ${employeeError.message}`);
+      }
+
+      // A criação do usuário pelo Super Admin também provisiona a assinatura
+      // recorrente do plano Starter mensal no Asaas. O retorno fica em
+      // authData.billing; não criamos uma cobrança avulsa aqui.
+      if (authData?.billing?.error) {
+        console.warn("⚠️ Empresa criada, mas a assinatura Asaas não foi provisionada:", authData.billing.error);
+      } else if (authData?.billing?.subscription_id) {
+        console.log("✅ Assinatura Asaas provisionada:", authData.billing);
       }
 
       // Provisionar conta automaticamente no builder-flow-api (ZailomFlow)
@@ -381,6 +394,18 @@ export default function CreateCompany() {
                     value={formData.owner_phone}
                     onChange={handleInputChange}
                     placeholder="(11) 99999-9999"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="owner_cpf">CPF/CNPJ do Proprietário *</Label>
+                  <Input
+                    id="owner_cpf"
+                    name="owner_cpf"
+                    value={formData.owner_cpf}
+                    onChange={handleInputChange}
+                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                    required
                   />
                 </div>
               </div>
