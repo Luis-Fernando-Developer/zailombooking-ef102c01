@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,8 +56,6 @@ export default function SignUp() {
     ownerCpf: "",
     ownerMail: "",
     ownerPhone: "",
-    ownerPass: "",
-    ownerPassRepeat: "",
     companyCnpj: "",
     companySegment: "",
     companyNiche: "",
@@ -180,11 +177,6 @@ export default function SignUp() {
         setIsLoading(false);
         return;
       }
-      if (formData.ownerPass !== formData.ownerPassRepeat) {
-        toast({ title: "Senhas não conferem", description: "Verifique se as senhas são iguais.", variant: "destructive" });
-        setIsLoading(false);
-        return;
-      }
       if (!selectedPlan) {
         toast({ title: "Selecione um plano", description: "Escolha um plano antes de continuar.", variant: "destructive" });
         setIsLoading(false);
@@ -227,7 +219,6 @@ export default function SignUp() {
           plan_id: selectedPlan.id,
           billing_period: billingPeriod,
         },
-        password: formData.ownerPass,
         plan_id: selectedPlan.id,
         billing_period: billingPeriod,
         billing_type: billingType,
@@ -448,19 +439,6 @@ export default function SignUp() {
                 </div>
               </div>
 
-              {/* Senha */}
-              <div className="space-y-2">
-                <Label htmlFor="ownerPass">Senha *</Label>
-                <PasswordInput id="ownerPass" showLeftIcon={false} placeholder="Digite uma senha" value={formData.ownerPass} onChange={(e) => handleInputChange("ownerPass", e.target.value)} className="border-primary/30 focus:border-primary" minLength={8} required />
-              </div>
-
-              {/* Confirmar Senha */}
-              <div className="space-y-2">
-                <Label htmlFor="ownerPassRepeat">Confirmar Senha *</Label>
-                <PasswordInput id="ownerPassRepeat" showLeftIcon={false} placeholder="Digite a senha novamente" value={formData.ownerPassRepeat} onChange={(e) => handleInputChange("ownerPassRepeat", e.target.value)} className="border-primary/30 focus:border-primary" minLength={8} required />
-              </div>
-
-              {/* CNPJ */}
               <div className="space-y-2">
                 <Label htmlFor="companyCnpj">CNPJ da Empresa (opcional)</Label>
                 <div className="relative">
