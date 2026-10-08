@@ -281,21 +281,26 @@ serve(async (req) => {
               else if (billingPeriod === "quarterly") nextBilling.setMonth(nextBilling.getMonth() + 3);
               else nextBilling.setMonth(nextBilling.getMonth() + 1);
 
-              await supabaseClient.from("company_subscriptions").insert({
-                company_id: companyId,
-                plan_id: selectedPlan.id,
-                billing_period: billingPeriod,
-                status: discountPercentage === 100 ? "active" : "pending",
-                billing_status: discountPercentage === 100 ? "active" : "suspended",
-                cycle_start_at: now.toISOString(),
-                next_renewal_at: nextBilling.toISOString(),
-                next_billing_date: nextBilling.toISOString(),
-                asaas_subscription_id: subscriptionId,
-                original_price: amount,
-                discount_percentage: discountPercentage,
-                discount_cycles_remaining: discountCycles,
-                manual_admin_created: true,
-              });
+              const { data: localSub, error: localSubError } = await supabaseClient
+                .from("company_subscriptions")
+                .insert({
+                  company_id: companyId,
+                  plan_id: selectedPlan.id,
+                  billing_period: billingPeriod,
+                  status: discountPercentage === 100 ? "active" : "pending",
+                  billing_status: discountPercentage === 100 ? "active" : "suspended",
+                  cycle_start_at: now.toISOString(),
+                  next_renewal_at: nextBilling.toISOString(),
+                  next_billing_date: nextBilling.toISOString(),
+                  asaas_subscription_id: subscriptionId,
+                  original_price: amount,
+                  discount_percentage: discountPercentage,
+                  discount_cycles_remaining: discountCycles,
+                  manual_admin_created: true,
+                })
+                .select("id")
+                .single();
+              if (localSubError || !localSub) throw localSubError || new Error("Falha ao salvar assinatura local.");
 
               await supabaseClient.from("company_invoices").update({
                 subscription_id: localSub.id,
