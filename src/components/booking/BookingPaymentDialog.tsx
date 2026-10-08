@@ -71,6 +71,7 @@ interface Props {
   allowPayLater?: boolean;
   onPayLater?: () => void;
   onSlotUnavailable?: () => void;
+  onPaymentCreated?: (payment: any) => void;
   bookingData?: BookingData;
 }
 
@@ -78,7 +79,7 @@ const ICON: Record<string, any> = { PIX: QrCode, CREDIT_CARD: CreditCard, DEBIT_
 const LABEL: Record<string, string> = { PIX: "PIX", CREDIT_CARD: "Cartão de Crédito", DEBIT_CARD: "Cartão de Débito", BOLETO: "Boleto" };
 const KEY_TO_METHOD: Record<string, string> = { pix: "PIX", credit_card: "CREDIT_CARD", debit_card: "DEBIT_CARD", boleto: "BOLETO" };
 
-export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater, onSlotUnavailable, bookingData }: Props) {
+export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater, onSlotUnavailable, onPaymentCreated, bookingData }: Props) {
   const { toast } = useToast();
   const [methods, setMethods] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>("PIX");
@@ -380,7 +381,9 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         throw new Error(serverMessage);
       }
       if ((data as any)?.error) throw new Error((data as any).error);
-      setPayment((data as any).payment);
+      const createdPayment = (data as any).payment;
+      setPayment(createdPayment);
+      onPaymentCreated?.(createdPayment);
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally { setLoading(false); }
