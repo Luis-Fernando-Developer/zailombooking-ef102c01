@@ -128,7 +128,7 @@ serve(async (req) => {
     const planId = metadata?.plan_id;
     const billingPeriod = ["monthly","quarterly","annual"].includes(String(metadata?.billing_period)) ? String(metadata.billing_period) : "monthly";
     const discountPercentage = Math.min(100, Math.max(0, Number(metadata?.discount_percentage ?? 0)));
-    const discountCycles = Math.max(0, Math.floor(Number(metadata?.discount_cycles ?? 0)));
+    const discountCycles = discountPercentage > 0 ? Math.max(1, Math.floor(Number(metadata?.discount_cycles ?? 1))) : 0;
     const extraWhatsappInstances = Math.max(0, Math.floor(Number(metadata?.extra_whatsapp_instances ?? 0)));
     if (companyId && requesterId) {
       try {
@@ -176,6 +176,9 @@ serve(async (req) => {
             const discountedAmount = Number((amount * (1 - discountPercentage / 100)).toFixed(2));
             if (!(amount > 0)) throw new Error("Valor do plano inválido.");
             const cpfCnpj = String(ownerCompany.cnpj || ownerCompany.owner_cpf || metadata?.owner_cpf || "").replace(/\D/g, "");
+            // O cliente Asaas é vinculado à EMPRESA, não ao CPF/e-mail do proprietário.
+            // O mesmo empresário pode possuir várias empresas, portanto não reutilizamos
+            // um cliente encontrado apenas por CPF/CNPJ ou e-mail.
             let customerId = ownerCompany.asaas_customer_id ?? null;
 
             if (customerId) {
@@ -183,11 +186,6 @@ serve(async (req) => {
                 const current = await asaas(`/customers/${customerId}`, { method: "GET" });
                 if (!current?.id || current?.deleted) customerId = null;
               } catch { customerId = null; }
-            }
-
-            if (!customerId && cpfCnpj) {
-              const found = await asaas(`/customers?cpfCnpj=${cpfCnpj}`, { method: "GET" });
-              customerId = found?.data?.[0]?.id ?? null;
             }
 
             if (!customerId) {
@@ -257,13 +255,13 @@ serve(async (req) => {
               if (!subscriptionId) throw new Error("Asaas não retornou o ID da assinatura.");
 
               let firstPayment: any = null;
-              for (let attempt = 0; attempt < 3 && !firstPayment; attempt++) {
+              for (let attempt = 0; attempt < 10 && !firstPayment; attempt++) {
                 const payments = await asaas(`/subscriptions/${subscriptionId}/payments`, { method: "GET" });
                 firstPayment = payments?.data?.[0] ?? null;
                 if (firstPayment?.id && discountPercentage > 0 && discountCycles === 0 && discountPercentage < 100) {
                   firstPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
                 }
-                if (!firstPayment && attempt < 2) await new Promise(resolve => setTimeout(resolve, 500));
+                if (!firstPayment && attempt < 9) await new Promise(resolve => setTimeout(resolve, 1000));
               }
 
               await supabaseClient.from("companies").update({
