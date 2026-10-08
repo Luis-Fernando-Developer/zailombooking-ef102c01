@@ -377,8 +377,8 @@ serve(async (req) => {
                 updated_at: new Date().toISOString(),
               }).eq("id", invoice.id);
 
-              // 1) Confirmação do cadastro.
-              // 2) Cobrança residual em um segundo e-mail, quando houver.
+              // O e-mail 1 (cadastro recebido) já foi enviado antes da cobrança.
+              // Aqui enviamos somente o e-mail 2 e, no desconto integral, o e-mail 3.
               let emailSent = false;
               let emailError: string | null = null;
               const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
@@ -386,21 +386,6 @@ serve(async (req) => {
                 const from = (Deno.env.get("BILLING_EMAIL_FROM") ||
                   Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") ||
                   "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
-
-                const confirmationResponse = await fetch("https://api.resend.com/emails", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", "Authorization": "Bearer " + resendKey },
-                  body: JSON.stringify({
-                    from,
-                    to: [ownerCompany.owner_email],
-                    subject: "Zailom Booking — cadastro confirmado",
-                    html: "<h2>Cadastro confirmado</h2><p>Olá, " + (ownerCompany.owner_name || "empreendedor") + "!</p><p>A empresa <strong>" + ownerCompany.name + "</strong> foi cadastrada no Zailom Booking.</p><p>Plano: <strong>" + selectedPlan.name + "</strong> · Ciclo: <strong>" + billingPeriod + "</strong>.</p>" +
-                      (discountPercentage === 100 ? "<p>Seu desconto é de 100%, portanto não há cobrança residual para ativação.</p>" : "<p>O acesso será liberado automaticamente após a confirmação do pagamento da cobrança enviada em seguida.</p>"),
-                  }),
-                });
-
-                emailSent = confirmationResponse.ok;
-                if (!confirmationResponse.ok) emailError = await confirmationResponse.text();
 
                 if (discountPercentage < 100 && firstPayment?.id) {
                   const paymentLink = firstPayment.invoiceUrl || firstPayment.bankSlipUrl || "";
@@ -417,7 +402,8 @@ serve(async (req) => {
                         "<p>Após a confirmação do pagamento, enviaremos um novo e-mail para confirmar o endereço e criar a senha empresarial.</p>",
                     }),
                   });
-                  if (!billingResponse.ok && !emailError) emailError = await billingResponse.text();
+                  emailSent = billingResponse.ok;
+                  if (!billingResponse.ok) emailError = await billingResponse.text();
                 } else if (discountPercentage === 100) {
                   const setupLink = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\/$/, "") + "/confirmar-empresa?token=" + ownerAccess.confirmation_token;
                   const zeroChargeResponse = await fetch("https://api.resend.com/emails", {
@@ -440,14 +426,15 @@ serve(async (req) => {
                       html: "<h2>Conclua a ativação da sua empresa</h2><p>Como o desconto especial zerou a cobrança, você já pode concluir a ativação da empresa <strong>" + ownerCompany.name + "</strong>.</p><p><a href='" + setupLink + "'>Confirmar e criar minha senha empresarial</a></p>",
                     }),
                   });
+                  emailSent = zeroChargeResponse.ok && setupResponse.ok;
+                  if (!setupResponse.ok) emailError = await setupResponse.text();
+                  if (!zeroChargeResponse.ok && !emailError) emailError = await zeroChargeResponse.text();
                   if (setupResponse.ok) {
                     await supabaseClient.from("owner_company_confirmations")
                       .update({ password_setup_email_sent_at: new Date().toISOString() })
                       .eq("company_id", companyId);
-                  } else if (!emailError) {
-                    emailError = await setupResponse.text();
                   }
-                  if (!zeroChargeResponse.ok && !emailError) emailError = await zeroChargeResponse.text();
+                }
               } else {
                 emailError = "RESEND_API_KEY não configurada.";
               }
