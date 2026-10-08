@@ -533,7 +533,7 @@ serve(async (req) => {
       // Cartão aprovado na hora — o RPC mantém a empresa pendente até a senha ser criada.
       const status = String(firstPayment?.status ?? "").toUpperCase();
       if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(status)) {
-        await admin.rpc("mark_subscription_invoice_paid", {
+        await admin.rpc("mark_subscription_invoice_paid_v2", {
           _asaas_payment_id: firstPayment.id,
           _invoice_id: invoiceId,
           _paid_at: new Date().toISOString(),
