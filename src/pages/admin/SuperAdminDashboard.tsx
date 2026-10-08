@@ -303,7 +303,7 @@ export default function SuperAdminDashboard() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gradient">R$ {stats.totalRevenue.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-gradient">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(stats.totalRevenue)}</div>
                   <p className="text-xs text-muted-foreground">
                     +12% vs mês anterior
                   </p>
@@ -383,7 +383,7 @@ export default function SuperAdminDashboard() {
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-medium">Receita</p>
-                          <p className="text-xs text-muted-foreground">R$ {company.revenue?.toLocaleString() || "0"}</p>
+                          <p className="text-xs text-muted-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(company.revenue || 0)}</p>
                         </div>
 
                         <DropdownMenu>
