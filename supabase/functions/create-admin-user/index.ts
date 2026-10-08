@@ -298,6 +298,38 @@ serve(async (req) => {
                 updated_at: new Date().toISOString(),
               }).eq("id", invoice.id);
 
+              // Envia ao proprietário o aviso de cadastro e, quando aplicável,
+              // a cobrança residual usando o mesmo Resend já usado no Booking.
+              let emailSent = false;
+              let emailError: string | null = null;
+              const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+              if (resendKey) {
+                const from = (Deno.env.get("BILLING_EMAIL_FROM") ||
+                  Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") ||
+                  "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
+                const paymentLink = firstPayment?.invoiceUrl || firstPayment?.bankSlipUrl || "";
+                const chargeValue = Number(firstPayment?.value ?? discountedAmount);
+                const html = discountPercentage === 100
+                  ? "<h2>Empresa criada e ativada</h2><p>Olá, " + (ownerCompany.owner_name || "empreendedor") + "!</p><p>A empresa <strong>" + ownerCompany.name + "</strong> foi criada e ativada no Zailom Booking.</p>"
+                  : "<h2>Cobrança para ativação</h2><p>Olá, " + (ownerCompany.owner_name || "empreendedor") + "!</p><p>A empresa <strong>" + ownerCompany.name + "</strong> foi cadastrada.</p><p>Valor para ativação: <strong>R$ " + chargeValue.toFixed(2).replace(".", ",") + "</strong>.</p>" +
+                    (paymentLink ? "<p><a href='" + paymentLink + "'>Acessar cobrança e pagar</a></p>" : "") +
+                    "<p>A conta será ativada automaticamente após a confirmação do pagamento.</p>";
+                const emailResponse = await fetch("https://api.resend.com/emails", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "Authorization": "Bearer " + resendKey },
+                  body: JSON.stringify({
+                    from,
+                    to: [ownerCompany.owner_email],
+                    subject: discountPercentage === 100 ? "Zailom Booking — empresa criada e ativada" : "Zailom Booking — cobrança para ativação",
+                    html: html + "<p>Plano: <strong>" + selectedPlan.name + "</strong> · Ciclo: <strong>" + billingPeriod + "</strong>.</p>",
+                  }),
+                });
+                emailSent = emailResponse.ok;
+                if (!emailResponse.ok) emailError = await emailResponse.text();
+              } else {
+                emailError = "RESEND_API_KEY não configurada.";
+              }
+
               billing = {
                 subscription_id: subscriptionId,
                 invoice_id: invoice.id,
@@ -305,7 +337,7 @@ serve(async (req) => {
                 amount,
                 billing_period: "monthly",
                 billing_type: "PIX",
-                environment: isSandbox ? "sandbox" : "production",
+                environment: isSandbox ? "sandbox" : "production",\n                email_sent: emailSent,\n                email_error: emailError,\n                discount_percentage: discountPercentage,\n                discount_cycles: discountCycles,\n                extra_whatsapp_instances: extraWhatsappInstances,
               };
             }
           }
