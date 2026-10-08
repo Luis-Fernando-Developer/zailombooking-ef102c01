@@ -106,7 +106,7 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'Empresa não encontrada.');
   END IF;
 
-  SELECT e.id, e.user_id, e.email, e.name, e.password_hash, c.status, occ.confirmed_at
+  SELECT e.id, e.user_id, e.email, e.name, e.password_hash, c.status, occ.confirmed_at AS confirmed_at
   INTO v_employee
   FROM public.employees e
   JOIN public.companies c ON c.id = e.company_id
@@ -175,6 +175,6 @@ BEGIN
   );
 END;
 $$;
-GRANT EXECUTE ON FUNCTION public.create_owner_company_credential(UUID, UUID, TEXT, TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.create_owner_company_credential(UUID, UUID, TEXT, TEXT, TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION public.validate_owner_password(TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.confirm_owner_company_link(UUID) TO anon, authenticated, service_role;
