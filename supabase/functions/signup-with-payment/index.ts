@@ -157,9 +157,12 @@ serve(async (req) => {
       if (existingAuthError || !existingAuth?.user) return json({ ok: false, error: "Não foi possível localizar a identidade existente." }, 200);
       userId = existingAuth.user.id;
     } else {
-      const authPassword = `Zailom-${crypto.randomUUID()}-${crypto.randomUUID()}`;
+      // A identidade global NÃO recebe a senha empresarial.
+      // O acesso do proprietário é contextual por empresa e fica em employees.password_hash,
+      // seguindo a mesma arquitetura de identidade global usada no fluxo multiempresa.
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
-        email: c.owner_email, password: authPassword, email_confirm: true,
+        email: c.owner_email,
+        email_confirm: true,
         user_metadata: { name: c.owner_name, phone: c.owner_phone, role: "owner" },
       });
       if (createErr || !created?.user) return json({ ok: false, error: createErr?.message || "Falha ao criar usuário." }, 200);
