@@ -113,6 +113,7 @@ export default function ClientBooking() {
     allowLater?: boolean;
     wasPaid?: boolean;
     openedOnce?: boolean;
+    hasPayment?: boolean;
   
     _clientId?: string;
     _serviceId?: string;
@@ -789,6 +790,7 @@ export default function ClientBooking() {
         amount: effectivePrice,
         allowLater: true,
         openedOnce: false,
+        hasPayment: false,
         // Dados do cliente para o dialog usar na criação do booking
         _clientId: clientId,
         _serviceId: selectedService?.id || '',
@@ -1308,8 +1310,23 @@ export default function ClientBooking() {
                   <Button variant="outline" onClick={() => { setSelectedTime(""); setStep(4); }} className="flex-1" style={stepBtnStyle(cfgLogin.back_button)}>
                     {cfgLogin.back_button?.typography?.text || 'Voltar'}
                   </Button>
-                  <Button onClick={handleBookingSubmit} disabled={isLoading} className="flex-1" style={stepBtnStyle(cfgLogin.continue_button)}>
-                    {isLoading ? (cfgLogin.continue_button?.typography?.text || 'Aguarde...') : (cfgLogin.continue_button?.typography?.text || 'Confirmar Agendamento')}
+                  <Button
+                    onClick={() => {
+                      if (paymentDialog.hasPayment && !paymentDialog.wasPaid) {
+                        setPaymentDialog(prev => ({ ...prev, open: true }));
+                        return;
+                      }
+                      handleBookingSubmit();
+                    }}
+                    disabled={isLoading}
+                    className="flex-1"
+                    style={stepBtnStyle(cfgLogin.continue_button)}
+                  >
+                    {isLoading
+                      ? (cfgLogin.continue_button?.typography?.text || 'Aguarde...')
+                      : paymentDialog.hasPayment && !paymentDialog.wasPaid
+                        ? 'Continuar pagamento'
+                        : (cfgLogin.continue_button?.typography?.text || 'Confirmar Agendamento')}
                   </Button>
                 </div>
               </CardContent>
@@ -1586,10 +1603,18 @@ export default function ClientBooking() {
           bookingData={paymentDialog.bookingData}
         
           onSlotUnavailable={() => {
-            setPaymentDialog(prev => ({ ...prev, open: false }));
+            setPaymentDialog(prev => ({ ...prev, open: false, hasPayment: false }));
             setSelectedTime("");
             setStep(4);
             fetchAvailableTimes();
+          }}
+
+          onPaymentCreated={() => {
+            setPaymentDialog(prev => ({
+              ...prev,
+              hasPayment: true,
+              openedOnce: true,
+            }));
           }}
 
           onPayLater={async () => {
