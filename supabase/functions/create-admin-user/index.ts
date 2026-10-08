@@ -91,34 +91,39 @@ serve(async (req) => {
 
     console.log(`[AdminCreateUser] Criando usuário: ${email}`);
 
-    // 3. Tentar criar o usuário primeiro
-    console.log(`[AdminCreateUser] Tentando criar usuário: ${email}`);
-    const { data: createData, error: createError } = await supabaseClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: metadata
-    });
+    // 3. Criar um novo usuário apenas quando o proprietário ainda não possui conta.
+    // Um mesmo usuário pode ser proprietário de várias empresas.
+    const existingUserId = metadata?.existing_user_id ?? null;
+    let createData: any;
 
-    if (createError) {
-      console.error("[AdminCreateUser] Erro ao criar usuário:", createError);
-      
-      let errorMessage = createError.message;
-      if (createError.message.toLowerCase().includes("already") || createError.status === 422) {
-        // Se o usuário já existir, retornamos um erro 409 (Conflict) específico
-        return new Response(JSON.stringify({ 
-          error: "Este e-mail já está sendo usado por outro usuário/empresa.",
-          code: "user_already_exists"
-        }), {
-          status: 409,
+    if (existingUserId) {
+      const { data: existingAuth, error: existingAuthError } = await supabaseClient.auth.admin.getUserById(existingUserId);
+      if (existingAuthError || !existingAuth?.user) {
+        return new Response(JSON.stringify({ error: "Não foi possível localizar o usuário existente." }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      createData = { user: existingAuth.user };
+      console.log(`[AdminCreateUser] Reutilizando usuário existente: ${existingAuth.user.id}`);
+    } else {
+      console.log(`[AdminCreateUser] Tentando criar usuário: ${email}`);
+      const { data: newUserData, error: createError } = await supabaseClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: metadata
+      });
+
+      if (createError) {
+        console.error("[AdminCreateUser] Erro ao criar usuário:", createError);
+        return new Response(JSON.stringify({ error: createError.message }), {
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      return new Response(JSON.stringify({ error: errorMessage }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      createData = newUserData;
     }
 
     // Super Admin: provisiona também a assinatura recorrente da empresa criada.
