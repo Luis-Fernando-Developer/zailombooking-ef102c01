@@ -241,10 +241,11 @@ serve(async (req) => {
         return json({ error: "A cobrança antiga já foi paga. A fatura foi atualizada e nenhuma cobrança duplicada foi criada." }, 409);
       }
       if (!["DELETED", "CANCELLED", "REFUNDED"].includes(oldProviderStatus)) {
-        await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}`, { method: "DELETE" });
-        const verify = await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}`);
-        if (!["DELETED", "CANCELLED"].includes(String(verify.status).toUpperCase())) {
-          return json({ error: "Não foi possível confirmar o cancelamento da cobrança anterior. Para evitar pagamento duplicado, nenhuma nova cobrança foi gerada.", asaas_status: verify.status }, 409);
+        // Mesma regra da ação cancelar: não confiar no GET posterior, que pode
+        // continuar exibindo PENDING apesar do DELETE ter removido a cobrança.
+        const deletion = await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}`, { method: "DELETE" });
+        if (deletion?.deleted === false || deletion?.success === false) {
+          return json({ error: "O Asaas recusou o cancelamento da cobrança anterior. Para evitar duplicidade, nenhuma nova cobrança foi criada.", asaas_status: oldProviderStatus }, 409);
         }
       }
     }
