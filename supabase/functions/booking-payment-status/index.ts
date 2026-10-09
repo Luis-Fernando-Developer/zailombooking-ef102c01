@@ -166,7 +166,8 @@ serve(async (req) => {
       remoteStatus = String(remote?.payment_status ?? remote?.status ?? "")
       paid = remoteStatus === "paid"
     } else if (provider === "pagarme") {
-      const res = await fetch(`https://api.pagar.me/core/v5/paymentlinks/${encodeURIComponent(providerPaymentId)}`, { headers: { Authorization: `Basic ${btoa(`${apiKey}:`)}`, Accept: "application/json" } })
+      const pagarmeBaseUrl = /^sk_test_/i.test(apiKey) ? "https://sdx-api.pagar.me/core/v5" : "https://api.pagar.me/core/v5"
+      const res = await fetch(`${pagarmeBaseUrl}/paymentlinks/${encodeURIComponent(providerPaymentId)}`, { headers: { Authorization: `Basic ${btoa(`${apiKey}:`)}`, Accept: "application/json" } })
       remote = await res.json().catch(() => ({}))
       remoteStatus = String(remote?.status ?? "")
       paid = Number(remote?.total_paid_sessions ?? 0) > 0
