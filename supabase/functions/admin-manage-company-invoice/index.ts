@@ -200,9 +200,17 @@ serve(async (req) => {
       }
       const refund = await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}/refund`, { method: "POST", body: JSON.stringify({}) });
       const refundStatus = localStatus(refund.status || "REFUNDED");
-      await saveStatus(refundStatus === "refunded" ? "refunded" : "refunded", {
+      await saveStatus("refunded", {
         metadata: { ...(invoice.metadata || {}), admin_refund_requested_at: new Date().toISOString(), asaas_refund_status: refund.status || "requested" },
       });
+      // Reembolso de assinatura remove a base financeira da ativação; suspende acesso,
+      // mas preserva a empresa, seus funcionários e todas as credenciais existentes.
+      if (String(invoice.kind || "subscription") === "subscription") {
+        await admin.from("company_subscriptions").update({
+          status: "suspended", billing_status: "suspended", updated_at: new Date().toISOString(),
+        }).eq("company_id", company.id);
+        await admin.from("companies").update({ status: "suspended" }).eq("id", company.id);
+      }
       await audit("refund_charge", invoice.status, "refunded", { asaas_status: current.status, refund_status: refund.status || "requested" });
       return json({ success: true, status: "refunded", refund_status: refund.status || "requested" });
     }
