@@ -272,37 +272,33 @@ serve(async (req) => {
         if (invoice.metadata?.coupon_code) {
           amountToCharge = Number(invoice.metadata.discounted_amount ?? invoice.amount ?? providerValue);
         } else {
-        let configuredDiscountPercentage = Number(invoice.metadata?.discount_percentage || 0);
-        let originalPrice = Number(invoice.metadata?.original_amount || 0);
-        if (invoice.subscription_id) {
-          const { data: subscription } = await admin.from("company_subscriptions")
-            .select("discount_percentage,original_price,coupon_code,coupon_discount_type,coupon_discount_value,coupon_cycles_remaining").eq("id", invoice.subscription_id).maybeSingle();
-          configuredDiscountPercentage = Number(subscription?.discount_percentage || configuredDiscountPercentage);
-          originalPrice = Number(subscription?.original_price || originalPrice);
-          if (subscription?.coupon_code && Number(subscription?.coupon_cycles_remaining || 0) > 0) {
-            // O valor do pagamento retornado pelo Asaas já contém o desconto do ciclo.
-            amountToCharge = providerValue;
+          let configuredDiscountPercentage = Number(invoice.metadata?.discount_percentage || 0);
+          let originalPrice = Number(invoice.metadata?.original_amount || 0);
+          let couponSubscription: any = null;
+          let legacyCyclesRemaining = Math.max(0, Number(invoice.metadata?.discount_cycles_remaining || 0));
+          if (invoice.subscription_id) {
+            const { data: subscription } = await admin.from("company_subscriptions")
+              .select("discount_percentage,discount_cycles_remaining,original_price,coupon_code,coupon_cycles_remaining")
+              .eq("id", invoice.subscription_id).maybeSingle();
+            configuredDiscountPercentage = Number(subscription?.discount_percentage || configuredDiscountPercentage);
+            originalPrice = Number(subscription?.original_price || originalPrice);
+            legacyCyclesRemaining = Math.max(0, Number(subscription?.discount_cycles_remaining ?? legacyCyclesRemaining));
+            couponSubscription = subscription;
           }
-        }
-        if (invoice.subscription_id) {
-          const { data: couponSubscription } = await admin.from("company_subscriptions")
-            .select("coupon_code,coupon_cycles_remaining").eq("id", invoice.subscription_id).maybeSingle();
           if (couponSubscription?.coupon_code && Number(couponSubscription.coupon_cycles_remaining || 0) > 0) {
+            // O valor efetivo do pagamento do Asaas já contém o desconto recorrente.
             amountToCharge = providerValue;
-          } else if (configuredDiscountPercentage > 0) {
-          const base = originalPrice > 0 ? originalPrice : providerValue;
-          amountToCharge = Math.max(0, Number((base * (1 - configuredDiscountPercentage / 100)).toFixed(2)));
-        } else {
-          const discountValue = Number(payment.discount?.value || 0);
-          const discountType = String(payment.discount?.type || "FIXED").toUpperCase();
-          const discountAmount = discountValue > 0
-            ? Number((discountType === "PERCENTAGE" ? providerValue * discountValue / 100 : discountValue).toFixed(2))
-            : 0;
-          amountToCharge = Math.max(0, Number((providerValue - discountAmount).toFixed(2)));
-        }
-        } else if (!invoice.metadata?.coupon_code && configuredDiscountPercentage > 0) {
-          const base = originalPrice > 0 ? originalPrice : providerValue;
-          amountToCharge = Math.max(0, Number((base * (1 - configuredDiscountPercentage / 100)).toFixed(2)));
+          } else if (configuredDiscountPercentage > 0 && legacyCyclesRemaining > 0) {
+            const base = originalPrice > 0 ? originalPrice : providerValue;
+            amountToCharge = Math.max(0, Number((base * (1 - configuredDiscountPercentage / 100)).toFixed(2)));
+          } else {
+            const discountValue = Number(payment.discount?.value || 0);
+            const discountType = String(payment.discount?.type || "FIXED").toUpperCase();
+            const discountAmount = discountValue > 0
+              ? Number((discountType === "PERCENTAGE" ? providerValue * discountValue / 100 : discountValue).toFixed(2))
+              : 0;
+            amountToCharge = Math.max(0, Number((providerValue - discountAmount).toFixed(2)));
+          }
         }
         if (payment.invoiceUrl || payment.bankSlipUrl) {
           await admin.from("company_invoices").update({
