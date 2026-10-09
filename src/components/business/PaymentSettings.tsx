@@ -35,7 +35,7 @@ const PROVIDER_INFO: Record<Provider, {
   asaas: { label: "Asaas", methods: ["pix","credit_card","debit_card","boleto"], keyPlaceholder: "$aact_...", keyHelp: "Painel Asaas → Integrações → Chave de API.", webhookSlug: "asaas-webhook", panelUrl: "https://www.asaas.com/customerWebhook/list", webhookHelp: "Cadastre como Webhook genérico, evento 'PAYMENT_RECEIVED'." },
   mercadopago: { label: "Mercado Pago", methods: ["pix","credit_card","debit_card","boleto"], keyPlaceholder: "APP_USR-...", keyHelp: "Painel MP → Suas integrações → Credenciais → Access Token de produção.", webhookSlug: "mercadopago-webhook", panelUrl: "https://www.mercadopago.com.br/developers/panel/app", webhookHelp: "Cadastre como Notificação Webhooks, eventos 'payment'." },
   stripe: { label: "Stripe", methods: ["credit_card","boleto"], keyPlaceholder: "sk_live_... ou sk_test_...", keyHelp: "Stripe Dashboard → Developers → API keys → Secret key.", webhookSlug: "stripe-webhook", panelUrl: "https://dashboard.stripe.com/webhooks", webhookHelp: "Eventos: checkout.session.completed, checkout.session.async_payment_succeeded." },
-  pagarme: { label: "Pagar.me", methods: ["pix","credit_card","debit_card","boleto"], keyPlaceholder: "sk_...", keyHelp: "Painel Pagar.me → Configurações → Chaves de API → Secret Key.", webhookSlug: "pagarme-webhook", panelUrl: "https://dash.pagar.me/", webhookHelp: "Eventos: order.paid, charge.paid." },
+  pagarme: { label: "Pagar.me", methods: ["pix","credit_card","boleto"], keyPlaceholder: "sk_...", keyHelp: "Painel Pagar.me → Configurações → Chaves de API → Secret Key.", webhookSlug: "pagarme-webhook", panelUrl: "https://dash.pagar.me/", webhookHelp: "Eventos: order.paid, charge.paid." },
 };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
