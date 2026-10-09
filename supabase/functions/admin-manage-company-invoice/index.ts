@@ -82,7 +82,45 @@ serve(async (req) => {
         .select("id,company_id,invoice_id,actor_user_id,action,previous_status,resulting_status,details,created_at")
         .eq("company_id", companyId).order("created_at", { ascending: false }).limit(100);
       if (historyError) throw historyError;
-      return json({ success: true, invoices: invoices || [], history: history || [] });
+
+      // Enriquecer o painel com o valor efetivo de pagamento retornado pelo Asaas.
+      // company_invoices.amount pode representar o preço-base, enquanto o Asaas
+      // mantém o desconto no pagamento (por exemplo, R$ 149,00 - R$ 5,96).
+      const listAsaasKey = await gatewayConfig(admin, "ASAAS_API_KEY");
+      let enrichedInvoices = invoices || [];
+      if (listAsaasKey) {
+        const listSandbox = listAsaasKey.includes("hmlg") || !listAsaasKey.startsWith("$aact_");
+        const listBaseUrl = listSandbox ? "https://sandbox.asaas.com/api/v3" : "https://api.asaas.com/v3";
+        enrichedInvoices = await Promise.all((invoices || []).map(async (item: any) => {
+          if (!item.asaas_payment_id) return { ...item, amount_due: Number(item.amount || 0), discount_amount: 0 };
+          try {
+            const response = await fetch(listBaseUrl + "/payments/" + encodeURIComponent(item.asaas_payment_id), {
+              headers: { access_token: listAsaasKey, "Content-Type": "application/json" },
+            });
+            if (!response.ok) return { ...item, amount_due: Number(item.amount || 0), discount_amount: 0 };
+            const payment: any = await response.json();
+            const baseAmount = Number(payment.value ?? item.amount ?? 0);
+            const discountValue = Number(payment.discount?.value || 0);
+            const discountType = String(payment.discount?.type || "FIXED").toUpperCase();
+            const discountAmount = discountValue > 0
+              ? Number((discountType === "PERCENTAGE" ? baseAmount * discountValue / 100 : discountValue).toFixed(2))
+              : 0;
+            const amountDue = Math.max(0, Number((baseAmount - discountAmount).toFixed(2)));
+            return {
+              ...item,
+              amount: Number(item.amount ?? baseAmount),
+              amount_due: amountDue,
+              discount_amount: discountAmount,
+              asaas_value: baseAmount,
+            };
+          } catch {
+            return { ...item, amount_due: Number(item.amount || 0), discount_amount: 0 };
+          }
+        }));
+      } else {
+        enrichedInvoices = enrichedInvoices.map((item: any) => ({ ...item, amount_due: Number(item.amount || 0), discount_amount: 0 }));
+      }
+      return json({ success: true, invoices: enrichedInvoices, history: history || [] });
     }
 
     if (!invoiceId) return json({ error: "Fatura não informada." }, 400);
