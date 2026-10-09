@@ -23,7 +23,7 @@ export default function ConfirmLink() {
       // 1. Verificar se o Supabase Auth já processou o link (primeiro cadastro)
       const { data: { session }, error: authError } = await supabase.auth.getSession();
       
-      if (session) {
+      if (session && type !== 'signup') {
         console.log("ConfirmLink: Sessão ativa detectada via hash do Supabase.");
         setStatus('success');
         setMessage("Identidade confirmada com sucesso! Redirecionando...");
@@ -52,7 +52,7 @@ export default function ConfirmLink() {
 
       // 2. Se não há sessão automática, processamos o token manual (vinda de e-mail/WhatsApp personalizado)
       const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
-      const finalToken = token || hashParams.get('access_token') || hashParams.get('token') || hashParams.get('confirmation_token');
+      const finalToken = token || hashParams.get('token') || hashParams.get('confirmation_token');
 
       console.log("ConfirmLink: Debug URL", { 
         fullUrl: window.location.href,

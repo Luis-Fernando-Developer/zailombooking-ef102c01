@@ -18,6 +18,7 @@ serve(async (req) => {
 
     const body = await req.json();
     const { user_id, company_id, name, email, phone, cpf, password, signup_flow, redirectTo, returnTo } = body;
+    const normalizedEmail = String(email ?? "").trim().toLowerCase();
 
     // Validação mínima — string 'undefined' passa em !value, então checamos explicitamente
     if (!company_id || typeof company_id !== 'string' || company_id.trim() === '' || company_id === 'undefined' || company_id === 'null') {
@@ -68,38 +69,67 @@ serve(async (req) => {
     // Cria usuário no Auth via Admin API + envia link nosso
     // ─────────────────────────────────────────────
     if (isSignupFlow) {
-      // 1a. Criar usuário no Supabase Auth via Admin API (sem enviar email automático)
-      const { data: authUser, error: createUserError } = await supabaseClient.auth.admin.createUser({
-        email: email,
-        email_confirm: true,
-        user_metadata: {
-          name,
-          phone,
-          role: "client",
-        },
-      });
-
-      if (createUserError || !authUser?.user) {
-        console.error("Erro ao criar usuário no Auth:", createUserError);
-        return new Response(JSON.stringify({ error: createUserError?.message || "Erro ao criar usuário" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // 1a. Reutilizar a identidade Auth se o e-mail já existir.
+      // A senha contextual continua sendo definida separadamente para cada empresa.
+      let existingAuthUser: { id: string } | null = null;
+      for (let page = 1; ; page++) {
+        const { data: usersPage, error: listUsersError } = await supabaseClient.auth.admin.listUsers({
+          page,
+          perPage: 1000,
         });
+
+        if (listUsersError) {
+          throw new Error(`Não foi possível verificar a identidade existente: ${listUsersError.message}`);
+        }
+
+        const match = usersPage.users.find(
+          (user) => (user.email ?? "").trim().toLowerCase() === normalizedEmail
+        );
+
+        if (match) {
+          existingAuthUser = { id: match.id };
+          break;
+        }
+
+        if (usersPage.users.length < 1000) break;
       }
 
-      const newUserId = authUser.user.id;
+      let newUserId: string;
+      if (existingAuthUser) {
+        newUserId = existingAuthUser.id;
+      } else {
+        const { data: authUser, error: createUserError } = await supabaseClient.auth.admin.createUser({
+          email: normalizedEmail,
+          email_confirm: true,
+          user_metadata: {
+            name,
+            phone,
+            role: "client",
+          },
+        });
 
-      // 1b. Inserir vínculo na tabela clients
+        if (createUserError || !authUser?.user) {
+          console.error("Erro ao criar usuário no Auth:", createUserError);
+          return new Response(JSON.stringify({ error: createUserError?.message || "Erro ao criar usuário" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        newUserId = authUser.user.id;
+      }
+
+      // 1b. Criar ou atualizar apenas o vínculo desta empresa.
       const { error: clientError } = await supabaseClient
         .from("clients")
-        .insert({
+        .upsert({
           user_id: newUserId,
           company_id,
           name,
-          email,
+          email: normalizedEmail,
           phone,
           cpf: cpf || null,
-        });
+        }, { onConflict: "company_id,email" });
 
       if (clientError) {
         console.error("Erro ao criar perfil do cliente:", clientError);
@@ -135,7 +165,7 @@ serve(async (req) => {
         await supabaseClient
           .from("client_confirmations")
           .update({
-            email, name, phone, cpf,
+            email: normalizedEmail, name, phone, cpf,
             password_hash: null,
             confirmed_at: null,
           })
@@ -146,7 +176,7 @@ serve(async (req) => {
           .insert({
             user_id: newUserId,
             company_id,
-            email,
+            email: normalizedEmail,
             name,
             phone,
             cpf,
@@ -162,7 +192,11 @@ serve(async (req) => {
         }
       }
 
-      const confirmationLink = `${confirmationLinkBase}/confirmar-vincular?token=${confirmationToken}&slug=${company?.slug}&type=signup${returnTo ? `&returnTo=${returnTo}` : ''}`;
+      if (!confirmationToken) {
+        throw new Error("Não foi possível gerar o token de confirmação do cliente.");
+      }
+
+      const confirmationLink = `${confirmationLinkBase}/confirmar-vincular?token=${encodeURIComponent(confirmationToken)}&slug=${encodeURIComponent(company?.slug ?? "")}&type=signup${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ""}`;
 
       // 1e. Enviar link via WhatsApp ou e-mail
       let whatsapp_sent = false;
