@@ -48,7 +48,6 @@ serve(async (req) => {
     if (!authHeader.startsWith("Bearer ")) return json({ error: "Não autorizado." }, 401);
 
     const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
-    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
     const token = authHeader.slice(7);
     const { data: userData, error: userError } = await admin.auth.getUser(token);
     if (userError || !userData.user) return json({ error: "Sessão inválida." }, 401);
@@ -212,9 +211,10 @@ serve(async (req) => {
     if (!["overdue", "cancelled", "failed"].includes(String(invoice.status))) {
       return json({ error: "Só é possível gerar uma nova cobrança para uma fatura vencida, cancelada ou com falha." }, 409);
     }
-    if (invoice.status === "overdue" && invoice.asaas_payment_id) {
+    if (invoice.asaas_payment_id) {
       const oldPayment = await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}`);
-      if (["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "SETTLED", "DEPOSITED"].includes(String(oldPayment.status).toUpperCase())) {
+      const oldProviderStatus = String(oldPayment.status || "").toUpperCase();
+      if (["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "SETTLED", "DEPOSITED"].includes(oldProviderStatus)) {
         await saveStatus("paid", { paid_at: oldPayment.paymentDate || oldPayment.clientPaymentDate || new Date().toISOString() });
         await admin.rpc("mark_subscription_invoice_paid_v2", {
           _asaas_payment_id: invoice.asaas_payment_id, _invoice_id: invoice.id,
@@ -222,7 +222,7 @@ serve(async (req) => {
         });
         return json({ error: "A cobrança antiga já foi paga. A fatura foi atualizada e nenhuma cobrança duplicada foi criada." }, 409);
       }
-      if (!["DELETED", "CANCELLED", "REFUNDED"].includes(String(oldPayment.status).toUpperCase())) {
+      if (!["DELETED", "CANCELLED", "REFUNDED"].includes(oldProviderStatus)) {
         await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}`, { method: "DELETE" });
         const verify = await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}`);
         if (!["DELETED", "CANCELLED"].includes(String(verify.status).toUpperCase())) {
