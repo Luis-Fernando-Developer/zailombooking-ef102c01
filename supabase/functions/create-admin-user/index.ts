@@ -196,6 +196,7 @@ serve(async (req) => {
     const discountPercentage = Math.min(100, Math.max(0, Number(metadata?.discount_percentage ?? 0)));
     const discountCycles = discountPercentage > 0 ? Math.max(1, Math.floor(Number(metadata?.discount_cycles ?? 1))) : 0;
     const extraWhatsappInstances = Math.max(0, Math.floor(Number(metadata?.extra_whatsapp_instances ?? 0)));
+    let reservedCouponId: string | null = null;
     if (companyId && requesterId) {
       try {
         const { data: ownerCompany } = await supabaseClient
@@ -239,8 +240,26 @@ serve(async (req) => {
             if (!selectedPlan) throw new Error("Plano selecionado não encontrado.");
 
             const amount = billingPeriod === "annual" ? Number(selectedPlan.annual_price ?? 0) : billingPeriod === "quarterly" ? Number(selectedPlan.quarterly_price ?? 0) : Number(selectedPlan.monthly_price ?? 0);
-            const discountedAmount = Number((amount * (1 - discountPercentage / 100)).toFixed(2));
+            let couponReservation: any = null;
+            const couponCode = String(metadata?.coupon_code ?? "").trim().toUpperCase();
+            if (couponCode) {
+              if (discountPercentage > 0) throw new Error("Cupom de aquisição não pode ser acumulado com desconto manual.");
+              const { data: reserved, error: reserveError } = await supabaseClient.rpc("reserve_subscription_coupon", {
+                _code: couponCode,
+                _company_id: companyId,
+                _plan_id: selectedPlan.id,
+                _billing_period: billingPeriod,
+                _original_amount: amount,
+              });
+              if (reserveError || !reserved) throw new Error(reserveError?.message || "Não foi possível validar/reservar o cupom.");
+              couponReservation = reserved;
+              reservedCouponId = String(reserved.redemption_id);
+            }
+            const discountedAmount = couponReservation
+              ? Number(couponReservation.discounted_amount)
+              : Number((amount * (1 - discountPercentage / 100)).toFixed(2));
             if (!(amount > 0)) throw new Error("Valor do plano inválido.");
+            if (discountedAmount <= 0) throw new Error("O cupom não pode zerar a cobrança do Asaas.");
             const cpfCnpj = String(ownerCompany.cnpj || ownerCompany.owner_cpf || metadata?.owner_cpf || "").replace(/\D/g, "");
             // O cliente Asaas é vinculado à EMPRESA, não ao CPF/e-mail do proprietário.
             // O mesmo empresário pode possuir várias empresas, portanto não reutilizamos
@@ -281,8 +300,8 @@ serve(async (req) => {
                 .from("company_invoices")
                 .insert({
                   company_id: companyId,
-                  amount: discountPercentage === 100 ? 0 : discountedAmount,
-                  status: discountPercentage === 100 ? "cancelled" : "pending",
+                  amount: discountedAmount,
+                  status: "pending",
                   due_date: new Date().toISOString().slice(0, 10),
                   description: `Assinatura ZailomBooking - ${selectedPlan.name} (${billingPeriod})`,
                   kind: "subscription",
@@ -307,7 +326,14 @@ serve(async (req) => {
                       ? new Date(Date.now() + (billingPeriod === "annual" ? 365 : billingPeriod === "quarterly" ? 90 : 30) * 86400000).toISOString().slice(0, 10)
                       : new Date().toISOString().slice(0, 10),
                     cycle: billingPeriod === "annual" ? "YEARLY" : billingPeriod === "quarterly" ? "QUARTERLY" : "MONTHLY",
-                    ...(discountPercentage > 0 && discountCycles > 0 ? { discount: { value: discountPercentage, type: "PERCENTAGE", limitDate: new Date(Date.now() + (billingPeriod === "annual" ? 365 : billingPeriod === "quarterly" ? 90 : 30) * discountCycles * 86400000).toISOString().slice(0, 10), dueDateLimitDays: 0 } } : {}),
+                    ...(couponReservation && Number(couponReservation.duration_cycles) > 1 ? {
+                      discount: {
+                        value: Number(couponReservation.discount_value),
+                        type: couponReservation.discount_type === "percentage" ? "PERCENTAGE" : "FIXED",
+                        limitDate: (() => { const d = new Date(); const n = Number(couponReservation.duration_cycles); if (billingPeriod === "annual") d.setFullYear(d.getFullYear() + n); else if (billingPeriod === "quarterly") d.setMonth(d.getMonth() + n * 3); else d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); })(),
+                        dueDateLimitDays: 0,
+                      },
+                    } : discountPercentage > 0 && discountCycles > 0 ? { discount: { value: discountPercentage, type: "PERCENTAGE", limitDate: new Date(Date.now() + (billingPeriod === "annual" ? 365 : billingPeriod === "quarterly" ? 90 : 30) * discountCycles * 86400000).toISOString().slice(0, 10), dueDateLimitDays: 0 } } : {}),
                     description: `ZailomBooking ${selectedPlan.name} - ${billingPeriod}`,
                     externalReference: `subscription:${invoice.id}:${companyId}`,
                   }),
@@ -324,7 +350,10 @@ serve(async (req) => {
               for (let attempt = 0; attempt < 10 && !firstPayment; attempt++) {
                 const payments = await asaas(`/subscriptions/${subscriptionId}/payments`, { method: "GET" });
                 firstPayment = payments?.data?.[0] ?? null;
-                if (firstPayment?.id && discountPercentage > 0 && discountCycles === 0 && discountPercentage < 100) {
+                if (firstPayment?.id && couponReservation && Math.abs(Number(firstPayment.value ?? amount) - discountedAmount) >= 0.01) {
+                  const adjustedPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
+                  firstPayment = { ...firstPayment, ...adjustedPayment, value: discountedAmount };
+                } else if (firstPayment?.id && discountPercentage > 0 && discountCycles === 0 && discountPercentage < 100) {
                   const adjustedPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
                   firstPayment = { ...firstPayment, ...adjustedPayment, value: discountedAmount };
                 }
@@ -359,8 +388,15 @@ serve(async (req) => {
                   next_billing_date: nextBilling.toISOString(),
                   asaas_subscription_id: subscriptionId,
                   original_price: amount,
-                  discount_percentage: discountPercentage,
-                  discount_cycles_remaining: discountCycles,
+                  discount_percentage: couponReservation ? 0 : discountPercentage,
+                  discount_cycles_remaining: couponReservation ? 0 : discountCycles,
+                  ...(couponReservation ? {
+                    coupon_id: couponReservation.coupon_id,
+                    coupon_code: couponReservation.code,
+                    coupon_discount_type: couponReservation.discount_type,
+                    coupon_discount_value: Number(couponReservation.discount_value),
+                    coupon_cycles_remaining: Number(couponReservation.duration_cycles),
+                  } : {}),
                   manual_admin_created: true,
                 })
                 .select("id")
@@ -369,13 +405,22 @@ serve(async (req) => {
 
               await supabaseClient.from("company_invoices").update({
                 subscription_id: localSub.id,
-                amount: discountPercentage === 100 ? 0 : discountedAmount,
+                amount: discountedAmount,
+                metadata: couponReservation ? { coupon_id: couponReservation.coupon_id, coupon_code: couponReservation.code, original_amount: amount, discount_amount: Number(couponReservation.discount_amount), discounted_amount: discountedAmount, discount_type: couponReservation.discount_type, discount_value: Number(couponReservation.discount_value), duration_cycles: Number(couponReservation.duration_cycles) } : {},
                 asaas_payment_id: firstPayment?.id ?? null,
                 asaas_customer_id: customerId,
                 invoice_url: firstPayment?.invoiceUrl ?? null,
                 bank_slip_url: firstPayment?.bankSlipUrl ?? null,
                 updated_at: new Date().toISOString(),
               }).eq("id", invoice.id);
+              if (couponReservation) {
+                await supabaseClient.from("subscription_coupon_redemptions").update({
+                  subscription_id: localSub.id,
+                  invoice_id: invoice.id,
+                  status: "applied",
+                  updated_at: new Date().toISOString(),
+                }).eq("id", couponReservation.redemption_id);
+              }
 
               // O e-mail 1 (cadastro recebido) já foi enviado antes da cobrança.
               // Aqui enviamos somente o e-mail 2 e, no desconto integral, o e-mail 3.
@@ -451,12 +496,18 @@ serve(async (req) => {
                 email_error: emailError,
                 discount_percentage: discountPercentage,
                 discount_cycles: discountCycles,
+                coupon: couponReservation ? { code: couponReservation.code, discount_amount: Number(couponReservation.discount_amount), discounted_amount: discountedAmount, duration_cycles: Number(couponReservation.duration_cycles) } : null,
                 extra_whatsapp_instances: extraWhatsappInstances,
               };
             }
           }
         }
       } catch (billingError) {
+        if (reservedCouponId) {
+          await supabaseClient.from("subscription_coupon_redemptions")
+            .update({ status: "cancelled", updated_at: new Date().toISOString() })
+            .eq("id", reservedCouponId);
+        }
         console.error("[AdminCreateUser] Erro ao provisionar assinatura Asaas:", billingError);
         billing = { error: billingError instanceof Error ? billingError.message : "Erro ao criar assinatura." };
       }
