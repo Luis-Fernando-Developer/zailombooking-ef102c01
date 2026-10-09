@@ -53,6 +53,7 @@ CREATE INDEX IF NOT EXISTS company_service_coupon_redemptions_payment_idx
   ON public.company_service_coupon_redemptions(provider_payment_id);
 
 ALTER TABLE public.booking_payments ADD COLUMN IF NOT EXISTS provider_payment_id text;
+CREATE INDEX IF NOT EXISTS booking_payments_provider_payment_id_idx ON public.booking_payments(provider_payment_id);
 
 ALTER TABLE public.bookings
   ADD COLUMN IF NOT EXISTS original_price numeric(12,2),
