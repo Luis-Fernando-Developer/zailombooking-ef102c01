@@ -474,7 +474,7 @@ serve(async (req) => {
           firstPayment = payments?.data?.[0] ?? null;
           if (!firstPayment && attempt < 9) await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        if (couponReservation && firstPayment?.id) {
+        if (couponReservation && firstPayment?.id && Number(couponReservation.duration_cycles) <= 1) {
           const expectedAmount = Number(couponReservation.discounted_amount);
           if (Math.abs(Number(firstPayment.value ?? amount) - expectedAmount) >= 0.01) {
             try {
@@ -570,7 +570,7 @@ serve(async (req) => {
       const invLocal: Record<string, unknown> = {
         company_id: companyId,
         subscription_id: localSubscriptionId,
-        amount: Number(firstPayment?.value ?? couponReservation?.discounted_amount ?? amount),
+        amount: Number(couponReservation?.discounted_amount ?? firstPayment?.value ?? amount),
         metadata: couponReservation ? { coupon_id: couponReservation.coupon_id, coupon_code: couponReservation.code, original_amount: Number(amount), discount_amount: Number(couponReservation.discount_amount), discounted_amount: Number(couponReservation.discounted_amount), discount_type: couponReservation.discount_type, discount_value: Number(couponReservation.discount_value), duration_cycles: Number(couponReservation.duration_cycles) } : {},
         status: "pending",
         kind: "subscription",
@@ -617,7 +617,7 @@ serve(async (req) => {
       if (resendKey && invoiceId) {
         const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
         const paymentUrl = firstPayment?.invoiceUrl || firstPayment?.bankSlipUrl || "";
-        const chargeValue = Number(firstPayment?.value ?? amount);
+        const chargeValue = Number(couponReservation?.discounted_amount ?? firstPayment?.value ?? amount);
         const mailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
@@ -689,7 +689,7 @@ serve(async (req) => {
       charge: !!firstPayment,
       charge_error: chargeError,
       invoice_id: invoiceId,
-      amount: Number(firstPayment?.value ?? couponReservation?.discounted_amount ?? amount),
+      amount: Number(couponReservation?.discounted_amount ?? firstPayment?.value ?? amount),
       original_amount: amount,
       coupon: couponReservation ? { code: couponReservation.code, discount_amount: Number(couponReservation.discount_amount), discounted_amount: Number(couponReservation.discounted_amount), duration_cycles: Number(couponReservation.duration_cycles) } : null,
       billing_type: billingType,
