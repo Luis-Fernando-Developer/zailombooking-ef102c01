@@ -435,6 +435,8 @@ serve(async (req) => {
       } else {
         throw new Error(`Gateway "${receiverProvider}" não é suportado pelo checkout online.`)
       }
+      if (!paymentResult?.id) throw new Error(`O gateway ${receiverProvider} não retornou um identificador de pagamento.`)
+      if (receiverProvider !== 'asaas' && !invoiceUrl) throw new Error(`O gateway ${receiverProvider} não retornou o link de checkout.`)
     } catch (paymentError) {
       if (couponReservationToken) {
         await supabaseClient.from('company_service_coupon_redemptions').update({ status: 'cancelled' }).eq('checkout_token', couponReservationToken).eq('status', 'reserved')
