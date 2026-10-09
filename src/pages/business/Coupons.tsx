@@ -40,10 +40,11 @@ export default function BusinessCoupons() {
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [employeeRole, setEmployeeRole] = useState("employee");
   const { hasPermission, loading: permissionLoading } = usePermissions(company?.id, authUser);
-  const canViewCoupons = hasPermission("coupons.view");
   const canCreateCoupons = hasPermission("coupons.create");
   const canEditCoupons = hasPermission("coupons.edit");
   const canDeleteCoupons = hasPermission("coupons.delete");
+  // Editar/excluir pressupõe visualizar os registros correspondentes.
+  const canViewCoupons = hasPermission("coupons.view") || canEditCoupons || canDeleteCoupons;
   const canViewUsage = hasPermission("coupons.view_usage");
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [combos, setCombos] = useState<ComboItem[]>([]);
