@@ -341,7 +341,7 @@ export default function SignUp() {
                 type="button"
                 size="sm"
                 variant={billingPeriod === p ? "neon" : "outline"}
-                onClick={() => setBillingPeriod(p)}
+                onClick={() => { setBillingPeriod(p); setCouponPreview(null); }}
               >
                 {p === "monthly" ? "Mensal" : p === "quarterly" ? "Trimestral (-10%)" : "Anual (-20%)"}
               </Button>
@@ -363,7 +363,7 @@ export default function SignUp() {
                       ? "border-primary ring-2 ring-primary/50 bg-primary/10"
                       : "border-primary/20 bg-card/50 hover:border-primary/50"
                   }`}
-                  onClick={() => setSelectedPlanId(plan.id)}
+                  onClick={() => { setSelectedPlanId(plan.id); setCouponPreview(null); }}
                 >
                   <CardHeader className="text-center pb-2">
                     <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center mx-auto mb-2">
