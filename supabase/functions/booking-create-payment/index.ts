@@ -65,6 +65,7 @@ serve(async (req) => {
     }
 
     const { booking_id, method, payer, amount: bodyAmount, bookingData, hold_id } = body
+    const couponCode = String(body.coupon_code ?? '').trim().toUpperCase() || null
 
     // --- RESOLUÇÃO DO CONTEXTO ---
     // Online: o booking definitivo ainda não existe. Quando o consumidor
@@ -353,8 +354,39 @@ serve(async (req) => {
     const billingType = normalizedMethod === 'PIX' ? 'PIX' : (normalizedMethod === 'CREDIT_CARD' ? 'CREDIT_CARD' : (normalizedMethod === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
     
     const bookingAmount = Number(booking?.total_price ?? booking?.price ?? resolvedBookingData?.price ?? 0)
-    const amount = Number(bodyAmount || bookingAmount || 0)
-    console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType} | Amount: ${amount}`)
+    let originalAmount = Number(bodyAmount || bookingAmount || 0)
+    let amount = originalAmount
+    let couponDiscountAmount = 0
+    let couponReservationToken: string | null = null
+
+    // Cupom promocional é validado e reservado no banco, usando o preço real
+    // do serviço/combinação, nunca o valor informado pelo navegador.
+    if (couponCode) {
+      if (booking?.id) {
+        throw new Error('Aplique o cupom antes de registrar o agendamento. Cupons não podem ser adicionados a um agendamento já criado.')
+      }
+      if (!resolvedBookingData || !companyId) throw new Error('Dados do agendamento insuficientes para validar o cupom.')
+      const serviceId = resolvedBookingData.service_id ? String(resolvedBookingData.service_id) : null
+      const comboId = resolvedBookingData.combo_id ? String(resolvedBookingData.combo_id) : null
+      const { data: couponQuote, error: couponError } = await supabaseClient.rpc('reserve_company_service_coupon', {
+        p_company_id: companyId,
+        p_code: couponCode,
+        p_service_id: serviceId,
+        p_combo_id: comboId,
+      })
+      if (couponError || !couponQuote) {
+        throw new Error(couponError?.message || 'Não foi possível validar este cupom.')
+      }
+      originalAmount = Number(couponQuote.original_amount)
+      couponDiscountAmount = Number(couponQuote.discount_amount)
+      amount = Number(couponQuote.discounted_amount)
+      couponReservationToken = String(couponQuote.checkout_token)
+      if (!Number.isFinite(originalAmount) || !Number.isFinite(amount) || amount <= 0) {
+        throw new Error('O valor calculado para este cupom é inválido.')
+      }
+    }
+
+    console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType} | Amount: ${amount} | Coupon: ${couponCode ?? 'none'}`)
 
     if (!amount || amount <= 0) {
       throw new Error(`O valor do agendamento (${amount}) é inválido para processar o pagamento.`)
@@ -378,8 +410,13 @@ serve(async (req) => {
           client_id: booking?.client_id ?? resolvedBookingData?.client_id ?? null,
           employee_id: booking?.employee_id ?? resolvedBookingData?.employee_id ?? null,
           service_id: booking?.service_id ?? resolvedBookingData?.service_id ?? null,
+          combo_id: resolvedBookingData?.combo_id ?? null,
           hold_id: hold_id ?? null,
           reward_payment: Boolean(resolvedBookingData?.reward_id),
+          booking_data: resolvedBookingData,
+          coupon_code: couponCode,
+          original_amount: couponCode ? originalAmount : null,
+          coupon_discount_amount: couponCode ? couponDiscountAmount : null,
         },
         postalCode: '12345678', // Postal code fallback for webhooks
         // Removemos o callback manual que estava causando conflitos com o webhook global configurado no painel do Asaas.
@@ -415,6 +452,16 @@ serve(async (req) => {
         invoice_url: paymentResult.invoiceUrl,
         bank_slip_url: paymentResult.bankSlipUrl,
         ...pixInfo
+      }
+    }
+
+    if (couponReservationToken) {
+      const { error: finalizeError } = await supabaseClient.rpc('finalize_company_service_coupon', {
+        p_checkout_token: couponReservationToken,
+        p_asaas_payment_id: String(paymentResult.id),
+      })
+      if (finalizeError) {
+        console.error('[BOOKING_PAYMENT] Falha ao vincular cupom ao pagamento Asaas:', finalizeError.message)
       }
     }
 
