@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import type { User } from "@supabase/supabase-js";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Ticket, Save, Trash2, RefreshCw } from "lucide-react";
 
 type ServiceItem = { id: string; name: string; price: number; is_active: boolean };
@@ -35,6 +37,14 @@ export default function BusinessCoupons() {
   const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
   const [company, setCompany] = useState<any>(null);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [employeeRole, setEmployeeRole] = useState("employee");
+  const { hasPermission, loading: permissionLoading } = usePermissions(company?.id, authUser);
+  const canViewCoupons = hasPermission("coupons.view");
+  const canCreateCoupons = hasPermission("coupons.create");
+  const canEditCoupons = hasPermission("coupons.edit");
+  const canDeleteCoupons = hasPermission("coupons.delete");
+  const canViewUsage = hasPermission("coupons.view_usage");
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [combos, setCombos] = useState<ComboItem[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -46,9 +56,16 @@ export default function BusinessCoupons() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: companyData, error: companyError } = await supabase.from("companies").select("id,name,slug").eq("slug", slug).single();
+      const { data: companyData, error: companyError } = await supabase.from("companies").select("id,name,slug,owner_email").eq("slug", slug).single();
       if (companyError || !companyData) throw companyError || new Error("Empresa não encontrada.");
       setCompany(companyData);
+      const { data: { user } } = await supabase.auth.getUser();
+      setAuthUser(user);
+      if (user) {
+        const { data: employeeData } = await supabase.from("employees").select("role").eq("company_id", companyData.id).eq("user_id", user.id).maybeSingle();
+        const isOwner = String(companyData.owner_email || "").trim().toLowerCase() === String(user.email || "").trim().toLowerCase();
+        setEmployeeRole(isOwner ? "owner" : employeeData?.role || "employee");
+      }
       const [serviceResult, comboResult, couponResult] = await Promise.all([
         supabase.from("services").select("id,name,price,is_active").eq("company_id", companyData.id).order("name"),
         supabase.from("service_combos").select("*").eq("company_id", companyData.id).order("name"),
@@ -96,6 +113,10 @@ export default function BusinessCoupons() {
 
   const save = async () => {
     if (!company) return;
+    if (form.id ? !canEditCoupons : !canCreateCoupons) {
+      toast({ title: "Sem permissão", description: form.id ? "Você não tem permissão para editar cupons." : "Você não tem permissão para criar cupons.", variant: "destructive" });
+      return;
+    }
     const code = form.code.trim().toUpperCase();
     const value = Number(form.discount_value);
     if (!/^[A-Z0-9_-]{3,64}$/.test(code)) {
@@ -138,6 +159,10 @@ export default function BusinessCoupons() {
   };
 
   const remove = async (coupon: Coupon) => {
+    if (!canDeleteCoupons) {
+      toast({ title: "Sem permissão", description: "Você não tem permissão para excluir cupons.", variant: "destructive" });
+      return;
+    }
     if (!window.confirm(`Excluir o cupom ${coupon.code}? Cupons já utilizados não podem ser excluídos.`)) return;
     const { error } = await supabase.from("company_service_coupons").delete().eq("id", coupon.id).eq("company_id", company.id);
     if (error) {
@@ -150,7 +175,7 @@ export default function BusinessCoupons() {
   };
 
   return (
-    <BusinessLayout>
+    <BusinessLayout companySlug={company?.slug || slug || ""} companyName={company?.name || "Empresa"} companyId={company?.id} userRole={employeeRole} currentUser={authUser}>
       <div className="container mx-auto max-w-6xl p-4 md:p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -160,8 +185,11 @@ export default function BusinessCoupons() {
           <Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
         </div>
 
+        {permissionLoading ? <p className="text-sm text-muted-foreground">Verificando permissões...</p> : !canViewCoupons && !canCreateCoupons && !canEditCoupons ? (
+          <Card><CardHeader><CardTitle>Acesso não autorizado</CardTitle><CardDescription>Você não possui permissão para visualizar ou administrar cupons promocionais.</CardDescription></CardHeader></Card>
+        ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-          <Card>
+          {((!form.id && canCreateCoupons) || (Boolean(form.id) && canEditCoupons)) && <Card>
             <CardHeader>
               <CardTitle>{form.id ? "Editar cupom" : "Novo cupom"}</CardTitle>
               <CardDescription>Um cupom por agendamento. O desconto só é aplicado no pagamento online.</CardDescription>
@@ -188,9 +216,9 @@ export default function BusinessCoupons() {
               <div className="flex items-center gap-2"><input id="coupon-active" type="checkbox" checked={form.is_active} onChange={(e) => update("is_active", e.target.checked)} /><Label htmlFor="coupon-active">Cupom ativo</Label></div>
               <div className="flex gap-2"><Button onClick={() => void save()} disabled={saving || loading} className="flex-1"><Save className="h-4 w-4 mr-2" />{saving ? "Salvando..." : "Salvar cupom"}</Button><Button variant="outline" onClick={() => setForm(emptyForm)}>Limpar</Button></div>
             </CardContent>
-          </Card>
+          </Card>}
 
-          <Card>
+          {canViewCoupons && <Card>
             <CardHeader><CardTitle>Cupons cadastrados</CardTitle><CardDescription>Os usos são contabilizados quando o pagamento online é confirmado.</CardDescription></CardHeader>
             <CardContent className="space-y-3">
               {loading ? <p className="text-sm text-muted-foreground">Carregando cupons...</p> : coupons.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum cupom criado ainda.</p> : coupons.map((coupon) => (
@@ -199,13 +227,14 @@ export default function BusinessCoupons() {
                     <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{coupon.code}</h3><Badge variant={coupon.is_active ? "default" : "secondary"}>{coupon.is_active ? "Ativo" : "Inativo"}</Badge></div><p className="text-sm text-muted-foreground">{coupon.description || (coupon.apply_to_all ? "Todos os serviços e combos" : "Serviços/combos selecionados")}</p></div>
                     <div className="text-right font-semibold">{coupon.discount_type === "percentage" ? `${coupon.discount_value}%` : money(Number(coupon.discount_value))}</div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground"><div>Início: {localDateTime(coupon.starts_at)}</div><div>Validade: {localDateTime(coupon.expires_at)}</div><div>Usos: {redemptionCounts[coupon.id] || 0}{coupon.max_redemptions ? ` / ${coupon.max_redemptions}` : " / ilimitado"}</div><div>Escopo: {coupon.apply_to_all ? "Todos" : `${coupon.service_ids.length} serviços, ${coupon.combo_ids.length} combos`}</div></div>
-                  <div className="flex justify-end gap-2"><Button size="sm" variant="outline" onClick={() => editCoupon(coupon)}>Editar</Button><Button size="sm" variant="outline" onClick={() => void remove(coupon)}><Trash2 className="h-4 w-4 mr-1" />Excluir</Button></div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground"><div>Início: {localDateTime(coupon.starts_at)}</div><div>Validade: {localDateTime(coupon.expires_at)}</div>{canViewUsage && <div>Usos: {redemptionCounts[coupon.id] || 0}{coupon.max_redemptions ? ` / ${coupon.max_redemptions} (restam ${Math.max(0, coupon.max_redemptions - (redemptionCounts[coupon.id] || 0))})` : " / ilimitado"}</div>}<div>Escopo: {coupon.apply_to_all ? "Todos" : `${coupon.service_ids.length} serviços, ${coupon.combo_ids.length} combos`}</div></div>
+                  <div className="flex justify-end gap-2">{canEditCoupons && <Button size="sm" variant="outline" onClick={() => editCoupon(coupon)}>Editar</Button>}{canDeleteCoupons && <Button size="sm" variant="outline" onClick={() => void remove(coupon)}><Trash2 className="h-4 w-4 mr-1" />Excluir</Button>}</div>
                 </div>
               ))}
             </CardContent>
-          </Card>
+          </Card>}
         </div>
+        )}
       </div>
     </BusinessLayout>
   );
