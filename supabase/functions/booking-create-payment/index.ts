@@ -264,208 +264,197 @@ serve(async (req) => {
       console.warn('[BOOKING_PAYMENT] flow resolve fail, usando empresa:', (e as any).message)
     }
 
-    // 5. Limpeza da chave (recebedor resolvido)
-    let decryptedKey = receiverKey
-
-    if (!decryptedKey) {
-      throw new Error('Chave de API do gateway não configurada')
-    }
-    if (receiverProvider !== 'asaas') {
-      // Esta função hoje só implementa cobrança via Asaas.
-      throw new Error(`Cobrança via ${receiverProvider} ainda não suportada nesta função (apenas asaas).`)
-    }
-    console.log(`[BOOKING_PAYMENT] Receiver: ${receiverLabel} (${receiverProvider})`)
-
-    // 6. Decisão de Ambiente (Sandbox vs Produção)
-    // Se a chave começa com $aact_hmlg_ ou é curta, é sandbox (homologação)
-    // Se a chave começa com $aact_ mas NÃO tem hmlg_, ou se o usuário explicitamente marcou produção
-    const isSandbox = decryptedKey.includes('hmlg') || !decryptedKey.startsWith('$aact_')
-    const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
-    
-    console.log(`[BOOKING_PAYMENT] Mode: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`)
-    console.log(`[BOOKING_PAYMENT] Target: ${baseUrl}`)
-
-    const authHeaders = { 
-      'access_token': decryptedKey,
-      'Content-Type': 'application/json',
-      'User-Agent': 'SupabaseEdgeFunction/1.0'
-    }
-
-    console.log(`[BOOKING_PAYMENT] Auth header (prefix): ${decryptedKey.substring(0, 15)}...`)
-    console.log(`[BOOKING_PAYMENT] Auth header (suffix): ...${decryptedKey.substring(Math.max(0, decryptedKey.length - 10))}`)
-
-    // Generic Asaas Fetch with improved error logging
-    const asaasFetch = async (url: string, options: any) => {
-      const response = await fetch(url, options)
-      const text = await response.text()
-      
-      if (!response.ok) {
-        console.error(`[ASAAS_ERROR] ${response.status} | ${url} | Response: ${text}`)
-        
-        if (response.status === 401) {
-          throw new Error('AUTORIZACAO_FALHOU_ASAAS')
-        }
-        
-        try {
-          const json = JSON.parse(text)
-          if (json.errors?.[0]?.description) throw new Error(json.errors[0].description)
-        } catch (e) {
-          if (e.message === 'AUTORIZACAO_FALHOU_ASAAS') throw e
-          throw new Error(`Erro Asaas (${response.status})`)
-        }
-      }
-      
-      try {
-        return JSON.parse(text)
-      } catch (e) {
-        return text
-      }
-    }
-
-    // A) Cliente
-    const urlParams = new URLSearchParams()
-    if (resolvedPayer.cpf_cnpj) urlParams.append('cpfCnpj', resolvedPayer.cpf_cnpj)
-    else if (resolvedPayer.email) urlParams.append('email', resolvedPayer.email)
-    
-    let customerId
-    const customers = await asaasFetch(`${baseUrl}/customers?${urlParams.toString()}`, {
-      method: 'GET',
-      headers: authHeaders
-    })
-
-    customerId = customers.data?.[0]?.id
-
-    if (!customerId) {
-      console.log('[BOOKING_PAYMENT] Creating customer...')
-      const newCustomer = await asaasFetch(`${baseUrl}/customers`, {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({
-          name: resolvedPayer.name || 'Cliente',
-          email: resolvedPayer.email,
-          phone: resolvedPayer.phone,
-          cpfCnpj: resolvedPayer.cpf_cnpj
-        })
-      })
-      customerId = newCustomer.id
-    }
-
-    // B) Pagamento
-    const billingType = normalizedMethod === 'PIX' ? 'PIX' : (normalizedMethod === 'CREDIT_CARD' ? 'CREDIT_CARD' : (normalizedMethod === 'DEBIT_CARD' ? 'DEBIT_CARD' : 'BOLETO'))
-    
+    // Identificador interno estável para reconciliar o pagamento entre gateways.
+    const paymentReference = `booking-${crypto.randomUUID()}`
+    const origin = req.headers.get('origin') || Deno.env.get('PUBLIC_APP_URL') || 'https://booking.zailom.com'
     const bookingAmount = Number(booking?.total_price ?? booking?.price ?? resolvedBookingData?.price ?? 0)
     let originalAmount = Number(bodyAmount || bookingAmount || 0)
     let amount = originalAmount
     let couponDiscountAmount = 0
     let couponReservationToken: string | null = null
 
-    // Cupom promocional é validado e reservado no banco, usando o preço real
-    // do serviço/combinação, nunca o valor informado pelo navegador.
+    // O banco calcula e reserva o cupom usando o preço cadastrado, não o valor do navegador.
     if (couponCode) {
-      if (booking?.id) {
-        throw new Error('Aplique o cupom antes de registrar o agendamento. Cupons não podem ser adicionados a um agendamento já criado.')
-      }
+      if (booking?.id) throw new Error('Aplique o cupom antes de registrar o agendamento. Cupons não podem ser adicionados a um agendamento já criado.')
       if (!resolvedBookingData || !companyId) throw new Error('Dados do agendamento insuficientes para validar o cupom.')
       const serviceId = resolvedBookingData.service_id ? String(resolvedBookingData.service_id) : null
       const comboId = resolvedBookingData.combo_id ? String(resolvedBookingData.combo_id) : null
       const { data: couponQuote, error: couponError } = await supabaseClient.rpc('reserve_company_service_coupon', {
-        p_company_id: companyId,
-        p_code: couponCode,
-        p_service_id: serviceId,
-        p_combo_id: comboId,
+        p_company_id: companyId, p_code: couponCode, p_service_id: serviceId, p_combo_id: comboId,
       })
-      if (couponError || !couponQuote) {
-        throw new Error(couponError?.message || 'Não foi possível validar este cupom.')
-      }
+      if (couponError || !couponQuote) throw new Error(couponError?.message || 'Não foi possível validar este cupom.')
       originalAmount = Number(couponQuote.original_amount)
       couponDiscountAmount = Number(couponQuote.discount_amount)
       amount = Number(couponQuote.discounted_amount)
       couponReservationToken = String(couponQuote.checkout_token)
-      if (!Number.isFinite(originalAmount) || !Number.isFinite(amount) || amount <= 0) {
-        throw new Error('O valor calculado para este cupom é inválido.')
-      }
     }
-
-    console.log(`[BOOKING_PAYMENT] Creating payment: ${billingType} | Amount: ${amount} | Coupon: ${couponCode ?? 'none'}`)
-
-    if (!amount || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      if (couponReservationToken) await supabaseClient.from('company_service_coupon_redemptions').update({ status: 'cancelled' }).eq('checkout_token', couponReservationToken)
       throw new Error(`O valor do agendamento (${amount}) é inválido para processar o pagamento.`)
     }
 
-    let paymentResult: any
-    try {
-      paymentResult = await asaasFetch(`${baseUrl}/payments`, {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify({
-        customer: customerId,
-        billingType: billingType,
-        value: amount,
-        dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // 24h
-        description: booking
-          ? `Agendamento #${booking.id}`
-          : `Pagamento de agendamento online - ${String(resolvedBookingData?.booking_date)} ${String(resolvedBookingData?.booking_time)}`,
-        externalReference: booking?.id ?? `pending:${crypto.randomUUID()}`,
-        metadata: {
-          booking_id: booking?.id ?? null,
-          company_id: companyId,
-          client_id: booking?.client_id ?? resolvedBookingData?.client_id ?? null,
-          employee_id: booking?.employee_id ?? resolvedBookingData?.employee_id ?? null,
-          service_id: booking?.service_id ?? resolvedBookingData?.service_id ?? null,
-          combo_id: resolvedBookingData?.combo_id ?? null,
-          hold_id: hold_id ?? null,
-          reward_payment: Boolean(resolvedBookingData?.reward_id),
-          booking_data: resolvedBookingData,
-          coupon_code: couponCode,
-          original_amount: couponCode ? originalAmount : null,
-          coupon_discount_amount: couponCode ? couponDiscountAmount : null,
-        },
-        postalCode: '12345678', // Postal code fallback for webhooks
-        // Removemos o callback manual que estava causando conflitos com o webhook global configurado no painel do Asaas.
-        // O Asaas já envia webhooks para a URL configurada na conta (Account Settings -> Webhooks).
+    const methodByProvider: Record<string, string> = {
+      PIX: 'PIX', CREDIT_CARD: 'CREDIT_CARD', DEBIT_CARD: 'DEBIT_CARD', BOLETO: 'BOLETO',
+    }
+    const selectedMethod = methodByProvider[normalizedMethod] || 'PIX'
+    const paymentMeta = {
+      booking_id: booking?.id ?? null,
+      company_id: companyId,
+      client_id: booking?.client_id ?? resolvedBookingData?.client_id ?? null,
+      employee_id: booking?.employee_id ?? resolvedBookingData?.employee_id ?? null,
+      service_id: booking?.service_id ?? resolvedBookingData?.service_id ?? null,
+      combo_id: resolvedBookingData?.combo_id ?? null,
+      hold_id: hold_id ?? null,
+      reward_payment: Boolean(resolvedBookingData?.reward_id),
+      booking_data: resolvedBookingData ?? bookingData ?? null,
+      external_reference: paymentReference,
+      coupon_code: couponCode,
+      original_amount: couponCode ? originalAmount : null,
+      coupon_discount_amount: couponCode ? couponDiscountAmount : null,
+    }
 
-        address: 'Rua Principal',
-        addressNumber: '123',
-        province: 'Centro',
-      })
-      })
+    let paymentResult: any
+    let pixInfo: Record<string, unknown> = {}
+    let invoiceUrl: string | null = null
+    let bankSlipUrl: string | null = null
+    const requestJson = async (url: string, init: RequestInit, providerLabel: string) => {
+      const response = await fetch(url, init)
+      const raw = await response.text()
+      let payload: any = {}
+      try { payload = raw ? JSON.parse(raw) : {} } catch { payload = { message: raw } }
+      if (!response.ok) {
+        console.error(`[BOOKING_PAYMENT][${providerLabel}] ${response.status}:`, raw)
+        const message = payload?.errors?.[0]?.description || payload?.message || payload?.error?.message || `Falha no gateway ${providerLabel} (${response.status}).`
+        throw new Error(String(message))
+      }
+      return payload
+    }
+
+    try {
+      if (receiverProvider === 'asaas') {
+        const isSandbox = decryptedKey.includes('hmlg') || !decryptedKey.startsWith('$aact_')
+        const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
+        const headers = { access_token: decryptedKey, 'Content-Type': 'application/json', 'User-Agent': 'SupabaseEdgeFunction/1.0' }
+        const customerParams = new URLSearchParams()
+        if (resolvedPayer.cpf_cnpj) customerParams.append('cpfCnpj', resolvedPayer.cpf_cnpj)
+        else if (resolvedPayer.email) customerParams.append('email', resolvedPayer.email)
+        const customers = await requestJson(`${baseUrl}/customers?${customerParams}`, { headers }, 'Asaas')
+        let customerId = customers.data?.[0]?.id
+        if (!customerId) {
+          const customer = await requestJson(`${baseUrl}/customers`, {
+            method: 'POST', headers,
+            body: JSON.stringify({
+              name: resolvedPayer.name || 'Cliente', email: resolvedPayer.email,
+              phone: resolvedPayer.phone, cpfCnpj: resolvedPayer.cpf_cnpj,
+            }),
+          }, 'Asaas')
+          customerId = customer.id
+        }
+        const billingType = selectedMethod
+        paymentResult = await requestJson(`${baseUrl}/payments`, {
+          method: 'POST', headers,
+          body: JSON.stringify({
+            customer: customerId, billingType, value: amount,
+            dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+            description: `Agendamento online ${paymentReference}`,
+            externalReference: paymentReference,
+            postalCode: '12345678', address: 'Rua Principal', addressNumber: '123', province: 'Centro',
+            metadata: paymentMeta,
+          }),
+        }, 'Asaas')
+        invoiceUrl = paymentResult.invoiceUrl || null
+        bankSlipUrl = paymentResult.bankSlipUrl || null
+        if (billingType === 'PIX') {
+          try {
+            const pix = await requestJson(`${baseUrl}/payments/${paymentResult.id}/pixQrCode`, { headers }, 'Asaas PIX')
+            pixInfo = { pix_qr_code: pix.encodedImage ? `data:image/png;base64,${pix.encodedImage}` : null, pix_payload: pix.payload || null }
+          } catch (error) { console.warn('[BOOKING_PAYMENT] Asaas PIX QR indisponível:', (error as Error).message) }
+        }
+      } else if (receiverProvider === 'mercadopago') {
+        const acceptedMethods: Record<string, string> = { PIX: 'pix', CREDIT_CARD: 'credit_card', DEBIT_CARD: 'debit_card', BOLETO: 'ticket' }
+        const preference = await requestJson('https://api.mercadopago.com/checkout/preferences', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${decryptedKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: [{ id: paymentReference, title: 'Agendamento online', quantity: 1, currency_id: 'BRL', unit_price: amount }],
+            payer: { name: resolvedPayer.name || 'Cliente', email: resolvedPayer.email || undefined, phone: resolvedPayer.phone ? { number: resolvedPayer.phone } : undefined, identification: resolvedPayer.cpf_cnpj ? { type: resolvedPayer.cpf_cnpj.length > 11 ? 'CNPJ' : 'CPF', number: resolvedPayer.cpf_cnpj } : undefined },
+            external_reference: paymentReference,
+            metadata: { payment_reference: paymentReference, company_id: companyId, booking_id: booking?.id ?? '', coupon_code: couponCode || '', original_amount: String(originalAmount), coupon_discount_amount: String(couponDiscountAmount), booking_data: JSON.stringify(paymentMeta.booking_data || {}) },
+            payment_methods: { excluded_payment_methods: [], excluded_payment_types: [], installments: 1 },
+            back_urls: { success: origin, failure: origin, pending: origin },
+            auto_return: 'approved',
+          }),
+        }, 'Mercado Pago')
+        paymentResult = { ...preference, id: preference.id, invoiceUrl: preference.init_point, method: selectedMethod, external_reference: paymentReference }
+        invoiceUrl = preference.init_point || preference.sandbox_init_point || null
+      } else if (receiverProvider === 'stripe') {
+        const params = new URLSearchParams()
+        params.set('mode', 'payment')
+        params.set('success_url', origin)
+        params.set('cancel_url', origin)
+        params.set('client_reference_id', paymentReference)
+        if (resolvedPayer.email) params.set('customer_email', resolvedPayer.email)
+        const stripeMethod = selectedMethod === 'BOLETO' ? 'boleto' : selectedMethod === 'PIX' ? 'pix' : 'card'
+        params.append('payment_method_types[0]', stripeMethod)
+        params.set('line_items[0][price_data][currency]', 'brl')
+        params.set('line_items[0][price_data][unit_amount]', String(Math.round(amount * 100)))
+        params.set('line_items[0][price_data][product_data][name]', 'Agendamento online')
+        params.set('line_items[0][quantity]', '1')
+        for (const [key, value] of Object.entries({
+          company_id: String(companyId), payment_reference: paymentReference,
+          booking_id: String(booking?.id ?? ''), coupon_code: couponCode || '',
+          original_amount: String(originalAmount), coupon_discount_amount: String(couponDiscountAmount),
+          booking_data: JSON.stringify(paymentMeta.booking_data || {}),
+        })) params.set(`metadata[${key}]`, value)
+        paymentResult = await requestJson('https://api.stripe.com/v1/checkout/sessions', {
+          method: 'POST',
+          headers: { Authorization: `Basic ${btoa(`${decryptedKey}:`)}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString(),
+        }, 'Stripe')
+        invoiceUrl = paymentResult.url || null
+      } else if (receiverProvider === 'pagarme') {
+        const acceptedMethod = selectedMethod === 'PIX' ? 'pix' : selectedMethod === 'BOLETO' ? 'boleto' : 'credit_card'
+        const cents = Math.round(amount * 100)
+        const paymentSettings: Record<string, unknown> = { accepted_payment_methods: [acceptedMethod] }
+        if (acceptedMethod === 'credit_card') paymentSettings.credit_card_settings = { operation_type: 'auth_and_capture', installments: [{ number: 1, total: cents }] }
+        if (acceptedMethod === 'boleto') paymentSettings.boleto_settings = {}
+        if (acceptedMethod === 'pix') paymentSettings.pix_settings = { expires_in: 3600 }
+        paymentResult = await requestJson('https://api.pagar.me/core/v5/paymentlinks', {
+          method: 'POST',
+          headers: { Authorization: `Basic ${btoa(`${decryptedKey}:`)}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            name: `Agendamento ${paymentReference}`, type: 'order', order_code: paymentReference,
+            max_sessions: 1, max_paid_sessions: 1,
+            payment_settings: paymentSettings,
+            customer_settings: resolvedPayer.email ? { customer: { name: resolvedPayer.name || 'Cliente', email: resolvedPayer.email, document: resolvedPayer.cpf_cnpj || undefined, phones: resolvedPayer.phone ? { mobile_phone: { number: resolvedPayer.phone } } : undefined } } : undefined,
+            cart_settings: { items: [{ amount: cents, name: 'Agendamento online', default_quantity: 1 }] },
+          }),
+        }, 'Pagar.me')
+        invoiceUrl = paymentResult.url || null
+      } else {
+        throw new Error(`Gateway "${receiverProvider}" não é suportado pelo checkout online.`)
+      }
     } catch (paymentError) {
       if (couponReservationToken) {
-        await supabaseClient.from('company_service_coupon_redemptions')
-          .update({ status: 'cancelled' })
-          .eq('checkout_token', couponReservationToken)
-          .eq('status', 'reserved')
+        await supabaseClient.from('company_service_coupon_redemptions').update({ status: 'cancelled' }).eq('checkout_token', couponReservationToken).eq('status', 'reserved')
       }
       throw paymentError
     }
 
-    // C) QR Code se for PIX
-    let pixInfo = {}
-    if (billingType === 'PIX') {
-      try {
-        const pixData = await asaasFetch(`${baseUrl}/payments/${paymentResult.id}/pixQrCode`, {
-          method: 'GET',
-          headers: authHeaders
-        })
-        pixInfo = { 
-          pix_qr_code: `data:image/png;base64,${pixData.encodedImage}`, 
-          pix_payload: pixData.payload 
-        }
-      } catch (e) {
-        console.warn('[BOOKING_PAYMENT] Pix QR Code fail:', e.message)
-      }
-    }
-
+    const billingType = selectedMethod
+    console.log(`[BOOKING_PAYMENT] Provider=${receiverProvider} method=${billingType} amount=${amount} coupon=${couponCode ?? 'none'}`)
     const responseData = {
       payment: {
         id: paymentResult.id,
+        provider: receiverProvider,
         method: billingType,
         amount,
         original_amount: couponCode ? originalAmount : amount,
         coupon_discount_amount: couponCode ? couponDiscountAmount : 0,
         coupon_code: couponCode,
-        invoice_url: paymentResult.invoiceUrl,
-        bank_slip_url: paymentResult.bankSlipUrl,
+        external_reference: paymentReference,
+        invoice_url: invoiceUrl,
+        bank_slip_url: bankSlipUrl,
         ...pixInfo
       }
     }
@@ -473,10 +462,10 @@ serve(async (req) => {
     if (couponReservationToken) {
       const { error: finalizeError } = await supabaseClient.rpc('finalize_company_service_coupon', {
         p_checkout_token: couponReservationToken,
-        p_asaas_payment_id: String(paymentResult.id),
+        p_provider_payment_id: String(paymentResult.id),
       })
       if (finalizeError) {
-        console.error('[BOOKING_PAYMENT] Falha ao vincular cupom ao pagamento Asaas:', finalizeError.message)
+        console.error('[BOOKING_PAYMENT] Falha ao vincular cupom ao pagamento:', finalizeError.message)
       }
     }
 
@@ -484,8 +473,9 @@ serve(async (req) => {
     const { error: dbErr } = await supabaseClient.from('booking_payments').insert({
       booking_id: booking?.id ?? null,
       company_id: companyId,
-      asaas_id: paymentResult.id,
-      provider: 'asaas',
+      asaas_id: receiverProvider === 'asaas' ? String(paymentResult.id) : null,
+      provider_payment_id: String(paymentResult.id),
+      provider: receiverProvider,
       amount,
       status: 'pending',
       method: billingType,
@@ -526,11 +516,8 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('[BOOKING_PAYMENT] Error:', error.message)
     
-    const isAuthError = error.message === 'AUTORIZACAO_FALHOU_ASAAS'
-    const status = isAuthError ? 401 : 400
-    const message = isAuthError 
-      ? 'A chave de API não foi aceita pelo Asaas. Verifique se a chave é do ambiente correto (Sandbox vs Produção) e se foi copiada sem espaços.'
-      : error.message
+    const status = /unauthorized|invalid api key|access denied|autorização falhou/i.test(error.message) ? 401 : 400
+    const message = error.message
 
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
