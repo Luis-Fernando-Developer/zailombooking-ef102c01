@@ -397,9 +397,11 @@ serve(async (req) => {
         body: JSON.stringify({
           customer: customerId,
           billingType,
-          value: baseAmount,
+          // A fatura pública do Asaas precisa nascer com o valor líquido.
+          // Enviar o preço-base + objeto discount fazia o painel/email local
+          // mostrar o desconto, mas a página hospedada pelo Asaas exibir o integral.
+          value: payableAmount,
           dueDate,
-          ...(discountPercentage > 0 ? { discount: { value: discountPercentage, type: "PERCENTAGE", dueDateLimitDays: 0 } } : {}),
           description: newDescription + " (nova cobrança)",
           externalReference: `subscription:${newInvoice.id}:${company.id}`,
         }),
