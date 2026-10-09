@@ -237,12 +237,25 @@ serve(async (req) => {
         // cobrança anterior. O link do e-mail precisa ser do ID Asaas desta fatura.
         paymentLink = payment.invoiceUrl || payment.bankSlipUrl || "";
         const providerValue = Number(payment.value || amountToCharge);
-        const discountValue = Number(payment.discount?.value || 0);
-        const discountType = String(payment.discount?.type || "FIXED").toUpperCase();
-        const discountAmount = discountValue > 0
-          ? Number((discountType === "PERCENTAGE" ? providerValue * discountValue / 100 : discountValue).toFixed(2))
-          : 0;
-        amountToCharge = Math.max(0, Number((providerValue - discountAmount).toFixed(2)));
+        let configuredDiscountPercentage = Number(invoice.metadata?.discount_percentage || 0);
+        let originalPrice = Number(invoice.metadata?.original_amount || 0);
+        if (invoice.subscription_id) {
+          const { data: subscription } = await admin.from("company_subscriptions")
+            .select("discount_percentage,original_price").eq("id", invoice.subscription_id).maybeSingle();
+          configuredDiscountPercentage = Number(subscription?.discount_percentage || configuredDiscountPercentage);
+          originalPrice = Number(subscription?.original_price || originalPrice);
+        }
+        if (configuredDiscountPercentage > 0) {
+          const base = originalPrice > 0 ? originalPrice : providerValue;
+          amountToCharge = Math.max(0, Number((base * (1 - configuredDiscountPercentage / 100)).toFixed(2)));
+        } else {
+          const discountValue = Number(payment.discount?.value || 0);
+          const discountType = String(payment.discount?.type || "FIXED").toUpperCase();
+          const discountAmount = discountValue > 0
+            ? Number((discountType === "PERCENTAGE" ? providerValue * discountValue / 100 : discountValue).toFixed(2))
+            : 0;
+          amountToCharge = Math.max(0, Number((providerValue - discountAmount).toFixed(2)));
+        }
         if (payment.invoiceUrl || payment.bankSlipUrl) {
           await admin.from("company_invoices").update({
             invoice_url: payment.invoiceUrl || null,
