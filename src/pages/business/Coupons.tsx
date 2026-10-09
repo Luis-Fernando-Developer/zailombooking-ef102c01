@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket, Plus, Save, Trash2, RefreshCw } from "lucide-react";
+import { Ticket, Save, Trash2, RefreshCw } from "lucide-react";
 
 type ServiceItem = { id: string; name: string; price: number; is_active: boolean };
 type ComboItem = { id: string; name: string; price?: number; combo_price?: number; is_active: boolean };
