@@ -103,7 +103,7 @@ serve(async (req) => {
         .select("id,monthly_price,quarterly_price,annual_price")
         .eq("id", metadata?.plan_id ?? "").maybeSingle();
       const { data: requestedCoupon, error: requestedCouponError } = await supabaseClient.from("subscription_coupons")
-        .select("id,is_active,plan_ids,billing_periods,starts_at,expires_at,max_redemptions")
+        .select("id,is_active,discount_type,discount_value,plan_ids,billing_periods,starts_at,expires_at,max_redemptions")
         .eq("code", requestedCouponCode).maybeSingle();
       let couponValidationError: string | null = null;
       if (requestedCouponError) couponValidationError = "Não foi possível validar o cupom.";
@@ -119,6 +119,13 @@ serve(async (req) => {
         else if ((count || 0) >= requestedCoupon.max_redemptions) couponValidationError = "Este cupom atingiu o limite de utilizações.";
       }
       if (!requestedPlan) couponValidationError = "Plano selecionado não encontrado.";
+      if (!couponValidationError && requestedCoupon && requestedPlan) {
+        const originalAmount = requestedPeriod === "annual" ? Number(requestedPlan.annual_price || 0) : requestedPeriod === "quarterly" ? Number(requestedPlan.quarterly_price || 0) : Number(requestedPlan.monthly_price || 0);
+        const discountAmount = requestedCoupon.discount_type === "percentage"
+          ? Number((originalAmount * Math.min(100, Number(requestedCoupon.discount_value)) / 100).toFixed(2))
+          : Math.min(originalAmount, Number(requestedCoupon.discount_value));
+        if (!(originalAmount > 0) || Number((originalAmount - discountAmount).toFixed(2)) <= 0) couponValidationError = "O desconto não pode zerar a cobrança do Asaas.";
+      }
       if (couponValidationError) {
         return new Response(JSON.stringify({ error: couponValidationError }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
