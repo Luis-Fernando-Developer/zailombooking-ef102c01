@@ -73,13 +73,14 @@ interface Props {
   onSlotUnavailable?: () => void;
   onPaymentCreated?: (payment: any) => void;
   bookingData?: BookingData;
+  couponCode?: string | null;
 }
 
 const ICON: Record<string, any> = { PIX: QrCode, CREDIT_CARD: CreditCard, DEBIT_CARD: CreditCard, BOLETO: Receipt };
 const LABEL: Record<string, string> = { PIX: "PIX", CREDIT_CARD: "Cartão de Crédito", DEBIT_CARD: "Cartão de Débito", BOLETO: "Boleto" };
 const KEY_TO_METHOD: Record<string, string> = { pix: "PIX", credit_card: "CREDIT_CARD", debit_card: "DEBIT_CARD", boleto: "BOLETO" };
 
-export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater, onSlotUnavailable, onPaymentCreated, bookingData }: Props) {
+export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amount, payerInitial, onPaid, allowPayLater, onPayLater, onSlotUnavailable, onPaymentCreated, bookingData, couponCode }: Props) {
   const { toast } = useToast();
   const [methods, setMethods] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>("PIX");
@@ -364,6 +365,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           payer,
           amount,
           hold_id: currentHoldId || null,
+          coupon_code: couponCode || null,
           bookingData: bookingData,
         },
       });
