@@ -209,7 +209,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $function$
 BEGIN
   IF NEW.status = 'paid' AND OLD.status IS DISTINCT FROM NEW.status
      AND NEW.subscription_id IS NOT NULL THEN
@@ -225,7 +225,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$function$;
 
 DROP TRIGGER IF EXISTS trg_track_subscription_coupon_payment ON public.company_invoices;
 CREATE TRIGGER trg_track_subscription_coupon_payment
