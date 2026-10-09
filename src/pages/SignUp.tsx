@@ -10,6 +10,36 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { Building2, User, Mail, FileText, Check, X, CreditCard, Zap, Crown, Rocket, Gem } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+
+function validateCpfCnpj(value: string): { valid: boolean; kind: "CPF" | "CNPJ" } {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 11) {
+    if (/^(\d)\1{10}$/.test(digits)) return { valid: false, kind: "CPF" };
+    const nums = digits.split("").map(Number);
+    const check = (length: number, start: number) => {
+      const sum = nums.slice(0, length).reduce((total, n, i) => total + n * (start - i), 0);
+      const rest = (sum * 10) % 11;
+      return rest === 10 ? 0 : rest;
+    };
+    return { valid: check(9, 10) === nums[9] && check(10, 11) === nums[10], kind: "CPF" };
+  }
+  if (digits.length === 14) {
+    if (/^(\d)\1{13}$/.test(digits)) return { valid: false, kind: "CNPJ" };
+    const nums = digits.split("").map(Number);
+    const weights1 = [5,4,3,2,9,8,7,6,5,4,3,2];
+    const sum1 = nums.slice(0, 12).reduce((total, n, i) => total + n * weights1[i], 0);
+    const r1 = sum1 % 11;
+    const d1 = r1 < 2 ? 0 : 11 - r1;
+    const weights2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+    const sum2 = [...nums.slice(0, 12), d1].reduce((total, n, i) => total + n * weights2[i], 0);
+    const r2 = sum2 % 11;
+    const d2 = r2 < 2 ? 0 : 11 - r2;
+    return { valid: d1 === nums[12] && d2 === nums[13], kind: "CNPJ" };
+  }
+  return { valid: false, kind: digits.length > 11 ? "CNPJ" : "CPF" };
+}
+
+
 import { syncBuilderPlan } from "@/lib/syncBuilderPlan";
 
 // Mapeamento plano Flow-Appoint → plano builder-flow-api
@@ -237,8 +267,21 @@ export default function SignUp() {
         setIsLoading(false);
         return;
       }
-      if (!formData.ownerCpf || formData.ownerCpf.replace(/\D/g, "").length < 11) {
-        toast({ title: "CPF obrigatório", description: "Informe o CPF do empresário.", variant: "destructive" });
+      const documentToValidate = formData.companyCnpj?.trim() ? formData.companyCnpj : formData.ownerCpf;
+      const documentCheck = validateCpfCnpj(documentToValidate || "");
+      if (!documentToValidate?.trim()) {
+        toast({ title: "CPF/CNPJ obrigatório", description: "Informe o CPF do empresário ou o CNPJ da empresa.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+      if (!documentCheck.valid) {
+        toast({
+          title: documentCheck.kind === "CNPJ" ? "CNPJ inválido" : "CPF inválido",
+          description: documentCheck.kind === "CNPJ"
+            ? "Confira os 14 dígitos e os dígitos verificadores do CNPJ."
+            : "Confira os 11 dígitos e os dígitos verificadores do CPF.",
+          variant: "destructive",
+        });
         setIsLoading(false);
         return;
       }
@@ -313,8 +356,8 @@ export default function SignUp() {
         } catch { /* ignore */ }
       }
 
-      if (invokeError || !result?.ok) {
-        throw new Error(serverError || invokeError?.message || result?.error || "Falha no cadastro.");
+      if (invokeError || !result?.ok || !result?.charge) {
+        throw new Error(serverError || result?.error || invokeError?.message || "Não foi possível gerar a cobrança. Nenhum pagamento foi confirmado.");
       }
 
       // Garante persistência do segmento/nicho mesmo que a edge function
