@@ -443,7 +443,7 @@ serve(async (req) => {
       };
       if (couponReservation && Number(couponReservation.duration_cycles) > 1) {
         const limit = new Date();
-        const cycles = Number(couponReservation.duration_cycles);
+        const cycles = Math.max(0, Number(couponReservation.duration_cycles) - 1);
         if (billingPeriod === "annual") limit.setFullYear(limit.getFullYear() + cycles);
         else if (billingPeriod === "quarterly") limit.setMonth(limit.getMonth() + cycles * 3);
         else limit.setMonth(limit.getMonth() + cycles);
