@@ -26,7 +26,7 @@ type Coupon = {
   max_redemptions: number | null;
   is_active: boolean;
   created_at: string;
-  subscription_coupon_redemptions?: { id: string; status: string; company_id: string; code?: string; discount_amount?: number; discounted_amount?: number; created_at?: string }[];
+  subscription_coupon_redemptions?: { id: string; status: string; company_id: string | null; code?: string; discount_amount?: number; discounted_amount?: number; created_at?: string }[];
 };
 
 type CouponForm = {
@@ -309,7 +309,7 @@ export default function SubscriptionCoupons() {
           {selectedCoupon && <div className="mt-6 rounded-lg border p-4">
             <div className="mb-3 flex items-center justify-between"><h3 className="font-semibold">Histórico de utilizações</h3><Button size="sm" variant="ghost" onClick={() => setSelectedCoupon(null)}>Fechar</Button></div>
             {redemptions.length === 0 ? <p className="text-sm text-muted-foreground">Ainda não há utilizações registradas.</p> : <div className="space-y-2">{redemptions.map((r, index) => <div key={r.id || index} className="flex flex-wrap justify-between gap-2 border-b py-2 text-sm">
-              <span>Empresa: {r.company_id} · {new Date(r.created_at).toLocaleDateString("pt-BR")}</span>
+              <span>Empresa: {r.company_id || "Cadastro removido"} · {r.created_at ? new Date(r.created_at).toLocaleDateString("pt-BR") : "Data indisponível"}</span>
               <span>{money(Number(r.discount_amount || 0))} de desconto · {r.status}</span>
             </div>)}</div>}
           </div>}
