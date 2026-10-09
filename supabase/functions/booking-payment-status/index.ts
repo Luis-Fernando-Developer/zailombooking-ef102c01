@@ -54,9 +54,9 @@ serve(async (req) => {
     // Mantemos fallback por asaas_id e UUID interno para compatibilidade histórica.
     if (payment_id) {
       const selectFields = "id, booking_id, company_id, asaas_id, provider_payment_id, provider, status, metadata"
-      const { data: genericRow } = await supabase
-        .from("booking_payments").select(selectFields)
-        .eq("provider_payment_id", payment_id).maybeSingle()
+      let genericQuery = supabase.from("booking_payments").select(selectFields).eq("provider_payment_id", payment_id)
+      if (body?.provider) genericQuery = genericQuery.eq("provider", String(body.provider).toLowerCase())
+      const { data: genericRow } = await genericQuery.maybeSingle()
       let row = genericRow
       if (!row) {
         const { data: legacyRow } = await supabase
