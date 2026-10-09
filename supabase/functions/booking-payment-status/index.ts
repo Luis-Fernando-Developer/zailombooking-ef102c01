@@ -50,29 +50,29 @@ serve(async (req) => {
     let paymentRow: any = null;
     let company_id: string | null = null;
 
-    // O BookingPaymentDialog envia o ID do pagamento Asaas.
-    // O registro pode ainda não estar vinculado a um booking durante o pagamento online.
+    // O identificador retornado ao checkout pode pertencer a qualquer gateway.
+    // Mantemos fallback por asaas_id e UUID interno para compatibilidade histórica.
     if (payment_id) {
-      const { data: row } = await supabase
-        .from("booking_payments")
-        .select("id, booking_id, company_id, asaas_id, provider, status, metadata")
-        .eq("asaas_id", payment_id)
-        .maybeSingle();
-
-      // Compatibilidade: alguns fluxos podem entregar o UUID interno de
-      // booking_payments em vez do ID do Asaas.
-      if (!row && payment_id) {
-        const { data: internalRow } = await supabase
-          .from("booking_payments")
-          .select("id, booking_id, company_id, asaas_id, provider, status, metadata")
-          .eq("id", payment_id)
-          .maybeSingle();
-          paymentRow = internalRow ?? null;
-      } else {
-        paymentRow = row ?? null;
+      const selectFields = "id, booking_id, company_id, asaas_id, provider_payment_id, provider, status, metadata"
+      const { data: genericRow } = await supabase
+        .from("booking_payments").select(selectFields)
+        .eq("provider_payment_id", payment_id).maybeSingle()
+      let row = genericRow
+      if (!row) {
+        const { data: legacyRow } = await supabase
+          .from("booking_payments").select(selectFields)
+          .eq("asaas_id", payment_id).maybeSingle()
+        row = legacyRow
       }
-      booking_id = paymentRow?.booking_id ?? booking_id;
-      company_id = paymentRow?.company_id ?? null;
+      if (!row) {
+        const { data: internalRow } = await supabase
+          .from("booking_payments").select(selectFields)
+          .eq("id", payment_id).maybeSingle()
+        row = internalRow
+      }
+      paymentRow = row ?? null
+      booking_id = paymentRow?.booking_id ?? booking_id
+      company_id = paymentRow?.company_id ?? null
     }
 
     if (booking_id) {
@@ -102,10 +102,10 @@ serve(async (req) => {
       if (local.is_paid) return json({ is_paid: true, source: "db", ...local });
     }
 
-    const asaasId: string | null = paymentRow?.asaas_id ?? local.asaas_id ?? payment_id ?? null;
-    if (!asaasId) return json({ is_paid: false, source: "db", ...local });
+    const providerPaymentId: string | null = paymentRow?.provider_payment_id ?? paymentRow?.asaas_id ?? local.provider_payment_id ?? local.asaas_id ?? payment_id ?? null;
+    if (!providerPaymentId) return json({ is_paid: false, source: "db", ...local });
 
-    // 2) Consulta direta ao Asaas com a chave da empresa (ou do autônomo)
+    // 2) Resolve o gateway e consulta diretamente o provedor configurado.
     let booking: any = null;
     if (booking_id) {
       const { data } = await supabase
@@ -126,6 +126,7 @@ serve(async (req) => {
       .maybeSingle();
 
     let apiKey = (settings?.own_gateway_api_key_encrypted || "").trim();
+    let provider = String(paymentRow?.provider || settings?.own_gateway_provider || "asaas").toLowerCase();
 
     const employeeId = booking?.employee_id ?? paymentRow?.metadata?.employee_id ?? paymentRow?.metadata?.booking_data?.employee_id;
     if (employeeId) {
@@ -136,22 +137,44 @@ serve(async (req) => {
         .maybeSingle();
       if (eps?.is_active && eps?.api_key_encrypted && settings?.payout_flow === "direct_to_autonomous") {
         apiKey = (eps.api_key_encrypted || "").trim();
+        provider = String(paymentRow?.provider || eps.provider || provider).toLowerCase();
       }
     }
-
     if (!apiKey) return json({ is_paid: false, source: "db", ...local });
 
-    const isSandbox = apiKey.includes("hmlg") || !apiKey.startsWith("$aact_");
-    const baseUrl = isSandbox ? "https://sandbox.asaas.com/api/v3" : "https://www.asaas.com/api/v3";
+    let remote: any = {}
+    let remoteStatus = ""
+    let paid = false
+    if (provider === "asaas") {
+      const isSandbox = apiKey.includes("hmlg") || !apiKey.startsWith("$aact_")
+      const baseUrl = isSandbox ? "https://sandbox.asaas.com/api/v3" : "https://www.asaas.com/api/v3"
+      const res = await fetch(`${baseUrl}/payments/${providerPaymentId}`, { headers: { access_token: apiKey, "Content-Type": "application/json" } })
+      remote = await res.json().catch(() => ({}))
+      remoteStatus = String(remote?.status ?? "")
+      paid = PAID_RE.test(remoteStatus)
+    } else if (provider === "mercadopago") {
+      const reference = String(paymentRow?.metadata?.external_reference || paymentRow?.metadata?.payment_reference || "")
+      if (!reference) return json({ is_paid: false, source: "db", error: "Referência do Mercado Pago ausente." })
+      const res = await fetch(`https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(reference)}&sort=date_created&criteria=desc`, { headers: { Authorization: `Bearer ${apiKey}` } })
+      remote = await res.json().catch(() => ({}))
+      const payment = Array.isArray(remote?.results) ? remote.results.find((item: any) => item.status === "approved") || remote.results[0] : null
+      remoteStatus = String(payment?.status ?? "")
+      paid = remoteStatus === "approved"
+    } else if (provider === "stripe") {
+      const res = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(providerPaymentId)}`, { headers: { Authorization: `Basic ${btoa(`${apiKey}:`)}` } })
+      remote = await res.json().catch(() => ({}))
+      remoteStatus = String(remote?.payment_status ?? remote?.status ?? "")
+      paid = remoteStatus === "paid"
+    } else if (provider === "pagarme") {
+      const res = await fetch(`https://api.pagar.me/core/v5/paymentlinks/${encodeURIComponent(providerPaymentId)}`, { headers: { Authorization: `Basic ${btoa(`${apiKey}:`)}`, Accept: "application/json" } })
+      remote = await res.json().catch(() => ({}))
+      remoteStatus = String(remote?.status ?? "")
+      paid = Number(remote?.total_paid_sessions ?? 0) > 0
+    } else {
+      return json({ is_paid: false, source: "db", error: `Gateway não suportado: ${provider}` })
+    }
 
-    const res = await fetch(`${baseUrl}/payments/${asaasId}`, {
-      headers: { access_token: apiKey, "Content-Type": "application/json" },
-    });
-    const remote = await res.json().catch(() => ({}));
-    const remoteStatus: string = remote?.status ?? "";
-    const paid = PAID_RE.test(remoteStatus);
-
-    console.log(`[BOOKING_STATUS] ${booking_id} asaas=${asaasId} status=${remoteStatus}`);
+    console.log(`[BOOKING_STATUS] ${booking_id} provider=${provider} id=${providerPaymentId} status=${remoteStatus}`);
 
     // 3) Só informa "pago" ao frontend depois de persistir o status local.
     // Antes os erros dos UPDATEs eram ignorados, permitindo que o frontend
@@ -178,7 +201,7 @@ serve(async (req) => {
           .from("booking_payments")
           .update({ status: "confirmed" })
           .eq("booking_id", booking_id)
-          .eq("asaas_id", asaasId);
+          .eq("provider_payment_id", providerPaymentId);
 
         if (paymentUpdateError) {
           console.error("[BOOKING_STATUS] Failed to persist payment status:", paymentUpdateError.message);
@@ -212,6 +235,7 @@ serve(async (req) => {
     return json({
       is_paid: paid,
       source: "gateway",
+      provider,
       transaction_status: remoteStatus || local.transaction_status,
       booking_status: local.booking_status,
       payment_status: paid ? "confirmed" : local.payment_status,
