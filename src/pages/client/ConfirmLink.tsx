@@ -24,33 +24,18 @@ export default function ConfirmLink() {
       const { data: { session }, error: authError } = await supabase.auth.getSession();
       
       if (session && type !== 'signup') {
-        console.log("ConfirmLink: Sessão ativa detectada via hash do Supabase.");
+        console.log("ConfirmLink: Sessão ativa detectada via Supabase Auth.");
         setStatus('success');
         setMessage("Identidade confirmada com sucesso! Redirecionando...");
-        
-        // Extrai token do hash (Supabase injeta após confirmação de email)
-        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
-        const hashToken = hashParams.get('access_token') || hashParams.get('token') || token;
+
         const currentSlug = slug || searchParams.get('slug');
-        const returnTo = searchParams.get('returnTo');
-        
-        // Se é 1º cadastro (type=signup), redireciona para criar senha — sessão já está ativa
-        if (type === 'signup') {
-          setTimeout(() => {
-            const passwordUrl = `/${currentSlug || 'client'}/criar-senha${returnTo ? `?returnTo=${returnTo}` : ''}`;
-            navigate(passwordUrl);
-          }, 1500);
-          return;
-        }
-        
-        // Demais casos: vai para agendamentos
         setTimeout(() => {
           navigate(`/${currentSlug || 'client'}/agendamentos`);
         }, 1500);
         return;
       }
 
-      // 2. Se não há sessão automática, processamos o token manual (vinda de e-mail/WhatsApp personalizado)
+      // 2. Para signup, sempre validar o token próprio do vínculo, mesmo que já exista sessão Auth.
       const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
       const finalToken = token || hashParams.get('token') || hashParams.get('confirmation_token');
 
@@ -64,7 +49,7 @@ export default function ConfirmLink() {
       if (!finalToken) {
         // Se não tem token mas tem slug, talvez o login contextual tenha acabado de redirecionar
         // e o hash esteja prestes a ser consumido pelo Supabase.
-        if (window.location.hash.includes('access_token')) {
+        if (window.location.hash.includes('access_token') && type !== 'signup') {
             return; // Espera o getSession() acima capturar na próxima renderização ou efeito do Supabase
         }
         
