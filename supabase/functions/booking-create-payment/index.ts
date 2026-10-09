@@ -392,7 +392,9 @@ serve(async (req) => {
       throw new Error(`O valor do agendamento (${amount}) é inválido para processar o pagamento.`)
     }
 
-    const paymentResult = await asaasFetch(`${baseUrl}/payments`, {
+    let paymentResult: any
+    try {
+      paymentResult = await asaasFetch(`${baseUrl}/payments`, {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify({
@@ -426,7 +428,16 @@ serve(async (req) => {
         addressNumber: '123',
         province: 'Centro',
       })
-    })
+      })
+    } catch (paymentError) {
+      if (couponReservationToken) {
+        await supabaseClient.from('company_service_coupon_redemptions')
+          .update({ status: 'cancelled' })
+          .eq('checkout_token', couponReservationToken)
+          .eq('status', 'reserved')
+      }
+      throw paymentError
+    }
 
     // C) QR Code se for PIX
     let pixInfo = {}
