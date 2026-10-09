@@ -105,6 +105,14 @@ serve(async (req) => {
         const listBaseUrl = listSandbox ? "https://sandbox.asaas.com/api/v3" : "https://api.asaas.com/v3";
         enrichedInvoices = await Promise.all((invoices || []).map(async (item: any) => {
           const subscriptionDiscount = item.subscription_id ? discountBySubscription.get(item.subscription_id) : undefined;
+          if (item.metadata?.coupon_code) {
+            return {
+              ...item,
+              asaas_value: Number(item.metadata.original_amount || item.amount || 0),
+              amount_due: Number(item.metadata.discounted_amount ?? item.amount ?? 0),
+              discount_amount: Number(item.metadata.discount_amount || 0),
+            };
+          }
           if (!item.asaas_payment_id) {
             const base = subscriptionDiscount?.originalPrice || Number(item.amount || 0);
             const pct = subscriptionDiscount?.percentage || 0;
@@ -237,6 +245,9 @@ serve(async (req) => {
         // cobrança anterior. O link do e-mail precisa ser do ID Asaas desta fatura.
         paymentLink = payment.invoiceUrl || payment.bankSlipUrl || "";
         const providerValue = Number(payment.value || amountToCharge);
+        if (invoice.metadata?.coupon_code) {
+          amountToCharge = Number(invoice.metadata.discounted_amount ?? invoice.amount ?? providerValue);
+        } else {
         let configuredDiscountPercentage = Number(invoice.metadata?.discount_percentage || 0);
         let originalPrice = Number(invoice.metadata?.original_amount || 0);
         if (invoice.subscription_id) {
@@ -255,6 +266,7 @@ serve(async (req) => {
             ? Number((discountType === "PERCENTAGE" ? providerValue * discountValue / 100 : discountValue).toFixed(2))
             : 0;
           amountToCharge = Math.max(0, Number((providerValue - discountAmount).toFixed(2)));
+        }
         }
         if (payment.invoiceUrl || payment.bankSlipUrl) {
           await admin.from("company_invoices").update({
@@ -364,16 +376,30 @@ serve(async (req) => {
     let originalPrice = Number(invoice.amount || 0);
     if (invoice.subscription_id) {
       const { data: subscription } = await admin.from("company_subscriptions")
-        .select("discount_percentage,discount_cycles_remaining,original_price")
+        .select("discount_percentage,discount_cycles_remaining,original_price,coupon_id,coupon_code,coupon_discount_type,coupon_discount_value,coupon_cycles_remaining")
         .eq("id", invoice.subscription_id).maybeSingle();
       discountPercentage = Math.min(100, Math.max(0, Number(subscription?.discount_percentage || 0)));
       discountCyclesRemaining = Math.max(0, Number(subscription?.discount_cycles_remaining || 0));
       originalPrice = Number(subscription?.original_price || originalPrice);
+      var couponCodeForInvoice = subscription?.coupon_code || invoice.metadata?.coupon_code || null;
+      var couponDiscountType = subscription?.coupon_discount_type || invoice.metadata?.discount_type || null;
+      var couponDiscountValue = Number(subscription?.coupon_discount_value || invoice.metadata?.discount_value || 0);
+      var couponCyclesRemaining = Math.max(0, Number(subscription?.coupon_cycles_remaining ?? invoice.metadata?.duration_cycles ?? 0));
+    } else {
+      var couponCodeForInvoice = invoice.metadata?.coupon_code || null;
+      var couponDiscountType = invoice.metadata?.discount_type || null;
+      var couponDiscountValue = Number(invoice.metadata?.discount_value || 0);
+      var couponCyclesRemaining = Math.max(0, Number(invoice.metadata?.duration_cycles || 0));
     }
-    // Se a fatura existente já contém um valor descontado, preferir o preço-base
-    // salvo na assinatura; não reaplicar desconto sobre o valor líquido.
-    const baseAmount = originalPrice > 0 ? originalPrice : Number(invoice.amount || 0);
-    const discountAmount = Number((baseAmount * discountPercentage / 100).toFixed(2));
+    const baseAmount = originalPrice > 0 ? originalPrice : Number(invoice.metadata?.original_amount || invoice.amount || 0);
+    const couponApplies = !!couponCodeForInvoice && couponCyclesRemaining > 0 && couponDiscountValue > 0;
+    const discountAmount = couponApplies
+      ? couponDiscountType === "percentage"
+        ? Number((baseAmount * Math.min(100, couponDiscountValue) / 100).toFixed(2))
+        : Math.min(baseAmount, couponDiscountValue)
+      : discountCyclesRemaining > 0
+        ? Number((baseAmount * discountPercentage / 100).toFixed(2))
+        : 0;
     const payableAmount = Math.max(0, Number((baseAmount - discountAmount).toFixed(2)));
     const { data: newInvoice, error: createInvoiceError } = await admin.from("company_invoices").insert({
       company_id: company.id,
@@ -387,7 +413,7 @@ serve(async (req) => {
       cycle_end_at: null,
       kind: invoice.kind || "subscription",
       asaas_customer_id: customerId,
-      metadata: { ...(invoice.metadata || {}), replaced_invoice_id: invoice.id, replacement_created_at: new Date().toISOString(), original_amount: baseAmount, discount_percentage: discountPercentage, discount_cycles_remaining: discountCyclesRemaining },
+      metadata: { ...(invoice.metadata || {}), replaced_invoice_id: invoice.id, replacement_created_at: new Date().toISOString(), original_amount: baseAmount, discount_percentage: discountPercentage, discount_cycles_remaining: discountCyclesRemaining, ...(couponCodeForInvoice ? { coupon_code: couponCodeForInvoice, discount_type: couponDiscountType, discount_value: couponDiscountValue, discount_amount: discountAmount, discounted_amount: payableAmount, duration_cycles: couponCyclesRemaining } : {}) },
     }).select("id").single();
     if (createInvoiceError || !newInvoice) throw createInvoiceError || new Error("Não foi possível registrar a nova fatura.");
 
