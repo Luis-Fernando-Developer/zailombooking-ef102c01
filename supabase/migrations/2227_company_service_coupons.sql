@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.company_service_coupon_redemptions (
   company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   code text NOT NULL,
   checkout_token uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-  asaas_payment_id text,
+  provider_payment_id text,
   booking_id uuid REFERENCES public.bookings(id) ON DELETE SET NULL,
   service_id uuid,
   combo_id uuid,
@@ -50,7 +50,9 @@ CREATE TABLE IF NOT EXISTS public.company_service_coupon_redemptions (
 CREATE INDEX IF NOT EXISTS company_service_coupon_redemptions_usage_idx
   ON public.company_service_coupon_redemptions(coupon_id, status, reserved_until);
 CREATE INDEX IF NOT EXISTS company_service_coupon_redemptions_payment_idx
-  ON public.company_service_coupon_redemptions(asaas_payment_id);
+  ON public.company_service_coupon_redemptions(provider_payment_id);
+
+ALTER TABLE public.booking_payments ADD COLUMN IF NOT EXISTS provider_payment_id text;
 
 ALTER TABLE public.bookings
   ADD COLUMN IF NOT EXISTS original_price numeric(12,2),
@@ -192,7 +194,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.finalize_company_service_coupon(
-  p_checkout_token uuid, p_asaas_payment_id text
+  p_checkout_token uuid, p_provider_payment_id text
 ) RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -200,7 +202,7 @@ SET search_path = public
 AS $$
 BEGIN
   UPDATE public.company_service_coupon_redemptions
-     SET asaas_payment_id = p_asaas_payment_id,
+     SET provider_payment_id = p_provider_payment_id,
          reserved_until = now() + interval '24 hours'
    WHERE checkout_token = p_checkout_token AND status = 'reserved';
   RETURN FOUND;
@@ -225,7 +227,7 @@ BEGIN
      AND lower(COALESCE(OLD.status::text,'')) NOT IN ('paid','confirmed','received') THEN
     UPDATE public.company_service_coupon_redemptions
        SET status = 'redeemed', redeemed_at = now(), booking_id = COALESCE(NEW.booking_id, booking_id)
-     WHERE asaas_payment_id = NEW.asaas_id AND status = 'reserved';
+     WHERE provider_payment_id = COALESCE(NEW.provider_payment_id, NEW.asaas_id) AND status = 'reserved';
   ELSIF lower(COALESCE(NEW.status::text,'')) IN ('cancelled','canceled','refunded','deleted') THEN
     UPDATE public.company_service_coupon_redemptions
        SET status = 'cancelled'
@@ -257,7 +259,7 @@ DECLARE
   v_combo_id uuid;
 BEGIN
   IF auth.uid() IS NULL AND NOT v_is_service_role THEN RAISE EXCEPTION 'Sessão não autenticada.'; END IF;
-  SELECT * INTO v_payment FROM public.booking_payments WHERE asaas_id = p_payment_id FOR UPDATE;
+  SELECT * INTO v_payment FROM public.booking_payments WHERE provider_payment_id = p_payment_id OR asaas_id = p_payment_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Pagamento não encontrado.'; END IF;
   IF v_payment.booking_id IS NOT NULL THEN RETURN v_payment.booking_id; END IF;
   SELECT * INTO v_hold FROM public.booking_slot_holds WHERE id = p_hold_id FOR UPDATE;
@@ -299,7 +301,7 @@ BEGIN
   UPDATE public.booking_payments SET booking_id = v_booking_id, status = 'confirmed', updated_at = now() WHERE id = v_payment.id;
   UPDATE public.booking_slot_holds SET status = 'converted', updated_at = now() WHERE id = v_hold.id;
   UPDATE public.company_service_coupon_redemptions SET booking_id = v_booking_id
-   WHERE asaas_payment_id = v_payment.asaas_id AND status IN ('reserved','redeemed');
+   WHERE provider_payment_id = COALESCE(v_payment.provider_payment_id, v_payment.asaas_id) AND status IN ('reserved','redeemed');
   RETURN v_booking_id;
 END;
 $$;
