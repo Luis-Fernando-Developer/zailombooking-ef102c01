@@ -53,6 +53,7 @@ serve(async (req) => {
       ? Number((originalAmount * Math.min(100, Number(coupon.discount_value)) / 100).toFixed(2))
       : Number(Math.min(originalAmount, Number(coupon.discount_value)).toFixed(2));
     const discountedAmount = Math.max(0, Number((originalAmount - discountAmount).toFixed(2)));
+    if (discountedAmount <= 0) return json({ valid: false, error: "O desconto não pode zerar a cobrança do Asaas." });
     return json({
       valid: true,
       code: coupon.code,
