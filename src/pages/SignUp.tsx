@@ -195,6 +195,11 @@ export default function SignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    if (couponCode.trim() && !couponPreview) {
+      toast({ title: "Valide seu cupom", description: "Clique em Aplicar para confirmar o desconto antes de continuar.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
 
     try {
       if (!urlAvailable) {
