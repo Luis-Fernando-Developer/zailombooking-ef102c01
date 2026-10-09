@@ -126,7 +126,7 @@ serve(async (req) => {
       .maybeSingle();
 
     let apiKey = (settings?.own_gateway_api_key_encrypted || "").trim();
-    let provider = String(paymentRow?.provider || settings?.own_gateway_provider || "asaas").toLowerCase();
+    let provider = String(paymentRow?.provider || body?.provider || settings?.own_gateway_provider || "asaas").toLowerCase();
 
     const employeeId = booking?.employee_id ?? paymentRow?.metadata?.employee_id ?? paymentRow?.metadata?.booking_data?.employee_id;
     if (employeeId) {
