@@ -14,6 +14,7 @@ import AdminLogin from "./pages/admin/Login";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import SuperAdminInstances from "./pages/super-admin/Instances";
 import SuperAdminPlans from "./pages/super-admin/Plans";
+import SubscriptionCoupons from "./pages/super-admin/SubscriptionCoupons";
 import SuperAdminSettings from "./pages/super-admin/Settings";
 import SuperAdminFeatureRegistry from "./pages/super-admin/FeatureRegistry";
 import SuperAdminReleaseNotes from "./pages/super-admin/ReleaseNotes";
@@ -91,6 +92,7 @@ const App = () => (
             <Route path="/super-admin/empresas" element={<RequireSuperAdmin><SuperAdminDashboard /></RequireSuperAdmin>} />
             <Route path="/super-admin/instancias" element={<RequireSuperAdmin><SuperAdminInstances /></RequireSuperAdmin>} />
             <Route path="/super-admin/planos" element={<RequireSuperAdmin><SuperAdminPlans /></RequireSuperAdmin>} />
+            <Route path="/super-admin/cupons" element={<RequireSuperAdmin><SubscriptionCoupons /></RequireSuperAdmin>} />
             <Route path="/super-admin/configuracoes" element={<RequireSuperAdmin><SuperAdminSettings /></RequireSuperAdmin>} />
             <Route path="/super-admin/features" element={<RequireSuperAdmin><SuperAdminFeatureRegistry /></RequireSuperAdmin>} />
             <Route path="/super-admin/release-notes" element={<RequireSuperAdmin><SuperAdminReleaseNotes /></RequireSuperAdmin>} />
