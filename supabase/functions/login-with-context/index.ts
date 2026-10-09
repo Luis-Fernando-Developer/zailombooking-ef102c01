@@ -22,11 +22,12 @@ Deno.serve(async (req) => {
       company_slug,
       returnTo,
       origin: rawOrigin,
+      action,
     } = await req.json();
 
     const email = rawEmail?.trim();
 
-    if (!email || !password || !company_slug) {
+    if (!email || !company_slug || (action !== "check_access" && !password)) {
       return new Response(JSON.stringify({ error: "E-mail, senha e empresa são obrigatórios." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -65,6 +66,18 @@ Deno.serve(async (req) => {
       console.error("[LOGIN_CONTEXT] Erro ao buscar cliente:", clientError);
       return new Response(JSON.stringify({ error: "Não foi possível localizar o cliente." }), {
         status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "check_access") {
+      // A resposta informa apenas se há senha contextual nesta empresa.
+      // Para e-mails não cadastrados, o fluxo de primeiro acesso continua genérico.
+      return new Response(JSON.stringify({
+        success: true,
+        has_password: Boolean(client?.user_id && client?.password_hash),
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -212,7 +225,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("[LOGIN_CONTEXT] Erro no login contextual:", error);
     return new Response(JSON.stringify({
-      error: error instanceof Error ? error.message : String(error),
+      error: "Não foi possível concluir o login agora. Confira os dados e tente novamente.",
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

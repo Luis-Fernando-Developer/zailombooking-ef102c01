@@ -1518,13 +1518,25 @@ export default function ClientBooking() {
                   <span className="font-medium">{selectedService?.duration_minutes} min</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Valor:</span>
+                  <span className="text-muted-foreground">Valor original:</span>
                   <span className="font-medium">
                     {rewardAchievement
                       ? (effectivePrice === 0 ? 'Grátis — Brinde' : 'R$ ' + effectivePrice.toFixed(2) + ' — Valor do brinde')
                       : 'R$ ' + Number(selectedService?.price ?? 0).toFixed(2)}
                   </span>
                 </div>
+                {couponPreview && !rewardAchievement && (
+                  <>
+                    <div className="flex justify-between text-sm text-emerald-600">
+                      <span>Desconto do cupom ({couponPreview.code}):</span>
+                      <span>− R$ {Number(couponPreview.discount_amount).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold">
+                      <span>Total pago:</span>
+                      <span>R$ {Number(couponPreview.discounted_amount).toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="text-center space-y-2">

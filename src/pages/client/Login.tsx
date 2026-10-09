@@ -17,6 +17,7 @@ export default function ClientLogin() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [firstAccessLoading, setFirstAccessLoading] = useState(false);
+  const [accessStatus, setAccessStatus] = useState<"idle" | "checking" | "password" | "first_access" | "unknown">("idle");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -39,9 +40,29 @@ export default function ClientLogin() {
       });
     } catch (error: any) {
       console.error("Erro ao solicitar primeiro acesso:", error);
-      toast({ title: "Não foi possível solicitar o acesso", description: error.message || "Tente novamente mais tarde.", variant: "destructive" });
+      toast({ title: "Não foi possível solicitar o acesso", description: "Não conseguimos processar a solicitação agora. Confira o e-mail e tente novamente mais tarde.", variant: "destructive" });
     } finally {
       setFirstAccessLoading(false);
+    }
+  };
+
+  const handleCheckAccess = async () => {
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || !slug) return;
+    if (accessStatus === "checking") return;
+
+    setAccessStatus("checking");
+    try {
+      const { data, error } = await supabase.functions.invoke("login-with-context", {
+        body: { email: normalizedEmail, company_slug: slug, action: "check_access" },
+      });
+      if (error) throw error;
+      setAccessStatus(data?.has_password ? "password" : "first_access");
+      setPassword("");
+    } catch (error) {
+      console.error("Erro ao verificar acesso do cliente:", error);
+      // Se a verificação estiver indisponível, não bloqueia o login nem o primeiro acesso.
+      setAccessStatus("unknown");
     }
   };
 
@@ -57,7 +78,11 @@ export default function ClientLogin() {
       });
 
       if (error || !data?.success) {
-        const errorMsg = data?.error || "E-mail ou senha incorretos para esta empresa.";
+        const rawError = String(data?.error || "");
+        const containsTechnicalDetails = /edge function|function returned|rpc|postgres|sqlstate|database|internal server|stack trace|supabase/i.test(rawError);
+        const errorMsg = containsTechnicalDetails
+          ? "E-mail ou senha incorretos para esta empresa. Se ainda não criou uma senha aqui, use a opção Primeiro acesso."
+          : (rawError || "E-mail ou senha incorretos para esta empresa.");
         if (data?.needs_link) {
           toast({ title: "Vínculo necessário", description: "Você já possui conta no Zailom. Verifique seu e-mail/WhatsApp para confirmar seu vínculo com esta empresa." });
         } else if (data?.needs_first_access) {
@@ -96,7 +121,76 @@ export default function ClientLogin() {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={(e) => {
+            if (accessStatus !== "password" && accessStatus !== "unknown") {
+              e.preventDefault();
+              void handleCheckAccess();
+              return;
+            }
+            void handleLogin(e);
+          }} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setPassword(""); setAccessStatus("idle"); }}
+                  onBlur={() => { if (email.trim()) void handleCheckAccess(); }}
+                  className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
+                  autoComplete="email"
+                  required
+                />
+              </div>
+            </div>
+
+            {(accessStatus === "idle" || accessStatus === "checking") && (
+              <Button type="button" variant="neon" className="w-full" size="lg" disabled={accessStatus === "checking" || !email.trim()} onClick={() => void handleCheckAccess()}>
+                {accessStatus === "checking" ? "Verificando acesso..." : "Continuar"}
+              </Button>
+            )}
+
+            {(accessStatus === "password" || accessStatus === "unknown") && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha desta empresa</Label>
+                  <PasswordInput id="password" placeholder="Digite sua senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </div>
+                <div className="flex justify-end -mt-2">
+                  <ForgotPasswordDialog defaultEmail={email} trigger={<button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">Esqueci minha senha</button>} />
+                </div>
+                <Button type="submit" variant="neon" className="w-full" disabled={isLoading || !password} size="lg">
+                  {isLoading ? "Entrando..." : "Entrar"}
+                </Button>
+                {accessStatus === "unknown" && (
+                  <Button type="button" variant="outline" className="w-full" disabled={firstAccessLoading} onClick={handleFirstAccess}>
+                    <KeyRound className="w-4 h-4 mr-2" />
+                    {firstAccessLoading ? "Enviando..." : "Primeiro acesso / Criar senha"}
+                  </Button>
+                )}
+              </>
+            )}
+
+            {accessStatus === "first_access" && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">
+                  Se você já foi cadastrado nesta empresa e ainda não criou uma senha de acesso, solicite seu primeiro acesso abaixo.
+                </p>
+                <Button type="button" variant="neon" className="w-full" disabled={firstAccessLoading} onClick={handleFirstAccess}>
+                  <KeyRound className="w-4 h-4 mr-2" />
+                  {firstAccessLoading ? "Enviando..." : "Primeiro acesso / Criar senha"}
+                </Button>
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setAccessStatus("password")}>
+                  Já possui senha? Entrar
+                </Button>
+              </div>
+            )}
+          </form>
+
+          <div className="mt-6 pt-6 border-t border-primary/20 text-center">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -117,15 +211,7 @@ export default function ClientLogin() {
             <Button type="submit" variant="neon" className="w-full" disabled={isLoading} size="lg">
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
-          </form>
-
-          <div className="mt-4">
-            <Button type="button" variant="outline" className="w-full" disabled={firstAccessLoading} onClick={handleFirstAccess}>
-              <KeyRound className="w-4 h-4 mr-2" />
-              {firstAccessLoading ? "Enviando..." : "Primeiro acesso / Criar senha"}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center mt-2">Use esta opção se a empresa já cadastrou você, mas você ainda não criou sua senha.</p>
-          </div>
+</div>
 
           <div className="mt-6 pt-6 border-t border-primary/20 text-center">
             <p className="text-sm text-muted-foreground">Não tem uma conta?{" "}<Link to={`/${slug}/cadastro`} className="text-primary hover:text-primary-glow transition-colors">Cadastre-se</Link></p>
