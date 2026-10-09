@@ -77,6 +77,9 @@ export default function ClientBooking() {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [availabilityReason, setAvailabilityReason] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponPreview, setCouponPreview] = useState<any>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
@@ -787,8 +790,8 @@ export default function ClientBooking() {
         open: true,
         bookingId: undefined, // ainda não existe
         sessionKey: Date.now(),
-        amount: effectivePrice,
-        allowLater: true,
+        amount: couponPreview ? Number(couponPreview.discounted_amount) : effectivePrice,
+        allowLater: !couponPreview,
         openedOnce: false,
         hasPayment: false,
         // Dados do cliente para o dialog usar na criação do booking
@@ -886,6 +889,49 @@ export default function ClientBooking() {
   const isPayLater = paymentDialog._clientId != null && createdBookingId == null;
   const isPaid = paymentDialog.wasPaid === true;
   const effectivePrice = rewardAchievement ? Number(rewardAchievement.reward_value ?? 0) : Number(selectedService?.price ?? 0);
+
+  const applyBookingCoupon = async () => {
+    if (!company || !selectedService || !couponCode.trim()) {
+      toast({ title: "Informe o cupom", description: "Digite o código promocional para validá-lo.", variant: "destructive" });
+      return;
+    }
+    if (rewardAchievement || effectivePrice <= 0) {
+      toast({ title: "Cupom indisponível", description: "Cupons promocionais não se aplicam a brindes.", variant: "destructive" });
+      return;
+    }
+    const isCombo = selectedService.id.startsWith("combo:");
+    setIsApplyingCoupon(true);
+    setCouponPreview(null);
+    try {
+      const { data, error } = await supabase.rpc("preview_company_service_coupon", {
+        p_company_id: company.id,
+        p_code: couponCode.trim().toUpperCase(),
+        p_service_id: isCombo ? null : selectedService.id,
+        p_combo_id: isCombo ? selectedService.id.replace("combo:", "") : null,
+      });
+      if (error) throw error;
+      setCouponPreview(data);
+      setCouponCode(String(data.code || couponCode).toUpperCase());
+      toast({
+        title: "Cupom aplicado!",
+        description: `Você economiza R$ ${Number(data.discount_amount).toFixed(2)} no pagamento online.`,
+      });
+    } catch (error: any) {
+      setCouponPreview(null);
+      toast({
+        title: "Cupom não aplicado",
+        description: error?.message || "Não foi possível validar esse cupom.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  useEffect(() => {
+    setCouponCode("");
+    setCouponPreview(null);
+  }, [selectedService?.id]);
 
   const renderStep = () => {
     switch (step) {
@@ -1291,7 +1337,43 @@ export default function ClientBooking() {
                           : 'R$ ' + Number(selectedService?.price ?? 0).toFixed(2)}
                       </span>
                     </div>
+                    {couponPreview && (
+                      <>
+                        <div className="flex justify-between text-sm text-emerald-600">
+                          <span>Cupom {couponPreview.code}:</span>
+                          <span>− R$ {Number(couponPreview.discount_amount).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold">
+                          <span>Total no pagamento online:</span>
+                          <span>R$ {Number(couponPreview.discounted_amount).toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
+
+                  {!rewardAchievement && paymentSettings.enabled && (
+                    <div className="rounded-lg border p-3 space-y-2">
+                      <Label htmlFor="booking-coupon">Cupom promocional (pagamento online)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="booking-coupon"
+                          value={couponCode}
+                          onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponPreview(null); }}
+                          placeholder="Digite seu cupom"
+                          maxLength={64}
+                          disabled={isApplyingCoupon || Boolean(couponPreview)}
+                        />
+                        {couponPreview ? (
+                          <Button type="button" variant="outline" onClick={() => { setCouponPreview(null); setCouponCode(""); }}>Remover</Button>
+                        ) : (
+                          <Button type="button" variant="outline" onClick={applyBookingCoupon} disabled={isApplyingCoupon || !couponCode.trim()}>
+                            {isApplyingCoupon ? "Validando..." : "Aplicar"}
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">O desconto é aplicado somente ao pagamento online. Um cupom por agendamento.</p>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="notes">Observações (opcional)</Label>
@@ -1591,8 +1673,9 @@ export default function ClientBooking() {
               client?.cpf,
           }}
           allowPayLater={
-            paymentDialog.allowLater
+            Boolean(paymentDialog.allowLater) && !couponPreview
           }
+          couponCode={couponPreview?.code || null}
         
           /*
            * IMPORTANTE:
