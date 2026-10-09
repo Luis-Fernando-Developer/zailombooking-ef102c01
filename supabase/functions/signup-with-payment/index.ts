@@ -147,6 +147,35 @@ serve(async (req) => {
       return json({ ok: false, error: "Não foi possível determinar o valor do plano." }, 200);
     }
 
+    // Cupom de aquisição validado no servidor antes de criar identidade/empresa.
+    const couponCode = String(body.coupon_code ?? "").trim().toUpperCase();
+    let couponConfig: any = null;
+    if (couponCode) {
+      if (!/^[A-Z0-9_-]{3,40}$/.test(couponCode)) return json({ ok: false, error: "Código de cupom inválido." }, 200);
+      const { data: foundCoupon, error: couponLookupError } = await admin.from("subscription_coupons")
+        .select("id,code,description,discount_type,discount_value,duration_type,duration_cycles,plan_ids,billing_periods,starts_at,expires_at,max_redemptions,is_active")
+        .eq("code", couponCode).maybeSingle();
+      if (couponLookupError) return json({ ok: false, error: "Não foi possível validar o cupom." }, 200);
+      if (!foundCoupon || !foundCoupon.is_active) return json({ ok: false, error: "Cupom inválido ou inativo." }, 200);
+      const nowMs = Date.now();
+      if (foundCoupon.starts_at && nowMs < new Date(foundCoupon.starts_at).getTime()) return json({ ok: false, error: "Este cupom ainda não está válido." }, 200);
+      if (foundCoupon.expires_at && nowMs > new Date(foundCoupon.expires_at).getTime()) return json({ ok: false, error: "Este cupom expirou." }, 200);
+      if ((foundCoupon.plan_ids || []).length && !foundCoupon.plan_ids.includes(plan.id)) return json({ ok: false, error: "Este cupom não é válido para o plano selecionado." }, 200);
+      if (!(foundCoupon.billing_periods || []).includes(billingPeriod)) return json({ ok: false, error: "Este cupom não é válido para o período selecionado." }, 200);
+      if (foundCoupon.max_redemptions != null) {
+        const { count, error: usageError } = await admin.from("subscription_coupon_redemptions")
+          .select("id", { count: "exact", head: true }).eq("coupon_id", foundCoupon.id).in("status", ["reserved", "applied", "paid"]);
+        if (usageError) return json({ ok: false, error: "Não foi possível verificar o limite deste cupom." }, 200);
+        if ((count || 0) >= foundCoupon.max_redemptions) return json({ ok: false, error: "Este cupom atingiu o limite de utilizações." }, 200);
+      }
+      const discountAmount = foundCoupon.discount_type === "percentage"
+        ? Number((amount * Math.min(100, Number(foundCoupon.discount_value)) / 100).toFixed(2))
+        : Number(Math.min(amount, Number(foundCoupon.discount_value)).toFixed(2));
+      const discountedAmount = Math.max(0, Number((amount - discountAmount).toFixed(2)));
+      if (discountedAmount <= 0) return json({ ok: false, error: "O cupom não pode zerar a cobrança. Reduza o desconto para permitir a cobrança pelo Asaas." }, 200);
+      couponConfig = { ...foundCoupon, discount_amount: discountAmount, discounted_amount: discountedAmount, duration_cycles: foundCoupon.duration_type === "first_payment" ? 1 : Number(foundCoupon.duration_cycles) };
+    }
+
     // 2) A identidade Auth é global; a senha informada pertence somente à nova empresa.
     let userId: string | null = null;
     let createdNewAuthUser = false;
@@ -246,6 +275,22 @@ serve(async (req) => {
     }
 
     const companyId = companyRow.id;
+    let couponReservation: any = null;
+    if (couponConfig) {
+      const { data: reserved, error: reserveError } = await admin.rpc("reserve_subscription_coupon", {
+        _code: couponCode,
+        _company_id: companyId,
+        _plan_id: plan.id,
+        _billing_period: billingPeriod,
+        _original_amount: amount,
+      });
+      if (reserveError || !reserved) {
+        await admin.from("companies").delete().eq("id", companyId);
+        if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
+        return json({ ok: false, error: reserveError?.message || "Não foi possível reservar o cupom." }, 200);
+      }
+      couponReservation = reserved;
+    }
 
     // Reforço: garante que nenhum default/trigger deixou a empresa ativa antes
     // do pagamento. Só o webhook do Asaas pode promover para 'active'.
@@ -395,8 +440,20 @@ serve(async (req) => {
         description: `ZailomBooking ${plan.name} - ${PERIOD_LABEL[billingPeriod]}`,
         externalReference: `company:${companyId}`,
         // Não incluímos o objeto "callback" aqui para evitar conflitos com o Webhook configurado globalmente no painel do Asaas.
-
       };
+      if (couponReservation && Number(couponReservation.duration_cycles) > 1) {
+        const limit = new Date();
+        const cycles = Number(couponReservation.duration_cycles);
+        if (billingPeriod === "annual") limit.setFullYear(limit.getFullYear() + cycles);
+        else if (billingPeriod === "quarterly") limit.setMonth(limit.getMonth() + cycles * 3);
+        else limit.setMonth(limit.getMonth() + cycles);
+        subPayload.discount = {
+          value: Number(couponReservation.discount_value),
+          type: couponReservation.discount_type === "percentage" ? "PERCENTAGE" : "FIXED",
+          limitDate: limit.toISOString().slice(0, 10),
+          dueDateLimitDays: 0,
+        };
+      }
       if (billingType === "CREDIT_CARD" && body.credit_card) {
         subPayload.creditCard = body.credit_card;
         subPayload.creditCardHolderInfo = body.credit_card_holder_info;
@@ -412,8 +469,21 @@ serve(async (req) => {
 
       // 5c) Primeira cobrança gerada pela assinatura
       if (asaasSubscriptionId) {
-        const payments = await asaas(`/subscriptions/${asaasSubscriptionId}/payments`, { method: "GET" });
-        firstPayment = payments?.data?.[0] ?? null;
+        for (let attempt = 0; attempt < 10 && !firstPayment; attempt++) {
+          const payments = await asaas(`/subscriptions/${asaasSubscriptionId}/payments`, { method: "GET" });
+          firstPayment = payments?.data?.[0] ?? null;
+          if (!firstPayment && attempt < 9) await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        if (couponReservation && firstPayment?.id) {
+          const expectedAmount = Number(couponReservation.discounted_amount);
+          if (Math.abs(Number(firstPayment.value ?? amount) - expectedAmount) >= 0.01) {
+            const adjusted = await asaas(`/payments/${firstPayment.id}`, {
+              method: "PUT",
+              body: JSON.stringify({ value: expectedAmount }),
+            });
+            firstPayment = { ...firstPayment, ...adjusted, value: expectedAmount };
+          }
+        }
       }
 
       if (billingType === "PIX" && firstPayment?.id) {
@@ -452,6 +522,16 @@ serve(async (req) => {
       next_renewal_at: cycleEnd.toISOString(),
       next_billing_date: cycleEnd.toISOString(),
       asaas_subscription_id: asaasSubscriptionId,
+      original_price: Number(amount),
+      discount_percentage: 0,
+      discount_cycles_remaining: 0,
+      ...(couponReservation ? {
+        coupon_id: couponReservation.coupon_id,
+        coupon_code: couponReservation.code,
+        coupon_discount_type: couponReservation.discount_type,
+        coupon_discount_value: Number(couponReservation.discount_value),
+        coupon_cycles_remaining: Number(couponReservation.duration_cycles),
+      } : {}),
     };
     const subOptional = [
       "asaas_subscription_id",
@@ -462,9 +542,10 @@ serve(async (req) => {
       "status",
       "billing_period",
     ];
+    let localSubscriptionId: string | null = null;
     for (let i = 0; i <= subOptional.length; i++) {
-      const { error } = await admin.from("company_subscriptions").insert(subLocal);
-      if (!error) break;
+      const { data: insertedSubscription, error } = await admin.from("company_subscriptions").insert(subLocal).select("id").single();
+      if (!error) { localSubscriptionId = insertedSubscription?.id ?? null; break; }
       console.error(`[signup-with-payment] subscription tentativa ${i}:`, error.message);
       const drop = subOptional[i];
       if (!drop) break;
@@ -476,7 +557,8 @@ serve(async (req) => {
     if (firstPayment?.id) {
       const invLocal: Record<string, unknown> = {
         company_id: companyId,
-        amount: Number(firstPayment?.value ?? amount),
+        amount: Number(firstPayment?.value ?? couponReservation?.discounted_amount ?? amount),
+        metadata: couponReservation ? { coupon_id: couponReservation.coupon_id, coupon_code: couponReservation.code, original_amount: Number(amount), discount_amount: Number(couponReservation.discount_amount), discounted_amount: Number(couponReservation.discounted_amount), discount_type: couponReservation.discount_type, discount_value: Number(couponReservation.discount_value), duration_cycles: Number(couponReservation.duration_cycles) } : {},
         status: "pending",
         kind: "subscription",
         billing_type: billingType,
@@ -492,7 +574,7 @@ serve(async (req) => {
         pix_payload: pixPayload,
         pix_qr_code: pixQrCode,
       };
-      const invOptional = ["cycle_end_at", "cycle_start_at", "billing_period", "kind", "description"];
+      const invOptional = ["metadata", "cycle_end_at", "cycle_start_at", "billing_period", "kind", "description"];
       for (let i = 0; i <= invOptional.length; i++) {
         const { data, error } = await admin
           .from("company_invoices")
@@ -507,6 +589,14 @@ serve(async (req) => {
         const drop = invOptional[i];
         if (!drop) break;
         delete invLocal[drop];
+      }
+      if (couponReservation && invoiceId) {
+        await admin.from("subscription_coupon_redemptions").update({
+          subscription_id: localSubscriptionId,
+          invoice_id: invoiceId,
+          status: "applied",
+          updated_at: new Date().toISOString(),
+        }).eq("id", couponReservation.redemption_id);
       }
 
       // E-mail 2: cobrança e link de pagamento enviados depois da criação da fatura.
@@ -568,6 +658,10 @@ serve(async (req) => {
       }
     }
 
+    if (couponReservation && (!asaasSubscriptionId || !firstPayment)) {
+      await admin.from("subscription_coupon_redemptions").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", couponReservation.redemption_id);
+    }
+
     return json({
       ok: true,
       company_id: companyId,
@@ -575,7 +669,9 @@ serve(async (req) => {
       charge: !!firstPayment,
       charge_error: chargeError,
       invoice_id: invoiceId,
-      amount,
+      amount: Number(firstPayment?.value ?? couponReservation?.discounted_amount ?? amount),
+      original_amount: amount,
+      coupon: couponReservation ? { code: couponReservation.code, discount_amount: Number(couponReservation.discount_amount), discounted_amount: Number(couponReservation.discounted_amount), duration_cycles: Number(couponReservation.duration_cycles) } : null,
       billing_type: billingType,
       billing_period: billingPeriod,
       asaas_subscription_id: asaasSubscriptionId,
