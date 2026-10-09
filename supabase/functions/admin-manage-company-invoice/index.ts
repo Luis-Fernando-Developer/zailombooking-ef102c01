@@ -88,14 +88,18 @@ serve(async (req) => {
       // mantém o desconto no pagamento (por exemplo, R$ 149,00 - R$ 5,96).
       const listAsaasKey = await gatewayConfig(admin, "ASAAS_API_KEY");
       const subscriptionIds = [...new Set((invoices || []).map((item: any) => item.subscription_id).filter(Boolean))];
-      const discountBySubscription = new Map<string, { percentage: number; originalPrice: number }>();
+      const discountBySubscription = new Map<string, { percentage: number; originalPrice: number; couponCode: string | null; couponType: string | null; couponValue: number; couponCyclesRemaining: number }>();
       if (subscriptionIds.length) {
         const { data: subscriptions } = await admin.from("company_subscriptions")
-          .select("id,discount_percentage,original_price").in("id", subscriptionIds);
+          .select("id,discount_percentage,original_price,coupon_code,coupon_discount_type,coupon_discount_value,coupon_cycles_remaining").in("id", subscriptionIds);
         for (const subscription of subscriptions || []) {
           discountBySubscription.set(subscription.id, {
             percentage: Math.min(100, Math.max(0, Number(subscription.discount_percentage || 0))),
             originalPrice: Number(subscription.original_price || 0),
+            couponCode: subscription.coupon_code || null,
+            couponType: subscription.coupon_discount_type || null,
+            couponValue: Number(subscription.coupon_discount_value || 0),
+            couponCyclesRemaining: Math.max(0, Number(subscription.coupon_cycles_remaining || 0)),
           });
         }
       }
@@ -114,7 +118,13 @@ serve(async (req) => {
             };
           }
           if (!item.asaas_payment_id) {
-            const base = subscriptionDiscount?.originalPrice || Number(item.amount || 0);
+            const base = subscriptionDiscount?.originalPrice || Number(item.metadata?.original_amount || item.amount || 0);
+            if (subscriptionDiscount?.couponCode && subscriptionDiscount.couponCyclesRemaining > 0 && subscriptionDiscount.couponValue > 0) {
+              const disc = subscriptionDiscount.couponType === "percentage"
+                ? Number((base * Math.min(100, subscriptionDiscount.couponValue) / 100).toFixed(2))
+                : Math.min(base, subscriptionDiscount.couponValue);
+              return { ...item, asaas_value: base, amount_due: Math.max(0, Number((base - disc).toFixed(2))), discount_amount: disc };
+            }
             const pct = subscriptionDiscount?.percentage || 0;
             const disc = Number((base * pct / 100).toFixed(2));
             return { ...item, asaas_value: base, amount_due: Number((base - disc).toFixed(2)), discount_amount: disc };
@@ -127,6 +137,14 @@ serve(async (req) => {
             const payment: any = await response.json();
             const providerAmount = Number(payment.value ?? item.amount ?? 0);
             const localBase = subscriptionDiscount?.originalPrice || Number(item.metadata?.original_amount || 0) || providerAmount;
+            if (subscriptionDiscount?.couponCode && subscriptionDiscount.couponCyclesRemaining > 0) {
+              return {
+                ...item,
+                amount_due: providerAmount,
+                discount_amount: Math.max(0, Number((localBase - providerAmount).toFixed(2))),
+                asaas_value: localBase,
+              };
+            }
             const percentage = subscriptionDiscount?.percentage || Number(item.metadata?.discount_percentage || 0);
             // O percentual configurado no cadastro/assinatura é a fonte confiável.
             // Não interpretar um valor monetário de desconto do Asaas como percentual.
@@ -153,6 +171,12 @@ serve(async (req) => {
         enrichedInvoices = enrichedInvoices.map((item: any) => {
           const subscriptionDiscount = item.subscription_id ? discountBySubscription.get(item.subscription_id) : undefined;
           const base = subscriptionDiscount?.originalPrice || Number(item.metadata?.original_amount || 0) || Number(item.amount || 0);
+          if (subscriptionDiscount?.couponCode && subscriptionDiscount.couponCyclesRemaining > 0) {
+            const disc = subscriptionDiscount.couponType === "percentage"
+              ? Number((base * Math.min(100, subscriptionDiscount.couponValue) / 100).toFixed(2))
+              : Math.min(base, subscriptionDiscount.couponValue);
+            return { ...item, asaas_value: base, amount_due: Math.max(0, Number((base - disc).toFixed(2))), discount_amount: disc };
+          }
           const pct = subscriptionDiscount?.percentage || Number(item.metadata?.discount_percentage || 0);
           const disc = Number((base * pct / 100).toFixed(2));
           return { ...item, asaas_value: base, amount_due: Number((base - disc).toFixed(2)), discount_amount: disc };
