@@ -32,7 +32,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS subscription_coupons_code_unique
 CREATE TABLE IF NOT EXISTS public.subscription_coupon_redemptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   coupon_id uuid NOT NULL REFERENCES public.subscription_coupons(id) ON DELETE RESTRICT,
-  company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  company_id uuid REFERENCES public.companies(id) ON DELETE SET NULL,
   subscription_id uuid REFERENCES public.company_subscriptions(id) ON DELETE SET NULL,
   invoice_id uuid REFERENCES public.company_invoices(id) ON DELETE SET NULL,
   code text NOT NULL,
