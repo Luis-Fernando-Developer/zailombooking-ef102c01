@@ -149,7 +149,6 @@ export default function ClientLogin() {
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setPassword(""); setAccessStatus("idle"); }}
-                  onBlur={() => { if (email.trim()) void handleCheckAccess(); }}
                   className="pl-10 bg-background/50 border-primary/30 focus:border-primary"
                   autoComplete="email"
                   required

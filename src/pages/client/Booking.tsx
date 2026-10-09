@@ -1518,7 +1518,7 @@ export default function ClientBooking() {
                   <span className="font-medium">{selectedService?.duration_minutes} min</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Valor original:</span>
+                  <span className="text-muted-foreground">{couponPreview ? "Valor original:" : "Valor:"}</span>
                   <span className="font-medium">
                     {rewardAchievement
                       ? (effectivePrice === 0 ? 'Grátis — Brinde' : 'R$ ' + effectivePrice.toFixed(2) + ' — Valor do brinde')
