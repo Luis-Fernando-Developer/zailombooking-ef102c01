@@ -47,6 +47,7 @@ export default function SignUp() {
     periodParam as any
   );
   const [billingType, setBillingType] = useState<"PIX" | "BOLETO" | "CREDIT_CARD">("PIX");
+  const [couponCode, setCouponCode] = useState("");
   const [segments, setSegments] = useState<{ id: string; slug: string; name: string }[]>([]);
   const [niches, setNiches] = useState<{ id: string; slug: string; name: string; segment_id: string }[]>([]);
   const [formData, setFormData] = useState({
@@ -222,6 +223,7 @@ export default function SignUp() {
         plan_id: selectedPlan.id,
         billing_period: billingPeriod,
         billing_type: billingType,
+        coupon_code: couponCode.trim().toUpperCase(),
       };
 
 
@@ -551,6 +553,12 @@ export default function SignUp() {
                   </div>
                 </div>
               )}
+
+              <div className="space-y-2 rounded-lg border border-primary/20 p-4">
+                <Label htmlFor="acquisition-coupon">Cupom de desconto (opcional)</Label>
+                <Input id="acquisition-coupon" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase().replace(/\s+/g, ""))} placeholder="Digite seu cupom" maxLength={40} className="bg-background/50" />
+                <p className="text-xs text-muted-foreground">O cupom será validado para o plano e período escolhidos. Descontos não são acumulativos.</p>
+              </div>
 
               {selectedPlan && selectedPlan.name !== "Ruby" && (
                 <Card className="bg-gradient-to-r from-primary/20 to-primary/5 border-primary/30">
