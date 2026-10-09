@@ -333,9 +333,9 @@ serve(async (req) => {
 
     try {
       if (receiverProvider === 'asaas') {
-        const isSandbox = decryptedKey.includes('hmlg') || !decryptedKey.startsWith('$aact_')
+        const isSandbox = receiverKey.includes('hmlg') || !receiverKey.startsWith('$aact_')
         const baseUrl = isSandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://www.asaas.com/api/v3'
-        const headers = { access_token: decryptedKey, 'Content-Type': 'application/json', 'User-Agent': 'SupabaseEdgeFunction/1.0' }
+        const headers = { access_token: receiverKey, 'Content-Type': 'application/json', 'User-Agent': 'SupabaseEdgeFunction/1.0' }
         const customerParams = new URLSearchParams()
         if (resolvedPayer.cpf_cnpj) customerParams.append('cpfCnpj', resolvedPayer.cpf_cnpj)
         else if (resolvedPayer.email) customerParams.append('email', resolvedPayer.email)
@@ -374,7 +374,7 @@ serve(async (req) => {
       } else if (receiverProvider === 'mercadopago') {
         const preference = await requestJson('https://api.mercadopago.com/checkout/preferences', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${decryptedKey}`, 'Content-Type': 'application/json' },
+          headers: { Authorization: `Bearer ${receiverKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             items: [{ id: paymentReference, title: 'Agendamento online', quantity: 1, currency_id: 'BRL', unit_price: amount }],
             payer: { name: resolvedPayer.name || 'Cliente', email: resolvedPayer.email || undefined, phone: resolvedPayer.phone ? { number: resolvedPayer.phone } : undefined, identification: resolvedPayer.cpf_cnpj ? { type: resolvedPayer.cpf_cnpj.length > 11 ? 'CNPJ' : 'CPF', number: resolvedPayer.cpf_cnpj } : undefined },
@@ -386,7 +386,7 @@ serve(async (req) => {
           }),
         }, 'Mercado Pago')
         paymentResult = { ...preference, id: preference.id, invoiceUrl: preference.init_point, method: selectedMethod, external_reference: paymentReference }
-        invoiceUrl = /TEST-|TEST_/i.test(decryptedKey) ? (preference.sandbox_init_point || preference.init_point || null) : (preference.init_point || preference.sandbox_init_point || null)
+        invoiceUrl = /TEST-|TEST_/i.test(receiverKey) ? (preference.sandbox_init_point || preference.init_point || null) : (preference.init_point || preference.sandbox_init_point || null)
       } else if (receiverProvider === 'stripe') {
         const params = new URLSearchParams()
         params.set('mode', 'payment')
@@ -407,7 +407,7 @@ serve(async (req) => {
         })) params.set(`metadata[${key}]`, value)
         paymentResult = await requestJson('https://api.stripe.com/v1/checkout/sessions', {
           method: 'POST',
-          headers: { Authorization: `Basic ${btoa(`${decryptedKey}:`)}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: { Authorization: `Basic ${btoa(`${receiverKey}:`)}`, 'Content-Type': 'application/x-www-form-urlencoded' },
           body: params.toString(),
         }, 'Stripe')
         invoiceUrl = paymentResult.url || null
@@ -419,10 +419,10 @@ serve(async (req) => {
         if (acceptedMethod === 'credit_card') paymentSettings.credit_card_settings = { operation_type: 'auth_and_capture', installments: [{ number: 1, total: cents }] }
         if (acceptedMethod === 'boleto') paymentSettings.boleto_settings = {}
         if (acceptedMethod === 'pix') paymentSettings.pix_settings = { expires_in: 3600 }
-        const pagarmeBaseUrl = /^sk_test_/i.test(decryptedKey) ? 'https://sdx-api.pagar.me/core/v5' : 'https://api.pagar.me/core/v5'
+        const pagarmeBaseUrl = /^sk_test_/i.test(receiverKey) ? 'https://sdx-api.pagar.me/core/v5' : 'https://api.pagar.me/core/v5'
         paymentResult = await requestJson(`${pagarmeBaseUrl}/paymentlinks`, {
           method: 'POST',
-          headers: { Authorization: `Basic ${btoa(`${decryptedKey}:`)}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+          headers: { Authorization: `Basic ${btoa(`${receiverKey}:`)}`, 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({
             name: `Agendamento ${paymentReference}`, type: 'order', order_code: paymentReference,
             max_sessions: 1, max_paid_sessions: 1,
