@@ -231,7 +231,7 @@ BEGIN
   ELSIF lower(COALESCE(NEW.status::text,'')) IN ('cancelled','canceled','refunded','deleted') THEN
     UPDATE public.company_service_coupon_redemptions
        SET status = 'cancelled'
-     WHERE asaas_payment_id = NEW.asaas_id AND status = 'reserved';
+     WHERE provider_payment_id = COALESCE(NEW.provider_payment_id, NEW.asaas_id) AND status = 'reserved';
   END IF;
   RETURN NEW;
 END;
