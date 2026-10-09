@@ -40,3 +40,6 @@ verify_jwt = false
 
 [functions.set-owner-company-password]
 verify_jwt = false
+
+[functions.admin-manage-company-invoice]
+verify_jwt = true
