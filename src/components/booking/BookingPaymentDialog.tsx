@@ -227,6 +227,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           {
             body: {
               payment_id: payment.id,
+              provider: payment.provider || null,
               booking_id: activeBookingId ?? bookingId ?? null,
               company_id: companyId,
             },
