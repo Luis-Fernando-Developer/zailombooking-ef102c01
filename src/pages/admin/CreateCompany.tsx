@@ -55,6 +55,8 @@ export default function CreateCompany() {
   });
   const [plans, setPlans] = useState<any[]>([]);
   const [plansLoading, setPlansLoading] = useState(true);
+  const [couponPreview, setCouponPreview] = useState<any>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -73,7 +75,29 @@ export default function CreateCompany() {
     ? formData.billing_period === "annual" ? Number(selectedPlan.annual_price) : formData.billing_period === "quarterly" ? Number(selectedPlan.quarterly_price) : Number(selectedPlan.monthly_price)
     : 0;
   const discountValue = formData.discount_enabled ? Math.min(100, Math.max(0, formData.discount_percentage)) : 0;
-  const firstChargeValue = Number((basePrice * (1 - discountValue / 100)).toFixed(2));
+  const firstChargeValue = formData.coupon_code.trim() && couponPreview ? Number(couponPreview.discounted_amount) : Number((basePrice * (1 - discountValue / 100)).toFixed(2));
+
+  const applyCoupon = async () => {
+    if (!formData.coupon_code.trim() || !selectedPlan) {
+      toast({ title: "Cupom e plano obrigatórios", description: "Informe o cupom e selecione o plano.", variant: "destructive" });
+      return;
+    }
+    setCouponLoading(true);
+    setCouponPreview(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-subscription-coupon", {
+        body: { code: formData.coupon_code.trim().toUpperCase(), plan_id: selectedPlan.id, billing_period: formData.billing_period, original_amount: basePrice },
+      });
+      if (error || !data?.valid) throw new Error(data?.error || error?.message || "Cupom inválido.");
+      setCouponPreview(data);
+      toast({ title: "Cupom válido", description: "O desconto será validado novamente ao criar a assinatura." });
+    } catch (error) {
+      setCouponPreview(null);
+      toast({ title: "Cupom não aplicado", description: error instanceof Error ? error.message : "Cupom inválido.", variant: "destructive" });
+    } finally {
+      setCouponLoading(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -379,7 +403,7 @@ export default function CreateCompany() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Plano *</Label>
-                      <Select value={formData.plan_id} onValueChange={(v) => setFormData(prev => ({ ...prev, plan_id: v }))}>
+                      <Select value={formData.plan_id} onValueChange={(v) => { setFormData(prev => ({ ...prev, plan_id: v })); setCouponPreview(null); }}>
                         <SelectTrigger><SelectValue placeholder={plansLoading ? "Carregando planos..." : "Selecione o plano"} /></SelectTrigger>
                         <SelectContent>
                           {plans.map((plan: any) => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}
@@ -388,7 +412,7 @@ export default function CreateCompany() {
                     </div>
                     <div className="space-y-2">
                       <Label>Período de cobrança *</Label>
-                      <Select value={formData.billing_period} onValueChange={(v: any) => setFormData(prev => ({ ...prev, billing_period: v }))}>
+                      <Select value={formData.billing_period} onValueChange={(v: any) => { setFormData(prev => ({ ...prev, billing_period: v })); setCouponPreview(null); }}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="monthly">Mensal</SelectItem>
@@ -414,7 +438,11 @@ export default function CreateCompany() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="acquisition-coupon-code">Cupom de aquisição (opcional)</Label>
-                    <Input id="acquisition-coupon-code" value={formData.coupon_code} onChange={(e) => setFormData(prev => ({ ...prev, coupon_code: e.target.value.toUpperCase().replace(/\s+/g, ""), discount_enabled: e.target.value.trim() ? false : prev.discount_enabled }))} placeholder="Ex.: ZAILOM20" maxLength={40} />
+                    <div className="flex gap-2">
+                      <Input id="acquisition-coupon-code" value={formData.coupon_code} onChange={(e) => { setFormData(prev => ({ ...prev, coupon_code: e.target.value.toUpperCase().replace(/\s+/g, ""), discount_enabled: e.target.value.trim() ? false : prev.discount_enabled })); setCouponPreview(null); }} placeholder="Ex.: ZAILOM20" maxLength={40} />
+                      <Button type="button" variant="outline" onClick={applyCoupon} disabled={couponLoading || !formData.coupon_code.trim() || !selectedPlan}>{couponLoading ? "Validando..." : "Validar"}</Button>
+                    </div>
+                    {couponPreview && <p className="text-xs text-green-600">Cupom válido: desconto de R$ {Number(couponPreview.discount_amount).toFixed(2).replace(".", ",")}. Total inicial: <strong>R$ {Number(couponPreview.discounted_amount).toFixed(2).replace(".", ",")}</strong>.</p>}
                     <p className="text-xs text-muted-foreground">Cupom válido para o plano/período selecionado. Não acumula com desconto especial manual.</p>
                   </div>
                   <div className="rounded-lg border border-primary/20 p-4 space-y-4">
