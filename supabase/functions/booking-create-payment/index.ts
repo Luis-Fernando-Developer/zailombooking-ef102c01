@@ -372,7 +372,6 @@ serve(async (req) => {
           } catch (error) { console.warn('[BOOKING_PAYMENT] Asaas PIX QR indisponível:', (error as Error).message) }
         }
       } else if (receiverProvider === 'mercadopago') {
-        const acceptedMethods: Record<string, string> = { PIX: 'pix', CREDIT_CARD: 'credit_card', DEBIT_CARD: 'debit_card', BOLETO: 'ticket' }
         const preference = await requestJson('https://api.mercadopago.com/checkout/preferences', {
           method: 'POST',
           headers: { Authorization: `Bearer ${decryptedKey}`, 'Content-Type': 'application/json' },
@@ -414,6 +413,7 @@ serve(async (req) => {
         }, 'Stripe')
         invoiceUrl = paymentResult.url || null
       } else if (receiverProvider === 'pagarme') {
+        if (selectedMethod === 'DEBIT_CARD') throw new Error('O checkout do Pagar.me configurado neste fluxo aceita PIX, crédito ou boleto, mas não débito direto. Escolha outro método.');
         const acceptedMethod = selectedMethod === 'PIX' ? 'pix' : selectedMethod === 'BOLETO' ? 'boleto' : 'credit_card'
         const cents = Math.round(amount * 100)
         const paymentSettings: Record<string, unknown> = { accepted_payment_methods: [acceptedMethod] }
