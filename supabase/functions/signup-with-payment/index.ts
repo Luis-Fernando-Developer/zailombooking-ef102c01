@@ -477,12 +477,24 @@ serve(async (req) => {
         if (couponReservation && firstPayment?.id) {
           const expectedAmount = Number(couponReservation.discounted_amount);
           if (Math.abs(Number(firstPayment.value ?? amount) - expectedAmount) >= 0.01) {
-            const adjusted = await asaas(`/payments/${firstPayment.id}`, {
-              method: "PUT",
-              body: JSON.stringify({ value: expectedAmount }),
-            });
-            firstPayment = { ...firstPayment, ...adjusted, value: expectedAmount };
+            try {
+              const adjusted = await asaas(`/payments/${firstPayment.id}`, {
+                method: "PUT",
+                body: JSON.stringify({ value: expectedAmount }),
+              });
+              firstPayment = { ...firstPayment, ...adjusted, value: expectedAmount };
+            } catch (adjustError) {
+              await asaas(`/subscriptions/${asaasSubscriptionId}`, { method: "DELETE" }).catch(() => {});
+              asaasSubscriptionId = null;
+              firstPayment = null;
+              throw adjustError;
+            }
           }
+        }
+        if (couponReservation && !firstPayment && asaasSubscriptionId) {
+          await asaas(`/subscriptions/${asaasSubscriptionId}`, { method: "DELETE" }).catch(() => {});
+          asaasSubscriptionId = null;
+          throw new Error("O Asaas não gerou a primeira cobrança com o cupom. A assinatura foi cancelada para evitar cobrança pelo valor integral.");
         }
       }
 
