@@ -216,7 +216,7 @@ serve(async (req) => {
     }
 
     // regenerate: cancelar a cobrança anterior no Asaas e confirmar que não pode mais ser paga
-    if (!["overdue", "cancelled", "failed"].includes(String(invoice.status))) {
+    if (!["overdue", "cancelled", "failed", "refunded"].includes(String(invoice.status))) {
       return json({ error: "Só é possível gerar uma nova cobrança para uma fatura vencida, cancelada ou com falha." }, 409);
     }
     if (invoice.asaas_payment_id) {
