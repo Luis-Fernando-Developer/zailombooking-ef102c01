@@ -153,8 +153,12 @@ serve(async (req) => {
       if (!company.owner_email) return json({ error: "A empresa não possui e-mail do proprietário." }, 400);
       const resendKey = (Deno.env.get("RESEND_API_KEY") || "").trim();
       if (!resendKey) return json({ error: "RESEND_API_KEY não está configurada." }, 500);
+      if (String(invoice.status).toLowerCase() === "cancelled") {
+        return json({ error: "Esta cobrança está cancelada. Use Gerar nova cobrança." }, 409);
+      }
       let paymentLink = invoice.invoice_url || invoice.bank_slip_url || "";
       let asaasStatus: string | null = null;
+      let amountToCharge = Number(invoice.amount || 0);
       if (invoice.asaas_payment_id && asaasKey) {
         const payment = await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}`);
         asaasStatus = payment.status;
@@ -162,10 +166,18 @@ serve(async (req) => {
         if (mapped === "paid") return json({ error: "Esta cobrança já consta como paga. Atualize o status antes de reenviar." }, 409);
         if (["cancelled", "refunded", "failed"].includes(mapped)) return json({ error: "Esta cobrança não está mais ativa. Use Gerar nova cobrança." }, 409);
         paymentLink = payment.invoiceUrl || payment.bankSlipUrl || paymentLink;
+        const discountValue = Number(payment.discount?.value || 0);
+        if (discountValue > 0 && String(payment.discount?.type || "FIXED").toUpperCase() === "PERCENTAGE") {
+          amountToCharge = Number((Number(payment.value || amountToCharge) * (1 - discountValue / 100)).toFixed(2));
+        } else if (discountValue > 0) {
+          amountToCharge = Math.max(0, Number((Number(payment.value || amountToCharge) - discountValue).toFixed(2)));
+        } else if (Number(payment.value) > 0) {
+          amountToCharge = Number(payment.value);
+        }
       }
       if (!paymentLink) return json({ error: "Não há link de pagamento nesta fatura." }, 400);
       const from = (Deno.env.get("BILLING_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
-      const amount = Number(invoice.amount || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const amount = amountToCharge.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
@@ -189,12 +201,11 @@ serve(async (req) => {
         const mapped = localStatus(current.status);
         if (mapped === "paid") return json({ error: "O Asaas informa que esta cobrança foi paga. Atualize o status em vez de cancelar." }, 409);
         if (!["cancelled", "failed"].includes(mapped)) {
+          // O DELETE 2xx é a confirmação da solicitação. O GET subsequente pode
+          // continuar retornando PENDING mesmo quando o link público já foi removido.
+          // Não fazemos GET de verificação, pois ele gera falsos 409.
           await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}`, { method: "DELETE" });
-          const verify = await asaas(`/payments/${encodeURIComponent(invoice.asaas_payment_id)}`);
-          providerStatus = verify.status;
-          if (!["DELETED", "CANCELLED"].includes(String(verify.status).toUpperCase())) {
-            return json({ error: "O Asaas não confirmou o cancelamento. Nenhuma nova cobrança foi criada.", asaas_status: verify.status }, 409);
-          }
+          providerStatus = "DELETE_ACCEPTED";
         }
       }
       await saveStatus("cancelled");
