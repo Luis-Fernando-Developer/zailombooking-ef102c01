@@ -569,6 +569,7 @@ serve(async (req) => {
     if (firstPayment?.id) {
       const invLocal: Record<string, unknown> = {
         company_id: companyId,
+        subscription_id: localSubscriptionId,
         amount: Number(firstPayment?.value ?? couponReservation?.discounted_amount ?? amount),
         metadata: couponReservation ? { coupon_id: couponReservation.coupon_id, coupon_code: couponReservation.code, original_amount: Number(amount), discount_amount: Number(couponReservation.discount_amount), discounted_amount: Number(couponReservation.discounted_amount), discount_type: couponReservation.discount_type, discount_value: Number(couponReservation.discount_value), duration_cycles: Number(couponReservation.duration_cycles) } : {},
         status: "pending",
