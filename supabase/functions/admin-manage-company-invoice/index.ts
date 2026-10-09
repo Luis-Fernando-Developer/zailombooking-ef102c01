@@ -276,11 +276,20 @@ serve(async (req) => {
         let originalPrice = Number(invoice.metadata?.original_amount || 0);
         if (invoice.subscription_id) {
           const { data: subscription } = await admin.from("company_subscriptions")
-            .select("discount_percentage,original_price").eq("id", invoice.subscription_id).maybeSingle();
+            .select("discount_percentage,original_price,coupon_code,coupon_discount_type,coupon_discount_value,coupon_cycles_remaining").eq("id", invoice.subscription_id).maybeSingle();
           configuredDiscountPercentage = Number(subscription?.discount_percentage || configuredDiscountPercentage);
           originalPrice = Number(subscription?.original_price || originalPrice);
+          if (subscription?.coupon_code && Number(subscription?.coupon_cycles_remaining || 0) > 0) {
+            // O valor do pagamento retornado pelo Asaas já contém o desconto do ciclo.
+            amountToCharge = providerValue;
+          }
         }
-        if (configuredDiscountPercentage > 0) {
+        if (invoice.subscription_id) {
+          const { data: couponSubscription } = await admin.from("company_subscriptions")
+            .select("coupon_code,coupon_cycles_remaining").eq("id", invoice.subscription_id).maybeSingle();
+          if (couponSubscription?.coupon_code && Number(couponSubscription.coupon_cycles_remaining || 0) > 0) {
+            amountToCharge = providerValue;
+          } else if (configuredDiscountPercentage > 0) {
           const base = originalPrice > 0 ? originalPrice : providerValue;
           amountToCharge = Math.max(0, Number((base * (1 - configuredDiscountPercentage / 100)).toFixed(2)));
         } else {
@@ -291,6 +300,9 @@ serve(async (req) => {
             : 0;
           amountToCharge = Math.max(0, Number((providerValue - discountAmount).toFixed(2)));
         }
+        } else if (!invoice.metadata?.coupon_code && configuredDiscountPercentage > 0) {
+          const base = originalPrice > 0 ? originalPrice : providerValue;
+          amountToCharge = Math.max(0, Number((base * (1 - configuredDiscountPercentage / 100)).toFixed(2)));
         }
         if (payment.invoiceUrl || payment.bankSlipUrl) {
           await admin.from("company_invoices").update({
