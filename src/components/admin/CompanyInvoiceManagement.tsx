@@ -158,9 +158,9 @@ export function CompanyInvoiceManagement({ companyId, companyName }: Props) {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                {paymentUrl && <Button type="button" size="sm" variant="outline" asChild><a href={paymentUrl} target="_blank" rel="noreferrer"><FileText className="mr-1.5 h-3.5 w-3.5" /> Abrir / baixar fatura</a></Button>}
-                {invoice.asaas_payment_id && <Button type="button" size="sm" variant="outline" disabled={isBusy} onClick={() => void runAction(invoice, "refresh")}>{isBusy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />} Consultar Asaas</Button>}
-                {payable && <Button type="button" size="sm" variant="outline" disabled={isBusy} onClick={() => void runAction(invoice, "resend")}><Mail className="mr-1.5 h-3.5 w-3.5" /> Reenviar cobrança</Button>}
+                {paymentUrl && status !== "cancelled" && <Button type="button" size="sm" variant="outline" asChild><a href={paymentUrl} target="_blank" rel="noreferrer"><FileText className="mr-1.5 h-3.5 w-3.5" /> Abrir / baixar fatura</a></Button>}
+                {invoice.asaas_payment_id && status !== "cancelled" && <Button type="button" size="sm" variant="outline" disabled={isBusy} onClick={() => void runAction(invoice, "refresh")}>{isBusy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />} Consultar Asaas</Button>}
+                {payable && status !== "cancelled" && <Button type="button" size="sm" variant="outline" disabled={isBusy} onClick={() => void runAction(invoice, "resend")}><Mail className="mr-1.5 h-3.5 w-3.5" /> Reenviar cobrança</Button>}
                 {canRegenerate && <Button type="button" size="sm" variant="outline" disabled={isBusy} onClick={() => askConfirmation(invoice, "regenerate")}><RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Gerar nova cobrança</Button>}
                 {payable && <Button type="button" size="sm" variant="outline" disabled={isBusy} onClick={() => askConfirmation(invoice, "cancel")}><Ban className="mr-1.5 h-3.5 w-3.5" /> Cancelar cobrança</Button>}
                 {status === "paid" && invoice.asaas_payment_id && <Button type="button" size="sm" variant="destructive" disabled={isBusy} onClick={() => askConfirmation(invoice, "refund")}><RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reembolsar</Button>}
