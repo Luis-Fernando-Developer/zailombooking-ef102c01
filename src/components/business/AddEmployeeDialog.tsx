@@ -71,6 +71,7 @@ const MODULE_LABELS: Record<string, string> = {
   chatbot: "Chatbot",
   whatsapp: "WhatsApp",
   finance: "Financeiro",
+  coupons: "Cupons promocionais",
 };
 
 interface AddEmployeeDialogProps {
