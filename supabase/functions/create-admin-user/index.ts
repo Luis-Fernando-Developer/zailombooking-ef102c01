@@ -394,7 +394,7 @@ serve(async (req) => {
               for (let attempt = 0; attempt < 10 && !firstPayment; attempt++) {
                 const payments = await asaas(`/subscriptions/${subscriptionId}/payments`, { method: "GET" });
                 firstPayment = payments?.data?.[0] ?? null;
-                if (firstPayment?.id && couponReservation && Math.abs(Number(firstPayment.value ?? amount) - discountedAmount) >= 0.01) {
+                if (firstPayment?.id && couponReservation && Number(couponReservation.duration_cycles) <= 1 && Math.abs(Number(firstPayment.value ?? amount) - discountedAmount) >= 0.01) {
                   try {
                     const adjustedPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
                     firstPayment = { ...firstPayment, ...adjustedPayment, value: discountedAmount };
