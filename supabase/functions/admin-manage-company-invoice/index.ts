@@ -53,8 +53,18 @@ serve(async (req) => {
     if (userError || !userData.user) return json({ error: "Sessão inválida." }, 401);
     const user = userData.user;
 
-    const { data: adminRole } = await admin.from("user_roles").select("role")
-      .eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    // A gestão destas faturas pertence ao painel global. Projetos mais antigos
+    // usam "admin" e os atuais podem usar "super_admin" para identificar esse
+    // mesmo acesso global; aceitar ambos evita bloquear o próprio Super Admin.
+    const { data: adminRole, error: roleError } = await admin.from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["admin", "super_admin"])
+      .maybeSingle();
+    if (roleError) {
+      console.error("[admin-manage-company-invoice] role lookup failed", roleError.message);
+      return json({ error: "Não foi possível validar sua permissão administrativa." }, 500);
+    }
     if (!adminRole) return json({ error: "Acesso restrito ao Super Admin." }, 403);
 
     const body = await req.json().catch(() => ({}));
