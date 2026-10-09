@@ -102,6 +102,9 @@ serve(async (req) => {
             const baseAmount = Number(payment.value ?? item.amount ?? 0);
             const discountValue = Number(payment.discount?.value || 0);
             const discountType = String(payment.discount?.type || "FIXED").toUpperCase();
+            // A API do Asaas informa "value" como o desconto, não o valor final.
+            // Para pagamentos recém-gerados pelo Zailom, a fatura local também
+            // guarda o valor efetivamente cobrado quando o desconto já foi aplicado.
             const discountAmount = discountValue > 0
               ? Number((discountType === "PERCENTAGE" ? baseAmount * discountValue / 100 : discountValue).toFixed(2))
               : 0;
@@ -194,7 +197,7 @@ serve(async (req) => {
       if (String(invoice.status).toLowerCase() === "cancelled") {
         return json({ error: "Esta cobrança está cancelada. Use Gerar nova cobrança." }, 409);
       }
-      let paymentLink = invoice.invoice_url || invoice.bank_slip_url || "";
+      let paymentLink = "";
       let asaasStatus: string | null = null;
       let amountToCharge = Number(invoice.amount || 0);
       if (invoice.asaas_payment_id && asaasKey) {
@@ -203,17 +206,27 @@ serve(async (req) => {
         const mapped = localStatus(payment.status);
         if (mapped === "paid") return json({ error: "Esta cobrança já consta como paga. Atualize o status antes de reenviar." }, 409);
         if (["cancelled", "refunded", "failed"].includes(mapped)) return json({ error: "Esta cobrança não está mais ativa. Use Gerar nova cobrança." }, 409);
-        paymentLink = payment.invoiceUrl || payment.bankSlipUrl || paymentLink;
+        // Nunca usar URL guardada localmente como fallback: ela pode pertencer à
+        // cobrança anterior. O link do e-mail precisa ser do ID Asaas desta fatura.
+        paymentLink = payment.invoiceUrl || payment.bankSlipUrl || "";
+        const providerValue = Number(payment.value || amountToCharge);
         const discountValue = Number(payment.discount?.value || 0);
-        if (discountValue > 0 && String(payment.discount?.type || "FIXED").toUpperCase() === "PERCENTAGE") {
-          amountToCharge = Number((Number(payment.value || amountToCharge) * (1 - discountValue / 100)).toFixed(2));
-        } else if (discountValue > 0) {
-          amountToCharge = Math.max(0, Number((Number(payment.value || amountToCharge) - discountValue).toFixed(2)));
-        } else if (Number(payment.value) > 0) {
-          amountToCharge = Number(payment.value);
+        const discountType = String(payment.discount?.type || "FIXED").toUpperCase();
+        const discountAmount = discountValue > 0
+          ? Number((discountType === "PERCENTAGE" ? providerValue * discountValue / 100 : discountValue).toFixed(2))
+          : 0;
+        amountToCharge = Math.max(0, Number((providerValue - discountAmount).toFixed(2)));
+        if (payment.invoiceUrl || payment.bankSlipUrl) {
+          await admin.from("company_invoices").update({
+            invoice_url: payment.invoiceUrl || null,
+            bank_slip_url: payment.bankSlipUrl || null,
+            updated_at: new Date().toISOString(),
+          }).eq("id", invoice.id);
         }
+      } else {
+        return json({ error: "Esta fatura não possui ID Asaas válido para obter o link atualizado. Gere uma nova cobrança." }, 409);
       }
-      if (!paymentLink) return json({ error: "Não há link de pagamento nesta fatura." }, 400);
+      if (!paymentLink) return json({ error: "O Asaas não retornou um link válido para esta cobrança. Nenhum e-mail foi enviado." }, 400);
       const from = (Deno.env.get("BILLING_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
       const amount = amountToCharge.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       const response = await fetch("https://api.resend.com/emails", {
@@ -303,11 +316,29 @@ serve(async (req) => {
     if (!customerId) return json({ error: "Empresa sem cliente vinculado no Asaas. Corrija o cadastro do cliente antes de gerar nova cobrança." }, 400);
     const billingType = ["PIX", "BOLETO", "CREDIT_CARD"].includes(String(invoice.billing_type).toUpperCase()) ? String(invoice.billing_type).toUpperCase() : "PIX";
     const dueDate = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-    const newDescription = invoice.description || `Assinatura Zailom Booking — ${company.name}`;
+    const newDescription = (invoice.description || `Assinatura Zailom Booking — ${company.name}`).replace(/\s*\(nova cobrança\)$/i, "");
+    // Recuperar o desconto vigente da assinatura para aplicar também à cobrança
+    // substituta, em vez de gerar sempre o preço cheio.
+    let discountPercentage = 0;
+    let discountCyclesRemaining = 0;
+    let originalPrice = Number(invoice.amount || 0);
+    if (invoice.subscription_id) {
+      const { data: subscription } = await admin.from("company_subscriptions")
+        .select("discount_percentage,discount_cycles_remaining,original_price")
+        .eq("id", invoice.subscription_id).maybeSingle();
+      discountPercentage = Math.min(100, Math.max(0, Number(subscription?.discount_percentage || 0)));
+      discountCyclesRemaining = Math.max(0, Number(subscription?.discount_cycles_remaining || 0));
+      originalPrice = Number(subscription?.original_price || originalPrice);
+    }
+    // Se a fatura existente já contém um valor descontado, preferir o preço-base
+    // salvo na assinatura; não reaplicar desconto sobre o valor líquido.
+    const baseAmount = originalPrice > 0 ? originalPrice : Number(invoice.amount || 0);
+    const discountAmount = Number((baseAmount * discountPercentage / 100).toFixed(2));
+    const payableAmount = Math.max(0, Number((baseAmount - discountAmount).toFixed(2)));
     const { data: newInvoice, error: createInvoiceError } = await admin.from("company_invoices").insert({
       company_id: company.id,
       subscription_id: invoice.subscription_id || null,
-      amount: invoice.amount,
+      amount: payableAmount,
       status: "pending",
       billing_type: billingType,
       due_date: dueDate + "T12:00:00.000Z",
@@ -316,7 +347,7 @@ serve(async (req) => {
       cycle_end_at: null,
       kind: invoice.kind || "subscription",
       asaas_customer_id: customerId,
-      metadata: { ...(invoice.metadata || {}), replaced_invoice_id: invoice.id, replacement_created_at: new Date().toISOString() },
+      metadata: { ...(invoice.metadata || {}), replaced_invoice_id: invoice.id, replacement_created_at: new Date().toISOString(), original_amount: baseAmount, discount_percentage: discountPercentage, discount_cycles_remaining: discountCyclesRemaining },
     }).select("id").single();
     if (createInvoiceError || !newInvoice) throw createInvoiceError || new Error("Não foi possível registrar a nova fatura.");
 
@@ -326,8 +357,9 @@ serve(async (req) => {
         body: JSON.stringify({
           customer: customerId,
           billingType,
-          value: Number(invoice.amount),
+          value: baseAmount,
           dueDate,
+          ...(discountPercentage > 0 ? { discount: { value: discountPercentage, type: "PERCENTAGE", dueDateLimitDays: 0 } } : {}),
           description: newDescription + " (nova cobrança)",
           externalReference: `subscription:${newInvoice.id}:${company.id}`,
         }),
@@ -337,6 +369,7 @@ serve(async (req) => {
         asaas_payment_id: payment.id,
         invoice_url: payment.invoiceUrl || null,
         bank_slip_url: payment.bankSlipUrl || null,
+        amount: payableAmount,
         updated_at: new Date().toISOString(),
       }).eq("id", newInvoice.id);
       if (invoice.status === "overdue") {
