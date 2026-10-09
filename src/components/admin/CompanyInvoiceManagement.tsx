@@ -134,7 +134,7 @@ export function CompanyInvoiceManagement({ companyId, companyName }: Props) {
           const status = String(invoice.status || "pending").toLowerCase();
           const isBusy = busyId === invoice.id;
           const payable = ["pending", "overdue", "processing"].includes(status);
-          const canRegenerate = ["overdue", "cancelled", "failed"].includes(status);
+          const canRegenerate = ["overdue", "cancelled", "failed", "refunded"].includes(status);
           const paymentUrl = invoice.invoice_url || invoice.bank_slip_url;
           return (
             <div key={invoice.id} className="rounded-lg border p-3 space-y-3">
