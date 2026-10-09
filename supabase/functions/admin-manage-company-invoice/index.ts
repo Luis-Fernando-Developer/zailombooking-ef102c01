@@ -61,7 +61,21 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || "");
     const invoiceId = String(body.invoice_id || "");
-    if (!["refresh", "resend", "cancel", "refund", "regenerate"].includes(action)) return json({ error: "Ação inválida." }, 400);
+    if (!["list", "refresh", "resend", "cancel", "refund", "regenerate"].includes(action)) return json({ error: "Ação inválida." }, 400);
+
+    if (action === "list") {
+      const companyId = String(body.company_id || "");
+      if (!companyId) return json({ error: "ID da empresa não informado." }, 400);
+      const { data: invoices, error: listError } = await admin.from("company_invoices")
+        .select("*").eq("company_id", companyId).order("created_at", { ascending: false }).limit(100);
+      if (listError) throw listError;
+      const { data: history, error: historyError } = await admin.from("company_invoice_admin_audit")
+        .select("id,company_id,invoice_id,actor_user_id,action,previous_status,resulting_status,details,created_at")
+        .eq("company_id", companyId).order("created_at", { ascending: false }).limit(100);
+      if (historyError) throw historyError;
+      return json({ success: true, invoices: invoices || [], history: history || [] });
+    }
+
     if (!invoiceId) return json({ error: "Fatura não informada." }, 400);
 
     const { data: invoice, error: invoiceError } = await admin.from("company_invoices")
