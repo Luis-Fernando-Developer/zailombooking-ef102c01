@@ -62,7 +62,7 @@ const menuItems: MenuItem[] = [
   { title: "Ausências", url: "/admin/ausencias", icon: CalendarOff, permission: "employees.view" },
   { title: "Horários", url: "/admin/horarios", icon: Clock, permission: "employees.view" },
   { title: "Serviços", url: "/admin/servicos", icon: Briefcase, permission: "services.view" },
-  { title: "Cupons promocionais", url: "/admin/cupons", icon: Ticket, permission: "settings.manage" },
+  { title: "Cupons promocionais", url: "/admin/cupons", icon: Ticket, permission: "coupons.view" },
   { title: "Colaboradores", url: "/admin/colaboradores", icon: Users, permission: "employees.view" },
   { title: "Recursos Humanos", url: "/admin/recursos-humanos", icon: UserRoundCog, permission: "hr.view" },
   { title: "Solicitações", url: "/admin/solicitacoes", icon: Inbox, permission: "reallocation.view" },
@@ -181,10 +181,13 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
     if (!permission) return false;
     if (effectiveUserRole === 'owner' || effectiveUserRole === 'admin') return true;
 
-    // Configurações permanece visível enquanto houver qualquer
-    // permissão ativa do módulo settings, independentemente do tipo.
+    // Configurações e Cupons ficam visíveis se o colaborador tiver alguma
+    // permissão do respectivo módulo, sem exigir permissão de administração.
     if (permission === 'settings.view') {
       return Array.from(permissionCodes).some((code) => code.startsWith('settings.'));
+    }
+    if (permission === 'coupons.view') {
+      return Array.from(permissionCodes).some((code) => code.startsWith('coupons.'));
     }
 
     return hasPermission(permission);
