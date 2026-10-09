@@ -36,6 +36,7 @@ import {
   UserRoundCog,
   BarChart3,
   Wallet,
+  Ticket,
   LogOut,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -61,6 +62,7 @@ const menuItems: MenuItem[] = [
   { title: "Ausências", url: "/admin/ausencias", icon: CalendarOff, permission: "employees.view" },
   { title: "Horários", url: "/admin/horarios", icon: Clock, permission: "employees.view" },
   { title: "Serviços", url: "/admin/servicos", icon: Briefcase, permission: "services.view" },
+  { title: "Cupons promocionais", url: "/admin/cupons", icon: Ticket, permission: "settings.manage" },
   { title: "Colaboradores", url: "/admin/colaboradores", icon: Users, permission: "employees.view" },
   { title: "Recursos Humanos", url: "/admin/recursos-humanos", icon: UserRoundCog, permission: "hr.view" },
   { title: "Solicitações", url: "/admin/solicitacoes", icon: Inbox, permission: "reallocation.view" },
