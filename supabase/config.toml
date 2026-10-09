@@ -19,6 +19,9 @@ verify_jwt = false
 [functions.super-admin-gateway-config]
 verify_jwt = false
 
+[functions.validate-subscription-coupon]
+verify_jwt = false
+
 [functions.signup-with-payment]
 verify_jwt = false
 
