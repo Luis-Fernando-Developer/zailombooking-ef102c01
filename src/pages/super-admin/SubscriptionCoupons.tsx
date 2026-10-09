@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Percent, Plus, Save, Ticket, ToggleLeft, ToggleRight } from "lucide-react";
+import { Save, Ticket, ToggleLeft, ToggleRight } from "lucide-react";
 
 type Period = "monthly" | "quarterly" | "annual";
 type Coupon = {
@@ -26,7 +26,7 @@ type Coupon = {
   max_redemptions: number | null;
   is_active: boolean;
   created_at: string;
-  subscription_coupon_redemptions?: { id: string; status: string; company_id: string }[];
+  subscription_coupon_redemptions?: { id: string; status: string; company_id: string; code?: string; discount_amount?: number; discounted_amount?: number; created_at?: string }[];
 };
 
 type CouponForm = {
