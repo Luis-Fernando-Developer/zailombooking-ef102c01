@@ -89,6 +89,43 @@ serve(async (req) => {
       });
     }
 
+    // Pré-validação antes de criar credenciais ou enviar e-mails; a reserva atômica
+    // e definitiva ocorre depois, no provisionamento da assinatura.
+    const requestedCouponCode = String(metadata?.coupon_code ?? "").trim().toUpperCase();
+    if (requestedCouponCode) {
+      if (Number(metadata?.discount_percentage ?? 0) > 0) {
+        return new Response(JSON.stringify({ error: "Cupom de aquisição não pode ser acumulado com desconto manual." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const requestedPeriod = ["monthly","quarterly","annual"].includes(String(metadata?.billing_period)) ? String(metadata.billing_period) : "monthly";
+      const { data: requestedPlan } = await supabaseClient.from("subscription_plans")
+        .select("id,monthly_price,quarterly_price,annual_price")
+        .eq("id", metadata?.plan_id ?? "").maybeSingle();
+      const { data: requestedCoupon, error: requestedCouponError } = await supabaseClient.from("subscription_coupons")
+        .select("id,is_active,plan_ids,billing_periods,starts_at,expires_at,max_redemptions")
+        .eq("code", requestedCouponCode).maybeSingle();
+      let couponValidationError: string | null = null;
+      if (requestedCouponError) couponValidationError = "Não foi possível validar o cupom.";
+      else if (!requestedCoupon || !requestedCoupon.is_active) couponValidationError = "Cupom inválido ou inativo.";
+      else if (requestedCoupon.starts_at && Date.now() < new Date(requestedCoupon.starts_at).getTime()) couponValidationError = "Este cupom ainda não está válido.";
+      else if (requestedCoupon.expires_at && Date.now() > new Date(requestedCoupon.expires_at).getTime()) couponValidationError = "Este cupom expirou.";
+      else if ((requestedCoupon.plan_ids || []).length && !requestedCoupon.plan_ids.includes(String(metadata?.plan_id ?? ""))) couponValidationError = "Este cupom não é válido para o plano selecionado.";
+      else if (!(requestedCoupon.billing_periods || []).includes(requestedPeriod)) couponValidationError = "Este cupom não é válido para o período selecionado.";
+      if (!couponValidationError && requestedCoupon?.max_redemptions != null) {
+        const { count, error: usageError } = await supabaseClient.from("subscription_coupon_redemptions")
+          .select("id", { count: "exact", head: true }).eq("coupon_id", requestedCoupon.id).in("status", ["reserved","applied","paid"]);
+        if (usageError) couponValidationError = "Não foi possível verificar o limite deste cupom.";
+        else if ((count || 0) >= requestedCoupon.max_redemptions) couponValidationError = "Este cupom atingiu o limite de utilizações.";
+      }
+      if (!requestedPlan) couponValidationError = "Plano selecionado não encontrado.";
+      if (couponValidationError) {
+        return new Response(JSON.stringify({ error: couponValidationError }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     console.log(`[AdminCreateUser] Criando usuário: ${email}`);
 
     // 3. A identidade Auth é GLOBAL. A senha empresarial NÃO é a senha do Auth.
