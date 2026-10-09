@@ -330,7 +330,7 @@ serve(async (req) => {
                       discount: {
                         value: Number(couponReservation.discount_value),
                         type: couponReservation.discount_type === "percentage" ? "PERCENTAGE" : "FIXED",
-                        limitDate: (() => { const d = new Date(); const n = Number(couponReservation.duration_cycles); if (billingPeriod === "annual") d.setFullYear(d.getFullYear() + n); else if (billingPeriod === "quarterly") d.setMonth(d.getMonth() + n * 3); else d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); })(),
+                        limitDate: (() => { const d = new Date(); const n = Math.max(0, Number(couponReservation.duration_cycles) - 1); if (billingPeriod === "annual") d.setFullYear(d.getFullYear() + n); else if (billingPeriod === "quarterly") d.setMonth(d.getMonth() + n * 3); else d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); })(),
                         dueDateLimitDays: 0,
                       },
                     } : discountPercentage > 0 && discountCycles > 0 ? { discount: { value: discountPercentage, type: "PERCENTAGE", limitDate: new Date(Date.now() + (billingPeriod === "annual" ? 365 : billingPeriod === "quarterly" ? 90 : 30) * discountCycles * 86400000).toISOString().slice(0, 10), dueDateLimitDays: 0 } } : {}),
