@@ -32,7 +32,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS subscription_coupons_code_unique
 CREATE TABLE IF NOT EXISTS public.subscription_coupon_redemptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   coupon_id uuid NOT NULL REFERENCES public.subscription_coupons(id) ON DELETE RESTRICT,
-  company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE RESTRICT,
+  company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   subscription_id uuid REFERENCES public.company_subscriptions(id) ON DELETE SET NULL,
   invoice_id uuid REFERENCES public.company_invoices(id) ON DELETE SET NULL,
   code text NOT NULL,
@@ -164,6 +164,9 @@ BEGIN
     v_discount := least(_original_amount, c.discount_value);
   END IF;
   v_due := greatest(0, round(_original_amount - v_discount, 2));
+  IF v_due <= 0 THEN
+    RAISE EXCEPTION 'O desconto não pode zerar a cobrança do Asaas.';
+  END IF;
   v_cycles := CASE WHEN c.duration_type = 'first_payment' THEN 1 ELSE c.duration_cycles END;
 
   IF v_has_existing THEN
