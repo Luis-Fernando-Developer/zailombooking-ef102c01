@@ -48,6 +48,8 @@ export default function SignUp() {
   );
   const [billingType, setBillingType] = useState<"PIX" | "BOLETO" | "CREDIT_CARD">("PIX");
   const [couponCode, setCouponCode] = useState("");
+  const [couponPreview, setCouponPreview] = useState<any>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [segments, setSegments] = useState<{ id: string; slug: string; name: string }[]>([]);
   const [niches, setNiches] = useState<{ id: string; slug: string; name: string; segment_id: string }[]>([]);
   const [formData, setFormData] = useState({
@@ -167,6 +169,28 @@ export default function SignUp() {
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim() || !selectedPlan) {
+      toast({ title: "Cupom e plano obrigatórios", description: "Informe o cupom e selecione o plano.", variant: "destructive" });
+      return;
+    }
+    setIsApplyingCoupon(true);
+    setCouponPreview(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-subscription-coupon", {
+        body: { code: couponCode.trim().toUpperCase(), plan_id: selectedPlan.id, billing_period: billingPeriod, original_amount: getPrice(selectedPlan) },
+      });
+      if (error || !data?.valid) throw new Error(data?.error || error?.message || "Não foi possível validar o cupom.");
+      setCouponPreview(data);
+      toast({ title: "Cupom aplicado", description: "O desconto será validado novamente no servidor durante a contratação." });
+    } catch (error) {
+      setCouponPreview(null);
+      toast({ title: "Cupom não aplicado", description: error instanceof Error ? error.message : "Cupom inválido.", variant: "destructive" });
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -556,8 +580,12 @@ export default function SignUp() {
 
               <div className="space-y-2 rounded-lg border border-primary/20 p-4">
                 <Label htmlFor="acquisition-coupon">Cupom de desconto (opcional)</Label>
-                <Input id="acquisition-coupon" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase().replace(/\s+/g, ""))} placeholder="Digite seu cupom" maxLength={40} className="bg-background/50" />
+                <div className="flex gap-2">
+                  <Input id="acquisition-coupon" value={couponCode} onChange={(e) => { setCouponCode(e.target.value.toUpperCase().replace(/\s+/g, "")); setCouponPreview(null); }} placeholder="Digite seu cupom" maxLength={40} className="bg-background/50" />
+                  <Button type="button" variant="outline" onClick={applyCoupon} disabled={isApplyingCoupon || !couponCode.trim() || !selectedPlan}>{isApplyingCoupon ? "Validando..." : "Aplicar"}</Button>
+                </div>
                 <p className="text-xs text-muted-foreground">O cupom será validado para o plano e período escolhidos. Descontos não são acumulativos.</p>
+                {couponPreview && <p className="text-sm text-green-600">Desconto de {formatPrice(Number(couponPreview.discount_amount))} aplicado. Total inicial: <strong>{formatPrice(Number(couponPreview.discounted_amount))}</strong>{couponPreview.duration_cycles > 1 ? ` por ${couponPreview.duration_cycles} cobranças` : " na primeira cobrança"}.</p>}
               </div>
 
               {selectedPlan && selectedPlan.name !== "Ruby" && (
@@ -573,7 +601,7 @@ export default function SignUp() {
                           </p>
                         </div>
                       </div>
-                      <p className="text-xl font-bold text-gradient">{formatPrice(getPrice(selectedPlan))}</p>
+                      <div className="text-right">{couponPreview ? <><p className="text-xs text-muted-foreground line-through">{formatPrice(getPrice(selectedPlan))}</p><p className="text-xl font-bold text-gradient">{formatPrice(Number(couponPreview.discounted_amount))}</p></> : <p className="text-xl font-bold text-gradient">{formatPrice(getPrice(selectedPlan))}</p>}</div>
                     </div>
                   </CardContent>
                 </Card>
