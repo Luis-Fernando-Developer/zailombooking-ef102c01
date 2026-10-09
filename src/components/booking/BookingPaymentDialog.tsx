@@ -397,7 +397,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
         <DialogHeader>
           <DialogTitle>Pagamento do agendamento</DialogTitle>
           <DialogDescription>
-            Valor: <strong>R$ {amount.toFixed(2)}</strong>
+            Valor: <strong>R$ {Number(payment?.amount ?? amount).toFixed(2)}</strong>
             {holdSecondsLeft != null && holdSecondsLeft > 0 && (
               <span className="block mt-1 text-amber-600 font-medium">
                 Horário reservado para você por {Math.floor(holdSecondsLeft / 60)}:{String(holdSecondsLeft % 60).padStart(2, "0")}
