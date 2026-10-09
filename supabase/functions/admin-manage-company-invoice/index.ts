@@ -87,31 +87,52 @@ serve(async (req) => {
       // company_invoices.amount pode representar o preço-base, enquanto o Asaas
       // mantém o desconto no pagamento (por exemplo, R$ 149,00 - R$ 5,96).
       const listAsaasKey = await gatewayConfig(admin, "ASAAS_API_KEY");
+      const subscriptionIds = [...new Set((invoices || []).map((item: any) => item.subscription_id).filter(Boolean))];
+      const discountBySubscription = new Map<string, { percentage: number; originalPrice: number }>();
+      if (subscriptionIds.length) {
+        const { data: subscriptions } = await admin.from("company_subscriptions")
+          .select("id,discount_percentage,original_price").in("id", subscriptionIds);
+        for (const subscription of subscriptions || []) {
+          discountBySubscription.set(subscription.id, {
+            percentage: Math.min(100, Math.max(0, Number(subscription.discount_percentage || 0))),
+            originalPrice: Number(subscription.original_price || 0),
+          });
+        }
+      }
       let enrichedInvoices = invoices || [];
       if (listAsaasKey) {
         const listSandbox = listAsaasKey.includes("hmlg") || !listAsaasKey.startsWith("$aact_");
         const listBaseUrl = listSandbox ? "https://sandbox.asaas.com/api/v3" : "https://api.asaas.com/v3";
         enrichedInvoices = await Promise.all((invoices || []).map(async (item: any) => {
-          if (!item.asaas_payment_id) return { ...item, amount_due: Number(item.amount || 0), discount_amount: 0 };
+          const subscriptionDiscount = item.subscription_id ? discountBySubscription.get(item.subscription_id) : undefined;
+          if (!item.asaas_payment_id) {
+            const base = subscriptionDiscount?.originalPrice || Number(item.amount || 0);
+            const pct = subscriptionDiscount?.percentage || 0;
+            const disc = Number((base * pct / 100).toFixed(2));
+            return { ...item, asaas_value: base, amount_due: Number((base - disc).toFixed(2)), discount_amount: disc };
+          }
           try {
             const response = await fetch(listBaseUrl + "/payments/" + encodeURIComponent(item.asaas_payment_id), {
               headers: { access_token: listAsaasKey, "Content-Type": "application/json" },
             });
             if (!response.ok) return { ...item, amount_due: Number(item.amount || 0), discount_amount: 0 };
             const payment: any = await response.json();
-            const baseAmount = Number(payment.value ?? item.amount ?? 0);
-            const discountValue = Number(payment.discount?.value || 0);
-            const discountType = String(payment.discount?.type || "FIXED").toUpperCase();
-            // A API do Asaas informa "value" como o desconto, não o valor final.
-            // Para pagamentos recém-gerados pelo Zailom, a fatura local também
-            // guarda o valor efetivamente cobrado quando o desconto já foi aplicado.
-            const discountAmount = discountValue > 0
-              ? Number((discountType === "PERCENTAGE" ? baseAmount * discountValue / 100 : discountValue).toFixed(2))
-              : 0;
+            const providerAmount = Number(payment.value ?? item.amount ?? 0);
+            const localBase = subscriptionDiscount?.originalPrice || Number(item.metadata?.original_amount || 0) || providerAmount;
+            const percentage = subscriptionDiscount?.percentage || Number(item.metadata?.discount_percentage || 0);
+            // O percentual configurado no cadastro/assinatura é a fonte confiável.
+            // Não interpretar um valor monetário de desconto do Asaas como percentual.
+            const providerDiscount = Number(payment.discount?.value || 0);
+            const providerType = String(payment.discount?.type || "FIXED").toUpperCase();
+            const discountAmount = percentage > 0
+              ? Number((localBase * percentage / 100).toFixed(2))
+              : providerDiscount > 0
+                ? Number((providerType === "PERCENTAGE" ? providerAmount * providerDiscount / 100 : providerDiscount).toFixed(2))
+                : 0;
+            const baseAmount = percentage > 0 ? localBase : providerAmount;
             const amountDue = Math.max(0, Number((baseAmount - discountAmount).toFixed(2)));
             return {
               ...item,
-              amount: Number(item.amount ?? baseAmount),
               amount_due: amountDue,
               discount_amount: discountAmount,
               asaas_value: baseAmount,
@@ -121,7 +142,13 @@ serve(async (req) => {
           }
         }));
       } else {
-        enrichedInvoices = enrichedInvoices.map((item: any) => ({ ...item, amount_due: Number(item.amount || 0), discount_amount: 0 }));
+        enrichedInvoices = enrichedInvoices.map((item: any) => {
+          const subscriptionDiscount = item.subscription_id ? discountBySubscription.get(item.subscription_id) : undefined;
+          const base = subscriptionDiscount?.originalPrice || Number(item.metadata?.original_amount || 0) || Number(item.amount || 0);
+          const pct = subscriptionDiscount?.percentage || Number(item.metadata?.discount_percentage || 0);
+          const disc = Number((base * pct / 100).toFixed(2));
+          return { ...item, asaas_value: base, amount_due: Number((base - disc).toFixed(2)), discount_amount: disc };
+        });
       }
       return json({ success: true, invoices: enrichedInvoices, history: history || [] });
     }
