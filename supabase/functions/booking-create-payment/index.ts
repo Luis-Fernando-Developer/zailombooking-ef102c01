@@ -476,11 +476,15 @@ serve(async (req) => {
       method: billingType,
       payment_data: responseData.payment,
       metadata: {
-        booking_data: bookingData ?? null,
+        booking_data: resolvedBookingData ?? bookingData ?? null,
         company_id: companyId,
         client_id: booking?.client_id ?? resolvedBookingData?.client_id ?? null,
         employee_id: booking?.employee_id ?? resolvedBookingData?.employee_id ?? null,
+        combo_id: resolvedBookingData?.combo_id ?? null,
         hold_id: hold_id ?? null,
+        coupon_code: couponCode,
+        original_amount: couponCode ? originalAmount : null,
+        coupon_discount_amount: couponCode ? couponDiscountAmount : null,
       }
     })
 
