@@ -351,13 +351,22 @@ serve(async (req) => {
                 const payments = await asaas(`/subscriptions/${subscriptionId}/payments`, { method: "GET" });
                 firstPayment = payments?.data?.[0] ?? null;
                 if (firstPayment?.id && couponReservation && Math.abs(Number(firstPayment.value ?? amount) - discountedAmount) >= 0.01) {
-                  const adjustedPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
-                  firstPayment = { ...firstPayment, ...adjustedPayment, value: discountedAmount };
+                  try {
+                    const adjustedPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
+                    firstPayment = { ...firstPayment, ...adjustedPayment, value: discountedAmount };
+                  } catch (adjustError) {
+                    await asaas(`/subscriptions/${subscriptionId}`, { method: "DELETE" }).catch(() => {});
+                    throw adjustedError;
+                  }
                 } else if (firstPayment?.id && discountPercentage > 0 && discountCycles === 0 && discountPercentage < 100) {
                   const adjustedPayment = await asaas(`/payments/${firstPayment.id}`, { method: "PUT", body: JSON.stringify({ value: discountedAmount }) });
                   firstPayment = { ...firstPayment, ...adjustedPayment, value: discountedAmount };
                 }
                 if (!firstPayment && attempt < 9) await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+              if (couponReservation && !firstPayment) {
+                await asaas(`/subscriptions/${subscriptionId}`, { method: "DELETE" }).catch(() => {});
+                throw new Error("O Asaas não gerou a primeira cobrança com o cupom. A assinatura foi cancelada para evitar cobrança pelo valor integral.");
               }
 
               await supabaseClient.from("companies").update({
