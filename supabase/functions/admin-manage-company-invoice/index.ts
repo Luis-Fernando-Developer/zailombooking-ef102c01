@@ -275,20 +275,18 @@ serve(async (req) => {
           let configuredDiscountPercentage = Number(invoice.metadata?.discount_percentage || 0);
           let originalPrice = Number(invoice.metadata?.original_amount || 0);
           let couponSubscription: any = null;
-          let legacyCyclesRemaining = Math.max(0, Number(invoice.metadata?.discount_cycles_remaining || 0));
           if (invoice.subscription_id) {
             const { data: subscription } = await admin.from("company_subscriptions")
               .select("discount_percentage,discount_cycles_remaining,original_price,coupon_code,coupon_cycles_remaining")
               .eq("id", invoice.subscription_id).maybeSingle();
             configuredDiscountPercentage = Number(subscription?.discount_percentage || configuredDiscountPercentage);
             originalPrice = Number(subscription?.original_price || originalPrice);
-            legacyCyclesRemaining = Math.max(0, Number(subscription?.discount_cycles_remaining ?? legacyCyclesRemaining));
             couponSubscription = subscription;
           }
           if (couponSubscription?.coupon_code && Number(couponSubscription.coupon_cycles_remaining || 0) > 0) {
             // O valor efetivo do pagamento do Asaas já contém o desconto recorrente.
             amountToCharge = providerValue;
-          } else if (configuredDiscountPercentage > 0 && legacyCyclesRemaining > 0) {
+          } else if (configuredDiscountPercentage > 0) {
             const base = originalPrice > 0 ? originalPrice : providerValue;
             amountToCharge = Math.max(0, Number((base * (1 - configuredDiscountPercentage / 100)).toFixed(2)));
           } else {
@@ -429,9 +427,7 @@ serve(async (req) => {
       ? couponDiscountType === "percentage"
         ? Number((baseAmount * Math.min(100, couponDiscountValue) / 100).toFixed(2))
         : Math.min(baseAmount, couponDiscountValue)
-      : discountCyclesRemaining > 0
-        ? Number((baseAmount * discountPercentage / 100).toFixed(2))
-        : 0;
+      : Number((baseAmount * discountPercentage / 100).toFixed(2));
     const payableAmount = Math.max(0, Number((baseAmount - discountAmount).toFixed(2)));
     const { data: newInvoice, error: createInvoiceError } = await admin.from("company_invoices").insert({
       company_id: company.id,
