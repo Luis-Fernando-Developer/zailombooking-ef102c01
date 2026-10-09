@@ -671,6 +671,13 @@ serve(async (req) => {
     }
 
     if (couponReservation && (!asaasSubscriptionId || !firstPayment)) {
+      await admin.from("company_subscriptions").update({
+        coupon_id: null,
+        coupon_code: null,
+        coupon_discount_type: null,
+        coupon_discount_value: null,
+        coupon_cycles_remaining: 0,
+      }).eq("company_id", companyId);
       await admin.from("subscription_coupon_redemptions").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", couponReservation.redemption_id);
     }
 
