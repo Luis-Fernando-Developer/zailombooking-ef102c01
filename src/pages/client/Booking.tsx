@@ -1351,7 +1351,7 @@ export default function ClientBooking() {
                     )}
                   </div>
 
-                  {!rewardAchievement && paymentSettings.enabled && (
+                  {!rewardAchievement && paymentSettings.enabled && !paymentDialog.hasPayment && (
                     <div className="rounded-lg border p-3 space-y-2">
                       <Label htmlFor="booking-coupon">Cupom promocional (pagamento online)</Label>
                       <div className="flex gap-2">
