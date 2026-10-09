@@ -56,6 +56,15 @@ CREATE INDEX IF NOT EXISTS subscription_coupon_redemptions_coupon_status_idx
 CREATE INDEX IF NOT EXISTS subscription_coupon_redemptions_company_idx
   ON public.subscription_coupon_redemptions (company_id, created_at DESC);
 
+-- Dados do cupom vinculados à assinatura para manter as cobranças futuras coerentes.
+ALTER TABLE public.company_subscriptions
+  ADD COLUMN IF NOT EXISTS coupon_id uuid REFERENCES public.subscription_coupons(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS coupon_code text,
+  ADD COLUMN IF NOT EXISTS coupon_discount_type text,
+  ADD COLUMN IF NOT EXISTS coupon_discount_value numeric(12,2),
+  ADD COLUMN IF NOT EXISTS coupon_cycles_remaining integer NOT NULL DEFAULT 0;
+
+
 ALTER TABLE public.subscription_coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscription_coupon_redemptions ENABLE ROW LEVEL SECURITY;
 
@@ -96,6 +105,7 @@ DECLARE
   v_due numeric(12,2);
   v_cycles integer;
   v_existing public.subscription_coupon_redemptions%ROWTYPE;
+  v_has_existing boolean := false;
 BEGIN
   IF _billing_period NOT IN ('monthly','quarterly','annual') THEN
     RAISE EXCEPTION 'Período de cobrança inválido.';
@@ -128,7 +138,8 @@ BEGIN
   SELECT * INTO v_existing
   FROM public.subscription_coupon_redemptions
   WHERE coupon_id = c.id AND company_id = _company_id;
-  IF FOUND AND v_existing.status <> 'cancelled' THEN
+  v_has_existing := FOUND;
+  IF v_has_existing AND v_existing.status <> 'cancelled' THEN
     RETURN jsonb_build_object(
       'coupon_id', c.id, 'redemption_id', v_existing.id, 'code', c.code,
       'discount_type', v_existing.discount_type, 'discount_value', v_existing.discount_value,
@@ -155,7 +166,7 @@ BEGIN
   v_due := greatest(0, round(_original_amount - v_discount, 2));
   v_cycles := CASE WHEN c.duration_type = 'first_payment' THEN 1 ELSE c.duration_cycles END;
 
-  IF FOUND THEN
+  IF v_has_existing THEN
     UPDATE public.subscription_coupon_redemptions
       SET code = c.code, plan_id = _plan_id, billing_period = _billing_period,
           discount_type = c.discount_type, discount_value = c.discount_value,
@@ -186,6 +197,38 @@ $$;
 
 REVOKE ALL ON FUNCTION public.reserve_subscription_coupon(text, uuid, uuid, text, numeric) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.reserve_subscription_coupon(text, uuid, uuid, text, numeric) TO service_role;
+
+
+-- Ao confirmar uma fatura da assinatura, registra o uso pago e avança a duração
+-- local do cupom. O gatilho é idempotente para atualizações repetidas da fatura.
+CREATE OR REPLACE FUNCTION public.track_subscription_coupon_payment()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+BEGIN
+  IF NEW.status = 'paid' AND OLD.status IS DISTINCT FROM NEW.status
+     AND NEW.subscription_id IS NOT NULL THEN
+    UPDATE public.subscription_coupon_redemptions
+      SET status = 'paid', invoice_id = NEW.id, updated_at = now()
+      WHERE subscription_id = NEW.subscription_id
+        AND status IN ('reserved','applied');
+
+    UPDATE public.company_subscriptions
+      SET coupon_cycles_remaining = greatest(0, coalesce(coupon_cycles_remaining, 0) - 1)
+      WHERE id = NEW.subscription_id
+        AND coalesce(coupon_cycles_remaining, 0) > 0;
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS trg_track_subscription_coupon_payment ON public.company_invoices;
+CREATE TRIGGER trg_track_subscription_coupon_payment
+AFTER UPDATE OF status ON public.company_invoices
+FOR EACH ROW
+EXECUTE FUNCTION public.track_subscription_coupon_payment();
 
 NOTIFY pgrst, 'reload schema';
 COMMIT;
