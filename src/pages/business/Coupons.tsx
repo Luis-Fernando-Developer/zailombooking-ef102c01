@@ -80,7 +80,7 @@ export default function BusinessCoupons() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
+  const update = <K extends keyof FormState,>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
   const toggleId = (key: "service_ids" | "combo_ids", id: string, checked: boolean) => {
     setForm((current) => ({ ...current, [key]: checked ? [...current[key], id] : current[key].filter((item) => item !== id) }));
   };
