@@ -12,6 +12,9 @@ type Invoice = {
   id: string;
   company_id: string;
   amount: number;
+  amount_due?: number;
+  discount_amount?: number;
+  asaas_value?: number;
   status: string;
   billing_type: string | null;
   due_date: string;
@@ -153,7 +156,15 @@ export function CompanyInvoiceManagement({ companyId, companyName }: Props) {
                   <p className="text-xs text-muted-foreground mt-1">Forma: {invoice.billing_type || "—"} · ID Asaas: {invoice.asaas_payment_id || "não vinculado"}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-semibold">{money(invoice.amount)}</p>
+                  {Number(invoice.discount_amount || 0) > 0 ? (
+                    <>
+                      <p className="text-xs text-muted-foreground line-through">{money(Number(invoice.asaas_value ?? invoice.amount))}</p>
+                      <p className="font-semibold">{money(Number(invoice.amount_due ?? invoice.amount))}</p>
+                      <p className="text-xs text-green-600">Desconto de {money(Number(invoice.discount_amount))}</p>
+                    </>
+                  ) : (
+                    <p className="font-semibold">{money(Number(invoice.amount_due ?? invoice.amount))}</p>
+                  )}
                   <Badge variant={status === "paid" ? "default" : status === "overdue" || status === "failed" ? "destructive" : "secondary"} className="mt-1">{statusLabels[status] || status}</Badge>
                 </div>
               </div>
