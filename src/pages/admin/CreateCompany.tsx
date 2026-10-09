@@ -29,6 +29,7 @@ interface CompanyForm {
   discount_enabled: boolean;
   discount_percentage: number;
   discount_cycles: number;
+  coupon_code: string;
 }
 
 export default function CreateCompany() {
@@ -50,6 +51,7 @@ export default function CreateCompany() {
     discount_enabled: false,
     discount_percentage: 0,
     discount_cycles: 1,
+    coupon_code: "",
   });
   const [plans, setPlans] = useState<any[]>([]);
   const [plansLoading, setPlansLoading] = useState(true);
@@ -157,6 +159,7 @@ export default function CreateCompany() {
             billing_period: formData.billing_period,
             discount_percentage: discountValue,
             discount_cycles: formData.discount_enabled ? Math.max(1, formData.discount_cycles) : 0,
+            coupon_code: formData.coupon_code.trim().toUpperCase(),
             extra_whatsapp_instances: formData.extra_whatsapp_instances,
             provision_flow: formData.provision_flow
           }
@@ -409,10 +412,15 @@ export default function CreateCompany() {
                       <Switch checked={formData.provision_flow} onCheckedChange={(v) => setFormData(prev => ({ ...prev, provision_flow: v }))} />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="acquisition-coupon-code">Cupom de aquisição (opcional)</Label>
+                    <Input id="acquisition-coupon-code" value={formData.coupon_code} onChange={(e) => setFormData(prev => ({ ...prev, coupon_code: e.target.value.toUpperCase().replace(/\s+/g, ""), discount_enabled: e.target.value.trim() ? false : prev.discount_enabled }))} placeholder="Ex.: ZAILOM20" maxLength={40} />
+                    <p className="text-xs text-muted-foreground">Cupom válido para o plano/período selecionado. Não acumula com desconto especial manual.</p>
+                  </div>
                   <div className="rounded-lg border border-primary/20 p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /><Label>Aplicar Desconto Especial</Label></div>
-                      <Switch checked={formData.discount_enabled} onCheckedChange={(v) => setFormData(prev => ({ ...prev, discount_enabled: v, discount_cycles: v ? Math.max(1, prev.discount_cycles) : prev.discount_cycles }))} />
+                      <Switch checked={formData.discount_enabled} disabled={!!formData.coupon_code.trim()} onCheckedChange={(v) => setFormData(prev => ({ ...prev, discount_enabled: v, coupon_code: v ? "" : prev.coupon_code, discount_cycles: v ? Math.max(1, prev.discount_cycles) : prev.discount_cycles }))} />
                     </div>
                     {formData.discount_enabled && (
                       <div className="grid md:grid-cols-2 gap-4">
