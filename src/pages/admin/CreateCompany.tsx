@@ -127,6 +127,11 @@ export default function CreateCompany() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    if (formData.coupon_code.trim() && !couponPreview) {
+      toast({ title: "Valide o cupom", description: "Clique em Validar para confirmar o desconto antes de criar a empresa.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // 1. Verificar se o slug já existe
