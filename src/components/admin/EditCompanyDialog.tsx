@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Calculator, Percent, AlertTriangle, X, ArrowRightCircle, CalendarClock, MessageSquare } from "lucide-react";
 import { calculateSubscriptionChange, type BillingPeriod, formatBRL, periodLabel } from "@/lib/proration";
 import { CompanyCreditsPanel } from "./CompanyCreditsPanel";
+import { CompanyInvoiceManagement } from "./CompanyInvoiceManagement";
 import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 
 
@@ -732,6 +733,9 @@ export function EditCompanyDialog({ company, open, onOpenChange, onSuccess }: Ed
               </div>
             </CardContent>
           </Card>
+
+          {/* Cobranças e histórico financeiro da empresa — operações protegidas no servidor */}
+          {company && <CompanyInvoiceManagement companyId={company.id} companyName={company.name} />}
 
           {/* Discount Special Section */}
           <Card className="border-primary/20 bg-card/50">
