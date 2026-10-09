@@ -202,12 +202,21 @@ serve(async (req) => {
               .maybeSingle();
             const { data: ownerLink } = await supabaseClient
               .from('owner_company_confirmations')
-              .select('id, email, confirmation_token, confirmed_at, password_setup_email_sent_at')
+              .select('id, employee_id, email, confirmation_token, confirmed_at, password_setup_email_sent_at')
               .eq('company_id', paidInvoice.company_id)
               .is('confirmed_at', null)
               .maybeSingle();
             const resendKey = (Deno.env.get('RESEND_API_KEY') ?? '').trim();
-            if (company && ownerLink && !ownerLink.password_setup_email_sent_at && resendKey) {
+            // Empresa reativada com credencial existente não precisa criar senha novamente.
+            const { data: existingOwnerCredential } = ownerLink?.employee_id
+              ? await supabaseClient.from('employees')
+                  .select('id, password_hash')
+                  .eq('id', ownerLink.employee_id)
+                  .eq('company_id', paidInvoice.company_id)
+                  .maybeSingle()
+              : { data: null };
+            const alreadyHasPassword = !!String(existingOwnerCredential?.password_hash ?? '').trim();
+            if (company && ownerLink && !alreadyHasPassword && !ownerLink.password_setup_email_sent_at && resendKey) {
               const from = (Deno.env.get('BILLING_EMAIL_FROM') || Deno.env.get('CLIENT_ACCESS_EMAIL_FROM') || 'Zailom Booking <atendimento@suport-mail.booking.zailom.com>').trim();
               const siteUrl = (Deno.env.get('SITE_URL') || 'https://booking.zailom.com').replace(/\/$/, '');
               const setupLink = siteUrl + '/confirmar-empresa?token=' + ownerLink.confirmation_token;
