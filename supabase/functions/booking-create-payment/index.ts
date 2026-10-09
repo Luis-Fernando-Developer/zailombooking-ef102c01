@@ -404,7 +404,6 @@ serve(async (req) => {
           company_id: String(companyId), payment_reference: paymentReference,
           booking_id: String(booking?.id ?? ''), coupon_code: couponCode || '',
           original_amount: String(originalAmount), coupon_discount_amount: String(couponDiscountAmount),
-          booking_data: JSON.stringify(paymentMeta.booking_data || {}),
         })) params.set(`metadata[${key}]`, value)
         paymentResult = await requestJson('https://api.stripe.com/v1/checkout/sessions', {
           method: 'POST',
