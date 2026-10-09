@@ -460,6 +460,10 @@ serve(async (req) => {
       payment: {
         id: paymentResult.id,
         method: billingType,
+        amount,
+        original_amount: couponCode ? originalAmount : amount,
+        coupon_discount_amount: couponCode ? couponDiscountAmount : 0,
+        coupon_code: couponCode,
         invoice_url: paymentResult.invoiceUrl,
         bank_slip_url: paymentResult.bankSlipUrl,
         ...pixInfo
