@@ -51,6 +51,8 @@ export default function SignUp() {
   const [couponPreview, setCouponPreview] = useState<any>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [segments, setSegments] = useState<{ id: string; slug: string; name: string }[]>([]);
+  const [segmentsLoading, setSegmentsLoading] = useState(false);
+  const [segmentsError, setSegmentsError] = useState(false);
   const [niches, setNiches] = useState<{ id: string; slug: string; name: string; segment_id: string }[]>([]);
   const [formData, setFormData] = useState({
     companyName: "",
@@ -81,15 +83,33 @@ export default function SignUp() {
   }, []);
 
   const fetchSegmentsAndNiches = async () => {
+    setSegmentsLoading(true);
+    setSegmentsError(false);
     try {
       const [segRes, nicheRes] = await Promise.all([
         supabase.from("company_segments").select("id,slug,name").eq("is_active", true).order("sort_order"),
         supabase.from("company_niches").select("id,slug,name,segment_id").eq("is_active", true).order("sort_order"),
       ]);
+      if (segRes.error) throw new Error(`Segmentos: ${segRes.error.message}`);
+      if (nicheRes.error) throw new Error(`Nichos: ${nicheRes.error.message}`);
       setSegments(segRes.data || []);
       setNiches(nicheRes.data || []);
+      if (!(segRes.data || []).length) {
+        setSegmentsError(true);
+        console.error("O catálogo de segmentos retornou vazio.");
+      }
     } catch (err) {
       console.error("Erro ao buscar segmentos/nichos:", err);
+      setSegments([]);
+      setNiches([]);
+      setSegmentsError(true);
+      toast({
+        title: "Não foi possível carregar os segmentos",
+        description: "O catálogo da empresa está indisponível. Tente novamente em instantes.",
+        variant: "destructive",
+      });
+    } finally {
+      setSegmentsLoading(false);
     }
   };
 
@@ -496,6 +516,14 @@ export default function SignUp() {
                     ))}
                   </SelectContent>
                 </Select>
+                {segmentsError && (
+                  <div className="flex items-center justify-between gap-3 text-xs text-destructive">
+                    <span>Não foi possível carregar as opções de segmento.</span>
+                    <Button type="button" variant="outline" size="sm" onClick={fetchSegmentsAndNiches} disabled={segmentsLoading}>
+                      {segmentsLoading ? "Carregando..." : "Tentar novamente"}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Nicho da Empresa */}
