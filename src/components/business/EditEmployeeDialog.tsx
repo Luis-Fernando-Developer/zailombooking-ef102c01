@@ -26,7 +26,7 @@ interface BaseOccupation { id: string; name: string; company_id: string | null; 
 const MODULE_LABELS: Record<string, string> = {
   employees: "Funcionários", services: "Serviços", bookings: "Agendamentos", clients: "Clientes", reports: "Relatórios",
   dashboard: "Dashboard", settings: "Configurações", subscription: "Assinatura", reallocation: "Realocação", chat: "Chat",
-  marketing: "Marketing", chatbot: "Chatbot", whatsapp: "WhatsApp", finance: "Financeiro", schedules: "Horários",
+  marketing: "Marketing", chatbot: "Chatbot", whatsapp: "WhatsApp", finance: "Financeiro", schedules: "Horários", coupons: "Cupons promocionais",
 };
 
 interface EditEmployeeDialogProps { employee: Employee | null; companyId: string; open: boolean; onOpenChange: (open: boolean) => void; onEmployeeUpdated: () => void; }
