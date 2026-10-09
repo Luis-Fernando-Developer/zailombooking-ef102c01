@@ -266,7 +266,8 @@ serve(async (req) => {
 
     // Identificador interno estável para reconciliar o pagamento entre gateways.
     const paymentReference = `booking-${crypto.randomUUID()}`
-    const origin = req.headers.get('origin') || Deno.env.get('PUBLIC_APP_URL') || 'https://booking.zailom.com'
+    const configuredOrigin = Deno.env.get('PUBLIC_APP_URL') || 'https://booking.zailom.com'
+    const origin = configuredOrigin
     const bookingAmount = Number(booking?.total_price ?? booking?.price ?? resolvedBookingData?.price ?? 0)
     let originalAmount = Number(bodyAmount || bookingAmount || 0)
     let amount = originalAmount
@@ -380,13 +381,13 @@ serve(async (req) => {
             payer: { name: resolvedPayer.name || 'Cliente', email: resolvedPayer.email || undefined, phone: resolvedPayer.phone ? { number: resolvedPayer.phone } : undefined, identification: resolvedPayer.cpf_cnpj ? { type: resolvedPayer.cpf_cnpj.length > 11 ? 'CNPJ' : 'CPF', number: resolvedPayer.cpf_cnpj } : undefined },
             external_reference: paymentReference,
             metadata: { payment_reference: paymentReference, company_id: companyId, booking_id: booking?.id ?? '', coupon_code: couponCode || '', original_amount: String(originalAmount), coupon_discount_amount: String(couponDiscountAmount), booking_data: JSON.stringify(paymentMeta.booking_data || {}) },
-            payment_methods: { excluded_payment_methods: [], excluded_payment_types: [], installments: 1 },
+            payment_methods: { excluded_payment_methods: [], excluded_payment_types: ({ PIX: ['credit_card','debit_card','ticket'], CREDIT_CARD: ['bank_transfer','debit_card','ticket'], DEBIT_CARD: ['bank_transfer','credit_card','ticket'], BOLETO: ['bank_transfer','credit_card','debit_card'] } as Record<string,string[]>)[selectedMethod] || [], installments: 1 },
             back_urls: { success: origin, failure: origin, pending: origin },
             auto_return: 'approved',
           }),
         }, 'Mercado Pago')
         paymentResult = { ...preference, id: preference.id, invoiceUrl: preference.init_point, method: selectedMethod, external_reference: paymentReference }
-        invoiceUrl = preference.init_point || preference.sandbox_init_point || null
+        invoiceUrl = /TEST-|TEST_/i.test(decryptedKey) ? (preference.sandbox_init_point || preference.init_point || null) : (preference.init_point || preference.sandbox_init_point || null)
       } else if (receiverProvider === 'stripe') {
         const params = new URLSearchParams()
         params.set('mode', 'payment')
@@ -419,7 +420,8 @@ serve(async (req) => {
         if (acceptedMethod === 'credit_card') paymentSettings.credit_card_settings = { operation_type: 'auth_and_capture', installments: [{ number: 1, total: cents }] }
         if (acceptedMethod === 'boleto') paymentSettings.boleto_settings = {}
         if (acceptedMethod === 'pix') paymentSettings.pix_settings = { expires_in: 3600 }
-        paymentResult = await requestJson('https://api.pagar.me/core/v5/paymentlinks', {
+        const pagarmeBaseUrl = /^sk_test_/i.test(decryptedKey) ? 'https://sdx-api.pagar.me/core/v5' : 'https://api.pagar.me/core/v5'
+        paymentResult = await requestJson(`${pagarmeBaseUrl}/paymentlinks`, {
           method: 'POST',
           headers: { Authorization: `Basic ${btoa(`${decryptedKey}:`)}`, 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({
