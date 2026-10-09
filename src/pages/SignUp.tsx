@@ -165,6 +165,10 @@ export default function SignUp() {
   };
 
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) || null;
+  const ownerCpfDigits = formData.ownerCpf.replace(/\D/g, "");
+  const companyCnpjDigits = formData.companyCnpj.replace(/\D/g, "");
+  const ownerCpfValidation = ownerCpfDigits.length === 11 ? validateCpfCnpj(formData.ownerCpf) : null;
+  const companyCnpjValidation = companyCnpjDigits.length === 14 ? validateCpfCnpj(formData.companyCnpj) : null;
 
   const getPrice = (plan: Plan) => {
     if (billingPeriod === "quarterly") return plan.quarterly_price;
@@ -520,8 +524,11 @@ export default function SignUp() {
                 <Label htmlFor="ownerCpf">CPF do Empresário *</Label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input id="ownerCpf" placeholder="000.000.000-00" value={formData.ownerCpf} onChange={(e) => handleInputChange("ownerCpf", formatCpf(e.target.value))} className="pl-10 bg-background/50 border-primary/30 focus:border-primary" maxLength={14} required />
+                  <Input id="ownerCpf" placeholder="000.000.000-00" value={formData.ownerCpf} onChange={(e) => handleInputChange("ownerCpf", formatCpf(e.target.value))} className="pl-10 bg-background/50 border-primary/30 focus:border-primary" maxLength={14} aria-invalid={ownerCpfValidation ? !ownerCpfValidation.valid : undefined} required />
                 </div>
+                {ownerCpfValidation && !ownerCpfValidation.valid && (
+                  <p className="text-xs text-destructive">CPF inválido. Confira os dígitos informados.</p>
+                )}
               </div>
 
               {/* Email */}
@@ -537,8 +544,14 @@ export default function SignUp() {
                 <Label htmlFor="companyCnpj">CNPJ da Empresa (opcional)</Label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input id="companyCnpj" placeholder="00.000.000/0000-00" value={formData.companyCnpj} onChange={(e) => handleInputChange("companyCnpj", formatCnpj(e.target.value))} className="pl-10 bg-background/50 border-primary/30 focus:border-primary" maxLength={18} />
+                  <Input id="companyCnpj" placeholder="00.000.000/0000-00" value={formData.companyCnpj} onChange={(e) => handleInputChange("companyCnpj", formatCnpj(e.target.value))} className="pl-10 bg-background/50 border-primary/30 focus:border-primary" maxLength={18} aria-invalid={companyCnpjValidation ? !companyCnpjValidation.valid : undefined} />
                 </div>
+                {companyCnpjDigits.length > 0 && companyCnpjDigits.length < 14 && (
+                  <p className="text-xs text-muted-foreground">Digite os 14 dígitos do CNPJ.</p>
+                )}
+                {companyCnpjValidation && !companyCnpjValidation.valid && (
+                  <p className="text-xs text-destructive">CNPJ inválido. Confira os dígitos informados.</p>
+                )}
               </div>
 
               {/* Segmento da Empresa */}
