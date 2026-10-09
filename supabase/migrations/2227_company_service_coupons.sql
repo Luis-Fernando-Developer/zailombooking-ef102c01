@@ -90,6 +90,7 @@ DECLARE
   v_final numeric(12,2);
   v_service jsonb;
   v_combo jsonb;
+  v_used integer;
 BEGIN
   IF (p_service_id IS NULL) = (p_combo_id IS NULL) THEN
     RAISE EXCEPTION 'Informe um serviço individual ou um combo.';
@@ -122,14 +123,11 @@ BEGIN
     (p_combo_id IS NOT NULL AND p_combo_id = ANY(c.combo_ids))
   ) THEN RAISE EXCEPTION 'Este cupom não é válido para o serviço ou combo selecionado.'; END IF;
   IF c.max_redemptions IS NOT NULL THEN
-    DECLARE v_used integer;
-    BEGIN
-      SELECT count(*)::integer INTO v_used
-        FROM public.company_service_coupon_redemptions r
-       WHERE r.coupon_id = c.id
-         AND (r.status = 'redeemed' OR (r.status = 'reserved' AND r.reserved_until > now()));
-      IF v_used >= c.max_redemptions THEN RAISE EXCEPTION 'Este cupom atingiu o limite de utilizações.'; END IF;
-    END;
+    SELECT count(*)::integer INTO v_used
+      FROM public.company_service_coupon_redemptions r
+     WHERE r.coupon_id = c.id
+       AND (r.status = 'redeemed' OR (r.status = 'reserved' AND r.reserved_until > now()));
+    IF v_used >= c.max_redemptions THEN RAISE EXCEPTION 'Este cupom atingiu o limite de utilizações.'; END IF;
   END IF;
 
   IF c.discount_type = 'percentage' THEN
