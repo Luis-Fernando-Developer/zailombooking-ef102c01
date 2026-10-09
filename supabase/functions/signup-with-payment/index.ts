@@ -71,6 +71,37 @@ const FALLBACK_PRICES: Record<string, Record<BillingPeriod, number>> = {
   enterprise: { monthly: 249, quarterly: 672, annual: 2268 },
 };
 
+function validateCpfCnpj(value: unknown): { valid: boolean; kind: "CPF" | "CNPJ" | null } {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (/^\d{11}$/.test(digits)) {
+    if (/^(\d)\1{10}$/.test(digits)) return { valid: false, kind: "CPF" };
+    const nums = digits.split("").map(Number);
+    const calc = (length: number, weightStart: number) => {
+      let sum = 0;
+      for (let i = 0; i < length; i++) sum += nums[i] * (weightStart - i);
+      const remainder = (sum * 10) % 11;
+      return remainder === 10 ? 0 : remainder;
+    };
+    return { valid: calc(9, 10) === nums[9] && calc(10, 11) === nums[10], kind: "CPF" };
+  }
+  if (/^\d{14}$/.test(digits)) {
+    if (/^(\d)\1{13}$/.test(digits)) return { valid: false, kind: "CNPJ" };
+    const nums = digits.split("").map(Number);
+    const digit = (length: number, weights: number[]) => {
+      const sum = nums.slice(0, length).reduce((total, n, i) => total + n * weights[i], 0);
+      const remainder = sum % 11;
+      return remainder < 2 ? 0 : 11 - remainder;
+    };
+    const first = digit(12, [5,4,3,2,9,8,7,6,5,4,3,2]);
+    const secondNums = [...nums.slice(0, 12), first, nums[13]];
+    const sum = secondNums.slice(0, 13).reduce((total, n, i) => total + n * [6,5,4,3,2,9,8,7,6,5,4,3,2][i], 0);
+    const remainder = sum % 11;
+    const second = remainder < 2 ? 0 : 11 - remainder;
+    return { valid: first === nums[12] && second === nums[13], kind: "CNPJ" };
+  }
+  return { valid: false, kind: digits.length > 11 ? "CNPJ" : "CPF" };
+}
+
 function planKeyFromName(name: string): string | null {
   const n = (name ?? "").toLowerCase();
   if (n.includes("enterprise") || n.includes("diamante") || n.includes("business")) return "enterprise";
@@ -103,6 +134,19 @@ serve(async (req) => {
     const required = ["name", "slug", "owner_name", "owner_email", "cpf_cnpj"];
     for (const k of required) {
       if (!c[k]) return json({ ok: false, error: `Campo ${k} é obrigatório.` }, 200);
+    }
+
+    const documentValue = c.cnpj || c.cpf_cnpj;
+    const documentCheck = validateCpfCnpj(documentValue);
+    if (!documentCheck.valid) {
+      return json({
+        ok: false,
+        code: "invalid_cpf_cnpj",
+        field: c.cnpj ? "cnpj" : "cpf_cnpj",
+        error: documentCheck.kind === "CNPJ"
+          ? "CNPJ inválido. Confira os 14 dígitos e os dígitos verificadores."
+          : "CPF inválido. Confira os 11 dígitos e os dígitos verificadores.",
+      }, 400);
     }
 
     const billingPeriod: BillingPeriod = (["monthly", "quarterly", "annual"].includes(body.billing_period)
@@ -358,33 +402,14 @@ serve(async (req) => {
       if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
       return json({ ok: false, error: ownerAccess?.error || ownerAccessError?.message || "Falha ao criar a credencial empresarial." }, 200);
     }
-    // E-mail 1: confirmação de recebimento do cadastro, sem link de senha.
-    const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
-    if (resendKey) {
-      const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
-        body: JSON.stringify({
-          from,
-          to: [c.owner_email],
-          subject: "Zailom Booking — cadastro da empresa recebido",
-          html: "<h2>Olá, " + c.owner_name + "!</h2><p>Recebemos o cadastro da empresa <strong>" + c.name + "</strong>.</p><p>Você receberá em seguida os detalhes da cobrança. Após a confirmação do pagamento, enviaremos um link para validar seu e-mail e criar a senha empresarial.</p>",
-        }),
-      }).catch((e) => console.error("[signup-with-payment] aviso de cadastro:", e));
-    }
-
     // 5) Assinatura no Asaas ---------------------------------------------
     const ASAAS_API_KEY = (await getGatewayConfig(admin, "asaas", "ASAAS_API_KEY") ?? "").trim();
     if (!ASAAS_API_KEY) {
-      console.error("[signup-with-payment] ASAAS_API_KEY ausente — cadastro criado sem cobrança.");
-      return json({
-        ok: true,
-        company_id: companyId,
-        user_id: userId,
-        charge: false,
-        message: "Cadastro criado, mas o gateway de pagamento não está configurado.",
-      });
+      console.error("[signup-with-payment] ASAAS_API_KEY ausente — contratação interrompida.");
+      await admin.from("subscription_coupon_redemptions").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("company_id", companyId).eq("status", "reserved");
+      await admin.from("companies").delete().eq("id", companyId);
+      if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
+      return json({ ok: false, code: "billing_not_configured", error: "Não foi possível iniciar a cobrança agora. Nenhum pagamento foi criado. Tente novamente mais tarde." }, 503);
     }
 
     const isSandbox = ASAAS_API_KEY.includes("hmlg") || !ASAAS_API_KEY.startsWith("$aact_");
@@ -512,6 +537,21 @@ serve(async (req) => {
       console.error("[signup-with-payment] erro no Asaas:", chargeError);
     }
 
+    // Não deixar cadastro fantasma nem exibir sucesso se o Asaas não criou a cobrança.
+    if (chargeError || !asaasSubscriptionId || !firstPayment?.id) {
+      if (asaasSubscriptionId) {
+        await fetch(`${baseUrl}/subscriptions/${asaasSubscriptionId}`, { method: "DELETE", headers }).catch(() => {});
+      }
+      await admin.from("subscription_coupon_redemptions").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("company_id", companyId).eq("status", "reserved");
+      await admin.from("companies").delete().eq("id", companyId);
+      if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
+      const raw = chargeError || "O Asaas não retornou a primeira cobrança.";
+      const safeMessage = /CPF\/CNPJ.*inválido/i.test(raw)
+        ? (documentCheck.kind === "CNPJ" ? "O Asaas rejeitou o CNPJ informado. Confira o documento e tente novamente." : "O Asaas rejeitou o CPF informado. Confira o documento e tente novamente.")
+        : "Não foi possível gerar a cobrança no momento. Nenhum pagamento foi confirmado. Confira os dados e tente novamente.";
+      return json({ ok: false, code: /CPF\/CNPJ.*inválido/i.test(raw) ? "invalid_cpf_cnpj" : "charge_creation_failed", error: safeMessage }, 422);
+    }
+
     // 6) Persistência local ------------------------------------------------
     await admin
       .from("companies")
@@ -603,6 +643,31 @@ serve(async (req) => {
         if (!drop) break;
         delete invLocal[drop];
       }
+      if (!invoiceId) {
+        console.error("[signup-with-payment] cobrança criada no Asaas, mas não foi possível registrar a fatura local.");
+        if (asaasSubscriptionId) await fetch(`${baseUrl}/subscriptions/${asaasSubscriptionId}`, { method: "DELETE", headers }).catch(() => {});
+        await admin.from("company_subscriptions").delete().eq("id", localSubscriptionId);
+        await admin.from("companies").delete().eq("id", companyId);
+        if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
+        return json({ ok: false, code: "invoice_persistence_failed", error: "A cobrança não pôde ser registrada com segurança. Nenhum pagamento foi confirmado. Tente novamente mais tarde." }, 500);
+      }
+
+      // E-mail 1: confirmação de recebimento, enviado somente depois de a cobrança e a fatura estarem registradas.
+      const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+      if (resendKey) {
+        const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
+        const mailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
+          body: JSON.stringify({
+            from, to: [c.owner_email],
+            subject: "Zailom Booking — cadastro da empresa recebido",
+            html: "<h2>Olá, " + c.owner_name + "!</h2><p>Recebemos o cadastro da empresa <strong>" + c.name + "</strong>.</p><p>A cobrança foi gerada. Confira os detalhes no próximo e-mail. Após a confirmação do pagamento, enviaremos um link para validar seu e-mail e criar a senha empresarial.</p>",
+          }),
+        });
+        if (!mailResponse.ok) console.error("[signup-with-payment] Falha no e-mail de cadastro:", await mailResponse.text());
+      }
+
       if (couponReservation && invoiceId) {
         await admin.from("subscription_coupon_redemptions").update({
           subscription_id: localSubscriptionId,
