@@ -381,7 +381,7 @@ serve(async (req) => {
             payer: { name: resolvedPayer.name || 'Cliente', email: resolvedPayer.email || undefined, phone: resolvedPayer.phone ? { number: resolvedPayer.phone } : undefined, identification: resolvedPayer.cpf_cnpj ? { type: resolvedPayer.cpf_cnpj.length > 11 ? 'CNPJ' : 'CPF', number: resolvedPayer.cpf_cnpj } : undefined },
             external_reference: paymentReference,
             metadata: { payment_reference: paymentReference, company_id: companyId, booking_id: booking?.id ?? '', coupon_code: couponCode || '', original_amount: String(originalAmount), coupon_discount_amount: String(couponDiscountAmount), booking_data: JSON.stringify(paymentMeta.booking_data || {}) },
-            payment_methods: { excluded_payment_methods: [], excluded_payment_types: ({ PIX: ['credit_card','debit_card','ticket'], CREDIT_CARD: ['bank_transfer','debit_card','ticket'], DEBIT_CARD: ['bank_transfer','credit_card','ticket'], BOLETO: ['bank_transfer','credit_card','debit_card'] } as Record<string,string[]>)[selectedMethod] || [], installments: 1 },
+            payment_methods: { excluded_payment_methods: [], excluded_payment_types: (({ PIX: ['credit_card','debit_card','ticket'], CREDIT_CARD: ['bank_transfer','debit_card','ticket'], DEBIT_CARD: ['bank_transfer','credit_card','ticket'], BOLETO: ['bank_transfer','credit_card','debit_card'] } as Record<string,string[]>)[selectedMethod] || []).map((id) => ({ id })), installments: 1 },
             back_urls: { success: origin, failure: origin, pending: origin },
             auto_return: 'approved',
           }),
@@ -428,7 +428,6 @@ serve(async (req) => {
             name: `Agendamento ${paymentReference}`, type: 'order', order_code: paymentReference,
             max_sessions: 1, max_paid_sessions: 1,
             payment_settings: paymentSettings,
-            customer_settings: resolvedPayer.email ? { customer: { name: resolvedPayer.name || 'Cliente', email: resolvedPayer.email, document: resolvedPayer.cpf_cnpj || undefined, phones: resolvedPayer.phone ? { mobile_phone: { number: resolvedPayer.phone } } : undefined } } : undefined,
             cart_settings: { items: [{ amount: cents, name: 'Agendamento online', default_quantity: 1 }] },
           }),
         }, 'Pagar.me')
