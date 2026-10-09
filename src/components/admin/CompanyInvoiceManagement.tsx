@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { RefreshCw, Mail, Ban, RotateCcw, ExternalLink, FileText, History, Loader2, CircleDollarSign } from "lucide-react";
+import { RefreshCw, Mail, Ban, RotateCcw, FileText, History, Loader2, CircleDollarSign } from "lucide-react";
 
 type Invoice = {
   id: string;
