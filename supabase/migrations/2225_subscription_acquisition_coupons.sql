@@ -227,6 +227,8 @@ BEGIN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION public.track_subscription_coupon_payment() FROM PUBLIC, anon, authenticated;
+
 DROP TRIGGER IF EXISTS trg_track_subscription_coupon_payment ON public.company_invoices;
 CREATE TRIGGER trg_track_subscription_coupon_payment
 AFTER UPDATE OF status ON public.company_invoices
