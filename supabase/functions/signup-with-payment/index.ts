@@ -407,6 +407,7 @@ serve(async (req) => {
     if (!ASAAS_API_KEY) {
       console.error("[signup-with-payment] ASAAS_API_KEY ausente — contratação interrompida.");
       await admin.from("subscription_coupon_redemptions").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("company_id", companyId).eq("status", "reserved");
+      await admin.from("employees").delete().eq("company_id", companyId);
       await admin.from("companies").delete().eq("id", companyId);
       if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
       return json({ ok: false, code: "billing_not_configured", error: "Não foi possível iniciar a cobrança agora. Nenhum pagamento foi criado. Tente novamente mais tarde." }, 503);
@@ -543,6 +544,7 @@ serve(async (req) => {
         await fetch(`${baseUrl}/subscriptions/${asaasSubscriptionId}`, { method: "DELETE", headers }).catch(() => {});
       }
       await admin.from("subscription_coupon_redemptions").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("company_id", companyId).eq("status", "reserved");
+      await admin.from("employees").delete().eq("company_id", companyId);
       await admin.from("companies").delete().eq("id", companyId);
       if (createdNewAuthUser && userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
       const raw = chargeError || "O Asaas não retornou a primeira cobrança.";
@@ -653,12 +655,12 @@ serve(async (req) => {
       }
 
       // E-mail 1: confirmação de recebimento, enviado somente depois de a cobrança e a fatura estarem registradas.
-      const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
-      if (resendKey) {
+      const signupNoticeResendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+      if (signupNoticeResendKey) {
         const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
         const mailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + signupNoticeResendKey },
           body: JSON.stringify({
             from, to: [c.owner_email],
             subject: "Zailom Booking — cadastro da empresa recebido",
