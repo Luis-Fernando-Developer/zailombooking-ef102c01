@@ -196,7 +196,7 @@ export default function BusinessCoupons() {
           <Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
         </div>
 
-        {permissionLoading ? <p className="text-sm text-muted-foreground">Verificando permissões...</p> : !canViewCoupons && !canCreateCoupons && !canEditCoupons ? (
+        {loading || permissionLoading ? <p className="text-sm text-muted-foreground">Carregando cupons e verificando permissões...</p> : !canViewCoupons && !canCreateCoupons && !canEditCoupons ? (
           <Card><CardHeader><CardTitle>Acesso não autorizado</CardTitle><CardDescription>Você não possui permissão para visualizar ou administrar cupons promocionais.</CardDescription></CardHeader></Card>
         ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
