@@ -68,7 +68,15 @@ export function CompanyInvoiceManagement({ companyId, companyName }: Props) {
       const { data, error } = await supabase.functions.invoke("admin-manage-company-invoice", {
         body: { action: "list", company_id: companyId },
       });
-      if (error) throw error;
+      if (error) {
+        let message = error.message || "Falha ao consultar a função de faturas.";
+        try {
+          const context = (error as any)?.context;
+          const parsed = await context?.clone?.().json?.();
+          if (parsed?.error || parsed?.message) message = parsed.error || parsed.message;
+        } catch {}
+        throw new Error(message);
+      }
       if (data?.error) throw new Error(data.error);
       setInvoices((data?.invoices || []) as Invoice[]);
       setHistory((data?.history || []) as AuditEntry[]);
