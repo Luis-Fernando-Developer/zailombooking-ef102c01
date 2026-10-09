@@ -36,7 +36,11 @@ DROP POLICY IF EXISTS company_service_coupons_company_delete ON public.company_s
 
 CREATE POLICY company_service_coupons_company_select
 ON public.company_service_coupons FOR SELECT TO authenticated
-USING (public.user_has_company_permission(company_id, 'coupons.view'));
+USING (
+  public.user_has_company_permission(company_id, 'coupons.view')
+  OR public.user_has_company_permission(company_id, 'coupons.edit')
+  OR public.user_has_company_permission(company_id, 'coupons.delete')
+);
 
 CREATE POLICY company_service_coupons_company_insert
 ON public.company_service_coupons FOR INSERT TO authenticated
