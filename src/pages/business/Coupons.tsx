@@ -50,6 +50,7 @@ export default function BusinessCoupons() {
   const [combos, setCombos] = useState<ComboItem[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [redemptionCounts, setRedemptionCounts] = useState<Record<string, number>>({});
+  const [reservedCounts, setReservedCounts] = useState<Record<string, number>>({});
   const [form, setForm] = useState<FormState>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,13 +82,22 @@ export default function BusinessCoupons() {
       setCoupons(rows);
       if (rows.length) {
         const counts = await Promise.all(rows.map(async (coupon) => {
-          const { count } = await supabase.from("company_service_coupon_redemptions")
-            .select("id", { count: "exact", head: true })
-            .eq("coupon_id", coupon.id).eq("status", "redeemed");
-          return [coupon.id, count || 0] as const;
+          const [redeemedResult, reservedResult] = await Promise.all([
+            supabase.from("company_service_coupon_redemptions")
+              .select("id", { count: "exact", head: true })
+              .eq("coupon_id", coupon.id).eq("status", "redeemed"),
+            supabase.from("company_service_coupon_redemptions")
+              .select("id", { count: "exact", head: true })
+              .eq("coupon_id", coupon.id).eq("status", "reserved").gt("reserved_until", new Date().toISOString()),
+          ]);
+          return { id: coupon.id, redeemed: redeemedResult.count || 0, reserved: reservedResult.count || 0 };
         }));
-        setRedemptionCounts(Object.fromEntries(counts));
-      } else setRedemptionCounts({});
+        setRedemptionCounts(Object.fromEntries(counts.map((item) => [item.id, item.redeemed])));
+        setReservedCounts(Object.fromEntries(counts.map((item) => [item.id, item.reserved])));
+      } else {
+        setRedemptionCounts({});
+        setReservedCounts({});
+      }
     } catch (error: any) {
       console.error("[BUSINESS_COUPONS] Erro ao carregar cupons:", error);
       toast({ title: "Não foi possível carregar os cupons", description: error?.message || "Verifique as permissões da empresa.", variant: "destructive" });
@@ -228,7 +238,7 @@ export default function BusinessCoupons() {
                     <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{coupon.code}</h3><Badge variant={coupon.is_active ? "default" : "secondary"}>{coupon.is_active ? "Ativo" : "Inativo"}</Badge></div><p className="text-sm text-muted-foreground">{coupon.description || (coupon.apply_to_all ? "Todos os serviços e combos" : "Serviços/combos selecionados")}</p></div>
                     <div className="text-right font-semibold">{coupon.discount_type === "percentage" ? `${coupon.discount_value}%` : money(Number(coupon.discount_value))}</div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground"><div>Início: {localDateTime(coupon.starts_at)}</div><div>Validade: {localDateTime(coupon.expires_at)}</div>{canViewUsage && <div>Usos: {redemptionCounts[coupon.id] || 0}{coupon.max_redemptions ? ` / ${coupon.max_redemptions} (restam ${Math.max(0, coupon.max_redemptions - (redemptionCounts[coupon.id] || 0))})` : " / ilimitado"}</div>}<div>Escopo: {coupon.apply_to_all ? "Todos" : `${coupon.service_ids.length} serviços, ${coupon.combo_ids.length} combos`}</div></div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground"><div>Início: {localDateTime(coupon.starts_at)}</div><div>Validade: {localDateTime(coupon.expires_at)}</div>{canViewUsage && <div>Usos: {redemptionCounts[coupon.id] || 0}{coupon.max_redemptions ? ` / ${coupon.max_redemptions} (restam ${Math.max(0, coupon.max_redemptions - (redemptionCounts[coupon.id] || 0) - (reservedCounts[coupon.id] || 0))})` : " / ilimitado"}</div>}<div>Escopo: {coupon.apply_to_all ? "Todos" : `${coupon.service_ids.length} serviços, ${coupon.combo_ids.length} combos`}</div></div>
                   <div className="flex justify-end gap-2">{canEditCoupons && <Button size="sm" variant="outline" onClick={() => editCoupon(coupon)}>Editar</Button>}{canDeleteCoupons && <Button size="sm" variant="outline" onClick={() => void remove(coupon)}><Trash2 className="h-4 w-4 mr-1" />Excluir</Button>}</div>
                 </div>
               ))}
