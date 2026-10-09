@@ -666,8 +666,11 @@ serve(async (req) => {
             subject: "Zailom Booking — cadastro da empresa recebido",
             html: "<h2>Olá, " + c.owner_name + "!</h2><p>Recebemos o cadastro da empresa <strong>" + c.name + "</strong>.</p><p>A cobrança foi gerada. Confira os detalhes no próximo e-mail. Após a confirmação do pagamento, enviaremos um link para validar seu e-mail e criar a senha empresarial.</p>",
           }),
+        }).catch((e) => {
+          console.error("[signup-with-payment] Falha de rede no e-mail de cadastro:", e);
+          return null;
         });
-        if (!mailResponse.ok) console.error("[signup-with-payment] Falha no e-mail de cadastro:", await mailResponse.text());
+        if (mailResponse && !mailResponse.ok) console.error("[signup-with-payment] Falha no e-mail de cadastro:", await mailResponse.text());
       }
 
       if (couponReservation && invoiceId) {
@@ -696,8 +699,11 @@ serve(async (req) => {
               (paymentUrl ? "<p><a href=\"" + paymentUrl + "\">Acessar cobrança e pagar</a></p>" : "<p>Abra o checkout para concluir o pagamento.</p>") +
               "<p>Após a confirmação do pagamento, enviaremos o link para validar seu e-mail e criar sua senha empresarial.</p>",
           }),
+        }).catch((e) => {
+          console.error("[signup-with-payment] Falha de rede no e-mail da cobrança:", e);
+          return null;
         });
-        if (!mailResponse.ok) console.error("[signup-with-payment] Falha no e-mail da cobrança:", await mailResponse.text());
+        if (mailResponse && !mailResponse.ok) console.error("[signup-with-payment] Falha no e-mail da cobrança:", await mailResponse.text());
       }
 
       // Cartão aprovado na hora — o RPC mantém a empresa pendente até a senha ser criada.
