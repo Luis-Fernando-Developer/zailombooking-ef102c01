@@ -113,6 +113,9 @@ export default function ClientBooking() {
     bookingId?: string;
     paymentId?: string;
     amount?: number;
+    originalAmount?: number;
+    discountAmount?: number;
+    couponCode?: string;
     allowLater?: boolean;
     wasPaid?: boolean;
     openedOnce?: boolean;
@@ -791,6 +794,9 @@ export default function ClientBooking() {
         bookingId: undefined, // ainda não existe
         sessionKey: Date.now(),
         amount: couponPreview ? Number(couponPreview.discounted_amount) : effectivePrice,
+        originalAmount: Number(selectedService?.price ?? effectivePrice),
+        discountAmount: couponPreview ? Number(couponPreview.discount_amount) : 0,
+        couponCode: couponPreview?.code || undefined,
         allowLater: !couponPreview,
         openedOnce: false,
         hasPayment: false,
@@ -1518,22 +1524,22 @@ export default function ClientBooking() {
                   <span className="font-medium">{selectedService?.duration_minutes} min</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">{couponPreview ? "Valor original:" : "Valor:"}</span>
+                  <span className="text-muted-foreground">{(paymentDialog.couponCode || couponPreview?.code) ? "Valor original:" : "Valor:"}</span>
                   <span className="font-medium">
                     {rewardAchievement
                       ? (effectivePrice === 0 ? 'Grátis — Brinde' : 'R$ ' + effectivePrice.toFixed(2) + ' — Valor do brinde')
-                      : 'R$ ' + Number(selectedService?.price ?? 0).toFixed(2)}
+                      : 'R$ ' + Number(paymentDialog.originalAmount ?? selectedService?.price ?? effectivePrice).toFixed(2)}
                   </span>
                 </div>
-                {couponPreview && !rewardAchievement && (
+                {((paymentDialog.couponCode || couponPreview?.code) && !rewardAchievement) && (
                   <>
                     <div className="flex justify-between text-sm text-emerald-600">
-                      <span>Desconto do cupom ({couponPreview.code}):</span>
-                      <span>− R$ {Number(couponPreview.discount_amount).toFixed(2)}</span>
+                      <span>Desconto do cupom ({paymentDialog.couponCode || couponPreview?.code}):</span>
+                      <span>− R$ {Number(paymentDialog.discountAmount ?? couponPreview?.discount_amount ?? 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between font-semibold">
                       <span>Total pago:</span>
-                      <span>R$ {Number(couponPreview.discounted_amount).toFixed(2)}</span>
+                      <span>R$ {Number(paymentDialog.amount ?? couponPreview?.discounted_amount ?? effectivePrice).toFixed(2)}</span>
                     </div>
                   </>
                 )}
