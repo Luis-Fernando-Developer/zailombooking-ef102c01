@@ -124,7 +124,7 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
       setForm(emptyForm);
       setDialogOpen(false);
       if (saveResult?.card?.id) onSelectCard?.(saveResult.card.id);
-      toast({ title: "Cartão salvo", description: "O cartão foi tokenizado pelo gateway e adicionado à sua carteira." });
+      toast({ title: "Cartão salvo", description: "O cartão foi salvo com segurança na sua carteira." });
       await loadCards();
     } catch (error: any) {
       toast({ title: "Não foi possível salvar o cartão", description: error?.message || "Tente novamente.", variant: "destructive" });
@@ -159,8 +159,8 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {mode === "manage"
-            ? "A carteira guarda somente a referência segura do gateway e os dados mascarados do cartão."
-            : "Selecione um cartão salvo ou adicione um novo cartão para este gateway."}
+            ? "Sua carteira guarda apenas uma referência segura e os dados mascarados do cartão."
+            : "Selecione um cartão salvo ou adicione um novo cartão."}
         </p>
         {provider === "asaas" && (
           <Button type="button" size="sm" variant={mode === "manage" ? "default" : "outline"} onClick={() => setDialogOpen(true)}>
@@ -202,7 +202,7 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
               <RadioGroupItem value="__hosted_checkout__" id="saved-card-hosted-checkout" />
               <div className="min-w-0 flex-1">
                 <Label htmlFor="saved-card-hosted-checkout" className="cursor-pointer text-sm font-medium">Usar outro cartão</Label>
-                <p className="text-xs text-muted-foreground">Informar os dados no checkout do gateway</p>
+                <p className="text-xs text-muted-foreground">Informar os dados no checkout</p>
               </div>
             </div>
           )}
@@ -215,14 +215,14 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
         </div>
       )}
       {provider && provider !== "asaas" && (
-        <p className="text-xs text-muted-foreground">O cadastro de novos cartões ainda não está habilitado para este gateway. O checkout normal continua disponível.</p>
+        <p className="text-xs text-muted-foreground">Não é possível salvar novos cartões no momento. Você ainda pode informar os dados do cartão durante o pagamento.</p>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setForm(emptyForm); }}>
         <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Adicionar cartão</DialogTitle>
-            <DialogDescription>O cartão será enviado ao Asaas para tokenização. O Zailom não grava o número completo nem o código de segurança.</DialogDescription>
+            <DialogDescription>Os dados do cartão são processados com segurança para permitir pagamentos futuros. O Zailom não armazena o número completo nem o código de segurança.</DialogDescription>
           </DialogHeader>
           <form onSubmit={saveCard} className="space-y-4">
             <div className="space-y-2">
@@ -252,7 +252,7 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancelar</Button>
-              <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Tokenizar e salvar</Button>
+              <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar cartão</Button>
             </DialogFooter>
           </form>
         </DialogContent>
