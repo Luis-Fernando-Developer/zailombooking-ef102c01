@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
-import { SidebarProvider, SidebarTrigger } from "../ui/sidebar";
+import { SidebarProvider } from "../ui/sidebar";
 import { ClientSidebar } from "./ClientSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -273,7 +273,6 @@ export default function ClientLayout() {
 
       <div className=" flex !flex-col flex-1 min-w-0 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
         <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20">
-          <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4 shrink-0" />
 
           <div className="flex flex-col min-w-0">
             <h1 className="text-xl font-bold text-gradient truncate">Meus Agendamentos</h1>
