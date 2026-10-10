@@ -9,9 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 interface ForgotPasswordDialogProps {
   trigger: React.ReactNode;
   defaultEmail?: string;
+  /** When supplied (including an empty string), use company-specific owner credentials instead of Supabase Auth. */
+  companySlug?: string;
 }
 
-export const ForgotPasswordDialog = ({ trigger, defaultEmail = "" }: ForgotPasswordDialogProps) => {
+export const ForgotPasswordDialog = ({ trigger, defaultEmail = "", companySlug }: ForgotPasswordDialogProps) => {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState(defaultEmail);
   const [loading, setLoading] = useState(false);
@@ -21,12 +23,26 @@ export const ForgotPasswordDialog = ({ trigger, defaultEmail = "" }: ForgotPassw
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
-        return;
+      if (companySlug !== undefined) {
+        if (!companySlug.trim()) {
+          toast({ title: "Informe a empresa", description: "Volte ao formulário de login e informe o identificador da empresa antes de recuperar a senha.", variant: "destructive" });
+          return;
+        }
+        const { data, error } = await supabase.functions.invoke("request-owner-password-reset", {
+          body: { email: email.trim(), company_slug: companySlug.trim().toLowerCase() },
+        });
+        if (error || !data?.success) {
+          toast({ title: "Não foi possível solicitar a recuperação", description: "Tente novamente em instantes.", variant: "destructive" });
+          return;
+        }
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) {
+          toast({ title: "Erro", description: error.message, variant: "destructive" });
+          return;
+        }
       }
       toast({
         title: "Email enviado!",
