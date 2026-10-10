@@ -40,6 +40,7 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [didInitialSelection, setDidInitialSelection] = useState(false);
 
   const loadCards = useCallback(async () => {
     setLoading(true);
@@ -54,9 +55,10 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
       setProvider(data?.provider || null);
       onCardsChanged?.(list);
       if (selectedCardId && !list.some((card) => card.id === selectedCardId)) onSelectCard?.(null);
-      if (!selectedCardId && mode === "select") {
+      if (mode === "select" && !didInitialSelection) {
         const defaultCard = list.find((card) => card.is_default);
         if (defaultCard) onSelectCard?.(defaultCard.id);
+        setDidInitialSelection(true);
       }
     } catch (error: any) {
       console.error("[SavedCardsWallet] load failed", error?.message || error);
@@ -65,7 +67,7 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
     } finally {
       setLoading(false);
     }
-  }, [companyId, mode, onCardsChanged, onSelectCard, selectedCardId]);
+  }, [companyId, mode, onCardsChanged, onSelectCard, selectedCardId, didInitialSelection]);
 
   useEffect(() => { void loadCards(); }, [loadCards]);
 
@@ -170,8 +172,8 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
         <div className="flex items-center justify-center py-6 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando cartões…</div>
       ) : cards.length ? (
         <RadioGroup
-          value={selectedCardId || ""}
-          onValueChange={(id) => onSelectCard?.(id || null)}
+          value={selectedCardId || "__hosted_checkout__"}
+          onValueChange={(id) => onSelectCard?.(id === "__hosted_checkout__" ? null : id || null)}
           className="space-y-2"
         >
           {cards.map((card) => (
@@ -195,6 +197,15 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
               )}
             </div>
           ))}
+          {mode === "select" && (
+            <div className="flex items-center gap-3 rounded-xl border p-3">
+              <RadioGroupItem value="__hosted_checkout__" id="saved-card-hosted-checkout" />
+              <div className="min-w-0 flex-1">
+                <Label htmlFor="saved-card-hosted-checkout" className="cursor-pointer text-sm font-medium">Usar outro cartão</Label>
+                <p className="text-xs text-muted-foreground">Informar os dados no checkout do gateway</p>
+              </div>
+            </div>
+          )}
         </RadioGroup>
       ) : (
         <div className="rounded-xl border border-dashed p-6 text-center">
