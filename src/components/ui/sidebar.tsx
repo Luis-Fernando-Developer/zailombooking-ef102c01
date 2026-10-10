@@ -247,7 +247,8 @@ const Sidebar = React.forwardRef<
             {children}
           </div>
         </div>
-      </div>    );
+      </div>
+    );
   },
 );
 Sidebar.displayName = "Sidebar";
