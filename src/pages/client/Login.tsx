@@ -27,15 +27,36 @@ export default function ClientLogin() {
 
   // Não consultamos se o e-mail existe antes de abrir o formulário: isso evita
   // transformar a tela em um mecanismo de enumeração de contas.
-  const handleCheckAccess = () => {
+  const handleCheckAccess = async () => {
     const normalizedEmail = email.trim();
-    if (!normalizedEmail || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail) || !slug) {
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || !slug) {
       toast({ title: "Confira o e-mail", description: "Digite um endereço de e-mail válido.", variant: "destructive" });
       return;
     }
-    setPassword("");
-    setAccessStatus("password");
-    setCredentialsOpen(true);
+    if (accessStatus === "checking") return;
+    setAccessStatus("checking");
+    try {
+      const { data, error } = await supabase.functions.invoke("login-with-context", {
+        body: { email: normalizedEmail, company_slug: slug, action: "check_access" },
+      });
+      if (error || !data?.success) throw error || new Error("Verificação indisponível");
+      setPassword("");
+      if (data.access_state === "password") {
+        setAccessStatus("password");
+        setCredentialsOpen(true);
+      } else if (data.access_state === "first_access") {
+        setAccessStatus("first_access");
+        setCredentialsOpen(true);
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        const returnTo = params.get("returnTo");
+        navigate(\`/\${slug}/cadastro?email=\${encodeURIComponent(normalizedEmail)}\${returnTo ? \`&returnTo=\${encodeURIComponent(returnTo)}\` : ""}\`);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar acesso do cliente:", error);
+      toast({ title: "Não foi possível continuar", description: "Não conseguimos verificar o acesso agora. Tente novamente em instantes.", variant: "destructive" });
+      setAccessStatus("idle");
+    }
   };
 
   const handleFirstAccess = async () => {
@@ -151,7 +172,7 @@ export default function ClientLogin() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Continue para sua conta</DialogTitle>
-                <DialogDescription>Use a senha cadastrada nesta empresa. Se ainda não configurou uma senha, solicite o primeiro acesso. Por segurança, esta tela não informa se um e-mail está cadastrado.</DialogDescription>
+                <DialogDescription>{accessStatus === "first_access" ? "Seu cadastro nesta empresa ainda não tem uma senha configurada. Solicite o primeiro acesso para receber as instruções." : "Use a senha cadastrada nesta empresa. Se ainda não configurou uma senha, solicite o primeiro acesso."}</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
