@@ -97,15 +97,16 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
           Novo Serviço
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[300px] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col gap-0">
+        <DialogHeader className="shrink-0 pb-4">
           <DialogTitle>Adicionar Novo Serviço</DialogTitle>
           <DialogDescription>
             Crie um novo serviço para sua empresa
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 h-full overflow-auto">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-4 py-2 pr-1">
           <div className="space-y-2">
             <Label htmlFor="name">Nome do Serviço *</Label>
             <Input
@@ -183,7 +184,8 @@ export function AddServiceDialog({ companyId, onServiceAdded }: AddServiceDialog
             <Label htmlFor="is_active">Serviço ativo</Label>
           </div>
 
-          <div className="flex gap-4 pt-4">
+          </div>
+          <div className="flex gap-4 pt-4 mt-2 border-t shrink-0 bg-background">
             <Button
               type="button"
               variant="outline"
