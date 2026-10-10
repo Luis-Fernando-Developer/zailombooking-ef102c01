@@ -10,6 +10,7 @@ import { Mail, ArrowLeft, KeyRound } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { ForgotPasswordDialog } from "@/components/business/ForgotPasswordDialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type AccessStatus = "idle" | "checking" | "password" | "first_access" | "unknown";
 
@@ -20,32 +21,21 @@ export default function ClientLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [firstAccessLoading, setFirstAccessLoading] = useState(false);
   const [accessStatus, setAccessStatus] = useState<AccessStatus>("idle");
+  const [credentialsOpen, setCredentialsOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleCheckAccess = async () => {
+  // Não consultamos se o e-mail existe antes de abrir o formulário: isso evita
+  // transformar a tela em um mecanismo de enumeração de contas.
+  const handleCheckAccess = () => {
     const normalizedEmail = email.trim();
-    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || !slug) {
-      if (normalizedEmail) {
-        toast({ title: "Confira o e-mail", description: "Digite um endereço de e-mail válido.", variant: "destructive" });
-      }
+    if (!normalizedEmail || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail) || !slug) {
+      toast({ title: "Confira o e-mail", description: "Digite um endereço de e-mail válido.", variant: "destructive" });
       return;
     }
-    if (accessStatus === "checking") return;
-
-    setAccessStatus("checking");
-    try {
-      const { data, error } = await supabase.functions.invoke("login-with-context", {
-        body: { email: normalizedEmail, company_slug: slug, action: "check_access" },
-      });
-      if (error) throw error;
-      setPassword("");
-      setAccessStatus(data?.has_password ? "password" : "first_access");
-    } catch (error) {
-      console.error("Erro ao verificar acesso do cliente:", error);
-      // Se a verificação falhar, ainda permitimos tentar entrar ou pedir o primeiro acesso.
-      setAccessStatus("unknown");
-    }
+    setPassword("");
+    setAccessStatus("password");
+    setCredentialsOpen(true);
   };
 
   const handleFirstAccess = async () => {
@@ -156,48 +146,41 @@ export default function ClientLogin() {
               </div>
             </div>
 
-            {(accessStatus === "idle" || accessStatus === "checking") && (
-              <Button type="button" variant="neon" className="w-full" size="lg" disabled={accessStatus === "checking" || !email.trim()} onClick={() => void handleCheckAccess()}>
-                {accessStatus === "checking" ? "Verificando acesso..." : "Continuar"}
-              </Button>
-            )}
+            <Button type="button" variant="neon" className="w-full" size="lg" disabled={!email.trim()} onClick={handleCheckAccess}>
+              Continuar
+            </Button>
+            <p className="text-sm text-muted-foreground text-center">
+              Primeira vez por aqui? Você poderá solicitar a criação da senha na próxima etapa.
+            </p>
+          </form>
 
-            {(accessStatus === "password" || accessStatus === "unknown") && (
-              <>
+          <Dialog open={credentialsOpen} onOpenChange={setCredentialsOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Continue para sua conta</DialogTitle>
+                <DialogDescription>Use a senha cadastrada nesta empresa. Se ainda não configurou uma senha, solicite o primeiro acesso. Por segurança, esta tela não informa se um e-mail está cadastrado.</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password">Senha desta empresa</Label>
-                  <PasswordInput id="password" placeholder="Digite sua senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <Label htmlFor="modal-password">Senha desta empresa</Label>
+                  <PasswordInput id="modal-password" placeholder="Digite sua senha" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
                 </div>
-                <div className="flex justify-end -mt-2">
+                <div className="flex justify-end -mt-1">
                   <ForgotPasswordDialog defaultEmail={email} trigger={<button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">Esqueci minha senha</button>} />
                 </div>
                 <Button type="submit" variant="neon" className="w-full" disabled={isLoading || !password} size="lg">
                   {isLoading ? "Entrando..." : "Entrar"}
                 </Button>
-                {accessStatus === "unknown" && (
+                <div className="border-t pt-4 space-y-2">
+                  <p className="text-sm text-muted-foreground text-center">Ainda não criou uma senha de acesso nesta empresa?</p>
                   <Button type="button" variant="outline" className="w-full" disabled={firstAccessLoading} onClick={handleFirstAccess}>
                     <KeyRound className="w-4 h-4 mr-2" />
                     {firstAccessLoading ? "Enviando..." : "Primeiro acesso / Criar senha"}
                   </Button>
-                )}
-              </>
-            )}
-
-            {accessStatus === "first_access" && (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground text-center">
-                  Se você já foi cadastrado nesta empresa e ainda não criou sua senha de acesso, solicite o primeiro acesso abaixo.
-                </p>
-                <Button type="button" variant="neon" className="w-full" disabled={firstAccessLoading} onClick={handleFirstAccess}>
-                  <KeyRound className="w-4 h-4 mr-2" />
-                  {firstAccessLoading ? "Enviando..." : "Primeiro acesso / Criar senha"}
-                </Button>
-                <Button type="button" variant="ghost" className="w-full" onClick={() => setAccessStatus("password")}>
-                  Já possui senha? Entrar
-                </Button>
-              </div>
-            )}
-          </form>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           <div className="mt-6 pt-6 border-t border-primary/20 text-center">
             <p className="text-sm text-muted-foreground">Não tem uma conta?{" "}<Link to={`/${slug}/cadastro`} className="text-primary hover:text-primary-glow transition-colors">Cadastre-se</Link></p>
