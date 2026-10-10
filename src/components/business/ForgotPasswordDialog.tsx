@@ -49,8 +49,10 @@ export const ForgotPasswordDialog = ({ trigger, defaultEmail = "", companySlug }
         }
       }
       toast({
-        title: "Email enviado!",
-        description: "Verifique sua caixa de entrada para redefinir a senha.",
+        title: companySlug !== undefined ? "Solicitação recebida" : "Email enviado!",
+        description: companySlug !== undefined
+          ? "Se os dados corresponderem a um acesso empresarial, você receberá as instruções no e-mail cadastrado."
+          : "Verifique sua caixa de entrada para redefinir a senha.",
       });
       setOpen(false);
     } finally {
