@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/ClientSidebar";
 import { ClientNotificationsBell } from "@/components/client/ClientNotificationsBell";
 import { SavedCardsWallet } from "@/components/client/SavedCardsWallet";
@@ -280,8 +280,7 @@ export default function ClientProfile() {
       />
 
       <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden bg-gradient-hero">
-        <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20 shrink-0 w-full">
-          <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4 shrink-0" />
+        <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 shrink-0 w-full">
           <div className="flex flex-col min-w-0">
             <h1 className="text-xl font-bold text-gradient">Meu Perfil</h1>
             <p className="text-xs text-muted-foreground">Gerencie seus dados e privacidade</p>
