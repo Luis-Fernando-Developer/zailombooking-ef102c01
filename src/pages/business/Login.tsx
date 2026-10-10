@@ -14,6 +14,10 @@ import { ForgotPasswordDialog } from "@/components/business/ForgotPasswordDialog
 export default function BusinessLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [companySlugInput, setCompanySlugInput] = useState("");
+  const pathSegments = window.location.pathname.split("/").filter(Boolean);
+  const isGenericLogin = pathSegments.length === 1 && pathSegments[0] === "login";
+  const resolvedCompanySlug = isGenericLogin ? companySlugInput.trim().toLowerCase() : (pathSegments[0] || "");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -21,11 +25,15 @@ export default function BusinessLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
+    if (!resolvedCompanySlug) {
+      toast({ title: "Informe a empresa", description: "Digite o identificador (slug) da empresa para entrar no painel correto.", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("login-owner-context", {
-        body: { email: email.trim(), password, company_slug: window.location.pathname.split("/")[1] || "", origin: window.location.origin }
+        body: { email: email.trim(), password, company_slug: resolvedCompanySlug, origin: window.location.origin }
       });
 
       if (error || !data?.success) {
@@ -75,6 +83,11 @@ export default function BusinessLogin() {
         
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
+            {isGenericLogin && <div className="space-y-2">
+              <Label htmlFor="company-slug">Identificador da empresa (slug)</Label>
+              <Input id="company-slug" value={companySlugInput} onChange={(e) => setCompanySlugInput(e.target.value)} placeholder="ex.: minha-empresa" autoComplete="organization" required />
+              <p className="text-xs text-muted-foreground">Informe o identificador que aparece no endereço da página da sua empresa.</p>
+            </div>}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -105,6 +118,7 @@ export default function BusinessLogin() {
             <div className="flex justify-end -mt-2">
               <ForgotPasswordDialog
                 defaultEmail={email}
+                companySlug={resolvedCompanySlug}
                 trigger={
                   <button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">
                     Esqueci minha senha
