@@ -121,6 +121,7 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
       });
       setForm(emptyForm);
       setDialogOpen(false);
+      if (saveResult?.card?.id) onSelectCard?.(saveResult.card.id);
       toast({ title: "Cartão salvo", description: "O cartão foi tokenizado pelo gateway e adicionado à sua carteira." });
       await loadCards();
     } catch (error: any) {
@@ -222,8 +223,8 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
               <Input id="saved-card-number" type="text" autoComplete="cc-number" inputMode="numeric" value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value.replace(/[^\d ]/g, "").slice(0, 23) })} placeholder="0000 0000 0000 0000" required />
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-2"><Label htmlFor="saved-card-month">Mês</Label><Input id="saved-card-month" inputType="text" inputMode="numeric" autoComplete="cc-exp-month" value={form.expiryMonth} onChange={(e) => setForm({ ...form, expiryMonth: e.target.value.replace(/\D/g, "").slice(0, 2) })} placeholder="MM" required /></div>
-              <div className="space-y-2"><Label htmlFor="saved-card-year">Ano</Label><Input id="saved-card-year" inputType="text" inputMode="numeric" autoComplete="cc-exp-year" value={form.expiryYear} onChange={(e) => setForm({ ...form, expiryYear: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="AAAA" required /></div>
+              <div className="space-y-2"><Label htmlFor="saved-card-month">Mês</Label><Input id="saved-card-month" type="text" inputMode="numeric" autoComplete="cc-exp-month" value={form.expiryMonth} onChange={(e) => setForm({ ...form, expiryMonth: e.target.value.replace(/\D/g, "").slice(0, 2) })} placeholder="MM" required /></div>
+              <div className="space-y-2"><Label htmlFor="saved-card-year">Ano</Label><Input id="saved-card-year" type="text" inputMode="numeric" autoComplete="cc-exp-year" value={form.expiryYear} onChange={(e) => setForm({ ...form, expiryYear: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="AAAA" required /></div>
               <div className="space-y-2"><Label htmlFor="saved-card-ccv">CVV</Label><Input id="saved-card-ccv" type="password" autoComplete="cc-csc" inputMode="numeric" value={form.ccv} onChange={(e) => setForm({ ...form, ccv: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="•••" required /></div>
             </div>
             <SeparatorLine />
