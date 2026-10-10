@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
+async function gatewayAccountFingerprint(provider: string, key: string) {\n  const bytes = new TextEncoder().encode(`${provider}:${key.trim()}`);\n  const digest = await crypto.subtle.digest('SHA-256', bytes);\n  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');\n}\n\nfunction paymentClientIp(req: Request) {\n  return (req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')?.split(',')[0] || '').trim();\n}\n\nconst corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
@@ -64,7 +64,7 @@ serve(async (req) => {
       throw new Error('Corpo da requisição inválido')
     }
 
-    const { booking_id, method, payer, amount: bodyAmount, bookingData, hold_id } = body
+    const { booking_id, method, payer, amount: bodyAmount, bookingData, hold_id, saved_card_id } = body
     const couponCode = String(body.coupon_code ?? '').trim().toUpperCase() || null
 
     // --- RESOLUÇÃO DO CONTEXTO ---
@@ -352,16 +352,48 @@ serve(async (req) => {
           customerId = customer.id
         }
         const billingType = selectedMethod
+        let savedCard: any = null
+        if (saved_card_id) {
+          if (selectedMethod !== 'CREDIT_CARD') throw new Error('Cartão salvo só pode ser usado em pagamento por crédito.')
+          const authenticatedUserId = authData?.user?.id
+          const clientId = booking?.client_id ?? resolvedBookingData?.client_id ?? null
+          if (!authenticatedUserId || !clientId) throw new Error('Entre na sua conta de cliente para usar um cartão salvo.')
+          const { data: ownedClient } = await supabaseClient
+            .from('clients').select('id')
+            .eq('id', clientId).eq('company_id', companyId).eq('user_id', authenticatedUserId).maybeSingle()
+          if (!ownedClient) throw new Error('Você não tem permissão para usar este cartão.')
+          const accountFingerprint = await gatewayAccountFingerprint(receiverProvider, receiverKey)
+          const { data: card, error: cardError } = await supabaseClient
+            .from('client_saved_payment_methods')
+            .select('id,client_id,company_id,provider,gateway_account_fingerprint,gateway_customer_id,provider_token')
+            .eq('id', String(saved_card_id))
+            .eq('client_id', clientId)
+            .eq('company_id', companyId)
+            .eq('provider', receiverProvider)
+            .eq('gateway_account_fingerprint', accountFingerprint)
+            .maybeSingle()
+          if (cardError || !card) throw new Error('Este cartão não está disponível para a conta de recebimento deste agendamento. Cadastre-o novamente nesta empresa.')
+          savedCard = card
+        }
+
+        const paymentBody: Record<string, unknown> = {
+          customer: savedCard?.gateway_customer_id || customerId,
+          billingType, value: amount,
+          dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+          description: `Agendamento online ${paymentReference}`,
+          externalReference: paymentReference,
+          postalCode: '12345678', address: 'Rua Principal', addressNumber: '123', province: 'Centro',
+          metadata: paymentMeta,
+        }
+        if (savedCard) {
+          const remoteIp = paymentClientIp(req)
+          if (!remoteIp) throw new Error('Não foi possível identificar o IP do dispositivo para processar o cartão salvo.')
+          paymentBody.creditCardToken = savedCard.provider_token
+          paymentBody.remoteIp = remoteIp
+        }
         paymentResult = await requestJson(`${baseUrl}/payments`, {
           method: 'POST', headers,
-          body: JSON.stringify({
-            customer: customerId, billingType, value: amount,
-            dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            description: `Agendamento online ${paymentReference}`,
-            externalReference: paymentReference,
-            postalCode: '12345678', address: 'Rua Principal', addressNumber: '123', province: 'Centro',
-            metadata: paymentMeta,
-          }),
+          body: JSON.stringify(paymentBody),
         }, 'Asaas')
         invoiceUrl = paymentResult.invoiceUrl || null
         bankSlipUrl = paymentResult.bankSlipUrl || null
