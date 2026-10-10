@@ -259,7 +259,7 @@ export default function ClientLayout() {
   };
 
   return (
-    <SidebarProvider className="client-layout-sidebar-provider min-h-screen w-full flex">
+    <SidebarProvider className="min-h-screen w-full flex">
       <ClientSidebar
         clientId={client?.id || "N/A"}
         clientName={client?.name || null}
@@ -466,35 +466,6 @@ export default function ClientLayout() {
         />
       )}
 
-      <style>{`
-        .client-layout-sidebar-provider {
-          min-height: 100vh;
-          width: 100%;
-        }
-
-        @media (min-width: 768px) {
-          .client-layout-sidebar-provider {
-            display: grid !important;
-            grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-            transition: grid-template-columns 700ms cubic-bezier(0.4, 0, 0.2, 1);
-          }
-
-          .client-layout-sidebar-provider:has(> .peer[data-state="collapsed"]) {
-            grid-template-columns: var(--sidebar-width-icon) minmax(0, 1fr);
-          }
-
-          .client-layout-sidebar-provider > .peer {
-            min-width: 0;
-            min-height: 100vh;
-          }
-
-          .client-layout-sidebar-provider > .client-layout-content {
-            min-width: 0;
-            min-height: 100vh;
-            width: 100%;
-          }
-        }
-      `}</style>
     </SidebarProvider>
   );
 }
