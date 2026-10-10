@@ -1,6 +1,6 @@
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Calendar, Gift, LayoutDashboard, LogOut, User } from 'lucide-react';
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '../ui/sidebar';
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger, useSidebar } from '../ui/sidebar';
 import { CompanyLogo } from '../CompanyLogo';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
@@ -85,7 +85,10 @@ export function ClientSidebar({ className, companySlug, companyName, companyId, 
         collapsible="icon"
       >
         <SidebarContent className="h-full bg-card/30 backdrop-blur-md border-r border-primary/20">
-          <div className="py-3 flex justify-center items-center gap-3 border-b border-primary/10">
+          <div className="flex justify-end px-2 py-2 border-b border-primary/10">
+            <SidebarTrigger className="shrink-0 text-foreground hover:bg-primary/10" />
+          </div>
+          <div className="py-3 flex justify-center items-center gap-3">
             {state === "collapsed" ? (
               <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black overflow-hidden">
                 {companyLogoUrl ? (
