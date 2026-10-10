@@ -25,6 +25,7 @@ export const ForgotPasswordDialog = ({ trigger, defaultEmail = "", companySlug }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setLoading(true);
     try {
       if (companySlug !== undefined) {
