@@ -87,6 +87,9 @@ export default function ClientLayout() {
     const [hour, minute] = value.split(":");
     return [Number(hour) || 0, Number(minute) || 0];
   };
+  // Keep the same local-time interpretation for reschedule/cancel eligibility.
+  const parseHM = parseBookingTime;
+
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
