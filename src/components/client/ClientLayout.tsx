@@ -68,7 +68,7 @@ export default function ClientLayout() {
     let value = time;
     // Valores ISO com offset são instantes; converter para o fuso operacional brasileiro,
     // igual ao painel empresarial. Campos TIME puros continuam sendo tratados literalmente.
-    if (value.includes("T") && /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)) {
+    if (value.includes("T")) {
       const instant = new Date(value);
       if (!Number.isNaN(instant.getTime())) {
         const parts = new Intl.DateTimeFormat("en-GB", {
