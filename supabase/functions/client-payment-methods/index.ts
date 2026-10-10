@@ -140,13 +140,11 @@ serve(async (req) => {
       const last4 = String(tokenized.creditCardNumber || "").replace(/\D/g, "").slice(-4);
       if (!providerToken || !/^\d{4}$/.test(last4)) throw new Error("O Asaas não retornou o token e os últimos dígitos do cartão.");
 
-      const { data: existing } = await supabase.from("client_saved_payment_methods")
-        .select("id").match(scope).limit(1);
-      const makeDefault = !existing?.length;
-      if (makeDefault) {
-        await supabase.from("client_saved_payment_methods").update({ is_default: false })
-          .match(scope).eq("is_default", true);
-      }
+      // O cartão adicionado mais recentemente passa a ser o padrão.
+      const makeDefault = true;
+      const { error: clearDefaultError } = await supabase.from("client_saved_payment_methods")
+        .update({ is_default: false }).match(scope).eq("is_default", true);
+      if (clearDefaultError) throw clearDefaultError;
       const { data: saved, error: saveError } = await supabase.from("client_saved_payment_methods").insert({
         ...scope, gateway_customer_id: customerId, provider_token: providerToken,
         card_brand: tokenized.creditCardBrand || null, card_last4: last4,
