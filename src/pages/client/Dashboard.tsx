@@ -133,7 +133,7 @@ export default function ClientDashboard() {
     if (!time) return [0, 0];
     let value = time;
     // Instantes ISO com offset são convertidos para o fuso usado pelo painel empresarial.
-    if (value.includes("T") && /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)) {
+    if (value.includes("T")) {
       const instant = new Date(value);
       if (!Number.isNaN(instant.getTime())) {
         const parts = new Intl.DateTimeFormat("en-GB", {
