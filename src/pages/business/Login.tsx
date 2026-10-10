@@ -120,7 +120,7 @@ export default function BusinessLogin() {
                 defaultEmail={email}
                 companySlug={resolvedCompanySlug}
                 trigger={
-                  <button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">
+                  <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} className="text-sm text-primary hover:text-primary-glow transition-colors">
                     Esqueci minha senha
                   </button>
                 }
