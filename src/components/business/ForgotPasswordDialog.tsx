@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,10 @@ export const ForgotPasswordDialog = ({ trigger, defaultEmail = "", companySlug }
   const [email, setEmail] = useState(defaultEmail);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setEmail(defaultEmail);
+  }, [defaultEmail, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
