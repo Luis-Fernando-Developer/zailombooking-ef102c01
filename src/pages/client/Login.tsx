@@ -181,7 +181,7 @@ export default function ClientLogin() {
                     <PasswordInput id="modal-password" placeholder="Digite sua senha" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
                   </div>
                   <div className="flex justify-end -mt-1">
-                    <ForgotPasswordDialog defaultEmail={email} trigger={<button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">Esqueci minha senha</button>} />
+                    <ForgotPasswordDialog defaultEmail={email} trigger={<button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} className="text-sm text-primary hover:text-primary-glow transition-colors">Esqueci minha senha</button>} />
                   </div>
                   <Button type="submit" variant="neon" className="w-full" disabled={isLoading || !password} size="lg">
                     {isLoading ? "Entrando..." : "Entrar"}
