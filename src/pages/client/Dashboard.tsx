@@ -129,29 +129,38 @@ export default function ClientDashboard() {
     }
   };
 
-  const formatLongDate = (date: string, time: string) => {
-    if (!date) return "";
-    const [y, m, d] = date.split('-').map(Number);
-    let s = time || '';
-    if (s.includes('T')) s = s.split('T')[1];
-    s = s.replace(/[zZ].*$/, '').replace(/[+\-]\d{2}:?\d{2}$/, '');
-    const [hStr, miStr] = s.split(':');
-    const hh = String(Number(hStr) || 0).padStart(2, '0');
-    const mi = String(Number(miStr) || 0).padStart(2, '0');
-    const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    const dd = String(d).padStart(2, '0');
-    return `${dd} de ${months[m - 1]} de ${y} às ${hh}:${mi}`;
+  const parseBookingTime = (time?: string): [number, number] => {
+    if (!time) return [0, 0];
+    let value = time;
+    // Instantes ISO com offset são convertidos para o fuso usado pelo painel empresarial.
+    if (value.includes("T") && /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)) {
+      const instant = new Date(value);
+      if (!Number.isNaN(instant.getTime())) {
+        const parts = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "America/Sao_Paulo",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }).formatToParts(instant);
+        return [
+          Number(parts.find((part) => part.type === "hour")?.value ?? 0),
+          Number(parts.find((part) => part.type === "minute")?.value ?? 0),
+        ];
+      }
+    }
+    if (value.includes("T")) value = value.split("T")[1];
+    value = value.replace(/[zZ].*$/, "").replace(/[+-]\d{2}:?\d{2}$/, "");
+    const parts = value.split(":");
+    return [Number(parts[0]) || 0, Number(parts[1]) || 0];
   };
 
-
-  const formatTime = (time: string) => {
-    if (!time) return "--:--";
-    // Check if it's an ISO string (contains T) or just HH:mm:ss
-    if (time.includes('T')) {
-      const timePart = time.split('T')[1];
-      return timePart.substring(0, 5);
-    }
-    return time.substring(0, 5);
+  const formatLongDate = (date: string, time: string) => {
+    if (!date) return "";
+    const [y, m, d] = date.split("T")[0].split("-").map(Number);
+    const [hh, mi] = parseBookingTime(time);
+    const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const dd = String(d).padStart(2, '0');
+    return dd + " de " + months[m - 1] + " de " + y + " às " + String(hh).padStart(2,'0') + ":" + String(mi).padStart(2,'0');
   };
 
   if (isLoading) {
