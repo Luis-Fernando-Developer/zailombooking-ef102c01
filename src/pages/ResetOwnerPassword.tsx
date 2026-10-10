@@ -20,19 +20,19 @@ export default function ResetOwnerPassword() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (password.length < 8) {
-      useToastError("A senha deve ter pelo menos 8 caracteres.");
+      showError("A senha deve ter pelo menos 8 caracteres.");
       return;
     }
     if (new TextEncoder().encode(password).length > 72) {
-      useToastError("A senha deve ter no máximo 72 bytes.");
+      showError("A senha deve ter no máximo 72 bytes.");
       return;
     }
     if (password !== confirm) {
-      useToastError("As senhas não coincidem.");
+      showError("As senhas não coincidem.");
       return;
     }
     if (!token) {
-      useToastError("O link de recuperação é inválido. Solicite outro link.");
+      showError("O link de recuperação é inválido. Solicite outro link.");
       return;
     }
     setLoading(true);
@@ -41,19 +41,19 @@ export default function ResetOwnerPassword() {
         body: { token, password },
       });
       if (error || !data?.success) {
-        useToastError(data?.error || "Não foi possível redefinir a senha. Solicite um novo link.");
+        showError(data?.error || "Não foi possível redefinir a senha. Solicite um novo link.");
         return;
       }
       setCompleted(true);
     } catch {
-      useToastError("Não foi possível redefinir a senha. Solicite um novo link.");
+      showError("Não foi possível redefinir a senha. Solicite um novo link.");
     } finally {
       setLoading(false);
     }
   };
 
   const { toast } = useToast();
-  function useToastError(message: string) {
+  function showError(message: string) {
     toast({ title: "Não foi possível redefinir a senha", description: message, variant: "destructive" });
   }
 
