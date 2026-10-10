@@ -53,7 +53,7 @@ export default function ClientLogin() {
       if (error) throw error;
       toast({
         title: "Solicitação processada",
-        description: data?.message || "Se o cadastro existir, enviaremos as instruções de primeiro acesso.",
+        description: "Se os dados corresponderem a um cadastro elegível, você receberá as instruções de acesso. Confira também sua caixa de spam.",
       });
     } catch (error) {
       console.error("Erro ao solicitar primeiro acesso:", error);
