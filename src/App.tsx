@@ -23,6 +23,7 @@ import CreateCompany from "./pages/admin/CreateCompany";
 import SignUp from "./pages/SignUp";
 import SignupPending from "./pages/SignupPending";
 import BusinessLogin from "./pages/business/Login";
+import CompanyLoginEntry from "./pages/business/CompanyLoginEntry";
 import ResetPassword from "./pages/ResetPassword";
 import ResetOwnerPassword from "./pages/ResetOwnerPassword";
 import CompanyLandingPage from "./pages/company/[slug]";
@@ -86,7 +87,7 @@ const App = () => (
             <Route path="/api-reference" element={<ApiDocs />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/signup/aguardando/:companyId" element={<SignupPending />} />
-            <Route path="/login" element={<BusinessLogin />} />
+            <Route path="/login" element={<CompanyLoginEntry />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-owner-password" element={<ResetOwnerPassword />} />
             <Route path="/:slug/admin/login" element={<BusinessLogin />} />
