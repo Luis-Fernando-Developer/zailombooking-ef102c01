@@ -52,3 +52,6 @@ verify_jwt = false
 
 [functions.admin-manage-company-invoice]
 verify_jwt = true
+
+[functions.validate-company-login-slug]
+verify_jwt = false
