@@ -35,10 +35,17 @@ Deno.serve(async (req) => {
       .select("id,email,company_id")
       .eq("company_id", company.id)
       .eq("role", "owner")
-      .ilike("email", email)
+      .eq("email", email)
       .limit(1)
       .maybeSingle();
     if (!employee) return genericResponse();
+
+    const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { count: recentRequests } = await admin.from("owner_company_password_resets")
+      .select("id", { count: "exact", head: true })
+      .eq("employee_id", employee.id)
+      .gte("created_at", since);
+    if ((recentRequests ?? 0) >= 3) return genericResponse();
 
     await admin.from("owner_company_password_resets")
       .update({ used_at: new Date().toISOString() })
