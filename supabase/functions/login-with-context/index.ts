@@ -71,11 +71,38 @@ Deno.serve(async (req) => {
     }
 
     if (action === "check_access") {
-      // A resposta informa apenas se há senha contextual nesta empresa.
-      // Para e-mails não cadastrados, o fluxo de primeiro acesso continua genérico.
+      // Verifica a identidade global e o vínculo com a empresa para escolher
+      // o próximo passo. A criação/vinculação continua exigindo confirmação.
+      const { data: globalUserId, error: globalUserError } = await supabaseClient.rpc(
+        "get_user_id_by_email",
+        { _email: email }
+      );
+
+      if (globalUserError) {
+        console.error("[LOGIN_CONTEXT] Erro ao verificar identidade global:", globalUserError);
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Não foi possível verificar o acesso agora.",
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const hasCompanyProfile = Boolean(client);
+      const hasPassword = Boolean(client?.user_id && client?.password_hash);
+      const hasGlobalProfile = Boolean(globalUserId);
+
       return new Response(JSON.stringify({
         success: true,
-        has_password: Boolean(client?.user_id && client?.password_hash),
+        access_state: hasPassword
+          ? "password"
+          : hasCompanyProfile
+            ? "first_access"
+            : "create_account",
+        has_password: hasPassword,
+        has_company_profile: hasCompanyProfile,
+        has_global_profile: hasGlobalProfile,
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
