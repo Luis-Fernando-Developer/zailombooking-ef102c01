@@ -50,7 +50,7 @@ export default function ClientLogin() {
       } else {
         const params = new URLSearchParams(window.location.search);
         const returnTo = params.get("returnTo");
-        navigate(\`/\${slug}/cadastro?email=\${encodeURIComponent(normalizedEmail)}\${returnTo ? \`&returnTo=\${encodeURIComponent(returnTo)}\` : ""}\`);
+        navigate("/" + slug + "/cadastro?email=" + encodeURIComponent(normalizedEmail) + (returnTo ? "&returnTo=" + encodeURIComponent(returnTo) : ""));
       }
     } catch (error) {
       console.error("Erro ao verificar acesso do cliente:", error);
