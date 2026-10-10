@@ -16,12 +16,21 @@ export default function CompanyLoginEntry() {
 
   const handleContinue = async (event: React.FormEvent) => {
     event.preventDefault();
-    const normalizedSlug = slug.trim().toLowerCase()
-      .replace(/^https?:\/\//, "")
-      .replace(/^www\./, "")
-      .split(/[/?#]/)[0]
-      .replace(/\.booking\.zailom\.com$/, "")
-      .replace(/\.zailom\.com$/, "");
+    const rawSlug = slug.trim().toLowerCase();
+    let normalizedSlug = rawSlug;
+    if (rawSlug.includes("://") || rawSlug.startsWith("www.")) {
+      try {
+        const parsed = new URL(rawSlug.includes("://") ? rawSlug : "https://" + rawSlug);
+        normalizedSlug = parsed.pathname.split("/").filter(Boolean)[0] || "";
+        if (!normalizedSlug && parsed.hostname !== "booking.zailom.com") {
+          normalizedSlug = parsed.hostname.replace(/^www\./, "").split(".")[0];
+        }
+      } catch {
+        normalizedSlug = rawSlug;
+      }
+    } else if (rawSlug.includes("/")) {
+      normalizedSlug = rawSlug.split(/[/?#]/).filter(Boolean).pop() || "";
+    }
 
     if (!normalizedSlug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizedSlug)) {
       setErrorMessage("Digite um identificador de empresa válido.");
