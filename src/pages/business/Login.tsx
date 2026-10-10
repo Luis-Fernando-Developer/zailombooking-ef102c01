@@ -39,7 +39,7 @@ export default function BusinessLogin() {
       if (error || !data?.success) {
         toast({
           title: "Erro no login",
-          description: data?.error || error?.message || "E-mail ou senha incorretos para esta empresa.",
+          description: "Não foi possível entrar nessa empresa. Confira o identificador da empresa, o e-mail e a senha.",
           variant: "destructive",
         });
         return;
