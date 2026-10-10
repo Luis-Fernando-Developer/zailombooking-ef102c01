@@ -114,7 +114,7 @@ export default function ClientRewards() {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="min-h-screen w-full flex">
       <div className="min-h-screen w-full flex bg-gradient-hero">
         <ClientSidebar
           companySlug={company.slug}
@@ -125,7 +125,6 @@ export default function ClientRewards() {
         />
         <SidebarInset>
           <header className="h-20 border-b border-primary/20 bg-card/30 backdrop-blur-sm flex items-center px-6 min-w-0">
-            <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4 shrink-0" />
             <div className="min-w-0">
               <h1 className="text-xl font-bold">Prêmios e Brindes</h1>
               <p className="text-sm text-muted-foreground">Seus benefícios conquistados</p>
