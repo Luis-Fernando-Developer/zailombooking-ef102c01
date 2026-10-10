@@ -79,51 +79,6 @@ export function ClientSidebar({ className, companySlug, companyName, companyId, 
 
   return (
     <>
-      <style>{`
-        @media (min-width: 768px) {
-          /* Dashboard/Profile: the header currently sits outside the sidebar row.
-             Turn that wrapper into the same 256px/48px desktop layout used by
-             ClientLayout, without touching any booking logic. */
-          div[class~="group/sidebar-wrapper"]:has([data-client-sidebar="true"]):not(:has(> [data-client-sidebar="true"])) > div.flex.flex-col.h-screen {
-            display: grid !important;
-            grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-            grid-template-rows: 5rem minmax(0, 1fr);
-            transition: grid-template-columns 700ms cubic-bezier(0.4, 0, 0.2, 1);
-            min-width: 0;
-            min-height: 0;
-          }
-
-          div[class~="group/sidebar-wrapper"]:has([data-client-sidebar="true"]):not(:has(> [data-client-sidebar="true"])) > div.flex.flex-col.h-screen:has([data-client-sidebar="true"][data-state="collapsed"]) {
-            grid-template-columns: var(--sidebar-width-icon) minmax(0, 1fr);
-          }
-
-          div[class~="group/sidebar-wrapper"]:has([data-client-sidebar="true"]):not(:has(> [data-client-sidebar="true"])) > div.flex.flex-col.h-screen > header {
-            grid-column: 2;
-            grid-row: 1;
-            width: 100%;
-          }
-
-          div[class~="group/sidebar-wrapper"]:has([data-client-sidebar="true"]):not(:has(> [data-client-sidebar="true"])) > div.flex.flex-col.h-screen > div.flex.flex-1 {
-            display: contents;
-          }
-
-          div[class~="group/sidebar-wrapper"]:has([data-client-sidebar="true"]):not(:has(> [data-client-sidebar="true"])) > div.flex.flex-col.h-screen > div.flex.flex-1 > [data-client-sidebar="true"] {
-            grid-column: 1;
-            grid-row: 2;
-            min-width: 0;
-            min-height: 0;
-          }
-
-          div[class~="group/sidebar-wrapper"]:has([data-client-sidebar="true"]):not(:has(> [data-client-sidebar="true"])) > div.flex.flex-col.h-screen > div.flex.flex-1 > main {
-            grid-column: 2;
-            grid-row: 2;
-            min-width: 0;
-            min-height: 0;
-            width: 100%;
-          }
-        }
-      `}</style>
-
       <Sidebar
         data-client-sidebar="true"
         className={className || ""}
