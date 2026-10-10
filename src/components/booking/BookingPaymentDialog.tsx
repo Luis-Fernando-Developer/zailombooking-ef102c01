@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { SavedCardsWallet } from "@/components/client/SavedCardsWallet";
 import { Loader2, QrCode, CreditCard, Receipt, CheckCircle2, Copy } from "lucide-react";
 
 // interface BookingData {
@@ -92,6 +93,8 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   const [holdId, setHoldId] = useState<string | null>(null);
   const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
   const [holdSecondsLeft, setHoldSecondsLeft] = useState<number | null>(null);
+  const [selectedSavedCardId, setSelectedSavedCardId] = useState<string | null>(null);
+  const handleSelectSavedCard = useCallback((id: string | null) => setSelectedSavedCardId(id), []);
 
   // Mantém activeBookingId em sync com prop
   useEffect(() => {
@@ -450,6 +453,19 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
                     })}
                   </RadioGroup>
                 </div>
+
+                {selected === "CREDIT_CARD" && (
+                  <div className="space-y-2 rounded-lg border p-3">
+                    <p className="text-sm font-medium">Usar cartão salvo</p>
+                    <p className="text-xs text-muted-foreground">Ao selecionar um cartão salvo no Asaas, a cobrança será processada diretamente. Sem seleção, você poderá pagar pelo checkout do gateway.</p>
+                    <SavedCardsWallet
+                      companyId={companyId}
+                      mode="select"
+                      selectedCardId={selectedSavedCardId}
+                      onSelectCard={handleSelectSavedCard}
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>CPF/CNPJ do pagador</Label>
