@@ -104,6 +104,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
   useEffect(() => {
     if (!open) return;
     setActiveBookingId(bookingId);
+    setSelectedSavedCardId(null);
     (async () => {
       const { data } = await supabase
         .from("company_payment_settings")
@@ -371,6 +372,7 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
           hold_id: currentHoldId || null,
           coupon_code: couponCode || null,
           bookingData: bookingData,
+          saved_card_id: selected === "CREDIT_CARD" ? selectedSavedCardId : null,
         },
       });
       if (error) {
@@ -521,7 +523,11 @@ export function BookingPaymentDialog({ open, onClose, bookingId, companyId, amou
             {payment && (payment.method === "CREDIT_CARD" || payment.method === "DEBIT_CARD") && (
               <div className="space-y-3 text-center">
                 <CreditCard className="w-12 h-12 mx-auto text-primary" />
-                <Button asChild><a href={payment.invoice_url} target="_blank" rel="noreferrer">Pagar com cartão</a></Button>
+                {payment.invoice_url ? (
+                  <Button asChild><a href={payment.invoice_url} target="_blank" rel="noreferrer">Pagar com cartão</a></Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Pagamento enviado pelo cartão salvo. Estamos aguardando a confirmação do gateway.</p>
+                )}
                 <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
                   <Loader2 className="w-3 h-3 animate-spin" /> Aguardando confirmação...
                 </p>
