@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/ClientSidebar";
 import { ClientNotificationsBell } from "@/components/client/ClientNotificationsBell";
 import { supabase } from "@/lib/supabaseClient";
@@ -172,23 +172,7 @@ export default function ClientDashboard() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex flex-col h-screen w-full bg-gradient-hero overflow-hidden">
-        {/* Header - Agora ocupa toda a largura no topo */}
-        <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 z-20 shrink-0 w-full">
-          <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4" />
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-gradient">
-              Painel do Cliente
-            </h1>
-            <p className="text-xs text-muted-foreground">Gerencie seus agendamentos na {company?.name}</p>
-          </div>
-          <div className="ml-auto">
-            <ClientNotificationsBell companyId={company?.id} />
-          </div>
-        </header>
-
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+    <SidebarProvider className="min-h-screen w-full flex">
           <ClientSidebar
             clientId={client?.id || ""}
             clientName={client?.name || null}
@@ -199,8 +183,17 @@ export default function ClientDashboard() {
             companyId={company?.id || ""}
             companyLogoUrl={(company as any)?.logo_url || null}
           />
-
-          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+          <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden bg-gradient-hero">
+            <header className="h-20 flex items-center border-b border-primary/20 bg-card/30 backdrop-blur-md px-6 shrink-0 w-full">
+              <div className="flex flex-col min-w-0">
+                <h1 className="text-xl font-bold text-gradient">Painel do Cliente</h1>
+                <p className="text-xs text-muted-foreground">Gerencie seus agendamentos na {company?.name}</p>
+              </div>
+              <div className="ml-auto shrink-0">
+                <ClientNotificationsBell companyId={company?.id} />
+              </div>
+            </header>
+            <main className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden">
 
 
 
@@ -369,9 +362,8 @@ export default function ClientDashboard() {
               </Card>
             </section>
           </div>
-          </main>
-        </div>
-      </div>
+            </main>
+          </div>
     </SidebarProvider>
   );
 }
