@@ -31,7 +31,7 @@ export default function ClientSignup() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    email: "",
+    email: searchParams.get("email") || "",
     phone: "",
     cpf: "",
   });
