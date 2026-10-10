@@ -1,7 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-async function gatewayAccountFingerprint(provider: string, key: string) {\n  const bytes = new TextEncoder().encode(`${provider}:${key.trim()}`);\n  const digest = await crypto.subtle.digest('SHA-256', bytes);\n  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');\n}\n\nfunction paymentClientIp(req: Request) {\n  return (req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')?.split(',')[0] || '').trim();\n}\n\nconst corsHeaders = {
+async function gatewayAccountFingerprint(provider: string, key: string) {
+  const bytes = new TextEncoder().encode(`${provider}:${key.trim()}`);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function paymentClientIp(req: Request) {
+  return (req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')?.split(',')[0] || '').trim();
+}
+\nconst corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
@@ -55,7 +64,7 @@ serve(async (req) => {
 
     // 2. Extração do corpo com log básico
     const rawBody = await req.text()
-    console.log('[BOOKING_PAYMENT] Request body:', rawBody)
+    console.log('[BOOKING_PAYMENT] Request received')
     
     let body
     try {
