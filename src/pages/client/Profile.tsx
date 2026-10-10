@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/ClientSidebar";
 import { ClientNotificationsBell } from "@/components/client/ClientNotificationsBell";
+import { SavedCardsWallet } from "@/components/client/SavedCardsWallet";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatCPF, cleanCPF, validateCPF } from "@/lib/cpfValidation";
@@ -476,18 +477,7 @@ export default function ClientProfile() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
-                    <p className="text-xs text-muted-foreground">
-                      Gerencie seus cartões salvos para agendamentos rápidos. 
-                      Os dados são armazenados de forma segura pelo nosso processador de pagamentos.
-                    </p>
-                    
-                    <div className="rounded-xl border border-dashed border-primary/20 p-8 text-center">
-                      <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-4 opacity-20" />
-                      <p className="text-sm text-muted-foreground mb-4">Você ainda não possui cartões salvos.</p>
-                      <Button variant="outline" size="sm" onClick={() => toast({ title: "Em breve", description: "O gerenciamento direto de cartões será liberado em breve." })}>
-                        Adicionar Novo Cartão
-                      </Button>
-                    </div>
+                    <SavedCardsWallet companyId={company.id} mode="manage" />
                   </CardContent>
                 </Card>
 
