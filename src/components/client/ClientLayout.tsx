@@ -63,13 +63,29 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 };
 
 export default function ClientLayout() {
-  const formatTime = (time: string) => {
-    if (!time) return "--:--";
-    if (time.includes('T')) {
-      const timePart = time.split('T')[1];
-      return timePart.substring(0, 5);
+  const parseBookingTime = (time?: string): [number, number] => {
+    if (!time) return [0, 0];
+    let value = time;
+    // Valores ISO com offset são instantes; converter para o fuso operacional brasileiro,
+    // igual ao painel empresarial. Campos TIME puros continuam sendo tratados literalmente.
+    if (value.includes("T") && /(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(value)) {
+      const instant = new Date(value);
+      if (!Number.isNaN(instant.getTime())) {
+        const parts = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "America/Sao_Paulo",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }).formatToParts(instant);
+        const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+        const minute = Number(parts.find((part) => part.type === "minute")?.value ?? 0);
+        return [hour, minute];
+      }
     }
-    return time.substring(0, 5);
+    if (value.includes("T")) value = value.split("T")[1];
+    value = value.replace(/[zZ].*$/, "").replace(/[+-]\\d{2}:?\\d{2}$/, "");
+    const [hour, minute] = value.split(":");
+    return [Number(hour) || 0, Number(minute) || 0];
   };
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -229,19 +245,11 @@ export default function ClientLayout() {
     return (bookingDateTime.getTime() - now.getTime()) >= minMs;
   };
 
-  const parseHM = (time?: string): [number, number] => {
-    if (!time) return [0, 0];
-    let s = time;
-    if (s.includes('T')) s = s.split('T')[1];
-    s = s.replace(/[zZ].*$/, '').replace(/[+\-]\d{2}:?\d{2}$/, '');
-    const [hh, mm] = s.split(':');
-    return [Number(hh) || 0, Number(mm) || 0];
-  };
 
   const formatLongDate = (date: string, time: string) => {
     if (!date) return "";
-    const [y, m, d] = date.split('-').map(Number);
-    const [hh, mi] = parseHM(time);
+    const [y, m, d] = date.split('T')[0].split('-').map(Number);
+    const [hh, mi] = parseBookingTime(time);
     const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     const dd = String(d).padStart(2, '0');
     return `${dd} de ${months[m - 1]} de ${y} às ${String(hh).padStart(2,'0')}:${String(mi).padStart(2,'0')}`;
