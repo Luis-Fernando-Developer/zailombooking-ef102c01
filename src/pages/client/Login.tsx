@@ -175,18 +175,20 @@ export default function ClientLogin() {
                 <DialogDescription>{accessStatus === "first_access" ? "Seu cadastro nesta empresa ainda não tem uma senha configurada. Solicite o primeiro acesso para receber as instruções." : "Use a senha cadastrada nesta empresa. Se ainda não configurou uma senha, solicite o primeiro acesso."}</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="modal-password">Senha desta empresa</Label>
-                  <PasswordInput id="modal-password" placeholder="Digite sua senha" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
-                </div>
-                <div className="flex justify-end -mt-1">
-                  <ForgotPasswordDialog defaultEmail={email} trigger={<button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">Esqueci minha senha</button>} />
-                </div>
-                <Button type="submit" variant="neon" className="w-full" disabled={isLoading || !password} size="lg">
-                  {isLoading ? "Entrando..." : "Entrar"}
-                </Button>
+                {accessStatus === "password" && <>
+                  <div className="space-y-2">
+                    <Label htmlFor="modal-password">Senha desta empresa</Label>
+                    <PasswordInput id="modal-password" placeholder="Digite sua senha" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+                  </div>
+                  <div className="flex justify-end -mt-1">
+                    <ForgotPasswordDialog defaultEmail={email} trigger={<button type="button" className="text-sm text-primary hover:text-primary-glow transition-colors">Esqueci minha senha</button>} />
+                  </div>
+                  <Button type="submit" variant="neon" className="w-full" disabled={isLoading || !password} size="lg">
+                    {isLoading ? "Entrando..." : "Entrar"}
+                  </Button>
+                </>}
                 <div className="border-t pt-4 space-y-2">
-                  <p className="text-sm text-muted-foreground text-center">Ainda não criou uma senha de acesso nesta empresa?</p>
+                  <p className="text-sm text-muted-foreground text-center">{accessStatus === "first_access" ? "Seu cadastro nesta empresa ainda não tem senha." : "Precisa criar ou recuperar seu acesso?"}</p>
                   <Button type="button" variant="outline" className="w-full" disabled={firstAccessLoading} onClick={handleFirstAccess}>
                     <KeyRound className="w-4 h-4 mr-2" />
                     {firstAccessLoading ? "Enviando..." : "Primeiro acesso / Criar senha"}
