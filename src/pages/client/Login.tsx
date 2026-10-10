@@ -83,20 +83,13 @@ export default function ClientLogin() {
       });
 
       if (error || !data?.success) {
-        const rawError = String(data?.error || "");
-        const containsTechnicalDetails = /edge function|function returned|rpc|postgres|sqlstate|database|internal server|stack trace|supabase/i.test(rawError);
-        const errorMsg = containsTechnicalDetails
-          ? "E-mail ou senha incorretos para esta empresa. Se ainda não criou uma senha aqui, use a opção Primeiro acesso."
-          : (rawError || "E-mail ou senha incorretos para esta empresa.");
-
-        if (data?.needs_link) {
-          toast({ title: "Vínculo necessário", description: "Você já possui conta no Zailom. Verifique seu e-mail/WhatsApp para confirmar seu vínculo com esta empresa." });
-        } else if (data?.needs_first_access) {
-          setAccessStatus("first_access");
-          toast({ title: "Primeiro acesso necessário", description: "Você ainda não criou uma senha para esta empresa. Solicite seu primeiro acesso abaixo.", variant: "destructive" });
-        } else {
-          toast({ title: "Não foi possível entrar", description: errorMsg, variant: "destructive" });
-        }
+        // Uma resposta visual única evita revelar se o e-mail existe, está vinculado
+        // à empresa ou já possui senha contextual.
+        toast({
+          title: "Não foi possível entrar",
+          description: "Confira os dados ou use Primeiro acesso / Criar senha. Se o problema continuar, tente novamente mais tarde.",
+          variant: "destructive",
+        });
         setIsLoading(false);
         return;
       }
