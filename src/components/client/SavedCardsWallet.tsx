@@ -99,7 +99,7 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
       if (!form.holderName.trim() || !form.name.trim() || !form.email.trim() || cpfCnpj.length < 11 || postalCode.length !== 8 || !form.addressNumber.trim()) {
         throw new Error("Preencha os dados do titular, CPF/CNPJ, CEP e número do endereço.");
       }
-      await callAction("save-card", {
+      const saveResult = await callAction("save-card", {
         method_data: {
           creditCard: {
             holderName: form.holderName.trim(),
@@ -153,16 +153,18 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
 
   return (
     <div className="space-y-3">
-      {mode === "manage" && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">A carteira guarda somente a referência segura do gateway e os dados mascarados do cartão.</p>
-          {provider === "asaas" && (
-            <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Adicionar cartão
-            </Button>
-          )}
-        </div>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {mode === "manage"
+            ? "A carteira guarda somente a referência segura do gateway e os dados mascarados do cartão."
+            : "Selecione um cartão salvo ou adicione um novo cartão para este gateway."}
+        </p>
+        {provider === "asaas" && (
+          <Button type="button" size="sm" variant={mode === "manage" ? "default" : "outline"} onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Adicionar cartão
+          </Button>
+        )}
+      </div>
       {loading ? (
         <div className="flex items-center justify-center py-6 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando cartões…</div>
       ) : cards.length ? (
@@ -200,7 +202,7 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
           {mode === "manage" && provider === "asaas" && <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setDialogOpen(true)}>Adicionar primeiro cartão</Button>}
         </div>
       )}
-      {mode === "manage" && provider && provider !== "asaas" && (
+      {provider && provider !== "asaas" && (
         <p className="text-xs text-muted-foreground">O cadastro de novos cartões ainda não está habilitado para este gateway. O checkout normal continua disponível.</p>
       )}
 
@@ -217,17 +219,17 @@ export function SavedCardsWallet({ companyId, mode = "manage", selectedCardId = 
             </div>
             <div className="space-y-2">
               <Label htmlFor="saved-card-number">Número do cartão</Label>
-              <Input id="saved-card-number" inputType="text" autoComplete="cc-number" inputMode="numeric" value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value.replace(/[^\d ]/g, "").slice(0, 23) })} placeholder="0000 0000 0000 0000" required />
+              <Input id="saved-card-number" type="text" autoComplete="cc-number" inputMode="numeric" value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value.replace(/[^\d ]/g, "").slice(0, 23) })} placeholder="0000 0000 0000 0000" required />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2"><Label htmlFor="saved-card-month">Mês</Label><Input id="saved-card-month" inputType="text" inputMode="numeric" autoComplete="cc-exp-month" value={form.expiryMonth} onChange={(e) => setForm({ ...form, expiryMonth: e.target.value.replace(/\D/g, "").slice(0, 2) })} placeholder="MM" required /></div>
               <div className="space-y-2"><Label htmlFor="saved-card-year">Ano</Label><Input id="saved-card-year" inputType="text" inputMode="numeric" autoComplete="cc-exp-year" value={form.expiryYear} onChange={(e) => setForm({ ...form, expiryYear: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="AAAA" required /></div>
-              <div className="space-y-2"><Label htmlFor="saved-card-ccv">CVV</Label><Input id="saved-card-ccv" inputType="password" autoComplete="cc-csc" inputMode="numeric" value={form.ccv} onChange={(e) => setForm({ ...form, ccv: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="•••" required /></div>
+              <div className="space-y-2"><Label htmlFor="saved-card-ccv">CVV</Label><Input id="saved-card-ccv" type="password" autoComplete="cc-csc" inputMode="numeric" value={form.ccv} onChange={(e) => setForm({ ...form, ccv: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="•••" required /></div>
             </div>
             <SeparatorLine />
             <p className="text-sm font-medium">Dados do titular</p>
             <div className="space-y-2"><Label htmlFor="saved-card-name">Nome completo</Label><Input id="saved-card-name" autoComplete="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
-            <div className="space-y-2"><Label htmlFor="saved-card-email">E-mail</Label><Input id="saved-card-email" inputType="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
+            <div className="space-y-2"><Label htmlFor="saved-card-email">E-mail</Label><Input id="saved-card-email" type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label htmlFor="saved-card-cpf">CPF/CNPJ</Label><Input id="saved-card-cpf" inputMode="numeric" value={form.cpfCnpj} onChange={(e) => setForm({ ...form, cpfCnpj: e.target.value.replace(/\D/g, "").slice(0, 14) })} required /></div>
               <div className="space-y-2"><Label htmlFor="saved-card-phone">Telefone</Label><Input id="saved-card-phone" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 13) })} /></div>
