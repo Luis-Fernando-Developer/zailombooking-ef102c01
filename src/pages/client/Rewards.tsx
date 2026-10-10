@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ClientSidebar } from "@/components/client/ClientSidebar";
 import { ClientNotificationsBell } from "@/components/client/ClientNotificationsBell";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -124,15 +124,16 @@ export default function ClientRewards() {
           clientName={client.name}
         />
         <SidebarInset>
-          <header className="h-20 border-b border-primary/20 bg-card/30 backdrop-blur-sm flex items-center px-6">
-            <div>
+          <header className="h-20 border-b border-primary/20 bg-card/30 backdrop-blur-sm flex items-center px-6 min-w-0">
+            <SidebarTrigger className="text-foreground hover:bg-primary/10 mr-4 shrink-0" />
+            <div className="min-w-0">
               <h1 className="text-xl font-bold">Prêmios e Brindes</h1>
               <p className="text-sm text-muted-foreground">Seus benefícios conquistados</p>
             </div>
             <div className="ml-auto"><ClientNotificationsBell companyId={company.id} /></div>
           </header>
 
-          <main className="p-6 md:p-8">
+          <main className="p-6 md:p-8 min-w-0">
             <div className="max-w-6xl mx-auto space-y-8">
               <section>
                 <div className="flex items-center gap-2 mb-4">
