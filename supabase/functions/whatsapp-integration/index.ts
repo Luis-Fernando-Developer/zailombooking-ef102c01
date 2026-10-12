@@ -851,14 +851,16 @@ serve(async (req) => {
       if ("error" in r) return r.error;
       const w = (body.webhook ?? {}) as Record<string, unknown>;
       const events = Array.isArray(w.events) ? w.events.filter((e) => typeof e === "string") : [];
+      // wa-service aceita o contrato plano { url, byEvents, base64, events }.
+      // O contrato aninhado { webhook: {...} } era rejeitado pelo schema com 422.
+      const configuredUrl = typeof w.url === "string" && w.url.trim()
+        ? w.url.trim()
+        : WA_WEBHOOK_URL;
       const payload = {
-        webhook: {
-          enabled: !!w.enabled,
-          url: typeof w.url === "string" ? w.url : WA_WEBHOOK_URL,
-          byEvents: !!w.byEvents,
-          base64: !!w.base64,
-          events,
-        },
+        url: w.enabled ? configuredUrl : null,
+        byEvents: !!w.byEvents,
+        base64: !!w.base64,
+        events,
       };
       const res = await waFetch(r.apiKey, `/v1/instances/${r.inst.wa_instance_id}/webhook/set`, {
         method: "POST", body: JSON.stringify(payload),
