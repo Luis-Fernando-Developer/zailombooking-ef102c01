@@ -308,6 +308,34 @@ serve(async (req) => {
       return { inst, apiKey: cred.apiKey } as const;
     }
 
+    // ---------- EVOLUTION BOT (configuração compartilhada no wa-service) ----
+    if (action === "get-bot" || action === "set-bot" || action === "delete-bot") {
+      const r = await loadInstance(body.instance_id);
+      if ("error" in r) return r.error;
+      const path = `/v1/instances/${encodeURIComponent(r.inst.wa_instance_id)}/bot`;
+
+      if (action === "get-bot") {
+        const result = await waFetch(r.apiKey, path);
+        if (!result.ok) return json({ error: "get_bot_failed", provider_response: result.body }, result.status);
+        const raw = result.body as any;
+        return json({ success: true, bot: raw?.evolutionBot ?? raw?.bot ?? raw });
+      }
+
+      if (action === "set-bot") {
+        const botSettings = body.bot_settings;
+        if (!botSettings || typeof botSettings !== "object" || Array.isArray(botSettings)) {
+          return json({ error: "Missing bot_settings" }, 400);
+        }
+        const result = await waFetch(r.apiKey, path, { method: "POST", body: JSON.stringify(botSettings) });
+        if (!result.ok) return json({ error: "set_bot_failed", provider_response: result.body }, result.status);
+        return json({ success: true, bot: (result.body as any)?.evolutionBot ?? (result.body as any)?.bot ?? result.body });
+      }
+
+      const result = await waFetch(r.apiKey, path, { method: "DELETE" });
+      if (!result.ok) return json({ error: "delete_bot_failed", provider_response: result.body }, result.status);
+      return json({ success: true });
+    }
+
     // ---------- CREATE instance ------------------------------------------
     if (action === "create-instance") {
       const providerId = String(body.provider ?? "evolution");
