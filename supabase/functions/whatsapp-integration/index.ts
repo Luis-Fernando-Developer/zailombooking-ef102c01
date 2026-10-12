@@ -382,16 +382,54 @@ serve(async (req) => {
       const r = await loadInstance(body.instance_id);
       const remote: { attempts: Array<{ path: string; status: number; ok: boolean; body?: unknown }> } = { attempts: [] };
       if (!("error" in r) && r.inst.wa_instance_id) {
-        // Try the canonical REST DELETE first, then fall back to legacy /delete suffix.
-        const paths = [
-          `/v1/instances/${r.inst.wa_instance_id}`,
-          `/v1/instances/${r.inst.wa_instance_id}/delete`,
-        ];
-        for (const p of paths) {
-          const res = await waFetch(r.apiKey, p, { method: "DELETE" });
-          remote.attempts.push({ path: p, status: res.status, ok: res.ok, body: res.ok ? undefined : res.body });
-          console.log(`[delete-instance] ${p} -> ${res.status}`, res.ok ? "ok" : JSON.stringify(res.body));
-          if (res.ok || res.status === 404) break; // 404 = already gone upstream
+        const statusRes = await waFetch(
+          r.apiKey,
+          `/v1/instances/${r.inst.wa_instance_id}/refresh-status`,
+          { method: "POST" },
+        );
+
+        // Um 404 significa que a instância já foi removida no serviço compartilhado.
+        // Outros erros não podem ser tratados como offline, pois isso permitiria
+        // excluir uma instância sem conhecer seu estado real.
+        if (statusRes.status !== 404 && !statusRes.ok) {
+          return json({ error: "instance_status_unavailable", provider_response: statusRes.body }, 502);
+        }
+
+        if (statusRes.status !== 404) {
+          const stateBody = statusRes.body as Record<string, unknown> | null;
+          const rawState = String(
+            stateBody?.state ??
+            stateBody?.status ??
+            stateBody?.connectionStatus ??
+            ((stateBody?.instance as Record<string, unknown> | undefined)?.state ?? "") ??
+            ((stateBody?.instance as Record<string, unknown> | undefined)?.status ?? "") ??
+            "",
+          ).trim().toLowerCase();
+          const online = ["open", "connected", "online", "authenticated", "ready"].includes(rawState);
+          const offline = ["close", "closed", "disconnected", "offline", "qrcode", "qr", "connecting", "pairing"].includes(rawState);
+          if (online) return json({ error: "instance_online_disconnect_before_delete" }, 409);
+          if (!offline) {
+            return json({ error: "instance_state_unknown_delete_blocked", state: rawState || null }, 409);
+          }
+
+          // Try the canonical REST DELETE first, then fall back to legacy /delete suffix.
+          const paths = [
+            `/v1/instances/${r.inst.wa_instance_id}`,
+            `/v1/instances/${r.inst.wa_instance_id}/delete`,
+          ];
+          let deletedUpstream = false;
+          for (const p of paths) {
+            const res = await waFetch(r.apiKey, p, { method: "DELETE" });
+            remote.attempts.push({ path: p, status: res.status, ok: res.ok, body: res.ok ? undefined : res.body });
+            console.log(`[delete-instance] ${p} -> ${res.status}`, res.ok ? "ok" : JSON.stringify(res.body));
+            if (res.ok || res.status === 404) {
+              deletedUpstream = true;
+              break; // 404 = already gone upstream
+            }
+          }
+          if (!deletedUpstream) {
+            return json({ error: "wa_service_delete_failed", remote }, 502);
+          }
         }
       }
       const { error: delErr } = await supabase.from("whatsapp_instances")
@@ -422,6 +460,15 @@ serve(async (req) => {
       for (const r of (rows ?? []) as { id: string; wa_instance_id: string | null }[]) {
         if (!r.wa_instance_id) continue;
         const res = await waFetch(cred.apiKey, `/v1/instances/${r.wa_instance_id}/refresh-status`, { method: "POST" });
+        if (res.status === 404) {
+          // A instância foi excluída no outro painel (Flow) ou diretamente no wa-service.
+          // Remova o registro órfão do Booking durante a reconciliação.
+          const { error: orphanErr } = await supabase.from("whatsapp_instances")
+            .delete().eq("id", r.id).eq("company_id", company_id);
+          if (!orphanErr) updated++;
+          else console.error("[refresh-status] failed to remove orphan instance:", orphanErr.message);
+          continue;
+        }
         if (!res.ok) continue;
         const b = res.body as Record<string, unknown> | null;
         console.log("[refresh-status] raw body:", JSON.stringify(b));
