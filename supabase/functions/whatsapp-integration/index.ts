@@ -452,6 +452,72 @@ serve(async (req) => {
       const cred = await ensure();
       if ("errorResp" in cred) return cred.errorResp;
 
+      // Reconcilia o inventário do Booking com o tenant compartilhado.
+      // Assim, instâncias criadas no Flow passam a existir também no painel Booking.
+      // Só fazemos isso após uma listagem bem-sucedida; falha da API não apaga dados.
+      const inventory = await waFetch(cred.apiKey, "/v1/instances");
+      if (inventory.ok) {
+        const rawInventory = inventory.body as any;
+        const remoteInstances: any[] = Array.isArray(rawInventory)
+          ? rawInventory
+          : Array.isArray(rawInventory?.instances)
+            ? rawInventory.instances
+            : Array.isArray(rawInventory?.data)
+              ? rawInventory.data
+              : [];
+        const { data: existingRows } = await supabase.from("whatsapp_instances")
+          .select("id, wa_instance_id, instance_name")
+          .eq("company_id", company_id);
+        const existing = (existingRows ?? []) as Array<{
+          id: string; wa_instance_id: string | null; instance_name: string;
+        }>;
+
+        for (const raw of remoteInstances) {
+          const inst = (raw?.instance && typeof raw.instance === "object") ? raw.instance : raw;
+          const remoteId = String(inst?.id ?? inst?.instanceId ?? inst?.instance_id ?? inst?.uuid ?? "");
+          const remoteName = String(inst?.instanceName ?? inst?.instance_name ?? inst?.name ?? inst?.label ?? remoteId).trim();
+          if (!remoteName) continue;
+
+          const alreadyKnown = existing.some((row) =>
+            (remoteId && row.wa_instance_id === remoteId) ||
+            row.instance_name === remoteName ||
+            (remoteId && row.instance_name === remoteId)
+          );
+          if (alreadyKnown) continue;
+
+          const rawState = String(
+            inst?.state ?? inst?.status ?? inst?.connectionStatus ?? raw?.state ?? raw?.status ?? "",
+          ).trim().toLowerCase();
+          const status =
+            ["open", "connected", "online", "authenticated", "ready"].includes(rawState) ? "connected"
+            : ["close", "closed", "disconnected", "offline"].includes(rawState) ? "disconnected"
+            : ["qrcode", "qr", "qr_code", "waiting_qr"].includes(rawState) ? "qrcode"
+            : ["connecting", "pairing", "connection_pending"].includes(rawState) ? "connecting"
+            : "unknown";
+
+          const { data: inserted, error: insertError } = await supabase.from("whatsapp_instances")
+            .upsert({
+              company_id,
+              provider: "evolution",
+              instance_name: remoteName,
+              friendly_name: remoteName,
+              wa_instance_id: remoteId || remoteName,
+              status,
+              metadata: { created_via: "flow", shared_remote: true, wa_service_snapshot: raw },
+              last_synced_at: new Date().toISOString(),
+            }, { onConflict: "company_id,instance_name", ignoreDuplicates: true })
+            .select("id, wa_instance_id, instance_name")
+            .maybeSingle();
+          if (insertError) {
+            console.warn("[refresh-status] could not mirror Flow instance:", remoteName, insertError.message);
+          } else if (inserted) {
+            existing.push(inserted as { id: string; wa_instance_id: string | null; instance_name: string });
+          }
+        }
+      } else {
+        console.warn("[refresh-status] shared instance inventory unavailable:", inventory.status, inventory.body);
+      }
+
       const q = supabase.from("whatsapp_instances")
         .select("id, wa_instance_id").eq("company_id", company_id);
       const { data: rows } = body.instance_id ? await q.eq("id", body.instance_id) : await q;
