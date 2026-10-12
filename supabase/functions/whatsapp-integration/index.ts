@@ -543,12 +543,12 @@ serve(async (req) => {
         const b = res.body as Record<string, unknown> | null;
         console.log("[refresh-status] raw body:", JSON.stringify(b));
         const rawState =
-          (b?.status as string | undefined) ??
-          (b?.state as string | undefined) ??
-          (b?.connectionStatus as string | undefined) ??
-          ((b?.instance as Record<string, unknown> | undefined)?.status as string | undefined) ??
           ((b?.instance as Record<string, unknown> | undefined)?.state as string | undefined) ??
           ((b?.instance as Record<string, unknown> | undefined)?.connectionStatus as string | undefined) ??
+          ((b?.instance as Record<string, unknown> | undefined)?.status as string | undefined) ??
+          (b?.state as string | undefined) ??
+          (b?.connectionStatus as string | undefined) ??
+          (b?.status as string | undefined) ??
           "unknown";
         const state = String(rawState).trim().toLowerCase();
         const mapped =
