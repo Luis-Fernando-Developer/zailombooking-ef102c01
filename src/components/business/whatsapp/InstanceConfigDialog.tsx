@@ -291,10 +291,7 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
     try {
       const botResult = await call({
         action: "set-bot",
-        bot_settings: {
-          ...botSettings,
-          ignoreJids: botSettings.ignoreJids.split(",").map((value) => value.trim()).filter(Boolean),
-        },
+        bot_settings: botSettings,
       });
       if (!botResult.ok) throw new Error(String(botResult.body.error ?? "Falha ao salvar Evolution Bot"));
 
