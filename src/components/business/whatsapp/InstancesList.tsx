@@ -216,7 +216,7 @@ export function InstancesList({ companyId }: { companyId: string }) {
     setBusy(true);
     const r = await call({ action: "delete-instance", instance_id: id });
     setBusy(false);
-    if (!r.ok) return toast.error("Falha ao excluir");
+    if (!r.ok) return toast.error(String(r.body.error ?? r.body.message ?? "Falha ao excluir"));
     toast.success("Conexão excluída");
     load();
   };
