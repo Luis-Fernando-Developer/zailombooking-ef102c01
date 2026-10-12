@@ -107,7 +107,7 @@ const AVAILABLE_EVENTS = [
   "TYPEBOT_CHANGE_STATUS", "TYPEBOT_START",
 ];
 
-export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId, instanceName, onChanged }: Props) {
+export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId, instanceName, displayName, onChanged }: Props) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
