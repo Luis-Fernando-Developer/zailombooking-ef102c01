@@ -157,8 +157,8 @@ export function InstancesList({ companyId }: { companyId: string }) {
     return { ok: res.ok, status: res.status, body: parsed as Record<string, unknown> };
   };
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     const [{ data: instances }, { data: company }, { data: channel }, limitsRes] = await Promise.all([
       supabase.from("whatsapp_instances_public")
         .select("*").eq("company_id", companyId).order("created_at", { ascending: false }),
@@ -171,18 +171,30 @@ export function InstancesList({ companyId }: { companyId: string }) {
     setPreference(isPref(companyRow?.whatsapp_channel_preference) ? companyRow.whatsapp_channel_preference : "auto");
     setActiveChannel(isActiveChannel(channel) ? channel : "none");
     setLimits((limitsRes.data as PlanLimits | null) ?? null);
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
   useEffect(() => {
     let cancelled = false;
     (async () => {
       await load();
       if (cancelled) return;
-      // Reconcile the local status with wa-service once when the panel opens.
+      // Reconcile with the shared service when the panel opens.
       await call({ action: "refresh-status" }).catch(() => undefined);
-      if (!cancelled) await load();
+      if (!cancelled) await load(true);
     })();
-    return () => { cancelled = true; };
+
+    // Keep both panels aligned while the Booking screen remains open. This
+    // also imports Flow-created instances and removes records deleted in Flow.
+    const timer = window.setInterval(async () => {
+      if (cancelled) return;
+      await call({ action: "refresh-status" }).catch(() => undefined);
+      if (!cancelled) await load(true);
+    }, 30_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, [companyId]);
 
   const saveRouting = async (value: Pref) => {
