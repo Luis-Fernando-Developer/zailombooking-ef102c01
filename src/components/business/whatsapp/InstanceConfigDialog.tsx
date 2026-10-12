@@ -231,6 +231,48 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
   };
 
   useEffect(() => { if (open) load(); /* eslint-disable-next-line */ }, [open, instanceId]);
+  // The shared service owns Evolution Bot settings; Flow's Supabase owns the
+  // published-bot binding. Poll while this dialog is open so changes made in
+  // the other panel appear without closing/reopening, but never overwrite edits.
+  useEffect(() => {
+    if (!open || botDirty) return;
+    let cancelled = false;
+    const sync = async () => {
+      const [bot, binding] = await Promise.all([
+        call({ action: "get-bot" }),
+        callFlow({ action: "binding-get", instance_name: instanceName }),
+      ]);
+      if (cancelled || botDirty) return;
+      if (bot.ok) {
+        const raw = (bot.body.bot ?? {}) as Record<string, any>;
+        setBotSettings({
+          ...DEFAULT_BOT,
+          ...raw,
+          enabled: !!raw.enabled,
+          description: typeof raw.description === "string" ? raw.description : DEFAULT_BOT.description,
+          apiUrl: typeof raw.apiUrl === "string" && raw.apiUrl ? raw.apiUrl : DEFAULT_BOT.apiUrl,
+          apiKey: typeof raw.apiKey === "string" ? raw.apiKey : "",
+          triggerType: raw.triggerType || "Keyword",
+          triggerKeyword: raw.triggerKeyword || raw.triggerValue || "",
+          triggerOperator: raw.triggerOperator || "Contains",
+          expire: Number(raw.expire ?? 300),
+          keywordFinish: raw.keywordFinish ?? "bye",
+          delayMessage: Number(raw.delayMessage ?? 1000),
+          unknownMessage: raw.unknownMessage ?? DEFAULT_BOT.unknownMessage,
+          listeningFromMe: !!raw.listeningFromMe,
+          stopBotFromMe: !!raw.stopBotFromMe,
+          keepOpen: !!raw.keepOpen,
+          debounceTime: Number(raw.debounceTime ?? 1),
+          splitMessages: !!raw.splitMessages,
+          ignoreJids: Array.isArray(raw.ignoreJids) ? raw.ignoreJids.join(", ") : String(raw.ignoreJids ?? ""),
+        });
+      }
+      if (binding.ok) setSelectedBotId(String(binding.body.binding?.bot_public_id ?? ""));
+    };
+    const timer = window.setInterval(() => void sync(), 8000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [open, instanceId, instanceName, botDirty]);
+
 
   const updateBot = (patch: Partial<BotState>) => {
     setBotSettings((current) => ({ ...current, ...patch }));
