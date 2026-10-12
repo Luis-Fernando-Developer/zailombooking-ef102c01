@@ -397,12 +397,14 @@ serve(async (req) => {
 
         if (statusRes.status !== 404) {
           const stateBody = statusRes.body as Record<string, unknown> | null;
+          const stateInstance = stateBody?.instance as Record<string, unknown> | undefined;
           const rawState = String(
+            stateInstance?.state ??
+            stateInstance?.connectionStatus ??
+            stateInstance?.status ??
             stateBody?.state ??
-            stateBody?.status ??
             stateBody?.connectionStatus ??
-            ((stateBody?.instance as Record<string, unknown> | undefined)?.state ?? "") ??
-            ((stateBody?.instance as Record<string, unknown> | undefined)?.status ?? "") ??
+            stateBody?.status ??
             "",
           ).trim().toLowerCase();
           const online = ["open", "connected", "online", "authenticated", "ready"].includes(rawState);
