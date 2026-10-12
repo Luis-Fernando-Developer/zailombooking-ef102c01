@@ -330,6 +330,14 @@ serve(async (req) => {
         return json({ error: "Missing company_id or instance_name" }, 400);
       }
       if (instance_name.length > 200) return json({ error: "Invalid instance_name" }, 400);
+      const { data: ownedInstance, error: instanceLookupError } = await supabaseClient
+        .from("whatsapp_instances")
+        .select("id")
+        .eq("company_id", company_id)
+        .eq("instance_name", instance_name)
+        .maybeSingle();
+      if (instanceLookupError) return json({ error: "instance_lookup_failed" }, 500);
+      if (!ownedInstance) return json({ error: "instance_not_owned_by_company" }, 403);
       if (action === "binding-set" && (!bot_public_id || typeof bot_public_id !== "string")) {
         return json({ error: "Missing bot_public_id" }, 400);
       }
