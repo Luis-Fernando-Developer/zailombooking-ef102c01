@@ -559,16 +559,24 @@ serve(async (req) => {
           : "unknown";
 
         // Deep-scan any string field that looks like a phone / jid.
-        const phoneKeyRx = /(number|phone|owner|jid|wid|msisdn|remotejid)/i;
+        const phoneKeyRx = /(number|phone|owner|jid|wid|msisdn|remotejid|user|me|wuid)/i;
         const digitsOnly = (v: unknown) => {
           if (v == null) return null;
-          const d = String(v).split("@")[0].split(":")[0].replace(/\D/g, "");
+          const raw = String(v).trim();
+          // Evolution may return the connected WhatsApp identity as a JID,
+          // e.g. 5511999999999@s.whatsapp.net or 5511999999999:12@s.whatsapp.net.
+          const jid = raw.match(/^([0-9]{10,15})(?::[0-9]+)?@s\.whatsapp\.net$/i);
+          if (jid) return jid[1];
+          const d = raw.split("@")[0].split(":")[0].replace(/\D/g, "");
           return d.length >= 10 && d.length <= 15 ? d : null;
         };
         const findPhone = (val: unknown, keyHint = ""): string | null => {
           if (val == null) return null;
           if (typeof val === "string" || typeof val === "number") {
-            if (phoneKeyRx.test(keyHint)) return digitsOnly(val);
+            const raw = String(val).trim();
+            // Some Evolution responses put the WhatsApp JID under a generic "id" key.
+            if (/@s\.whatsapp\.net$/i.test(raw)) return digitsOnly(raw);
+            if (phoneKeyRx.test(keyHint)) return digitsOnly(raw);
             return null;
           }
           if (Array.isArray(val)) {
@@ -576,7 +584,15 @@ serve(async (req) => {
             return null;
           }
           if (typeof val === "object") {
-            for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+            const record = val as Record<string, unknown>;
+            // Common Evolution identity shapes: { me: { id: "..." } }, { user: { id: "..." } }.
+            for (const key of ["me", "user", "owner", "wid", "jid", "wuid", "phone", "number"]) {
+              if (key in record) {
+                const found = findPhone(record[key], key);
+                if (found) return found;
+              }
+            }
+            for (const [k, v] of Object.entries(record)) {
               const f = findPhone(v, k);
               if (f) return f;
             }
