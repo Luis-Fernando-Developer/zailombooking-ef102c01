@@ -98,8 +98,13 @@ const DEFAULT_WEBHOOK: WebhookState = {
 
 
 function apiErrorMessage(body: Record<string, any>, fallback: string): string {
-  const base = String(body.message ?? body.error ?? fallback);
-  const detail = body.provider_response ?? body.details ?? body.flow_response;
+  const nested = body.error && typeof body.error === "object" ? body.error as Record<string, any> : null;
+  const baseValue = body.message ?? nested?.message ??
+    (typeof body.error === "string" ? body.error : null) ??
+    body.code ?? nested?.code ?? fallback;
+  const base = String(baseValue);
+  const detail = body.provider_response ?? body.details ?? body.flow_response ??
+    nested?.details ?? nested?.provider_response;
   if (detail == null) return base;
   const rendered = typeof detail === "string" ? detail : JSON.stringify(detail);
   return rendered && rendered !== "{}" ? `${base}: ${rendered.slice(0, 700)}` : base;
@@ -185,7 +190,8 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
       const loadedEvents = Array.isArray(raw.events) ? raw.events.filter((e): e is string => typeof e === "string") : [];
       const hasConfig = !!loadedUrl || loadedEvents.length > 0 || !!raw.enabled;
       setWebhook(hasConfig ? {
-        enabled: !!raw.enabled,
+        // O wa-service representa webhook desativado com url=null; não retorna "enabled".
+        enabled: typeof raw.enabled === "boolean" ? raw.enabled : !!loadedUrl,
         url: loadedUrl,
         byEvents: !!raw.byEvents,
         base64: !!raw.base64,
