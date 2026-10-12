@@ -97,6 +97,14 @@ const DEFAULT_WEBHOOK: WebhookState = {
 };
 
 
+function apiErrorMessage(body: Record<string, any>, fallback: string): string {
+  const base = String(body.message ?? body.error ?? fallback);
+  const detail = body.provider_response ?? body.details ?? body.flow_response;
+  if (detail == null) return base;
+  const rendered = typeof detail === "string" ? detail : JSON.stringify(detail);
+  return rendered && rendered !== "{}" ? `${base}: ${rendered.slice(0, 700)}` : base;
+}
+
 const AVAILABLE_EVENTS = [
   "APPLICATION_STARTUP", "CALL", "CHATS_DELETE", "CHATS_SET", "CHATS_UPDATE", "CHATS_UPSERT",
   "CONNECTION_UPDATE", "CONTACTS_SET", "CONTACTS_UPDATE", "CONTACTS_UPSERT",
@@ -293,12 +301,12 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
         action: "set-bot",
         bot_settings: botSettings,
       });
-      if (!botResult.ok) throw new Error(String(botResult.body.error ?? "Falha ao salvar Evolution Bot"));
+      if (!botResult.ok) throw new Error(apiErrorMessage(botResult.body, "Falha ao salvar Evolution Bot"));
 
       const bindingResult = selectedBotId
         ? await callFlow({ action: "binding-set", instance_name: instanceName, bot_public_id: selectedBotId })
         : await callFlow({ action: "binding-delete", instance_name: instanceName });
-      if (!bindingResult.ok) throw new Error(String(bindingResult.body.error ?? "Falha ao salvar vínculo com o bot publicado"));
+      if (!bindingResult.ok) throw new Error(apiErrorMessage(bindingResult.body, "Falha ao salvar vínculo com o bot publicado"));
 
       setBotDirty(false);
       setBotError("");
@@ -316,9 +324,9 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
     setBotSaving(true);
     try {
       const remote = await call({ action: "delete-bot" });
-      if (!remote.ok) throw new Error(String(remote.body.error ?? "Falha ao remover Evolution Bot"));
+      if (!remote.ok) throw new Error(apiErrorMessage(remote.body, "Falha ao remover Evolution Bot"));
       const binding = await callFlow({ action: "binding-delete", instance_name: instanceName });
-      if (!binding.ok) throw new Error(String(binding.body.error ?? "Falha ao remover vínculo"));
+      if (!binding.ok) throw new Error(apiErrorMessage(binding.body, "Falha ao remover vínculo"));
       setBotSettings(DEFAULT_BOT);
       setSelectedBotId("");
       setBotDirty(false);
@@ -335,7 +343,7 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
     setSaving(true);
     const r = await call({ action: "set-settings", settings });
     setSaving(false);
-    if (!r.ok) return toast.error(String(r.body.error ?? "Falha ao salvar Settings"));
+    if (!r.ok) return toast.error(apiErrorMessage(r.body, "Falha ao salvar Settings"));
     toast.success("Settings salvos");
   };
 
@@ -343,7 +351,7 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
     setSaving(true);
     const r = await call({ action: "set-webhook", webhook });
     setSaving(false);
-    if (!r.ok) return toast.error(String(r.body.error ?? "Falha ao salvar Webhook"));
+    if (!r.ok) return toast.error(apiErrorMessage(r.body, "Falha ao salvar Webhook"));
     toast.success("Webhook salvo");
   };
 
@@ -360,7 +368,7 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
     setSaving(true);
     const r = await call({ action });
     setSaving(false);
-    if (!r.ok) return toast.error(String(r.body.error ?? `Falha: ${label}`));
+    if (!r.ok) return toast.error(apiErrorMessage(r.body, `Falha: ${label}`));
     toast.success(`${label} executado`);
     onChanged?.();
     if (action === "logout-instance") onOpenChange(false);
