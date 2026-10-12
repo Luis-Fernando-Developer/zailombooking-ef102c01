@@ -11,7 +11,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, Loader2, LogOut, RotateCw } from "lucide-react";
+import { Bot, Copy, Loader2, LogOut, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -107,7 +107,7 @@ function apiErrorMessage(body: Record<string, any>, fallback: string): string {
     nested?.details ?? nested?.provider_response;
   if (detail == null) return base;
   const rendered = typeof detail === "string" ? detail : JSON.stringify(detail);
-  return rendered && rendered !== "{}" ? `${base}: ${rendered.slice(0, 700)}` : base;
+  return rendered && rendered !== "{}" ? `${base}: ${rendered.slice(0, 5000)}` : base;
 }
 
 const AVAILABLE_EVENTS = [
@@ -143,8 +143,15 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
       },
       body: JSON.stringify({ company_id: companyId, instance_id: instanceId, ...payload }),
     });
-    const body = await res.json().catch(() => ({}));
-    return { ok: res.ok, status: res.status, body: body as Record<string, unknown> };
+    const raw = await res.text();
+    let body: Record<string, unknown>;
+    try {
+      body = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+    } catch {
+      // Gateway/Edge Runtime can return plain text or HTML instead of JSON (e.g. HTTP 502).
+      body = { error: raw || `HTTP ${res.status} sem corpo de resposta`, raw_response: raw };
+    }
+    return { ok: res.ok, status: res.status, body };
   };
 
   const callFlow = async (payload: Record<string, unknown>) => {
@@ -319,7 +326,9 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
       toast.success("Evolution Bot e vínculo compartilhados salvos.");
       onChanged?.();
     } catch (error: any) {
-      toast.error(error?.message ?? "Erro ao salvar Evolution Bot");
+      const message = error?.message ?? "Erro ao salvar Evolution Bot";
+      setBotError(message);
+      toast.error(message.length > 180 ? `${message.slice(0, 177)}...` : message, { duration: 10000 });
     } finally {
       setBotSaving(false);
     }
@@ -492,7 +501,19 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
             </TabsContent>
 
             <TabsContent value="bot" className="flex-1 overflow-y-auto space-y-4 pr-1">
-              {botError && <p className="rounded border border-destructive/40 p-3 text-xs text-destructive">{botError}</p>}
+              {botError && (
+                <div className="rounded border border-destructive/40 p-3 text-xs text-destructive space-y-2">
+                  <p className="whitespace-pre-wrap break-words select-text">{botError}</p>
+                  <Button type="button" size="sm" variant="outline" onClick={() => {
+                    void navigator.clipboard.writeText(botError).then(
+                      () => toast.success("Erro copiado."),
+                      () => toast.error("Não foi possível copiar. Selecione o texto e copie manualmente."),
+                    );
+                  }}>
+                    <Copy className="mr-2 h-3 w-3" />Copiar erro completo
+                  </Button>
+                </div>
+              )}
               <div className="flex items-center justify-between rounded border p-3">
                 <div><p className="text-sm font-medium">Habilitar Bot</p><p className="text-xs text-muted-foreground">Ativa ou pausa o Evolution Bot nesta conexão compartilhada.</p></div>
                 <Switch checked={botSettings.enabled} onCheckedChange={(v) => updateBot({ enabled: v })} />
