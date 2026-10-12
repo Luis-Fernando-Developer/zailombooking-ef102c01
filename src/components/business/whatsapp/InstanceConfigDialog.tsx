@@ -216,8 +216,8 @@ export function InstanceConfigDialog({ open, onOpenChange, companyId, instanceId
     if (botList.ok) {
       const rawList = botList.body.data?.data ?? botList.body.data?.bots ?? botList.body.data;
       const list = Array.isArray(rawList) ? rawList : [];
-      setAvailableBots(list.filter((item: any) => item?.is_published && (item?.public_id || item?.id))
-        .map((item: any) => ({ id: String(item.id ?? item.public_id), public_id: String(item.public_id ?? item.id), name: String(item.name ?? "Bot sem nome"), description: item.description, is_published: true })));
+      setAvailableBots(list.filter((item: any) => item?.is_published && item?.public_id)
+        .map((item: any) => ({ id: String(item.id ?? item.public_id), public_id: String(item.public_id), name: String(item.name ?? "Bot sem nome"), description: item.description, is_published: true })));
     } else {
       setAvailableBots([]);
       setBotError(String(botList.body.message ?? botList.body.error ?? "Não foi possível listar os bots publicados do Flow."));
