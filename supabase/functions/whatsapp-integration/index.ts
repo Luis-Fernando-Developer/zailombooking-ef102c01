@@ -316,6 +316,8 @@ serve(async (req) => {
 
       if (action === "get-bot") {
         const result = await waFetch(r.apiKey, path);
+        // A 404 means this instance has no Evolution Bot configuration yet.
+        if (result.status === 404) return json({ success: true, bot: null });
         if (!result.ok) return json({ error: "get_bot_failed", provider_response: result.body }, result.status);
         const raw = result.body as any;
         return json({ success: true, bot: raw?.evolutionBot ?? raw?.bot ?? raw });
