@@ -455,6 +455,7 @@ serve(async (req) => {
       // Reconcilia o inventário do Booking com o tenant compartilhado.
       // Assim, instâncias criadas no Flow passam a existir também no painel Booking.
       // Só fazemos isso após uma listagem bem-sucedida; falha da API não apaga dados.
+      let mirrored = 0;
       const inventory = await waFetch(cred.apiKey, "/v1/instances");
       if (inventory.ok) {
         const rawInventory = inventory.body as any;
@@ -512,6 +513,7 @@ serve(async (req) => {
             console.warn("[refresh-status] could not mirror Flow instance:", remoteName, insertError.message);
           } else if (inserted) {
             existing.push(inserted as { id: string; wa_instance_id: string | null; instance_name: string });
+            mirrored++;
           }
         }
       } else {
@@ -522,7 +524,7 @@ serve(async (req) => {
         .select("id, wa_instance_id").eq("company_id", company_id);
       const { data: rows } = body.instance_id ? await q.eq("id", body.instance_id) : await q;
 
-      let updated = 0;
+      let updated = mirrored;
       for (const r of (rows ?? []) as { id: string; wa_instance_id: string | null }[]) {
         if (!r.wa_instance_id) continue;
         const res = await waFetch(cred.apiKey, `/v1/instances/${r.wa_instance_id}/refresh-status`, { method: "POST" });
