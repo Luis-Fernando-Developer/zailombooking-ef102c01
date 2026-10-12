@@ -87,7 +87,7 @@ serve(async (req) => {
       return null;
     }
 
-    if (["save", "disconnect", "flow-fetch", "sync", "save-config", "sign-embed-token", "sync-plan"].includes(action)) {
+    if (["save", "disconnect", "flow-fetch", "sync", "save-config", "sign-embed-token", "sync-plan", "binding-get", "binding-set", "binding-delete"].includes(action)) {
       const permissionResponse = await requireSettingsPermission(body.company_id);
       if (permissionResponse) return permissionResponse;
     }
@@ -321,6 +321,45 @@ serve(async (req) => {
       });
       const result = await flowResponse.json();
       return json({ success: flowResponse.ok, result }, flowResponse.status);
+    }
+
+    // ─── SHARED WHATSAPP BOT BINDING (Booking ↔ Flow) ────────────────────
+    if (["binding-get", "binding-set", "binding-delete"].includes(action)) {
+      const { company_id, instance_name, bot_public_id } = body;
+      if (!company_id || !instance_name || typeof instance_name !== "string") {
+        return json({ error: "Missing company_id or instance_name" }, 400);
+      }
+      if (instance_name.length > 200) return json({ error: "Invalid instance_name" }, 400);
+      if (action === "binding-set" && (!bot_public_id || typeof bot_public_id !== "string")) {
+        return json({ error: "Missing bot_public_id" }, 400);
+      }
+      if (!embedSharedSecret) return json({ error: "EMBED_SHARED_SECRET not configured" }, 500);
+
+      const now = Math.floor(Date.now() / 1000);
+      const token = await signJwt({
+        iss: "zailom-booking",
+        aud: "zailom-flow-api",
+        sub: user.email ?? user.id,
+        company_id,
+        exp: now + 300,
+        iat: now,
+      }, embedSharedSecret);
+
+      const flowResponse = await fetch("https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/booking-whatsapp-binding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          action: action === "binding-get" ? "get" : action === "binding-set" ? "set" : "delete",
+          company_id,
+          instance_name,
+          ...(action === "binding-set" ? { bot_public_id } : {}),
+        }),
+      });
+      const raw = await flowResponse.text();
+      let result: any = null;
+      try { result = raw ? JSON.parse(raw) : null; } catch { result = { raw }; }
+      if (!flowResponse.ok) return json({ error: result?.error || "flow_binding_error", details: result }, flowResponse.status);
+      return json({ success: true, ...(result ?? {}) });
     }
 
     return json({ error: "Invalid action" }, 400);
