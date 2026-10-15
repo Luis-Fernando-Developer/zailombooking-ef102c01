@@ -76,7 +76,7 @@ function buildIntegrationTemplate(endpoint: Endpoint) {
   const path = endpoint.path.replace(/:([a-zA-Z0-9_]+)/g, (_match, name: string) => `{{${name}}}`);
   const query = endpoint.params
     .filter((param) => param.location === "query")
-    .map((param) => `${param.name}={{${param.name}}}`)
+    .map((param) => `${param.name}={{${param.templateName ?? param.name}}}`)
     .join("&");
   return `/v1${path}${query ? `?${query}` : ""}`;
 }
