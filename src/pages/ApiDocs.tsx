@@ -63,13 +63,28 @@ function MethodBadge({ method }: { method: Endpoint["method"] }) {
 
 function exampleValueForParam(param: Param): string {
   if (param.example) return String(param.example);
-  if (param.type === "uuid") return "00000000-0000-0000-0000-000000000000";
+  if (param.type === "uuid") return "123e4567-e89b-12d3-a456-426614174000";
   if (param.type === "date") return "2026-10-05";
   if (param.type === "time") return "15:00";
   if (param.type === "boolean") return "true";
   if (param.type === "number" || param.type === "integer") return "1";
   if (param.type === "enum") return "pix";
   return `<${param.name.toUpperCase()}>`;
+}
+
+function buildIntegrationTemplate(endpoint: Endpoint) {
+  const path = endpoint.path.replace(/:([a-zA-Z0-9_]+)/g, (_match, name: string) => `{{${name}}}`);
+  const query = endpoint.params
+    .filter((param) => param.location === "query")
+    .map((param) => `${param.name}={{${param.name}}}`)
+    .join("&");
+  return `/v1${path}${query ? `?${query}` : ""}`;
+}
+
+function buildBodyTemplate(endpoint: Endpoint) {
+  const bodyParams = endpoint.params.filter((param) => param.location === "body");
+  if (!bodyParams.length) return undefined;
+  return Object.fromEntries(bodyParams.map((param) => [param.name, `{{${param.name}}}`]));
 }
 
 function buildUrl(endpoint: Endpoint, values: Record<string, string>, base: string) {
@@ -466,6 +481,34 @@ export default function ApiDocs() {
           <div className="text-sm text-primary">{endpoint.group}</div>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">{endpoint.title}</h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">{endpoint.description}</p>
+
+          {/* Contrato/template oficial para integradores e IAs */}
+          <section className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-semibold">Template oficial de integração</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Use exatamente os nomes definidos pelo Booking. Substitua cada {"{{variavel}}"} pelo valor real antes de enviar a requisição.
+                </p>
+              </div>
+              <button
+                onClick={() => copy(`${endpoint.method} ${buildIntegrationTemplate(endpoint)}${buildBodyTemplate(endpoint) ? `\n\n${JSON.stringify(buildBodyTemplate(endpoint), null, 2)}` : ""}`, "template")}
+                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                {copied === "template" ? <><Check className="h-3 w-3 text-emerald-400" /> copiado</> : <><Copy className="h-3 w-3" /> copiar template</>}
+              </button>
+            </div>
+            <div className="mt-3 rounded-md border border-border bg-background p-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Método e caminho</div>
+              <code className="mt-1 block break-all font-mono text-xs">{endpoint.method} {buildIntegrationTemplate(endpoint)}</code>
+            </div>
+            {buildBodyTemplate(endpoint) && (
+              <div className="mt-3 rounded-md border border-border bg-background p-3">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Body template — application/json</div>
+                <pre className="mt-1 overflow-x-auto font-mono text-xs leading-relaxed"><code>{JSON.stringify(buildBodyTemplate(endpoint), null, 2)}</code></pre>
+              </div>
+            )}
+          </section>
 
           {/* URL bar */}
           <div className="mt-6 flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm">
