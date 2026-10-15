@@ -168,7 +168,7 @@ paths:
       tags:
         - "Profissionais"
       summary: "Listar profissionais"
-      description: "Lista colaboradores ativos. Filtre por serviço com `service_id`."
+      description: "Lista profissionais ativos. Filtre pelo identificador do serviço usando service_id."
       x-integration-template: "/v1/employees?service_id={{service_id}}"
       x-business-variables:
         - name: "service_id"
@@ -2169,3 +2169,509 @@ paths:
       security:
         - ApiKeyAuth: []
         - BearerAuth: []
+  "/services/{service_id}/duration":
+    get:
+      tags:
+        - "Serviços"
+      summary: "Duração do serviço"
+      description: "Retorna a duração em minutos do serviço identificado por service_id."
+      x-integration-template: "/v1/services/{{service_id}}/duration"
+      x-business-variables:
+        - name: "service_id"
+          location: "path"
+          type: "uuid"
+          required: true
+          description: "Identificador do serviço"
+          template: "{{service_id}}"
+      operationId: "get_service_duration"
+      parameters:
+        - name: "service_id"
+          in: "path"
+          required: true
+          description: "Identificador do serviço"
+          schema:
+            type: "string"
+            format: "uuid"
+          x-business-variable: "service_id"
+          x-template-placeholder: "{{service_id}}"
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        "200":
+          description: "Sucesso"
+          content:
+            "application/json":
+              example:
+                duration_minutes: 30
+        "400":
+          description: "Requisição inválida"
+          content:
+            "application/json":
+              example:
+                error: "invalid_request"
+                message: "Payload inválido ou parâmetros faltando."
+        "401":
+          description: "API key ausente/ inválida"
+          content:
+            "application/json":
+              example:
+                error: "unauthorized"
+        "403":
+          description: "Escopo insuficiente"
+          content:
+            "application/json":
+              example:
+                error: "forbidden"
+        "404":
+          description: "Recurso não encontrado"
+          content:
+            "application/json":
+              example:
+                error: "not_found"
+        "409":
+          description: "Conflito (ex.: slot indisponível)"
+          content:
+            "application/json":
+              example:
+                error: "slot_unavailable"
+        "500":
+          description: "Erro interno"
+          content:
+            "application/json":
+              example:
+                error: "internal_error"
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+  "/services/{service_id}/price":
+    get:
+      tags:
+        - "Serviços"
+      summary: "Preço do serviço"
+      description: "Retorna o preço do serviço identificado por service_id."
+      x-integration-template: "/v1/services/{{service_id}}/price"
+      x-business-variables:
+        - name: "service_id"
+          location: "path"
+          type: "uuid"
+          required: true
+          description: "Identificador do serviço"
+          template: "{{service_id}}"
+      operationId: "get_service_price"
+      parameters:
+        - name: "service_id"
+          in: "path"
+          required: true
+          description: "Identificador do serviço"
+          schema:
+            type: "string"
+            format: "uuid"
+          x-business-variable: "service_id"
+          x-template-placeholder: "{{service_id}}"
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        "200":
+          description: "Sucesso"
+          content:
+            "application/json":
+              example:
+                price: 50
+        "400":
+          description: "Requisição inválida"
+          content:
+            "application/json":
+              example:
+                error: "invalid_request"
+                message: "Payload inválido ou parâmetros faltando."
+        "401":
+          description: "API key ausente/ inválida"
+          content:
+            "application/json":
+              example:
+                error: "unauthorized"
+        "403":
+          description: "Escopo insuficiente"
+          content:
+            "application/json":
+              example:
+                error: "forbidden"
+        "404":
+          description: "Recurso não encontrado"
+          content:
+            "application/json":
+              example:
+                error: "not_found"
+        "409":
+          description: "Conflito (ex.: slot indisponível)"
+          content:
+            "application/json":
+              example:
+                error: "slot_unavailable"
+        "500":
+          description: "Erro interno"
+          content:
+            "application/json":
+              example:
+                error: "internal_error"
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+  "/employees/{employee_id}":
+    get:
+      tags:
+        - "Profissionais"
+      summary: "Detalhes do profissional"
+      description: "Retorna os dados do profissional identificado por employee_id."
+      x-integration-template: "/v1/employees/{{employee_id}}"
+      x-business-variables:
+        - name: "employee_id"
+          location: "path"
+          type: "uuid"
+          required: true
+          description: "Identificador do profissional"
+          template: "{{employee_id}}"
+      operationId: "get_employee"
+      parameters:
+        - name: "employee_id"
+          in: "path"
+          required: true
+          description: "Identificador do profissional"
+          schema:
+            type: "string"
+            format: "uuid"
+          x-business-variable: "employee_id"
+          x-template-placeholder: "{{employee_id}}"
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        "200":
+          description: "Sucesso"
+          content:
+            "application/json":
+              example:
+                data:
+                  id: "uuid"
+                  name: "João"
+                  role: "Barbeiro"
+                  is_active: true
+        "400":
+          description: "Requisição inválida"
+          content:
+            "application/json":
+              example:
+                error: "invalid_request"
+                message: "Payload inválido ou parâmetros faltando."
+        "401":
+          description: "API key ausente/ inválida"
+          content:
+            "application/json":
+              example:
+                error: "unauthorized"
+        "403":
+          description: "Escopo insuficiente"
+          content:
+            "application/json":
+              example:
+                error: "forbidden"
+        "404":
+          description: "Recurso não encontrado"
+          content:
+            "application/json":
+              example:
+                error: "not_found"
+        "409":
+          description: "Conflito (ex.: slot indisponível)"
+          content:
+            "application/json":
+              example:
+                error: "slot_unavailable"
+        "500":
+          description: "Erro interno"
+          content:
+            "application/json":
+              example:
+                error: "internal_error"
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+  "/bookings/{booking_id}/confirm":
+    post:
+      tags:
+        - "Agendamentos"
+      summary: "Confirmar agendamento"
+      description: "Confirma o agendamento identificado por booking_id, dentro da empresa vinculada à API key."
+      x-integration-template: "/v1/bookings/{{booking_id}}/confirm"
+      x-business-variables:
+        - name: "booking_id"
+          location: "path"
+          type: "uuid"
+          required: true
+          description: "Identificador do agendamento"
+          template: "{{booking_id}}"
+      operationId: "confirm_booking"
+      parameters:
+        - name: "booking_id"
+          in: "path"
+          required: true
+          description: "Identificador do agendamento"
+          schema:
+            type: "string"
+            format: "uuid"
+          x-business-variable: "booking_id"
+          x-template-placeholder: "{{booking_id}}"
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        "200":
+          description: "Sucesso"
+          content:
+            "application/json":
+              example:
+                data:
+                  id: "uuid"
+                  booking_status: "confirmed"
+        "400":
+          description: "Requisição inválida"
+          content:
+            "application/json":
+              example:
+                error: "invalid_request"
+                message: "Payload inválido ou parâmetros faltando."
+        "401":
+          description: "API key ausente/ inválida"
+          content:
+            "application/json":
+              example:
+                error: "unauthorized"
+        "403":
+          description: "Escopo insuficiente"
+          content:
+            "application/json":
+              example:
+                error: "forbidden"
+        "404":
+          description: "Recurso não encontrado"
+          content:
+            "application/json":
+              example:
+                error: "not_found"
+        "409":
+          description: "Conflito (ex.: slot indisponível)"
+          content:
+            "application/json":
+              example:
+                error: "slot_unavailable"
+        "500":
+          description: "Erro interno"
+          content:
+            "application/json":
+              example:
+                error: "internal_error"
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+  "/payments/{payment_id}/confirm":
+    post:
+      tags:
+        - "Pagamentos"
+      summary: "Confirmar pagamento"
+      description: "Marca como confirmado o pagamento identificado por payment_id. Use o identificador interno do pagamento aceito pelo endpoint."
+      x-integration-template: "/v1/payments/{{payment_id}}/confirm"
+      x-business-variables:
+        - name: "payment_id"
+          location: "path"
+          type: "string"
+          required: true
+          description: "Identificador interno do pagamento"
+          template: "{{payment_id}}"
+      operationId: "confirm_payment"
+      parameters:
+        - name: "payment_id"
+          in: "path"
+          required: true
+          description: "Identificador interno do pagamento"
+          schema:
+            type: "string"
+          x-business-variable: "payment_id"
+          x-template-placeholder: "{{payment_id}}"
+      responses:
+        "200":
+          description: "Sucesso"
+          content:
+            "application/json":
+              example:
+                data:
+                  id: "pay_xxx"
+                  status: "confirmed"
+        "400":
+          description: "Requisição inválida"
+          content:
+            "application/json":
+              example:
+                error: "invalid_request"
+                message: "Payload inválido ou parâmetros faltando."
+        "401":
+          description: "API key ausente/ inválida"
+          content:
+            "application/json":
+              example:
+                error: "unauthorized"
+        "403":
+          description: "Escopo insuficiente"
+          content:
+            "application/json":
+              example:
+                error: "forbidden"
+        "404":
+          description: "Recurso não encontrado"
+          content:
+            "application/json":
+              example:
+                error: "not_found"
+        "409":
+          description: "Conflito (ex.: slot indisponível)"
+          content:
+            "application/json":
+              example:
+                error: "slot_unavailable"
+        "500":
+          description: "Erro interno"
+          content:
+            "application/json":
+              example:
+                error: "internal_error"
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+  "/payments/{payment_id}/cancel":
+    post:
+      tags:
+        - "Pagamentos"
+      summary: "Cancelar pagamento"
+      description: "Marca como cancelado o pagamento identificado por payment_id."
+      x-integration-template: "/v1/payments/{{payment_id}}/cancel"
+      x-business-variables:
+        - name: "payment_id"
+          location: "path"
+          type: "string"
+          required: true
+          description: "Identificador interno do pagamento"
+          template: "{{payment_id}}"
+      operationId: "cancel_payment"
+      parameters:
+        - name: "payment_id"
+          in: "path"
+          required: true
+          description: "Identificador interno do pagamento"
+          schema:
+            type: "string"
+          x-business-variable: "payment_id"
+          x-template-placeholder: "{{payment_id}}"
+      responses:
+        "200":
+          description: "Sucesso"
+          content:
+            "application/json":
+              example:
+                data:
+                  id: "pay_xxx"
+                  status: "cancelled"
+        "400":
+          description: "Requisição inválida"
+          content:
+            "application/json":
+              example:
+                error: "invalid_request"
+                message: "Payload inválido ou parâmetros faltando."
+        "401":
+          description: "API key ausente/ inválida"
+          content:
+            "application/json":
+              example:
+                error: "unauthorized"
+        "403":
+          description: "Escopo insuficiente"
+          content:
+            "application/json":
+              example:
+                error: "forbidden"
+        "404":
+          description: "Recurso não encontrado"
+          content:
+            "application/json":
+              example:
+                error: "not_found"
+        "409":
+          description: "Conflito (ex.: slot indisponível)"
+          content:
+            "application/json":
+              example:
+                error: "slot_unavailable"
+        "500":
+          description: "Erro interno"
+          content:
+            "application/json":
+              example:
+                error: "internal_error"
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+  "/templates":
+    get:
+      tags:
+        - "Notificações"
+      summary: "Listar modelos de notificação"
+      description: "Retorna os modelos de notificação configurados para a empresa vinculada à API key."
+      x-integration-template: "/v1/templates"
+      x-business-variables: []
+      operationId: "list_templates"
+      responses:
+        "200":
+          description: "Sucesso"
+          content:
+            "application/json":
+              example:
+                data:
+                  - key: "confirmation"
+                    variants:
+                      - channel: "whatsapp"
+                        configured: true
+                        template: null
+        "400":
+          description: "Requisição inválida"
+          content:
+            "application/json":
+              example:
+                error: "invalid_request"
+                message: "Payload inválido ou parâmetros faltando."
+        "401":
+          description: "API key ausente/ inválida"
+          content:
+            "application/json":
+              example:
+                error: "unauthorized"
+        "403":
+          description: "Escopo insuficiente"
+          content:
+            "application/json":
+              example:
+                error: "forbidden"
+        "404":
+          description: "Recurso não encontrado"
+          content:
+            "application/json":
+              example:
+                error: "not_found"
+        "409":
+          description: "Conflito (ex.: slot indisponível)"
+          content:
+            "application/json":
+              example:
+                error: "slot_unavailable"
+        "500":
+          description: "Erro interno"
+          content:
+            "application/json":
+              example:
+                error: "internal_error"
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters: []
