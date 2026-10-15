@@ -313,7 +313,15 @@ function match(pattern: string, path: string): Record<string, string> | null {
   if (p.length !== s.length) return null;
   const out: Record<string, string> = {};
   for (let i = 0; i < p.length; i++) {
-    if (p[i].startsWith(":")) out[p[i].slice(1)] = decodeURIComponent(s[i]);
+    if (p[i].startsWith(":")) {
+      const name = p[i].slice(1);
+      const value = decodeURIComponent(s[i]);
+      out[name] = value;
+      // Keep legacy handler aliases while the router and public contract use
+      // explicit semantic names. This avoids changing business handlers.
+      if (name.endsWith("_id")) out.id = value;
+      if (name === "client_id") out.clientId = value;
+    }
     else if (p[i] !== s[i]) return null;
   }
   return out;
@@ -1281,15 +1289,15 @@ const routes: Route[] = [
 
   // Services
   { method: "GET",  pattern: "/v1/services",                     scope: "read",  handler: listServices },
-  { method: "GET",  pattern: "/v1/services/:id",                  scope: "read",  handler: getService },
-  { method: "GET",  pattern: "/v1/services/:id/duration",         scope: "read",  handler: getServiceDuration },
-  { method: "GET",  pattern: "/v1/services/:id/price",            scope: "read",  handler: getServicePrice },
-  { method: "GET",  pattern: "/v1/services/:id/employees",        scope: "read",  handler: getServiceEmployees },
+  { method: "GET",  pattern: "/v1/services/:service_id",                  scope: "read",  handler: getService },
+  { method: "GET",  pattern: "/v1/services/:service_id/duration",         scope: "read",  handler: getServiceDuration },
+  { method: "GET",  pattern: "/v1/services/:service_id/price",            scope: "read",  handler: getServicePrice },
+  { method: "GET",  pattern: "/v1/services/:service_id/employees",        scope: "read",  handler: getServiceEmployees },
 
   // Employees
   { method: "GET",  pattern: "/v1/employees",                     scope: "read",  handler: listEmployees },
-  { method: "GET",  pattern: "/v1/employees/:id",                 scope: "read",  handler: getEmployee },
-  { method: "GET",  pattern: "/v1/employees/:id/busy",            scope: "read",  handler: getEmployeeBusy },
+  { method: "GET",  pattern: "/v1/employees/:employee_id",                 scope: "read",  handler: getEmployee },
+  { method: "GET",  pattern: "/v1/employees/:employee_id/busy",            scope: "read",  handler: getEmployeeBusy },
 
   // Availability (SSOT)
   { method: "GET",  pattern: "/v1/availability/dates",            scope: "read",  handler: availabilityDates },
@@ -1299,28 +1307,28 @@ const routes: Route[] = [
   // Clients
   { method: "GET",  pattern: "/v1/clients",                       scope: "read",  handler: findClientByPhone },
   { method: "POST",  pattern: "/v1/clients",                       scope: "write", handler: createClient },
-  { method: "PATCH", pattern: "/v1/clients/:clientId",                  scope: "write", handler: updateClient },
-  { method: "GET",  pattern: "/v1/clients/:clientId/bookings",    scope: "read",  handler: listBookingsForClient },
+  { method: "PATCH", pattern: "/v1/clients/:client_id",                  scope: "write", handler: updateClient },
+  { method: "GET",  pattern: "/v1/clients/:client_id/bookings",    scope: "read",  handler: listBookingsForClient },
 
   // Booking holds — checkout online
   { method: "POST", pattern: "/v1/booking-holds",                scope: "write", handler: createBookingHold },
-  { method: "GET",  pattern: "/v1/booking-holds/:id",             scope: "read",  handler: getBookingHold },
-  { method: "POST", pattern: "/v1/booking-holds/:id/cancel",      scope: "write", handler: cancelBookingHold },
-  { method: "POST", pattern: "/v1/booking-holds/:id/complete",    scope: "write", handler: completeBookingHold },
+  { method: "GET",  pattern: "/v1/booking-holds/:hold_id",             scope: "read",  handler: getBookingHold },
+  { method: "POST", pattern: "/v1/booking-holds/:hold_id/cancel",      scope: "write", handler: cancelBookingHold },
+  { method: "POST", pattern: "/v1/booking-holds/:hold_id/complete",    scope: "write", handler: completeBookingHold },
 
   // Bookings
   { method: "POST", pattern: "/v1/bookings",                      scope: "write", handler: createBooking },
-  { method: "GET",  pattern: "/v1/bookings/:id",                  scope: "read",  handler: getBooking },
-  { method: "POST", pattern: "/v1/bookings/:id/cancel",           scope: "write", handler: cancelBooking },
-  { method: "POST", pattern: "/v1/bookings/:id/confirm",          scope: "write", handler: confirmBooking },
-  { method: "POST", pattern: "/v1/bookings/:id/reschedule",       scope: "write", handler: rescheduleBooking },
+  { method: "GET",  pattern: "/v1/bookings/:booking_id",                  scope: "read",  handler: getBooking },
+  { method: "POST", pattern: "/v1/bookings/:booking_id/cancel",           scope: "write", handler: cancelBooking },
+  { method: "POST", pattern: "/v1/bookings/:booking_id/confirm",          scope: "write", handler: confirmBooking },
+  { method: "POST", pattern: "/v1/bookings/:booking_id/reschedule",       scope: "write", handler: rescheduleBooking },
 
   // Payments
   { method: "GET",  pattern: "/v1/payments/methods",              scope: "read",  handler: listPaymentMethods },
   { method: "POST", pattern: "/v1/payments",                      scope: "write", handler: createPayment },
-  { method: "GET",  pattern: "/v1/payments/:id",                  scope: "read",  handler: getPaymentStatus },
-  { method: "POST", pattern: "/v1/payments/:id/confirm",          scope: "write", handler: confirmPayment },
-  { method: "POST", pattern: "/v1/payments/:id/cancel",           scope: "write", handler: cancelPayment },
+  { method: "GET",  pattern: "/v1/payments/:payment_id",                  scope: "read",  handler: getPaymentStatus },
+  { method: "POST", pattern: "/v1/payments/:payment_id/confirm",          scope: "write", handler: confirmPayment },
+  { method: "POST", pattern: "/v1/payments/:payment_id/cancel",           scope: "write", handler: cancelPayment },
 
   // Notifications & Templates (arquitetura preparada)
   { method: "POST", pattern: "/v1/notifications",                 scope: "write", handler: sendNotification },
