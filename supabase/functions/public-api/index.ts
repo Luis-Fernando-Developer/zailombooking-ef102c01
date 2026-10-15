@@ -472,7 +472,7 @@ const getEmployeeBusy: Handler = async (ctx, req, { id }) => {
   // Contrato canônico: date_init/date_end. from/to seguem aceitos para compatibilidade.
   const from = url.searchParams.get("date_init") ?? url.searchParams.get("from");
   const to = url.searchParams.get("date_end") ?? url.searchParams.get("to");
-  if (!from || !to) return err("Query params required: date_init, date_end (YYYY-MM-DD).", 400);
+  if (!from || !to) return err("Query params required: from, to (YYYY-MM-DD). Template variables: date_init, date_end.", 400);
   const { data, error } = await ctx.sb
     .from("bookings")
     .select("id, booking_date, start_time, end_time, duration_minutes, service_id, booking_status")
