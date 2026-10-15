@@ -184,7 +184,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           }
         ],
         "operationId": "service_employees",
@@ -303,7 +304,8 @@ const spec = {
             "type": "uuid",
             "required": false,
             "description": "Filtra por serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           }
         ],
         "operationId": "list_employees",
@@ -416,7 +418,7 @@ const spec = {
         ],
         "summary": "Dias disponíveis",
         "description": "Retorna os dias no intervalo que possuem ao menos um horário livre. Respeita escala, ausências, bloqueios e configurações da empresa. Informe employee_id, service_id, date_init e date_end; as datas usam YYYY-MM-DD.",
-        "x-integration-template": "/v1/availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&date_init={{date_init}}&date_end={{date_end}}",
+        "x-integration-template": "/v1/availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&from={{date_init}}&to={{date_end}}",
         "x-business-variables": [
           {
             "name": "employee_id",
@@ -424,7 +426,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do profissional",
-            "template": "{{employee_id}}"
+            "template": "{{employee_id}}",
+            "businessVariable": "employee_id"
           },
           {
             "name": "service_id",
@@ -432,23 +435,26 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           },
           {
-            "name": "date_init",
+            "name": "from",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data inicial do intervalo (YYYY-MM-DD)",
-            "template": "{{date_init}}"
+            "description": "Data inicial do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_init}}.",
+            "template": "{{date_init}}",
+            "businessVariable": "date_init"
           },
           {
-            "name": "date_end",
+            "name": "to",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data final do intervalo (YYYY-MM-DD)",
-            "template": "{{date_end}}"
+            "description": "Data final do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_end}}.",
+            "template": "{{date_end}}",
+            "businessVariable": "date_end"
           }
         ],
         "operationId": "availability_dates",
@@ -478,10 +484,10 @@ const spec = {
             "x-template-placeholder": "{{service_id}}"
           },
           {
-            "name": "date_init",
+            "name": "from",
             "in": "query",
             "required": true,
-            "description": "Data inicial do intervalo (YYYY-MM-DD)",
+            "description": "Data inicial do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_init}}.",
             "schema": {
               "type": "string",
               "format": "date"
@@ -491,10 +497,10 @@ const spec = {
             "x-template-placeholder": "{{date_init}}"
           },
           {
-            "name": "date_end",
+            "name": "to",
             "in": "query",
             "required": true,
-            "description": "Data final do intervalo (YYYY-MM-DD)",
+            "description": "Data final do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_end}}.",
             "schema": {
               "type": "string",
               "format": "date"
@@ -604,7 +610,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do profissional",
-            "template": "{{employee_id}}"
+            "template": "{{employee_id}}",
+            "businessVariable": "employee_id"
           },
           {
             "name": "service_id",
@@ -612,7 +619,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           },
           {
             "name": "date",
@@ -620,7 +628,8 @@ const spec = {
             "type": "date",
             "required": true,
             "description": "Data (YYYY-MM-DD)",
-            "template": "{{date}}"
+            "template": "{{date}}",
+            "businessVariable": "date"
           }
         ],
         "operationId": "availability_slots",
@@ -764,7 +773,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do profissional",
-            "template": "{{employee_id}}"
+            "template": "{{employee_id}}",
+            "businessVariable": "employee_id"
           },
           {
             "name": "service_id",
@@ -772,7 +782,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           }
         ],
         "operationId": "availability_next",
@@ -901,7 +912,8 @@ const spec = {
             "type": "string",
             "required": true,
             "description": "Telefone/WhatsApp (E.164 ou nacional)",
-            "template": "{{phone}}"
+            "template": "{{phone}}",
+            "businessVariable": "phone"
           }
         ],
         "operationId": "find_client",
@@ -1017,7 +1029,8 @@ const spec = {
             "type": "string",
             "required": true,
             "description": "Nome do cliente",
-            "template": "{{name}}"
+            "template": "{{name}}",
+            "businessVariable": "name"
           },
           {
             "name": "phone",
@@ -1025,7 +1038,8 @@ const spec = {
             "type": "string",
             "required": true,
             "description": "Telefone/WhatsApp",
-            "template": "{{phone}}"
+            "template": "{{phone}}",
+            "businessVariable": "phone"
           },
           {
             "name": "email",
@@ -1033,7 +1047,8 @@ const spec = {
             "type": "string",
             "required": false,
             "description": "E-mail opcional",
-            "template": "{{email}}"
+            "template": "{{email}}",
+            "businessVariable": "email"
           }
         ],
         "operationId": "create_client",
@@ -1175,7 +1190,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do cliente",
-            "template": "{{client_id}}"
+            "template": "{{client_id}}",
+            "businessVariable": "client_id"
           },
           {
             "name": "name",
@@ -1183,7 +1199,8 @@ const spec = {
             "type": "string",
             "required": false,
             "description": "Novo nome",
-            "template": "{{name}}"
+            "template": "{{name}}",
+            "businessVariable": "name"
           },
           {
             "name": "phone",
@@ -1191,7 +1208,8 @@ const spec = {
             "type": "string",
             "required": false,
             "description": "Novo telefone/WhatsApp",
-            "template": "{{phone}}"
+            "template": "{{phone}}",
+            "businessVariable": "phone"
           },
           {
             "name": "email",
@@ -1199,7 +1217,8 @@ const spec = {
             "type": "string",
             "required": false,
             "description": "Novo e-mail; envie null para remover",
-            "template": "{{email}}"
+            "template": "{{email}}",
+            "businessVariable": "email"
           }
         ],
         "operationId": "update_client",
@@ -1352,7 +1371,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do cliente",
-            "template": "{{client_id}}"
+            "template": "{{client_id}}",
+            "businessVariable": "client_id"
           },
           {
             "name": "scope",
@@ -1360,7 +1380,8 @@ const spec = {
             "type": "enum",
             "required": false,
             "description": "upcoming | past | all (default: all)",
-            "template": "{{scope}}"
+            "template": "{{scope}}",
+            "businessVariable": "scope"
           }
         ],
         "operationId": "client_bookings",
@@ -1493,7 +1514,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do cliente",
-            "template": "{{client_id}}"
+            "template": "{{client_id}}",
+            "businessVariable": "client_id"
           },
           {
             "name": "service_id",
@@ -1501,7 +1523,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           },
           {
             "name": "employee_id",
@@ -1509,7 +1532,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do colaborador",
-            "template": "{{employee_id}}"
+            "template": "{{employee_id}}",
+            "businessVariable": "employee_id"
           },
           {
             "name": "booking_date",
@@ -1517,7 +1541,8 @@ const spec = {
             "type": "date",
             "required": true,
             "description": "YYYY-MM-DD",
-            "template": "{{booking_date}}"
+            "template": "{{booking_date}}",
+            "businessVariable": "booking_date"
           },
           {
             "name": "booking_time",
@@ -1525,7 +1550,8 @@ const spec = {
             "type": "time",
             "required": true,
             "description": "HH:mm",
-            "template": "{{booking_time}}"
+            "template": "{{booking_time}}",
+            "businessVariable": "booking_time"
           }
         ],
         "operationId": "create_booking_hold",
@@ -1692,7 +1718,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID da reserva temporária",
-            "template": "{{hold_id}}"
+            "template": "{{hold_id}}",
+            "businessVariable": "hold_id"
           }
         ],
         "operationId": "get_booking_hold",
@@ -1810,7 +1837,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID da reserva temporária",
-            "template": "{{hold_id}}"
+            "template": "{{hold_id}}",
+            "businessVariable": "hold_id"
           }
         ],
         "operationId": "cancel_booking_hold",
@@ -1927,7 +1955,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID da reserva temporária",
-            "template": "{{hold_id}}"
+            "template": "{{hold_id}}",
+            "businessVariable": "hold_id"
           },
           {
             "name": "payment_id",
@@ -1935,7 +1964,8 @@ const spec = {
             "type": "string",
             "required": true,
             "description": "ID do pagamento confirmado",
-            "template": "{{payment_id}}"
+            "template": "{{payment_id}}",
+            "businessVariable": "payment_id"
           }
         ],
         "operationId": "complete_booking_hold",
@@ -2078,7 +2108,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do cliente",
-            "template": "{{client_id}}"
+            "template": "{{client_id}}",
+            "businessVariable": "client_id"
           },
           {
             "name": "service_id",
@@ -2086,7 +2117,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           },
           {
             "name": "employee_id",
@@ -2094,7 +2126,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do colaborador",
-            "template": "{{employee_id}}"
+            "template": "{{employee_id}}",
+            "businessVariable": "employee_id"
           },
           {
             "name": "booking_date",
@@ -2102,7 +2135,8 @@ const spec = {
             "type": "date",
             "required": true,
             "description": "YYYY-MM-DD, ex.: 2026-07-15",
-            "template": "{{booking_date}}"
+            "template": "{{booking_date}}",
+            "businessVariable": "booking_date"
           },
           {
             "name": "booking_time",
@@ -2110,7 +2144,8 @@ const spec = {
             "type": "time",
             "required": true,
             "description": "HH:mm, ex.: 15:00",
-            "template": "{{booking_time}}"
+            "template": "{{booking_time}}",
+            "businessVariable": "booking_time"
           }
         ],
         "operationId": "create_booking",
@@ -2274,7 +2309,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do agendamento",
-            "template": "{{booking_id}}"
+            "template": "{{booking_id}}",
+            "businessVariable": "booking_id"
           }
         ],
         "operationId": "get_booking",
@@ -2391,7 +2427,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do agendamento",
-            "template": "{{booking_id}}"
+            "template": "{{booking_id}}",
+            "businessVariable": "booking_id"
           },
           {
             "name": "reason",
@@ -2399,7 +2436,8 @@ const spec = {
             "type": "string",
             "required": false,
             "description": "Motivo opcional",
-            "template": "{{reason}}"
+            "template": "{{reason}}",
+            "businessVariable": "reason"
           }
         ],
         "operationId": "cancel_booking",
@@ -2537,7 +2575,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do agendamento",
-            "template": "{{booking_id}}"
+            "template": "{{booking_id}}",
+            "businessVariable": "booking_id"
           },
           {
             "name": "new_date",
@@ -2545,7 +2584,8 @@ const spec = {
             "type": "date",
             "required": true,
             "description": "Nova data",
-            "template": "{{new_date}}"
+            "template": "{{new_date}}",
+            "businessVariable": "new_date"
           },
           {
             "name": "new_time",
@@ -2553,7 +2593,8 @@ const spec = {
             "type": "time",
             "required": true,
             "description": "Novo horário",
-            "template": "{{new_time}}"
+            "template": "{{new_time}}",
+            "businessVariable": "new_time"
           }
         ],
         "operationId": "reschedule_booking",
@@ -2798,7 +2839,8 @@ const spec = {
             "type": "uuid",
             "required": false,
             "description": "ID do agendamento existente. Não envie junto com hold_id.",
-            "template": "{{booking_id}}"
+            "template": "{{booking_id}}",
+            "businessVariable": "booking_id"
           },
           {
             "name": "hold_id",
@@ -2806,7 +2848,8 @@ const spec = {
             "type": "uuid",
             "required": false,
             "description": "ID da reserva temporária criada por POST /booking-holds. Não envie junto com booking_id.",
-            "template": "{{hold_id}}"
+            "template": "{{hold_id}}",
+            "businessVariable": "hold_id"
           },
           {
             "name": "method",
@@ -2814,7 +2857,8 @@ const spec = {
             "type": "enum",
             "required": true,
             "description": "pix | credit_card",
-            "template": "{{method}}"
+            "template": "{{method}}",
+            "businessVariable": "method"
           }
         ],
         "operationId": "create_payment",
@@ -2960,7 +3004,8 @@ const spec = {
             "type": "string",
             "required": true,
             "description": "ID do pagamento ou identificador da cobrança no gateway",
-            "template": "{{payment_id}}"
+            "template": "{{payment_id}}",
+            "businessVariable": "payment_id"
           }
         ],
         "operationId": "get_payment",
@@ -3078,7 +3123,8 @@ const spec = {
             "type": "string",
             "required": true,
             "description": "Ex.: booking.created",
-            "template": "{{event}}"
+            "template": "{{event}}",
+            "businessVariable": "event"
           },
           {
             "name": "booking_id",
@@ -3086,7 +3132,8 @@ const spec = {
             "type": "uuid",
             "required": false,
             "description": "Se evento de booking",
-            "template": "{{booking_id}}"
+            "template": "{{booking_id}}",
+            "businessVariable": "booking_id"
           }
         ],
         "operationId": "send_notification",
@@ -3220,7 +3267,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "ID do serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           }
         ],
         "operationId": "get_service",
@@ -3332,7 +3380,7 @@ const spec = {
         ],
         "summary": "Agenda ocupada por intervalo",
         "description": "Retorna os agendamentos ativos do profissional identificado por employee_id no intervalo informado. Use date_init para a data inicial e date_end para a data final, ambas no formato YYYY-MM-DD.",
-        "x-integration-template": "/v1/employees/{{employee_id}}/interval?date_init={{date_init}}&date_end={{date_end}}",
+        "x-integration-template": "/v1/employees/{{employee_id}}/interval?from={{date_init}}&to={{date_end}}",
         "x-business-variables": [
           {
             "name": "employee_id",
@@ -3340,23 +3388,26 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do profissional",
-            "template": "{{employee_id}}"
+            "template": "{{employee_id}}",
+            "businessVariable": "employee_id"
           },
           {
-            "name": "date_init",
+            "name": "from",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data inicial do intervalo (YYYY-MM-DD)",
-            "template": "{{date_init}}"
+            "description": "Data inicial do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_init}}.",
+            "template": "{{date_init}}",
+            "businessVariable": "date_init"
           },
           {
-            "name": "date_end",
+            "name": "to",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data final do intervalo (YYYY-MM-DD)",
-            "template": "{{date_end}}"
+            "description": "Data final do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_end}}.",
+            "template": "{{date_end}}",
+            "businessVariable": "date_end"
           }
         ],
         "operationId": "employee_busy",
@@ -3375,10 +3426,10 @@ const spec = {
             "example": "123e4567-e89b-12d3-a456-426614174000"
           },
           {
-            "name": "date_init",
+            "name": "from",
             "in": "query",
             "required": true,
-            "description": "Data inicial do intervalo (YYYY-MM-DD)",
+            "description": "Data inicial do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_init}}.",
             "schema": {
               "type": "string",
               "format": "date"
@@ -3388,10 +3439,10 @@ const spec = {
             "x-template-placeholder": "{{date_init}}"
           },
           {
-            "name": "date_end",
+            "name": "to",
             "in": "query",
             "required": true,
-            "description": "Data final do intervalo (YYYY-MM-DD)",
+            "description": "Data final do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_end}}.",
             "schema": {
               "type": "string",
               "format": "date"
@@ -3504,7 +3555,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           }
         ],
         "operationId": "get_service_duration",
@@ -3621,7 +3673,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do serviço",
-            "template": "{{service_id}}"
+            "template": "{{service_id}}",
+            "businessVariable": "service_id"
           }
         ],
         "operationId": "get_service_price",
@@ -3738,7 +3791,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do profissional",
-            "template": "{{employee_id}}"
+            "template": "{{employee_id}}",
+            "businessVariable": "employee_id"
           }
         ],
         "operationId": "get_employee",
@@ -3860,7 +3914,8 @@ const spec = {
             "type": "uuid",
             "required": true,
             "description": "Identificador do agendamento",
-            "template": "{{booking_id}}"
+            "template": "{{booking_id}}",
+            "businessVariable": "booking_id"
           }
         ],
         "operationId": "confirm_booking",
@@ -3980,7 +4035,8 @@ const spec = {
             "type": "string",
             "required": true,
             "description": "Identificador interno do pagamento",
-            "template": "{{payment_id}}"
+            "template": "{{payment_id}}",
+            "businessVariable": "payment_id"
           }
         ],
         "operationId": "confirm_payment",
@@ -4098,7 +4154,8 @@ const spec = {
             "type": "string",
             "required": true,
             "description": "Identificador interno do pagamento",
-            "template": "{{payment_id}}"
+            "template": "{{payment_id}}",
+            "businessVariable": "payment_id"
           }
         ],
         "operationId": "cancel_payment",
