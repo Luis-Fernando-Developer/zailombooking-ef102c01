@@ -552,7 +552,7 @@ export default function ApiDocs() {
 
           {/* Query params */}
           {endpoint.params.some((p) => p.location === "query") && (
-            <Section title="Query params">
+            <Section title="Parâmetros de consulta">
               {endpoint.params
                 .filter((p) => p.location === "query")
                 .map((p) => (
@@ -568,7 +568,7 @@ export default function ApiDocs() {
 
           {/* Body */}
           {endpoint.params.some((p) => p.location === "body") && (
-            <Section title="Body (application/json)">
+            <Section title="Corpo da requisição (application/json)">
               {endpoint.params
                 .filter((p) => p.location === "body")
                 .map((p) => (
@@ -787,6 +787,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function locationLabel(location: string) {
+  const labels: Record<string, string> = {
+    path: "caminho",
+    query: "consulta",
+    body: "corpo",
+    header: "cabeçalho",
+  };
+  return labels[location] ?? location;
+}
+
 function ParamRow({
   name,
   type,
@@ -806,7 +816,7 @@ function ParamRow({
         <code className="font-mono text-primary">{name}</code>
         <span className="text-muted-foreground">{type}</span>
         <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
-          {location}
+          {locationLabel(location)}
         </span>
         {required && <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-400">obrigatório</span>}
       </div>
@@ -830,7 +840,7 @@ function EditableParam({
         <code className="font-mono text-primary">{param.name}</code>
         <span className="text-muted-foreground">{param.type}</span>
         <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
-          {param.location}
+          {locationLabel(param.location)}
         </span>
         {param.required && (
           <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-400">obrigatório</span>
