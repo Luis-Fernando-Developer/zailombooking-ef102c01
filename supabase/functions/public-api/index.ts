@@ -469,9 +469,10 @@ const getEmployee: Handler = async (ctx, _req, { id }) => {
 // Agenda ocupada (bookings ativos) num intervalo
 const getEmployeeBusy: Handler = async (ctx, req, { id }) => {
   const url = new URL(req.url);
-  const from = url.searchParams.get("from");
-  const to = url.searchParams.get("to");
-  if (!from || !to) return err("Query params required: from, to (YYYY-MM-DD).", 400);
+  // Contrato canônico: date_init/date_end. from/to seguem aceitos para compatibilidade.
+  const from = url.searchParams.get("date_init") ?? url.searchParams.get("from");
+  const to = url.searchParams.get("date_end") ?? url.searchParams.get("to");
+  if (!from || !to) return err("Query params required: date_init, date_end (YYYY-MM-DD).", 400);
   const { data, error } = await ctx.sb
     .from("bookings")
     .select("id, booking_date, start_time, end_time, duration_minutes, service_id, booking_status")
@@ -495,8 +496,9 @@ const availabilityDates: Handler = async (ctx, req) => {
   const url = new URL(req.url);
   const employee_id = url.searchParams.get("employee_id");
   const service_id = url.searchParams.get("service_id");
-  const from = url.searchParams.get("from");
-  const to = url.searchParams.get("to");
+  // Contrato canônico: date_init/date_end. from/to seguem aceitos para compatibilidade.
+  const from = url.searchParams.get("date_init") ?? url.searchParams.get("from");
+  const to = url.searchParams.get("date_end") ?? url.searchParams.get("to");
   if (!employee_id || !service_id) return err("employee_id and service_id are required", 400);
 
   const today = new Date();
@@ -1289,6 +1291,8 @@ const routes: Route[] = [
 
   // Services
   { method: "GET",  pattern: "/v1/services",                     scope: "read",  handler: listServices },
+  { method: "GET",  pattern: "/v1/services/details/:service_id",       scope: "read",  handler: getService },
+  // Rota legada mantida para compatibilidade; novas integrações devem usar /services/details/:service_id.
   { method: "GET",  pattern: "/v1/services/:service_id",                  scope: "read",  handler: getService },
   { method: "GET",  pattern: "/v1/services/:service_id/duration",         scope: "read",  handler: getServiceDuration },
   { method: "GET",  pattern: "/v1/services/:service_id/price",            scope: "read",  handler: getServicePrice },
@@ -1297,6 +1301,8 @@ const routes: Route[] = [
   // Employees
   { method: "GET",  pattern: "/v1/employees",                     scope: "read",  handler: listEmployees },
   { method: "GET",  pattern: "/v1/employees/:employee_id",                 scope: "read",  handler: getEmployee },
+  { method: "GET",  pattern: "/v1/employees/:employee_id/interval",        scope: "read",  handler: getEmployeeBusy },
+  // Rota legada mantida para compatibilidade; novas integrações devem usar /employees/:employee_id/interval.
   { method: "GET",  pattern: "/v1/employees/:employee_id/busy",            scope: "read",  handler: getEmployeeBusy },
 
   // Availability (SSOT)
