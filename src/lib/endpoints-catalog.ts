@@ -68,14 +68,14 @@ export const ENDPOINTS: Endpoint[] = [
     responseExample: [{ id: "uuid", name: "João" }],
   },
 
-  // -------------------- Colaboradores --------------------
+  // -------------------- Profissionais --------------------
   {
     id: "list-employees",
     group: "Profissionais",
     method: "GET",
     path: "/employees",
     title: "Listar profissionais",
-    description: "Lista colaboradores ativos. Filtre por serviço com `service_id`.",
+    description: "Lista profissionais ativos. Filtre pelo identificador do serviço usando `service_id`.",
     params: [
       { name: "service_id", type: "uuid", location: "query", description: "Filtra por serviço", example: "123e4567-e89b-12d3-a456-426614174000" },
     ],
