@@ -82,6 +82,10 @@ export function buildOpenApiSpec(
         required: p.location === "path" ? true : Boolean(p.required),
         description: p.description,
         schema: mapType(p.type),
+        ...(p.location === "path" ? {
+          "x-business-variable": p.name,
+          "x-template-placeholder": `{{${p.name}}}`,
+        } : { "x-business-variable": p.name }),
         ...(p.example ? { example: p.example } : {}),
       }));
 
@@ -98,7 +102,7 @@ export function buildOpenApiSpec(
                   properties: Object.fromEntries(
                     bodyParams.map((p) => [
                       p.name,
-                      { ...mapType(p.type), description: p.description },
+                      { ...mapType(p.type), description: p.description, "x-business-variable": p.name },
                     ]),
                   ),
                 },
@@ -130,6 +134,15 @@ export function buildOpenApiSpec(
       tags: [ep.group],
       summary: ep.title,
       description: ep.description,
+      "x-integration-template": `/v1${ep.path.replace(/:([a-zA-Z0-9_]+)/g, "{{$1}}")}`,
+      "x-business-variables": ep.params.map((p) => ({
+        name: p.name,
+        location: p.location,
+        type: p.type,
+        required: Boolean(p.required || p.location === "path"),
+        description: p.description,
+        template: p.location === "path" ? `{{${p.name}}}` : undefined,
+      })),
       operationId: ep.id.replace(/[^a-zA-Z0-9_]/g, "_"),
       ...(parameters.length ? { parameters } : {}),
       ...(requestBody ? { requestBody } : {}),
