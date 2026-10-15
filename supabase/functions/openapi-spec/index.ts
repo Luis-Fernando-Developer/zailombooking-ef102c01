@@ -302,7 +302,8 @@ const spec = {
             "location": "query",
             "type": "uuid",
             "required": false,
-            "description": "Filtra por serviço"
+            "description": "Filtra por serviço",
+            "template": "{{service_id}}"
           }
         ],
         "operationId": "list_employees",
@@ -317,7 +318,8 @@ const spec = {
               "format": "uuid"
             },
             "x-business-variable": "service_id",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "x-template-placeholder": "{{service_id}}"
           }
         ],
         "responses": {
@@ -421,28 +423,32 @@ const spec = {
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "Identificador do profissional"
+            "description": "Identificador do profissional",
+            "template": "{{employee_id}}"
           },
           {
             "name": "service_id",
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "Identificador do serviço"
+            "description": "Identificador do serviço",
+            "template": "{{service_id}}"
           },
           {
             "name": "date_init",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data inicial do intervalo (YYYY-MM-DD)"
+            "description": "Data inicial do intervalo (YYYY-MM-DD)",
+            "template": "{{date_init}}"
           },
           {
             "name": "date_end",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data final do intervalo (YYYY-MM-DD)"
+            "description": "Data final do intervalo (YYYY-MM-DD)",
+            "template": "{{date_end}}"
           }
         ],
         "operationId": "availability_dates",
@@ -456,7 +462,8 @@ const spec = {
               "type": "string",
               "format": "uuid"
             },
-            "x-business-variable": "employee_id"
+            "x-business-variable": "employee_id",
+            "x-template-placeholder": "{{employee_id}}"
           },
           {
             "name": "service_id",
@@ -467,7 +474,8 @@ const spec = {
               "type": "string",
               "format": "uuid"
             },
-            "x-business-variable": "service_id"
+            "x-business-variable": "service_id",
+            "x-template-placeholder": "{{service_id}}"
           },
           {
             "name": "date_init",
@@ -479,7 +487,8 @@ const spec = {
               "format": "date"
             },
             "x-business-variable": "date_init",
-            "example": "2026-10-05"
+            "example": "2026-10-05",
+            "x-template-placeholder": "{{date_init}}"
           },
           {
             "name": "date_end",
@@ -491,7 +500,8 @@ const spec = {
               "format": "date"
             },
             "x-business-variable": "date_end",
-            "example": "2026-10-31"
+            "example": "2026-10-31",
+            "x-template-placeholder": "{{date_end}}"
           }
         ],
         "responses": {
@@ -593,21 +603,24 @@ const spec = {
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "Identificador do profissional"
+            "description": "Identificador do profissional",
+            "template": "{{employee_id}}"
           },
           {
             "name": "service_id",
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "Identificador do serviço"
+            "description": "Identificador do serviço",
+            "template": "{{service_id}}"
           },
           {
             "name": "date",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data (YYYY-MM-DD)"
+            "description": "Data (YYYY-MM-DD)",
+            "template": "{{date}}"
           }
         ],
         "operationId": "availability_slots",
@@ -621,7 +634,8 @@ const spec = {
               "type": "string",
               "format": "uuid"
             },
-            "x-business-variable": "employee_id"
+            "x-business-variable": "employee_id",
+            "x-template-placeholder": "{{employee_id}}"
           },
           {
             "name": "service_id",
@@ -632,7 +646,8 @@ const spec = {
               "type": "string",
               "format": "uuid"
             },
-            "x-business-variable": "service_id"
+            "x-business-variable": "service_id",
+            "x-template-placeholder": "{{service_id}}"
           },
           {
             "name": "date",
@@ -644,7 +659,8 @@ const spec = {
               "format": "date"
             },
             "x-business-variable": "date",
-            "example": "2026-10-05"
+            "example": "2026-10-05",
+            "x-template-placeholder": "{{date}}"
           }
         ],
         "responses": {
@@ -747,14 +763,16 @@ const spec = {
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "Identificador do profissional"
+            "description": "Identificador do profissional",
+            "template": "{{employee_id}}"
           },
           {
             "name": "service_id",
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "Identificador do serviço"
+            "description": "Identificador do serviço",
+            "template": "{{service_id}}"
           }
         ],
         "operationId": "availability_next",
@@ -768,7 +786,8 @@ const spec = {
               "type": "string",
               "format": "uuid"
             },
-            "x-business-variable": "employee_id"
+            "x-business-variable": "employee_id",
+            "x-template-placeholder": "{{employee_id}}"
           },
           {
             "name": "service_id",
@@ -779,7 +798,8 @@ const spec = {
               "type": "string",
               "format": "uuid"
             },
-            "x-business-variable": "service_id"
+            "x-business-variable": "service_id",
+            "x-template-placeholder": "{{service_id}}"
           }
         ],
         "responses": {
@@ -880,7 +900,8 @@ const spec = {
             "location": "query",
             "type": "string",
             "required": true,
-            "description": "Telefone/WhatsApp (E.164 ou nacional)"
+            "description": "Telefone/WhatsApp (E.164 ou nacional)",
+            "template": "{{phone}}"
           }
         ],
         "operationId": "find_client",
@@ -894,7 +915,8 @@ const spec = {
               "type": "string"
             },
             "x-business-variable": "phone",
-            "example": "5511999998888"
+            "example": "5511999998888",
+            "x-template-placeholder": "{{phone}}"
           }
         ],
         "responses": {
@@ -994,21 +1016,24 @@ const spec = {
             "location": "body",
             "type": "string",
             "required": true,
-            "description": "Nome do cliente"
+            "description": "Nome do cliente",
+            "template": "{{name}}"
           },
           {
             "name": "phone",
             "location": "body",
             "type": "string",
             "required": true,
-            "description": "Telefone/WhatsApp"
+            "description": "Telefone/WhatsApp",
+            "template": "{{phone}}"
           },
           {
             "name": "email",
             "location": "body",
             "type": "string",
             "required": false,
-            "description": "E-mail opcional"
+            "description": "E-mail opcional",
+            "template": "{{email}}"
           }
         ],
         "operationId": "create_client",
@@ -1026,17 +1051,20 @@ const spec = {
                   "name": {
                     "type": "string",
                     "description": "Nome do cliente",
-                    "x-business-variable": "name"
+                    "x-business-variable": "name",
+                    "x-template-placeholder": "{{name}}"
                   },
                   "phone": {
                     "type": "string",
                     "description": "Telefone/WhatsApp",
-                    "x-business-variable": "phone"
+                    "x-business-variable": "phone",
+                    "x-template-placeholder": "{{phone}}"
                   },
                   "email": {
                     "type": "string",
                     "description": "E-mail opcional",
-                    "x-business-variable": "email"
+                    "x-business-variable": "email",
+                    "x-template-placeholder": "{{email}}"
                   }
                 }
               },
@@ -1154,21 +1182,24 @@ const spec = {
             "location": "body",
             "type": "string",
             "required": false,
-            "description": "Novo nome"
+            "description": "Novo nome",
+            "template": "{{name}}"
           },
           {
             "name": "phone",
             "location": "body",
             "type": "string",
             "required": false,
-            "description": "Novo telefone/WhatsApp"
+            "description": "Novo telefone/WhatsApp",
+            "template": "{{phone}}"
           },
           {
             "name": "email",
             "location": "body",
             "type": "string",
             "required": false,
-            "description": "Novo e-mail; envie null para remover"
+            "description": "Novo e-mail; envie null para remover",
+            "template": "{{email}}"
           }
         ],
         "operationId": "update_client",
@@ -1197,17 +1228,20 @@ const spec = {
                   "name": {
                     "type": "string",
                     "description": "Novo nome",
-                    "x-business-variable": "name"
+                    "x-business-variable": "name",
+                    "x-template-placeholder": "{{name}}"
                   },
                   "phone": {
                     "type": "string",
                     "description": "Novo telefone/WhatsApp",
-                    "x-business-variable": "phone"
+                    "x-business-variable": "phone",
+                    "x-template-placeholder": "{{phone}}"
                   },
                   "email": {
                     "type": "string",
                     "description": "Novo e-mail; envie null para remover",
-                    "x-business-variable": "email"
+                    "x-business-variable": "email",
+                    "x-template-placeholder": "{{email}}"
                   }
                 }
               },
@@ -1325,7 +1359,8 @@ const spec = {
             "location": "query",
             "type": "enum",
             "required": false,
-            "description": "upcoming | past | all (default: all)"
+            "description": "upcoming | past | all (default: all)",
+            "template": "{{scope}}"
           }
         ],
         "operationId": "client_bookings",
@@ -1351,7 +1386,8 @@ const spec = {
               "type": "string"
             },
             "x-business-variable": "scope",
-            "example": "upcoming"
+            "example": "upcoming",
+            "x-template-placeholder": "{{scope}}"
           }
         ],
         "responses": {
@@ -1456,35 +1492,40 @@ const spec = {
             "location": "body",
             "type": "uuid",
             "required": true,
-            "description": "ID do cliente"
+            "description": "ID do cliente",
+            "template": "{{client_id}}"
           },
           {
             "name": "service_id",
             "location": "body",
             "type": "uuid",
             "required": true,
-            "description": "ID do serviço"
+            "description": "ID do serviço",
+            "template": "{{service_id}}"
           },
           {
             "name": "employee_id",
             "location": "body",
             "type": "uuid",
             "required": true,
-            "description": "ID do colaborador"
+            "description": "ID do colaborador",
+            "template": "{{employee_id}}"
           },
           {
             "name": "booking_date",
             "location": "body",
             "type": "date",
             "required": true,
-            "description": "YYYY-MM-DD"
+            "description": "YYYY-MM-DD",
+            "template": "{{booking_date}}"
           },
           {
             "name": "booking_time",
             "location": "body",
             "type": "time",
             "required": true,
-            "description": "HH:mm"
+            "description": "HH:mm",
+            "template": "{{booking_time}}"
           }
         ],
         "operationId": "create_booking_hold",
@@ -1506,31 +1547,36 @@ const spec = {
                     "type": "string",
                     "format": "uuid",
                     "description": "ID do cliente",
-                    "x-business-variable": "client_id"
+                    "x-business-variable": "client_id",
+                    "x-template-placeholder": "{{client_id}}"
                   },
                   "service_id": {
                     "type": "string",
                     "format": "uuid",
                     "description": "ID do serviço",
-                    "x-business-variable": "service_id"
+                    "x-business-variable": "service_id",
+                    "x-template-placeholder": "{{service_id}}"
                   },
                   "employee_id": {
                     "type": "string",
                     "format": "uuid",
                     "description": "ID do colaborador",
-                    "x-business-variable": "employee_id"
+                    "x-business-variable": "employee_id",
+                    "x-template-placeholder": "{{employee_id}}"
                   },
                   "booking_date": {
                     "type": "string",
                     "format": "date",
                     "description": "YYYY-MM-DD",
-                    "x-business-variable": "booking_date"
+                    "x-business-variable": "booking_date",
+                    "x-template-placeholder": "{{booking_date}}"
                   },
                   "booking_time": {
                     "type": "string",
                     "pattern": "^([01]\\\\d|2[0-3]):[0-5]\\\\d$",
                     "description": "HH:mm",
-                    "x-business-variable": "booking_time"
+                    "x-business-variable": "booking_time",
+                    "x-template-placeholder": "{{booking_time}}"
                   }
                 }
               },
@@ -1888,7 +1934,8 @@ const spec = {
             "location": "body",
             "type": "string",
             "required": true,
-            "description": "ID do pagamento confirmado"
+            "description": "ID do pagamento confirmado",
+            "template": "{{payment_id}}"
           }
         ],
         "operationId": "complete_booking_hold",
@@ -1919,7 +1966,8 @@ const spec = {
                   "payment_id": {
                     "type": "string",
                     "description": "ID do pagamento confirmado",
-                    "x-business-variable": "payment_id"
+                    "x-business-variable": "payment_id",
+                    "x-template-placeholder": "{{payment_id}}"
                   }
                 }
               },
@@ -2029,35 +2077,40 @@ const spec = {
             "location": "body",
             "type": "uuid",
             "required": true,
-            "description": "ID do cliente"
+            "description": "ID do cliente",
+            "template": "{{client_id}}"
           },
           {
             "name": "service_id",
             "location": "body",
             "type": "uuid",
             "required": true,
-            "description": "ID do serviço"
+            "description": "ID do serviço",
+            "template": "{{service_id}}"
           },
           {
             "name": "employee_id",
             "location": "body",
             "type": "uuid",
             "required": true,
-            "description": "ID do colaborador"
+            "description": "ID do colaborador",
+            "template": "{{employee_id}}"
           },
           {
             "name": "booking_date",
             "location": "body",
             "type": "date",
             "required": true,
-            "description": "YYYY-MM-DD, ex.: 2026-07-15"
+            "description": "YYYY-MM-DD, ex.: 2026-07-15",
+            "template": "{{booking_date}}"
           },
           {
             "name": "booking_time",
             "location": "body",
             "type": "time",
             "required": true,
-            "description": "HH:mm, ex.: 15:00"
+            "description": "HH:mm, ex.: 15:00",
+            "template": "{{booking_time}}"
           }
         ],
         "operationId": "create_booking",
@@ -2079,31 +2132,36 @@ const spec = {
                     "type": "string",
                     "format": "uuid",
                     "description": "ID do cliente",
-                    "x-business-variable": "client_id"
+                    "x-business-variable": "client_id",
+                    "x-template-placeholder": "{{client_id}}"
                   },
                   "service_id": {
                     "type": "string",
                     "format": "uuid",
                     "description": "ID do serviço",
-                    "x-business-variable": "service_id"
+                    "x-business-variable": "service_id",
+                    "x-template-placeholder": "{{service_id}}"
                   },
                   "employee_id": {
                     "type": "string",
                     "format": "uuid",
                     "description": "ID do colaborador",
-                    "x-business-variable": "employee_id"
+                    "x-business-variable": "employee_id",
+                    "x-template-placeholder": "{{employee_id}}"
                   },
                   "booking_date": {
                     "type": "string",
                     "format": "date",
                     "description": "YYYY-MM-DD, ex.: 2026-07-15",
-                    "x-business-variable": "booking_date"
+                    "x-business-variable": "booking_date",
+                    "x-template-placeholder": "{{booking_date}}"
                   },
                   "booking_time": {
                     "type": "string",
                     "pattern": "^([01]\\\\d|2[0-3]):[0-5]\\\\d$",
                     "description": "HH:mm, ex.: 15:00",
-                    "x-business-variable": "booking_time"
+                    "x-business-variable": "booking_time",
+                    "x-template-placeholder": "{{booking_time}}"
                   }
                 }
               },
@@ -2340,7 +2398,8 @@ const spec = {
             "location": "body",
             "type": "string",
             "required": false,
-            "description": "Motivo opcional"
+            "description": "Motivo opcional",
+            "template": "{{reason}}"
           }
         ],
         "operationId": "cancel_booking",
@@ -2369,7 +2428,8 @@ const spec = {
                   "reason": {
                     "type": "string",
                     "description": "Motivo opcional",
-                    "x-business-variable": "reason"
+                    "x-business-variable": "reason",
+                    "x-template-placeholder": "{{reason}}"
                   }
                 }
               },
@@ -2484,14 +2544,16 @@ const spec = {
             "location": "body",
             "type": "date",
             "required": true,
-            "description": "Nova data"
+            "description": "Nova data",
+            "template": "{{new_date}}"
           },
           {
             "name": "new_time",
             "location": "body",
             "type": "time",
             "required": true,
-            "description": "Novo horário"
+            "description": "Novo horário",
+            "template": "{{new_time}}"
           }
         ],
         "operationId": "reschedule_booking",
@@ -2524,13 +2586,15 @@ const spec = {
                     "type": "string",
                     "format": "date",
                     "description": "Nova data",
-                    "x-business-variable": "new_date"
+                    "x-business-variable": "new_date",
+                    "x-template-placeholder": "{{new_date}}"
                   },
                   "new_time": {
                     "type": "string",
                     "pattern": "^([01]\\\\d|2[0-3]):[0-5]\\\\d$",
                     "description": "Novo horário",
-                    "x-business-variable": "new_time"
+                    "x-business-variable": "new_time",
+                    "x-template-placeholder": "{{new_time}}"
                   }
                 }
               },
@@ -2733,21 +2797,24 @@ const spec = {
             "location": "body",
             "type": "uuid",
             "required": false,
-            "description": "ID do agendamento existente. Não envie junto com hold_id."
+            "description": "ID do agendamento existente. Não envie junto com hold_id.",
+            "template": "{{booking_id}}"
           },
           {
             "name": "hold_id",
             "location": "body",
             "type": "uuid",
             "required": false,
-            "description": "ID da reserva temporária criada por POST /booking-holds. Não envie junto com booking_id."
+            "description": "ID da reserva temporária criada por POST /booking-holds. Não envie junto com booking_id.",
+            "template": "{{hold_id}}"
           },
           {
             "name": "method",
             "location": "body",
             "type": "enum",
             "required": true,
-            "description": "pix | credit_card"
+            "description": "pix | credit_card",
+            "template": "{{method}}"
           }
         ],
         "operationId": "create_payment",
@@ -2765,18 +2832,21 @@ const spec = {
                     "type": "string",
                     "format": "uuid",
                     "description": "ID do agendamento existente. Não envie junto com hold_id.",
-                    "x-business-variable": "booking_id"
+                    "x-business-variable": "booking_id",
+                    "x-template-placeholder": "{{booking_id}}"
                   },
                   "hold_id": {
                     "type": "string",
                     "format": "uuid",
                     "description": "ID da reserva temporária criada por POST /booking-holds. Não envie junto com booking_id.",
-                    "x-business-variable": "hold_id"
+                    "x-business-variable": "hold_id",
+                    "x-template-placeholder": "{{hold_id}}"
                   },
                   "method": {
                     "type": "string",
                     "description": "pix | credit_card",
-                    "x-business-variable": "method"
+                    "x-business-variable": "method",
+                    "x-template-placeholder": "{{method}}"
                   }
                 }
               },
@@ -3007,14 +3077,16 @@ const spec = {
             "location": "body",
             "type": "string",
             "required": true,
-            "description": "Ex.: booking.created"
+            "description": "Ex.: booking.created",
+            "template": "{{event}}"
           },
           {
             "name": "booking_id",
             "location": "body",
             "type": "uuid",
             "required": false,
-            "description": "Se evento de booking"
+            "description": "Se evento de booking",
+            "template": "{{booking_id}}"
           }
         ],
         "operationId": "send_notification",
@@ -3031,13 +3103,15 @@ const spec = {
                   "event": {
                     "type": "string",
                     "description": "Ex.: booking.created",
-                    "x-business-variable": "event"
+                    "x-business-variable": "event",
+                    "x-template-placeholder": "{{event}}"
                   },
                   "booking_id": {
                     "type": "string",
                     "format": "uuid",
                     "description": "Se evento de booking",
-                    "x-business-variable": "booking_id"
+                    "x-business-variable": "booking_id",
+                    "x-template-placeholder": "{{booking_id}}"
                   }
                 }
               },
@@ -3273,14 +3347,16 @@ const spec = {
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data inicial do intervalo (YYYY-MM-DD)"
+            "description": "Data inicial do intervalo (YYYY-MM-DD)",
+            "template": "{{date_init}}"
           },
           {
             "name": "date_end",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data final do intervalo (YYYY-MM-DD)"
+            "description": "Data final do intervalo (YYYY-MM-DD)",
+            "template": "{{date_end}}"
           }
         ],
         "operationId": "employee_busy",
@@ -3308,7 +3384,8 @@ const spec = {
               "format": "date"
             },
             "x-business-variable": "date_init",
-            "example": "2026-10-05"
+            "example": "2026-10-05",
+            "x-template-placeholder": "{{date_init}}"
           },
           {
             "name": "date_end",
@@ -3320,7 +3397,8 @@ const spec = {
               "format": "date"
             },
             "x-business-variable": "date_end",
-            "example": "2026-10-31"
+            "example": "2026-10-31",
+            "x-template-placeholder": "{{date_end}}"
           }
         ],
         "responses": {
