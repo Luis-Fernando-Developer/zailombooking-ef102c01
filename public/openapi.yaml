@@ -3,8 +3,8 @@ info:
   title: Zailom Booking — Public API
   version: 1.0.0
   description: >-
-    API pública do Zailom Booking. Todos os endpoints requerem uma API key vinculada a uma empresa, enviada via header
-    `Authorization: Bearer zlm_...` ou `x-api-key`.
+    API REST pública do Zailom Booking. Todos os endpoints requerem uma API key vinculada a uma empresa, enviada via header
+    `Authorization: Bearer zlm_...` ou `x-api-key`. Os parâmetros de rota usam nomes semânticos e integrações podem resolver templates como `/v1/services/{{service_id}}/employees` antes de enviar a requisição HTTP. O padrão é independente de qualquer ferramenta de automação.
   contact:
     name: Zailom Booking
     url: https://booking.zailom.com
@@ -89,7 +89,7 @@ paths:
       security:
         - ApiKeyAuth: []
         - BearerAuth: []
-  /services/{id}:
+  /services/{service_id}:
     get:
       tags:
         - Serviços
@@ -97,7 +97,7 @@ paths:
       description: Retorna os detalhes completos de um serviço.
       operationId: get_service
       parameters:
-        - name: id
+        - name: service_id
           in: path
           required: true
           description: ID do serviço
@@ -154,7 +154,7 @@ paths:
       security:
         - ApiKeyAuth: []
         - BearerAuth: []
-  /services/{id}/employees:
+  /services/{service_id}/employees:
     get:
       tags:
         - Serviços
@@ -162,7 +162,7 @@ paths:
       description: Lista profissionais habilitados a executar o serviço.
       operationId: service_employees
       parameters:
-        - name: id
+        - name: service_id
           in: path
           required: true
           description: ID do serviço
@@ -281,7 +281,7 @@ paths:
       security:
         - ApiKeyAuth: []
         - BearerAuth: []
-  /employees/{id}/busy:
+  /employees/{employee_id}/busy:
     get:
       tags:
         - Colaboradores
@@ -289,7 +289,7 @@ paths:
       description: Retorna os agendamentos ativos do colaborador num intervalo.
       operationId: employee_busy
       parameters:
-        - name: id
+        - name: employee_id
           in: path
           required: true
           description: ID do colaborador
@@ -731,7 +731,7 @@ paths:
       security:
         - ApiKeyAuth: []
         - BearerAuth: []
-  /clients/{clientId}:
+  /clients/{client_id}:
     patch:
       tags:
         - Clientes
@@ -739,7 +739,7 @@ paths:
       description: Atualiza um cliente existente. Não cria cliente novo.
       operationId: update_client
       parameters:
-        - name: clientId
+        - name: client_id
           in: path
           required: true
           description: ID do cliente
@@ -816,7 +816,7 @@ paths:
       security:
         - ApiKeyAuth: []
         - BearerAuth: []
-  /clients/{clientId}/bookings:
+  /clients/{client_id}/bookings:
     get:
       tags:
         - Clientes
@@ -824,7 +824,7 @@ paths:
       description: Lista agendamentos passados/futuros do cliente.
       operationId: client_bookings
       parameters:
-        - name: clientId
+        - name: client_id
           in: path
           required: true
           description: ID do cliente
@@ -983,7 +983,7 @@ paths:
       security:
         - ApiKeyAuth: []
         - BearerAuth: []
-  /bookings/{id}:
+  /bookings/{booking_id}:
     get:
       tags:
         - Agendamentos
@@ -991,7 +991,7 @@ paths:
       description: Retorna os detalhes de um agendamento.
       operationId: get_booking
       parameters:
-        - name: id
+        - name: booking_id
           in: path
           required: true
           description: ID do agendamento
@@ -1046,7 +1046,7 @@ paths:
       security:
         - ApiKeyAuth: []
         - BearerAuth: []
-  /bookings/{id}/cancel:
+  /bookings/{booking_id}/cancel:
     post:
       tags:
         - Agendamentos
@@ -1054,7 +1054,7 @@ paths:
       description: Cancela um agendamento (respeita regras de imutabilidade).
       operationId: cancel_booking
       parameters:
-        - name: id
+        - name: booking_id
           in: path
           required: true
           description: ID do agendamento
@@ -1121,7 +1121,7 @@ paths:
       security:
         - ApiKeyAuth: []
         - BearerAuth: []
-  /bookings/{id}/reschedule:
+  /bookings/{booking_id}/reschedule:
     post:
       tags:
         - Agendamentos
@@ -1129,7 +1129,7 @@ paths:
       description: Reagenda usando `client_reschedule_booking` — mesma fonte da UI.
       operationId: reschedule_booking
       parameters:
-        - name: id
+        - name: booking_id
           in: path
           required: true
           description: ID do agendamento
