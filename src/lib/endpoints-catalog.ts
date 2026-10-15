@@ -56,6 +56,26 @@ export const ENDPOINTS: Endpoint[] = [
     responseExample: { id: "uuid", name: "Corte masculino", duration_minutes: 30, price: 50.0 },
   },
   {
+    id: "get-service-duration",
+    group: "Serviços",
+    method: "GET",
+    path: "/services/:service_id/duration",
+    title: "Duração do serviço",
+    description: "Retorna a duração em minutos do serviço identificado por service_id. Use o identificador retornado por GET /services.",
+    params: [{ name: "service_id", type: "uuid", location: "path", required: true, description: "Identificador do serviço" }],
+    responseExample: { duration_minutes: 30 },
+  },
+  {
+    id: "get-service-price",
+    group: "Serviços",
+    method: "GET",
+    path: "/services/:service_id/price",
+    title: "Preço do serviço",
+    description: "Retorna o preço do serviço identificado por service_id. Use o identificador retornado por GET /services.",
+    params: [{ name: "service_id", type: "uuid", location: "path", required: true, description: "Identificador do serviço" }],
+    responseExample: { price: 50.0 },
+  },
+  {
     id: "service-employees",
     group: "Serviços",
     method: "GET",
@@ -80,6 +100,16 @@ export const ENDPOINTS: Endpoint[] = [
       { name: "service_id", type: "uuid", location: "query", description: "Filtra por serviço", example: "123e4567-e89b-12d3-a456-426614174000" },
     ],
     responseExample: [{ id: "uuid", name: "João", role: "Barbeiro" }],
+  },
+  {
+    id: "get-employee",
+    group: "Profissionais",
+    method: "GET",
+    path: "/employees/:employee_id",
+    title: "Detalhes do profissional",
+    description: "Retorna os dados do profissional identificado por employee_id.",
+    params: [{ name: "employee_id", type: "uuid", location: "path", required: true, description: "Identificador do profissional" }],
+    responseExample: { id: "uuid", name: "João", role: "Barbeiro", is_active: true },
   },
   {
     id: "employee-busy",
@@ -288,6 +318,13 @@ export const ENDPOINTS: Endpoint[] = [
     responseExample: { ok: true },
   },
   {
+    id: "confirm-booking", group: "Agendamentos", method: "POST", path: "/bookings/:booking_id/confirm",
+    title: "Confirmar agendamento",
+    description: "Confirma o agendamento identificado por booking_id, dentro da empresa vinculada à API key.",
+    params: [{ name: "booking_id", type: "uuid", location: "path", required: true, description: "Identificador do agendamento" }],
+    responseExample: { data: { id: "uuid", booking_status: "confirmed" } },
+  },
+  {
     id: "reschedule-booking",
     group: "Agendamentos",
     method: "POST",
@@ -342,7 +379,32 @@ export const ENDPOINTS: Endpoint[] = [
     responseExample: { id: "pay_xxx", status: "pending", gateway_status: "PENDING", method: "PIX" },
   },
 
+  {
+    id: "confirm-payment", group: "Pagamentos", method: "POST", path: "/payments/:payment_id/confirm",
+    title: "Confirmar pagamento",
+    description: "Marca como confirmado o pagamento identificado por payment_id. Use o identificador interno do pagamento aceito pelo endpoint.",
+    params: [{ name: "payment_id", type: "string", location: "path", required: true, description: "Identificador interno do pagamento" }],
+    responseExample: { data: { id: "pay_xxx", status: "confirmed" } },
+  },
+  {
+    id: "cancel-payment", group: "Pagamentos", method: "POST", path: "/payments/:payment_id/cancel",
+    title: "Cancelar pagamento",
+    description: "Marca como cancelado o pagamento identificado por payment_id.",
+    params: [{ name: "payment_id", type: "string", location: "path", required: true, description: "Identificador interno do pagamento" }],
+    responseExample: { data: { id: "pay_xxx", status: "cancelled" } },
+  },
+
   // -------------------- Notificações --------------------
+  {
+    id: "list-templates",
+    group: "Notificações",
+    method: "GET",
+    path: "/templates",
+    title: "Listar modelos de notificação",
+    description: "Retorna os modelos de notificação configurados para a empresa vinculada à API key.",
+    params: [],
+    responseExample: { data: [{ key: "confirmation", variants: [{ channel: "whatsapp", configured: true, template: null }] }] },
+  },
   {
     id: "send-notification",
     group: "Notificações",
