@@ -8,6 +8,7 @@
 // =============================================================================
 
 export type Param = {
+  /** Stable, semantic name shared by API consumers and automation tools. */
   name: string;
   type: string;
   location: "path" | "query" | "body" | "header";
@@ -46,9 +47,9 @@ export const ENDPOINTS: Endpoint[] = [
     id: "get-service",
     group: "Serviços",
     method: "GET",
-    path: "/services/:id",
+    path: "/services/:service_id",
     title: "Detalhes do serviço",
-    description: "Retorna os detalhes completos de um serviço.",
+    description: "Retorna os detalhes completos do serviço identificado por service_id no contexto da empresa vinculada à API key. Use o ID retornado por GET /services; não use o nome do serviço como identificador.",
     params: [
       { name: "id", type: "uuid", location: "path", required: true, description: "ID do serviço", example: "00000000-0000-0000-0000-000000000000" },
     ],
@@ -58,9 +59,9 @@ export const ENDPOINTS: Endpoint[] = [
     id: "service-employees",
     group: "Serviços",
     method: "GET",
-    path: "/services/:id/employees",
+    path: "/services/:service_id/employees",
     title: "Profissionais do serviço",
-    description: "Lista profissionais habilitados a executar o serviço.",
+    description: "Lista os profissionais ativos habilitados a executar o serviço identificado por service_id. O valor deve ser o ID real retornado por GET /services.",
     params: [
       { name: "id", type: "uuid", location: "path", required: true, description: "ID do serviço" },
     ],
@@ -84,9 +85,9 @@ export const ENDPOINTS: Endpoint[] = [
     id: "employee-busy",
     group: "Colaboradores",
     method: "GET",
-    path: "/employees/:id/busy",
+    path: "/employees/:employee_id/busy",
     title: "Agenda ocupada",
-    description: "Retorna os agendamentos ativos do colaborador num intervalo.",
+    description: "Retorna os agendamentos ativos do profissional identificado por employee_id dentro do intervalo informado. As datas usam YYYY-MM-DD.",
     params: [
       { name: "id", type: "uuid", location: "path", required: true, description: "ID do colaborador", example: "00000000-0000-0000-0000-000000000000" },
       { name: "from", type: "date", location: "query", required: true, description: "Data inicial (YYYY-MM-DD)", example: "2026-10-05" },
@@ -172,9 +173,9 @@ export const ENDPOINTS: Endpoint[] = [
     id: "update-client",
     group: "Clientes",
     method: "PATCH",
-    path: "/clients/:clientId",
+    path: "/clients/:client_id",
     title: "Atualizar cliente",
-    description: "Atualiza um cliente existente. Não cria cliente novo.",
+    description: "Atualiza o cliente identificado por client_id. Não cria cliente novo. Envie somente os campos que deseja alterar.",
     params: [
       { name: "clientId", type: "uuid", location: "path", required: true, description: "ID do cliente" },
       { name: "name", type: "string", location: "body", description: "Novo nome" },
@@ -188,9 +189,9 @@ export const ENDPOINTS: Endpoint[] = [
     id: "client-bookings",
     group: "Clientes",
     method: "GET",
-    path: "/clients/:clientId/bookings",
+    path: "/clients/:client_id/bookings",
     title: "Agendamentos do cliente",
-    description: "Lista agendamentos passados/futuros do cliente.",
+    description: "Lista agendamentos passados e/ou futuros do cliente identificado por client_id. O parâmetro scope aceita upcoming, past ou all.",
     params: [
       { name: "clientId", type: "uuid", location: "path", required: true, description: "ID do cliente" },
       { name: "scope", type: "enum", location: "query", description: "upcoming | past | all (default: all)", example: "upcoming" },
@@ -214,20 +215,20 @@ export const ENDPOINTS: Endpoint[] = [
     responseExample: { id: "hold_xxx", status: "active", expires_at: "2026-10-05T18:10:00.000Z", booking_date: "2026-10-05", booking_time: "15:00" },
   },
   {
-    id: "get-booking-hold", group: "Reservas temporárias", method: "GET", path: "/booking-holds/:id",
+    id: "get-booking-hold", group: "Reservas temporárias", method: "GET", path: "/booking-holds/:hold_id",
     title: "Consultar reserva temporária",
     description: "Consulta o estado da reserva temporária e identifica se ela ainda está ativa ou expirou.",
     params: [{ name: "id", type: "uuid", location: "path", required: true, description: "ID da reserva temporária" }],
     responseExample: { id: "hold_xxx", status: "active", expires_at: "2026-10-05T18:10:00.000Z" },
   },
   {
-    id: "cancel-booking-hold", group: "Reservas temporárias", method: "POST", path: "/booking-holds/:id/cancel",
+    id: "cancel-booking-hold", group: "Reservas temporárias", method: "POST", path: "/booking-holds/:hold_id/cancel",
     title: "Cancelar reserva temporária", description: "Libera o horário reservado antes do pagamento ou conclusão do checkout.",
     params: [{ name: "id", type: "uuid", location: "path", required: true, description: "ID da reserva temporária" }],
     responseExample: { ok: true, status: "cancelled" },
   },
   {
-    id: "complete-booking-hold", group: "Reservas temporárias", method: "POST", path: "/booking-holds/:id/complete",
+    id: "complete-booking-hold", group: "Reservas temporárias", method: "POST", path: "/booking-holds/:hold_id/complete",
     title: "Finalizar reserva temporária", description: "Conclui o checkout e transforma o hold em agendamento somente quando o pagamento informado está confirmado.",
     params: [
       { name: "id", type: "uuid", location: "path", required: true, description: "ID da reserva temporária" },
@@ -266,9 +267,9 @@ export const ENDPOINTS: Endpoint[] = [
     id: "get-booking",
     group: "Agendamentos",
     method: "GET",
-    path: "/bookings/:id",
+    path: "/bookings/:booking_id",
     title: "Consultar agendamento",
-    description: "Retorna os detalhes de um agendamento.",
+    description: "Retorna os detalhes do agendamento identificado por booking_id, dentro da empresa vinculada à API key.",
     params: [{ name: "id", type: "uuid", location: "path", required: true, description: "ID do agendamento" }],
     responseExample: { id: "uuid", status: "confirmed" },
   },
@@ -276,7 +277,7 @@ export const ENDPOINTS: Endpoint[] = [
     id: "cancel-booking",
     group: "Agendamentos",
     method: "POST",
-    path: "/bookings/:id/cancel",
+    path: "/bookings/:booking_id/cancel",
     title: "Cancelar agendamento",
     description: "Cancela um agendamento (respeita regras de imutabilidade).",
     params: [
@@ -290,7 +291,7 @@ export const ENDPOINTS: Endpoint[] = [
     id: "reschedule-booking",
     group: "Agendamentos",
     method: "POST",
-    path: "/bookings/:id/reschedule",
+    path: "/bookings/:booking_id/reschedule",
     title: "Reagendar",
     description: "Reagenda usando `client_reschedule_booking` — mesma fonte da UI.",
     params: [
@@ -332,9 +333,9 @@ export const ENDPOINTS: Endpoint[] = [
     id: "get-payment",
     group: "Pagamentos",
     method: "GET",
-    path: "/payments/:id",
+    path: "/payments/:payment_id",
     title: "Consultar pagamento",
-    description: "Consulta o pagamento local e atualiza seu status com o gateway quando necessário. O ID pode ser o ID interno do pagamento ou o ID da cobrança no gateway.",
+    description: "Consulta o pagamento local e atualiza seu status com o gateway quando necessário. payment_id pode ser o ID interno do pagamento ou o ID da cobrança no gateway.",
     params: [
       { name: "id", type: "string", location: "path", required: true, description: "ID do pagamento ou identificador da cobrança no gateway" },
     ],
