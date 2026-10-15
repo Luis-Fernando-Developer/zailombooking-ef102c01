@@ -16,7 +16,7 @@ const spec = {
   "info": {
     "title": "Zailom Booking — Public API",
     "version": "1.0.0",
-    "description": "API pública do Zailom Booking. Todos os endpoints requerem uma API key vinculada a uma empresa, enviada via header `Authorization: Bearer zlm_...` ou `x-api-key`.",
+    "description": "API pública do Zailom Booking. Todos os endpoints requerem uma API key vinculada a uma empresa, enviada via header `Authorization: Bearer zlm_...` ou `x-api-key`. Os parâmetros de rota usam nomes semânticos no padrão OpenAPI, por exemplo `/services/{service_id}/employees`. Para integrações que usam templates, o mesmo endereço pode ser representado como `/v1/services/{{service_id}}/employees`; a ferramenta consumidora resolve o placeholder para o ID real antes de enviar a requisição HTTP. Essa convenção é independente de qualquer produto de automação e não exige que o consumidor seja o Zailom Flow.",
     "contact": {
       "name": "Zailom Booking",
       "url": "https://booking.zailom.com"
@@ -161,10 +161,12 @@ const spec = {
           {
             "BearerAuth": []
           }
-        ]
+        ],
+        "x-integration-template": "/v1/services",
+        "x-business-variables": []
       }
     },
-    "/services/{id}": {
+    "/services/{service_id}": {
       "get": {
         "tags": [
           "Serviços"
@@ -174,14 +176,16 @@ const spec = {
         "operationId": "get_service",
         "parameters": [
           {
-            "name": "id",
+            "name": "service_id",
             "in": "path",
             "required": true,
-            "description": "ID do serviço",
+            "description": "ID do serviço Valor semântico: service_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "service_id",
+            "x-template-placeholder": "{{service_id}}"
           }
         ],
         "responses": {
@@ -267,10 +271,21 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/services/{{service_id}}",
+        "x-business-variables": [
+          {
+            "name": "service_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do serviço Valor semântico: service_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
+            "template": "{{service_id}}"
+          }
         ]
       }
     },
-    "/services/{id}/employees": {
+    "/services/{service_id}/employees": {
       "get": {
         "tags": [
           "Serviços"
@@ -280,14 +295,16 @@ const spec = {
         "operationId": "service_employees",
         "parameters": [
           {
-            "name": "id",
+            "name": "service_id",
             "in": "path",
             "required": true,
-            "description": "ID do serviço",
+            "description": "ID do serviço Valor semântico: service_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "service_id",
+            "x-template-placeholder": "{{service_id}}"
           }
         ],
         "responses": {
@@ -373,6 +390,17 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/services/{{service_id}}/employees",
+        "x-business-variables": [
+          {
+            "name": "service_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do serviço Valor semântico: service_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
+            "template": "{{service_id}}"
+          }
         ]
       }
     },
@@ -393,7 +421,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "service_id"
           }
         ],
         "responses": {
@@ -480,10 +509,20 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/employees",
+        "x-business-variables": [
+          {
+            "name": "service_id",
+            "location": "query",
+            "type": "uuid",
+            "required": false,
+            "description": "Filtra por serviço"
+          }
         ]
       }
     },
-    "/employees/{id}/busy": {
+    "/employees/{employee_id}/busy": {
       "get": {
         "tags": [
           "Colaboradores"
@@ -493,14 +532,16 @@ const spec = {
         "operationId": "employee_busy",
         "parameters": [
           {
-            "name": "id",
+            "name": "employee_id",
             "in": "path",
             "required": true,
-            "description": "ID do colaborador",
+            "description": "ID do colaborador Valor semântico: employee_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "employee_id",
+            "x-template-placeholder": "{{employee_id}}"
           },
           {
             "name": "from",
@@ -510,7 +551,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "date"
-            }
+            },
+            "x-business-variable": "from"
           },
           {
             "name": "to",
@@ -520,7 +562,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "date"
-            }
+            },
+            "x-business-variable": "to"
           }
         ],
         "responses": {
@@ -608,6 +651,31 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/employees/{{employee_id}}/busy",
+        "x-business-variables": [
+          {
+            "name": "employee_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do colaborador Valor semântico: employee_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
+            "template": "{{employee_id}}"
+          },
+          {
+            "name": "from",
+            "location": "query",
+            "type": "date",
+            "required": true,
+            "description": "Data inicial (YYYY-MM-DD)"
+          },
+          {
+            "name": "to",
+            "location": "query",
+            "type": "date",
+            "required": true,
+            "description": "Data final (YYYY-MM-DD)"
+          }
         ]
       }
     },
@@ -628,7 +696,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "employee_id"
           },
           {
             "name": "service_id",
@@ -638,7 +707,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "service_id"
           },
           {
             "name": "from",
@@ -648,7 +718,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "date"
-            }
+            },
+            "x-business-variable": "from"
           },
           {
             "name": "to",
@@ -658,7 +729,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "date"
-            }
+            },
+            "x-business-variable": "to"
           }
         ],
         "responses": {
@@ -743,6 +815,37 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/availability/dates",
+        "x-business-variables": [
+          {
+            "name": "employee_id",
+            "location": "query",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do colaborador"
+          },
+          {
+            "name": "service_id",
+            "location": "query",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do serviço"
+          },
+          {
+            "name": "from",
+            "location": "query",
+            "type": "date",
+            "required": true,
+            "description": "Data inicial"
+          },
+          {
+            "name": "to",
+            "location": "query",
+            "type": "date",
+            "required": true,
+            "description": "Data final"
+          }
         ]
       }
     },
@@ -763,7 +866,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "employee_id"
           },
           {
             "name": "service_id",
@@ -773,7 +877,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "service_id"
           },
           {
             "name": "date",
@@ -783,7 +888,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "date"
-            }
+            },
+            "x-business-variable": "date"
           }
         ],
         "responses": {
@@ -869,6 +975,30 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/availability/slots",
+        "x-business-variables": [
+          {
+            "name": "employee_id",
+            "location": "query",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do colaborador"
+          },
+          {
+            "name": "service_id",
+            "location": "query",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do serviço"
+          },
+          {
+            "name": "date",
+            "location": "query",
+            "type": "date",
+            "required": true,
+            "description": "Data (YYYY-MM-DD)"
+          }
         ]
       }
     },
@@ -889,7 +1019,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "employee_id"
           },
           {
             "name": "service_id",
@@ -899,7 +1030,8 @@ const spec = {
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "service_id"
           }
         ],
         "responses": {
@@ -983,6 +1115,23 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/availability/next",
+        "x-business-variables": [
+          {
+            "name": "employee_id",
+            "location": "query",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do colaborador"
+          },
+          {
+            "name": "service_id",
+            "location": "query",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do serviço"
+          }
         ]
       }
     },
@@ -1002,7 +1151,8 @@ const spec = {
             "description": "Ex.: 5511999998888",
             "schema": {
               "type": "string"
-            }
+            },
+            "x-business-variable": "phone"
           }
         ],
         "responses": {
@@ -1060,11 +1210,11 @@ const spec = {
             }
           },
           "409": {
-            "description": "Conflito (ex.: cliente já existente ou telefone em uso)",
+            "description": "Conflito",
             "content": {
               "application/json": {
                 "example": {
-                  "error": "Client already exists for this phone"
+                  "error": "conflict"
                 }
               }
             }
@@ -1086,6 +1236,16 @@ const spec = {
           },
           {
             "BearerAuth": []
+          }
+        ],
+        "x-integration-template": "/v1/clients",
+        "x-business-variables": [
+          {
+            "name": "phone",
+            "location": "query",
+            "type": "string",
+            "required": true,
+            "description": "Ex.: 5511999998888"
           }
         ]
       },
@@ -1109,15 +1269,18 @@ const spec = {
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "Nome do cliente"
+                    "description": "Nome do cliente",
+                    "x-business-variable": "name"
                   },
                   "phone": {
                     "type": "string",
-                    "description": "Telefone/WhatsApp"
+                    "description": "Telefone/WhatsApp",
+                    "x-business-variable": "phone"
                   },
                   "email": {
                     "type": "string",
-                    "description": "E-mail opcional"
+                    "description": "E-mail opcional",
+                    "x-business-variable": "email"
                   }
                 }
               },
@@ -1129,18 +1292,6 @@ const spec = {
           }
         },
         "responses": {
-          "200": {
-            "description": "Sucesso",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": "uuid",
-                  "name": "Maria",
-                  "phone": "5511999998888"
-                }
-              }
-            }
-          },
           "201": {
             "description": "Cliente criado",
             "content": {
@@ -1160,8 +1311,7 @@ const spec = {
             "content": {
               "application/json": {
                 "example": {
-                  "error": "invalid_request",
-                  "message": "Payload inválido ou parâmetros faltando."
+                  "error": "invalid_request"
                 }
               }
             }
@@ -1186,18 +1336,8 @@ const spec = {
               }
             }
           },
-          "404": {
-            "description": "Recurso não encontrado",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "not_found"
-                }
-              }
-            }
-          },
           "409": {
-            "description": "Conflito (ex.: cliente já existente ou telefone em uso)",
+            "description": "Conflito (cliente já existente)",
             "content": {
               "application/json": {
                 "example": {
@@ -1224,146 +1364,34 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/clients",
+        "x-business-variables": [
+          {
+            "name": "name",
+            "location": "body",
+            "type": "string",
+            "required": true,
+            "description": "Nome do cliente"
+          },
+          {
+            "name": "phone",
+            "location": "body",
+            "type": "string",
+            "required": true,
+            "description": "Telefone/WhatsApp"
+          },
+          {
+            "name": "email",
+            "location": "body",
+            "type": "string",
+            "required": false,
+            "description": "E-mail opcional"
+          }
         ]
       }
     },
-    "/clients/{clientId}": {
-      "tags": [
-        "Clientes"
-      ],
-      "summary": "Atualizar cliente",
-      "description": "Atualiza um cliente existente. Não cria cliente novo.",
-      "operationId": "update_client",
-      "parameters": [
-        {
-          "name": "clientId",
-          "in": "path",
-          "required": true,
-          "description": "ID do cliente",
-          "schema": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "Novo nome"
-                },
-                "phone": {
-                  "type": "string",
-                  "description": "Novo telefone/WhatsApp"
-                },
-                "email": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "Novo e-mail; envie null para remover"
-                }
-              }
-            },
-            "example": {
-              "name": "Maria Silva",
-              "phone": "5511999998888"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "Sucesso",
-          "content": {
-            "application/json": {
-              "example": {
-                "data": {
-                  "id": "uuid",
-                  "name": "Maria Silva",
-                  "phone": "5511999998888"
-                }
-              }
-            }
-          }
-        },
-        "400": {
-          "description": "Requisição inválida",
-          "content": {
-            "application/json": {
-              "example": {
-                "error": "invalid_request",
-                "message": "At least one field is required: name, phone, email"
-              }
-            }
-          }
-        },
-        "401": {
-          "description": "API key ausente/ inválida",
-          "content": {
-            "application/json": {
-              "example": {
-                "error": "unauthorized"
-              }
-            }
-          }
-        },
-        "403": {
-          "description": "Escopo insuficiente",
-          "content": {
-            "application/json": {
-              "example": {
-                "error": "forbidden"
-              }
-            }
-          }
-        },
-        "404": {
-          "description": "Recurso não encontrado",
-          "content": {
-            "application/json": {
-              "example": {
-                "error": "Client not found"
-              }
-            }
-          }
-        },
-        "409": {
-          "description": "Conflito (ex.: telefone em uso)",
-          "content": {
-            "application/json": {
-              "example": {
-                "error": "Another client already exists for this phone"
-              }
-            }
-          }
-        },
-        "500": {
-          "description": "Erro interno",
-          "content": {
-            "application/json": {
-              "example": {
-                "error": "internal_error"
-              }
-            }
-          }
-        }
-      },
-      "security": [
-        {
-          "ApiKeyAuth": []
-        },
-        {
-          "BearerAuth": []
-        }
-      ]
-    },
-    "/clients/{clientId}/bookings": {
+    "/clients/{client_id}/bookings": {
       "get": {
         "tags": [
           "Clientes"
@@ -1373,14 +1401,16 @@ const spec = {
         "operationId": "client_bookings",
         "parameters": [
           {
-            "name": "clientId",
+            "name": "client_id",
             "in": "path",
             "required": true,
-            "description": "ID do cliente",
+            "description": "ID do cliente Valor semântico: client_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "client_id",
+            "x-template-placeholder": "{{client_id}}"
           },
           {
             "name": "scope",
@@ -1389,7 +1419,8 @@ const spec = {
             "description": "upcoming | past | all (default: all)",
             "schema": {
               "type": "string"
-            }
+            },
+            "x-business-variable": "scope"
           }
         ],
         "responses": {
@@ -1477,6 +1508,24 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/clients/{{client_id}}/bookings",
+        "x-business-variables": [
+          {
+            "name": "client_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do cliente Valor semântico: client_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
+            "template": "{{client_id}}"
+          },
+          {
+            "name": "scope",
+            "location": "query",
+            "type": "string",
+            "required": false,
+            "description": "upcoming | past | all (default: all)"
+          }
         ]
       }
     },
@@ -1505,27 +1554,32 @@ const spec = {
                   "client_id": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "ID do cliente"
+                    "description": "ID do cliente",
+                    "x-business-variable": "client_id"
                   },
                   "service_id": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "ID do serviço"
+                    "description": "ID do serviço",
+                    "x-business-variable": "service_id"
                   },
                   "employee_id": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "ID do colaborador"
+                    "description": "ID do colaborador",
+                    "x-business-variable": "employee_id"
                   },
                   "booking_date": {
                     "type": "string",
                     "format": "date",
-                    "description": "YYYY-MM-DD, ex.: 2026-07-15"
+                    "description": "YYYY-MM-DD, ex.: 2026-07-15",
+                    "x-business-variable": "booking_date"
                   },
                   "booking_time": {
                     "type": "string",
                     "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
-                    "description": "HH:mm, ex.: 15:00"
+                    "description": "HH:mm, ex.: 15:00",
+                    "x-business-variable": "booking_time"
                   }
                 }
               },
@@ -1620,10 +1674,48 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/bookings",
+        "x-business-variables": [
+          {
+            "name": "client_id",
+            "location": "body",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do cliente"
+          },
+          {
+            "name": "service_id",
+            "location": "body",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do serviço"
+          },
+          {
+            "name": "employee_id",
+            "location": "body",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do colaborador"
+          },
+          {
+            "name": "booking_date",
+            "location": "body",
+            "type": "date",
+            "required": true,
+            "description": "YYYY-MM-DD, ex.: 2026-07-15"
+          },
+          {
+            "name": "booking_time",
+            "location": "body",
+            "type": "string",
+            "required": true,
+            "description": "HH:mm, ex.: 15:00"
+          }
         ]
       }
     },
-    "/bookings/{id}": {
+    "/bookings/{booking_id}": {
       "get": {
         "tags": [
           "Agendamentos"
@@ -1633,14 +1725,16 @@ const spec = {
         "operationId": "get_booking",
         "parameters": [
           {
-            "name": "id",
+            "name": "booking_id",
             "in": "path",
             "required": true,
-            "description": "ID do agendamento",
+            "description": "ID do agendamento Valor semântico: booking_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "booking_id",
+            "x-template-placeholder": "{{booking_id}}"
           }
         ],
         "responses": {
@@ -1724,10 +1818,21 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/bookings/{{booking_id}}",
+        "x-business-variables": [
+          {
+            "name": "booking_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do agendamento Valor semântico: booking_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
+            "template": "{{booking_id}}"
+          }
         ]
       }
     },
-    "/bookings/{id}/cancel": {
+    "/bookings/{booking_id}/cancel": {
       "post": {
         "tags": [
           "Agendamentos"
@@ -1737,14 +1842,16 @@ const spec = {
         "operationId": "cancel_booking",
         "parameters": [
           {
-            "name": "id",
+            "name": "booking_id",
             "in": "path",
             "required": true,
-            "description": "ID do agendamento",
+            "description": "ID do agendamento Valor semântico: booking_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "booking_id",
+            "x-template-placeholder": "{{booking_id}}"
           }
         ],
         "requestBody": {
@@ -1757,7 +1864,8 @@ const spec = {
                 "properties": {
                   "reason": {
                     "type": "string",
-                    "description": "Motivo opcional"
+                    "description": "Motivo opcional",
+                    "x-business-variable": "reason"
                   }
                 }
               },
@@ -1847,10 +1955,28 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/bookings/{{booking_id}}/cancel",
+        "x-business-variables": [
+          {
+            "name": "booking_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do agendamento Valor semântico: booking_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
+            "template": "{{booking_id}}"
+          },
+          {
+            "name": "reason",
+            "location": "body",
+            "type": "string",
+            "required": false,
+            "description": "Motivo opcional"
+          }
         ]
       }
     },
-    "/bookings/{id}/reschedule": {
+    "/bookings/{booking_id}/reschedule": {
       "post": {
         "tags": [
           "Agendamentos"
@@ -1860,14 +1986,16 @@ const spec = {
         "operationId": "reschedule_booking",
         "parameters": [
           {
-            "name": "id",
+            "name": "booking_id",
             "in": "path",
             "required": true,
-            "description": "ID do agendamento",
+            "description": "ID do agendamento Valor semântico: booking_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "x-business-variable": "booking_id",
+            "x-template-placeholder": "{{booking_id}}"
           }
         ],
         "requestBody": {
@@ -1884,12 +2012,14 @@ const spec = {
                   "new_date": {
                     "type": "string",
                     "format": "date",
-                    "description": "Nova data"
+                    "description": "Nova data",
+                    "x-business-variable": "new_date"
                   },
                   "new_time": {
                     "type": "string",
                     "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
-                    "description": "Novo horário"
+                    "description": "Novo horário",
+                    "x-business-variable": "new_time"
                   }
                 }
               },
@@ -1979,6 +2109,31 @@ const spec = {
           },
           {
             "BearerAuth": []
+          }
+        ],
+        "x-integration-template": "/v1/bookings/{{booking_id}}/reschedule",
+        "x-business-variables": [
+          {
+            "name": "booking_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do agendamento Valor semântico: booking_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
+            "template": "{{booking_id}}"
+          },
+          {
+            "name": "new_date",
+            "location": "body",
+            "type": "date",
+            "required": true,
+            "description": "Nova data"
+          },
+          {
+            "name": "new_time",
+            "location": "body",
+            "type": "string",
+            "required": true,
+            "description": "Novo horário"
           }
         ]
       }
@@ -2073,7 +2228,9 @@ const spec = {
           {
             "BearerAuth": []
           }
-        ]
+        ],
+        "x-integration-template": "/v1/payments/methods",
+        "x-business-variables": []
       }
     },
     "/payments": {
@@ -2098,11 +2255,13 @@ const spec = {
                   "booking_id": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "ID do agendamento"
+                    "description": "ID do agendamento",
+                    "x-business-variable": "booking_id"
                   },
                   "method": {
                     "type": "string",
-                    "description": "pix | credit_card"
+                    "description": "pix | credit_card",
+                    "x-business-variable": "method"
                   }
                 }
               },
@@ -2195,6 +2354,23 @@ const spec = {
           {
             "BearerAuth": []
           }
+        ],
+        "x-integration-template": "/v1/payments",
+        "x-business-variables": [
+          {
+            "name": "booking_id",
+            "location": "body",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do agendamento"
+          },
+          {
+            "name": "method",
+            "location": "body",
+            "type": "string",
+            "required": true,
+            "description": "pix | credit_card"
+          }
         ]
       }
     },
@@ -2218,12 +2394,14 @@ const spec = {
                 "properties": {
                   "event": {
                     "type": "string",
-                    "description": "Ex.: booking.created"
+                    "description": "Ex.: booking.created",
+                    "x-business-variable": "event"
                   },
                   "booking_id": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "Se evento de booking"
+                    "description": "Se evento de booking",
+                    "x-business-variable": "booking_id"
                   }
                 }
               },
@@ -2313,6 +2491,195 @@ const spec = {
           },
           {
             "BearerAuth": []
+          }
+        ],
+        "x-integration-template": "/v1/notifications",
+        "x-business-variables": [
+          {
+            "name": "event",
+            "location": "body",
+            "type": "string",
+            "required": true,
+            "description": "Ex.: booking.created"
+          },
+          {
+            "name": "booking_id",
+            "location": "body",
+            "type": "uuid",
+            "required": false,
+            "description": "Se evento de booking"
+          }
+        ]
+      }
+    },
+    "/clients/{client_id}": {
+      "patch": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Atualizar cliente",
+        "description": "Atualiza um cliente existente. Não cria cliente novo.",
+        "operationId": "update_client",
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "path",
+            "required": true,
+            "description": "ID do cliente Valor semântico: client_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-business-variable": "client_id",
+            "x-template-placeholder": "{{client_id}}"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Novo nome",
+                    "x-business-variable": "name"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Novo telefone/WhatsApp",
+                    "x-business-variable": "phone"
+                  },
+                  "email": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Novo e-mail; envie null para remover",
+                    "x-business-variable": "email"
+                  }
+                }
+              },
+              "example": {
+                "name": "Maria Silva",
+                "phone": "5511999998888"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": {
+                    "id": "uuid",
+                    "name": "Maria Silva",
+                    "phone": "5511999998888"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Requisição inválida",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "invalid_request"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key ausente/ inválida",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Escopo insuficiente",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cliente não encontrado",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Client not found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflito (telefone em uso)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Another client already exists for this phone"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "internal_error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-integration-template": "/v1/clients/{{client_id}}",
+        "x-business-variables": [
+          {
+            "name": "client_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do cliente Valor semântico: client_id. Use o ID real retornado por uma operação anterior; o template é resolvido pela integração antes da chamada HTTP.",
+            "template": "{{client_id}}"
+          },
+          {
+            "name": "name",
+            "location": "body",
+            "type": "string",
+            "required": false,
+            "description": "Novo nome"
+          },
+          {
+            "name": "phone",
+            "location": "body",
+            "type": "string",
+            "required": false,
+            "description": "Novo telefone/WhatsApp"
+          },
+          {
+            "name": "email",
+            "location": "body",
+            "type": "string",
+            "required": false,
+            "description": "Novo e-mail; envie null para remover"
           }
         ]
       }
