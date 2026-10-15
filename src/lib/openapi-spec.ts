@@ -65,7 +65,7 @@ export function buildOpenApiSpec(
     title = "Zailom Booking — Public API",
     version = "1.0.0",
     baseUrl = "https://api-booking.zailom.com/v1",
-    description = `API pública do Zailom Booking. Todos os endpoints requerem uma API key vinculada a uma empresa, enviada via header \`Authorization: Bearer zlm_...\` ou \`x-api-key\`.`,
+    description = `API REST pública do Zailom Booking. Todos os endpoints requerem uma API key vinculada a uma empresa, enviada via header \`Authorization: Bearer zlm_...\` ou \`x-api-key\`. Os parâmetros de rota usam nomes semânticos no padrão OpenAPI, por exemplo \`/services/{service_id}/employees\`. Para integrações que usam templates, o mesmo endereço pode ser representado como \`/v1/services/{{service_id}}/employees\`; a ferramenta consumidora resolve o placeholder para o ID real antes de enviar a requisição HTTP. Essa convenção é independente de qualquer produto de automação e não exige que o consumidor seja o Zailom Flow.`,
   } = opts;
 
   const paths: Record<string, Record<string, unknown>> = {};
