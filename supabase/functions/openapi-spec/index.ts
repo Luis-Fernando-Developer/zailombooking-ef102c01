@@ -33,10 +33,10 @@ const spec = {
       "name": "Serviços"
     },
     {
-      "name": "Colaboradores"
+      "name": "Profissionais"
     },
     {
-      "name": "Disponibilidade (SSOT)"
+      "name": "Disponibilidade"
     },
     {
       "name": "Clientes"
@@ -169,133 +169,13 @@ const spec = {
         ]
       }
     },
-    "/services/{service_id}": {
-      "get": {
-        "tags": [
-          "Serviços"
-        ],
-        "summary": "Detalhes do serviço",
-        "description": "Retorna os detalhes completos do serviço identificado por service_id no contexto da empresa vinculada à API key. Use o ID retornado por GET /services; não use o nome do serviço como identificador.",
-        "x-integration-template": "/v1/services/{{service_id}}",
-        "x-business-variables": [
-          {
-            "name": "service_id",
-            "location": "path",
-            "type": "uuid",
-            "required": true,
-            "description": "ID do serviço",
-            "template": "{{service_id}}"
-          }
-        ],
-        "operationId": "get_service",
-        "parameters": [
-          {
-            "name": "service_id",
-            "in": "path",
-            "required": true,
-            "description": "ID do serviço",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "x-business-variable": "service_id",
-            "x-template-placeholder": "{{service_id}}",
-            "example": "00000000-0000-0000-0000-000000000000"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Sucesso",
-            "content": {
-              "application/json": {
-                "example": {
-                  "id": "uuid",
-                  "name": "Corte masculino",
-                  "duration_minutes": 30,
-                  "price": 50
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Requisição inválida",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "invalid_request",
-                  "message": "Payload inválido ou parâmetros faltando."
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "API key ausente/ inválida",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "unauthorized"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Escopo insuficiente",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "forbidden"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Recurso não encontrado",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "not_found"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflito (ex.: slot indisponível)",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "slot_unavailable"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Erro interno",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "internal_error"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKeyAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
     "/services/{service_id}/employees": {
       "get": {
         "tags": [
           "Serviços"
         ],
-        "summary": "Profissionais do serviço",
-        "description": "Lista os profissionais ativos habilitados a executar o serviço identificado por service_id. O valor deve ser o ID real retornado por GET /services.",
+        "summary": "Listar profissionais do serviço",
+        "description": "Lista os profissionais ativos habilitados a executar o serviço identificado por service_id. Substitua {{service_id}} pelo identificador real retornado por GET /services antes de enviar a requisição.",
         "x-integration-template": "/v1/services/{{service_id}}/employees",
         "x-business-variables": [
           {
@@ -411,11 +291,11 @@ const spec = {
     "/employees": {
       "get": {
         "tags": [
-          "Colaboradores"
+          "Profissionais"
         ],
-        "summary": "Listar colaboradores",
+        "summary": "Listar profissionais",
         "description": "Lista colaboradores ativos. Filtre por serviço com `service_id`.",
-        "x-integration-template": "/v1/employees",
+        "x-integration-template": "/v1/employees?service_id={{service_id}}",
         "x-business-variables": [
           {
             "name": "service_id",
@@ -431,13 +311,13 @@ const spec = {
             "name": "service_id",
             "in": "query",
             "required": false,
-            "description": "Filtra por serviço",
+            "description": "Filtra profissionais pelo identificador do serviço",
             "schema": {
               "type": "string",
               "format": "uuid"
             },
             "x-business-variable": "service_id",
-            "example": "00000000-0000-0000-0000-000000000000"
+            "example": "123e4567-e89b-12d3-a456-426614174000"
           }
         ],
         "responses": {
@@ -527,202 +407,42 @@ const spec = {
         ]
       }
     },
-    "/employees/{employee_id}/busy": {
-      "get": {
-        "tags": [
-          "Colaboradores"
-        ],
-        "summary": "Agenda ocupada",
-        "description": "Retorna os agendamentos ativos do profissional identificado por employee_id dentro do intervalo informado. As datas usam YYYY-MM-DD.",
-        "x-integration-template": "/v1/employees/{{employee_id}}/busy",
-        "x-business-variables": [
-          {
-            "name": "employee_id",
-            "location": "path",
-            "type": "uuid",
-            "required": true,
-            "description": "ID do colaborador",
-            "template": "{{employee_id}}"
-          },
-          {
-            "name": "from",
-            "location": "query",
-            "type": "date",
-            "required": true,
-            "description": "Data inicial (YYYY-MM-DD)"
-          },
-          {
-            "name": "to",
-            "location": "query",
-            "type": "date",
-            "required": true,
-            "description": "Data final (YYYY-MM-DD)"
-          }
-        ],
-        "operationId": "employee_busy",
-        "parameters": [
-          {
-            "name": "employee_id",
-            "in": "path",
-            "required": true,
-            "description": "ID do colaborador",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "x-business-variable": "employee_id",
-            "x-template-placeholder": "{{employee_id}}",
-            "example": "00000000-0000-0000-0000-000000000000"
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "required": true,
-            "description": "Data inicial (YYYY-MM-DD)",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "x-business-variable": "from",
-            "example": "2026-10-05"
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "required": true,
-            "description": "Data final (YYYY-MM-DD)",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "x-business-variable": "to",
-            "example": "2026-10-31"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Sucesso",
-            "content": {
-              "application/json": {
-                "example": [
-                  {
-                    "id": "uuid",
-                    "booking_date": "2026-07-10",
-                    "start_time": "14:00",
-                    "end_time": "14:30"
-                  }
-                ]
-              }
-            }
-          },
-          "400": {
-            "description": "Requisição inválida",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "invalid_request",
-                  "message": "Payload inválido ou parâmetros faltando."
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "API key ausente/ inválida",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "unauthorized"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Escopo insuficiente",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "forbidden"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Recurso não encontrado",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "not_found"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflito (ex.: slot indisponível)",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "slot_unavailable"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Erro interno",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": "internal_error"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKeyAuth": []
-          },
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
     "/availability/dates": {
       "get": {
         "tags": [
-          "Disponibilidade (SSOT)"
+          "Disponibilidade"
         ],
         "summary": "Dias disponíveis",
-        "description": "Retorna todos os dias no intervalo que possuem ao menos 1 horário livre. Respeita escala, ausências, bloqueios e configurações da empresa.",
-        "x-integration-template": "/v1/availability/dates",
+        "description": "Retorna os dias no intervalo que possuem ao menos um horário livre. Respeita escala, ausências, bloqueios e configurações da empresa. Informe employee_id, service_id, date_init e date_end; as datas usam YYYY-MM-DD.",
+        "x-integration-template": "/v1/availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&date_init={{date_init}}&date_end={{date_end}}",
         "x-business-variables": [
           {
             "name": "employee_id",
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "ID do colaborador"
+            "description": "Identificador do profissional"
           },
           {
             "name": "service_id",
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "ID do serviço"
+            "description": "Identificador do serviço"
           },
           {
-            "name": "from",
+            "name": "date_init",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data inicial"
+            "description": "Data inicial do intervalo (YYYY-MM-DD)"
           },
           {
-            "name": "to",
+            "name": "date_end",
             "location": "query",
             "type": "date",
             "required": true,
-            "description": "Data final"
+            "description": "Data final do intervalo (YYYY-MM-DD)"
           }
         ],
         "operationId": "availability_dates",
@@ -731,7 +451,7 @@ const spec = {
             "name": "employee_id",
             "in": "query",
             "required": true,
-            "description": "ID do colaborador",
+            "description": "Identificador do profissional",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -742,7 +462,7 @@ const spec = {
             "name": "service_id",
             "in": "query",
             "required": true,
-            "description": "ID do serviço",
+            "description": "Identificador do serviço",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -750,26 +470,28 @@ const spec = {
             "x-business-variable": "service_id"
           },
           {
-            "name": "from",
+            "name": "date_init",
             "in": "query",
             "required": true,
-            "description": "Data inicial",
+            "description": "Data inicial do intervalo (YYYY-MM-DD)",
             "schema": {
               "type": "string",
               "format": "date"
             },
-            "x-business-variable": "from"
+            "x-business-variable": "date_init",
+            "example": "2026-10-05"
           },
           {
-            "name": "to",
+            "name": "date_end",
             "in": "query",
             "required": true,
-            "description": "Data final",
+            "description": "Data final do intervalo (YYYY-MM-DD)",
             "schema": {
               "type": "string",
               "format": "date"
             },
-            "x-business-variable": "to"
+            "x-business-variable": "date_end",
+            "example": "2026-10-31"
           }
         ],
         "responses": {
@@ -860,25 +582,25 @@ const spec = {
     "/availability/slots": {
       "get": {
         "tags": [
-          "Disponibilidade (SSOT)"
+          "Disponibilidade"
         ],
         "summary": "Horários disponíveis no dia",
         "description": "Lista horários livres para um serviço/colaborador num dia específico.",
-        "x-integration-template": "/v1/availability/slots",
+        "x-integration-template": "/v1/availability/slots?employee_id={{employee_id}}&service_id={{service_id}}&date={{date}}",
         "x-business-variables": [
           {
             "name": "employee_id",
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "ID do colaborador"
+            "description": "Identificador do profissional"
           },
           {
             "name": "service_id",
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "ID do serviço"
+            "description": "Identificador do serviço"
           },
           {
             "name": "date",
@@ -1014,25 +736,25 @@ const spec = {
     "/availability/next": {
       "get": {
         "tags": [
-          "Disponibilidade (SSOT)"
+          "Disponibilidade"
         ],
         "summary": "Próximo horário livre",
         "description": "Encontra o próximo horário livre dentro de 60 dias.",
-        "x-integration-template": "/v1/availability/next",
+        "x-integration-template": "/v1/availability/next?employee_id={{employee_id}}&service_id={{service_id}}",
         "x-business-variables": [
           {
             "name": "employee_id",
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "ID do colaborador"
+            "description": "Identificador do profissional"
           },
           {
             "name": "service_id",
             "location": "query",
             "type": "uuid",
             "required": true,
-            "description": "ID do serviço"
+            "description": "Identificador do serviço"
           }
         ],
         "operationId": "availability_next",
@@ -1151,7 +873,7 @@ const spec = {
         ],
         "summary": "Buscar cliente por telefone",
         "description": "Localiza um cliente pelo WhatsApp/telefone (E.164 ou nacional).",
-        "x-integration-template": "/v1/clients",
+        "x-integration-template": "/v1/clients?phone={{phone}}",
         "x-business-variables": [
           {
             "name": "phone",
@@ -1588,7 +1310,7 @@ const spec = {
         ],
         "summary": "Agendamentos do cliente",
         "description": "Lista agendamentos passados e/ou futuros do cliente identificado por client_id. O parâmetro scope aceita upcoming, past ou all.",
-        "x-integration-template": "/v1/clients/{{client_id}}/bookings",
+        "x-integration-template": "/v1/clients/{{client_id}}/bookings?scope={{scope}}",
         "x-business-variables": [
           {
             "name": "client_id",
@@ -3334,6 +3056,286 @@ const spec = {
                 "example": {
                   "ok": true
                 }
+              }
+            }
+          },
+          "400": {
+            "description": "Requisição inválida",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "invalid_request",
+                  "message": "Payload inválido ou parâmetros faltando."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key ausente/ inválida",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Escopo insuficiente",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso não encontrado",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "not_found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflito (ex.: slot indisponível)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "slot_unavailable"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "internal_error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/services/details/{service_id}": {
+      "get": {
+        "tags": [
+          "Serviços"
+        ],
+        "summary": "Detalhes do serviço",
+        "description": "Retorna os detalhes completos do serviço identificado por service_id no contexto da empresa vinculada à API key. Use o identificador retornado por GET /services; substitua {{service_id}} pelo valor real antes de enviar a requisição. Não use o nome do serviço como identificador.",
+        "x-integration-template": "/v1/services/details/{{service_id}}",
+        "x-business-variables": [
+          {
+            "name": "service_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "ID do serviço",
+            "template": "{{service_id}}"
+          }
+        ],
+        "operationId": "get_service",
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador do serviço",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-business-variable": "service_id",
+            "x-template-placeholder": "{{service_id}}",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "uuid",
+                  "name": "Corte masculino",
+                  "duration_minutes": 30,
+                  "price": 50
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Requisição inválida",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "invalid_request",
+                  "message": "Payload inválido ou parâmetros faltando."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key ausente/ inválida",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Escopo insuficiente",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso não encontrado",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "not_found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflito (ex.: slot indisponível)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "slot_unavailable"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "internal_error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/employees/{employee_id}/interval": {
+      "get": {
+        "tags": [
+          "Profissionais"
+        ],
+        "summary": "Agenda ocupada por intervalo",
+        "description": "Retorna os agendamentos ativos do profissional identificado por employee_id no intervalo informado. Use date_init para a data inicial e date_end para a data final, ambas no formato YYYY-MM-DD.",
+        "x-integration-template": "/v1/employees/{{employee_id}}/interval?date_init={{date_init}}&date_end={{date_end}}",
+        "x-business-variables": [
+          {
+            "name": "employee_id",
+            "location": "path",
+            "type": "uuid",
+            "required": true,
+            "description": "Identificador do profissional",
+            "template": "{{employee_id}}"
+          },
+          {
+            "name": "date_init",
+            "location": "query",
+            "type": "date",
+            "required": true,
+            "description": "Data inicial do intervalo (YYYY-MM-DD)"
+          },
+          {
+            "name": "date_end",
+            "location": "query",
+            "type": "date",
+            "required": true,
+            "description": "Data final do intervalo (YYYY-MM-DD)"
+          }
+        ],
+        "operationId": "employee_busy",
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador do profissional",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-business-variable": "employee_id",
+            "x-template-placeholder": "{{employee_id}}",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          {
+            "name": "date_init",
+            "in": "query",
+            "required": true,
+            "description": "Data inicial do intervalo (YYYY-MM-DD)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-business-variable": "date_init",
+            "example": "2026-10-05"
+          },
+          {
+            "name": "date_end",
+            "in": "query",
+            "required": true,
+            "description": "Data final do intervalo (YYYY-MM-DD)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-business-variable": "date_end",
+            "example": "2026-10-31"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "uuid",
+                    "booking_date": "2026-07-10",
+                    "start_time": "14:00",
+                    "end_time": "14:30"
+                  }
+                ]
               }
             }
           },
