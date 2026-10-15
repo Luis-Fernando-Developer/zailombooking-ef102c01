@@ -12,6 +12,7 @@ export type OpenApiParamLocation = "path" | "query" | "body" | "header";
 
 export interface OpenApiSourceParam {
   name: string;
+  templateName?: string;
   type: string;
   location: OpenApiParamLocation;
   required?: boolean;
@@ -82,8 +83,8 @@ export function buildOpenApiSpec(
         required: p.location === "path" ? true : Boolean(p.required),
         description: p.description,
         schema: mapType(p.type),
-        "x-business-variable": p.name,
-        "x-template-placeholder": `{{${p.name}}}`,
+        "x-business-variable": p.templateName ?? p.name,
+        "x-template-placeholder": `{{${p.templateName ?? p.name}}}`,
         ...(p.example ? { example: p.example } : {}),
       }));
 
@@ -139,7 +140,8 @@ export function buildOpenApiSpec(
         type: p.type,
         required: Boolean(p.required || p.location === "path"),
         description: p.description,
-        template: `{{${p.name}}}`,
+        businessVariable: p.templateName ?? p.name,
+        template: `{{${p.templateName ?? p.name}}}`,
       })),
       operationId: ep.id.replace(/[^a-zA-Z0-9_]/g, "_"),
       ...(parameters.length ? { parameters } : {}),
