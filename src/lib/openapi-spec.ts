@@ -134,7 +134,7 @@ export function buildOpenApiSpec(
       tags: [ep.group],
       summary: ep.title,
       description: ep.description,
-      "x-integration-template": `/v1${ep.path.replace(/:([a-zA-Z0-9_]+)/g, "{{$1}}")}`,
+      "x-integration-template": `/v1${ep.path.replace(/:([a-zA-Z0-9_]+)/g, "{{$1}}")}${ep.params.some((p) => p.location === "query") ? `?${ep.params.filter((p) => p.location === "query").map((p) => `${p.name}={{${p.name}}}`).join("&")}` : ""}`,
       "x-business-variables": ep.params.map((p) => ({
         name: p.name,
         location: p.location,
