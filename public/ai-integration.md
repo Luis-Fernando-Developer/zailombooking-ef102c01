@@ -18,7 +18,7 @@ A API do Booking é a fonte de verdade para dados e estados do sistema. Não dec
 2. Toda requisição precisa de uma API key da empresa: `Authorization: Bearer <API_KEY>` ou `x-api-key: <API_KEY>`.
 3. A chave limita o acesso à empresa à qual está vinculada. Não misture IDs de empresas diferentes.
 4. Respeite os escopos da chave: leitura para consultas e escrita para operações que alteram dados.
-5. Use os nomes oficiais das variáveis do contrato, como `service_id`, `employee_id`, `client_id`, `booking_id`, `hold_id` e `payment_id`. Em templates, represente valores dinâmicos como `{{service_id}}`. Substitua placeholders por valores reais antes de enviar a requisição.
+5. Use somente os nomes oficiais de variáveis e parâmetros listados na seção **Variáveis e parâmetros oficiais**. Em templates, represente valores dinâmicos como `{{service_id}}`. Substitua cada placeholder pelo valor real antes de enviar a requisição. Não trate nomes de campos do corpo, estados e valores retornados como se fossem automaticamente variáveis de template.
 6. Não use nomes de serviços, profissionais ou clientes como substitutos dos IDs quando o endpoint exigir um identificador.
 7. Não invente rotas, parâmetros, estados, métodos de pagamento ou eventos. Se uma informação não estiver documentada ou disponível na resposta, consulte a documentação ou peça esclarecimento.
 8. Verifique os parâmetros obrigatórios antes de chamar uma operação. Use os valores retornados por chamadas anteriores.
@@ -27,17 +27,46 @@ A API do Booking é a fonte de verdade para dados e estados do sistema. Não dec
 11. Antes de criar uma reserva ou agendamento, consulte a disponibilidade e revalide o horário imediatamente antes da escrita. A disponibilidade pode mudar.
 12. Não execute duas operações de criação para a mesma intenção. Escolha o caminho adequado e reutilize IDs retornados pela API.
 
+## Variáveis e parâmetros oficiais
+
+A tabela abaixo reúne as variáveis de template usadas nos endpoints publicados e os nomes de parâmetros HTTP relacionados. O nome do placeholder de negócio pode ser diferente do nome do parâmetro HTTP: por exemplo, `{{date_init}}` é enviado no parâmetro de consulta `from`, e `{{date_end}}` é enviado em `to`.
+
+| Variável/template | Onde é usada | Significado |
+|---|---|---|
+| `{{service_id}}` | caminho, query ou corpo | ID do serviço escolhido |
+| `{{employee_id}}` | caminho ou query/corpo | ID do profissional escolhido |
+| `{{client_id}}` | caminho ou corpo | ID do cliente |
+| `{{booking_id}}` | caminho ou corpo | ID do agendamento existente ou retornado |
+| `{{hold_id}}` | caminho ou corpo | ID da reserva temporária do checkout |
+| `{{payment_id}}` | caminho ou corpo | ID do pagamento; use o ID retornado pela criação/consulta conforme o endpoint exigir |
+| `{{date_init}}` | query `from` | Início do intervalo, `YYYY-MM-DD` |
+| `{{date_end}}` | query `to` | Fim do intervalo, `YYYY-MM-DD` |
+| `{{date}}` | query `date` | Data consultada, `YYYY-MM-DD` |
+| `{{booking_date}}` | corpo | Data do agendamento, `YYYY-MM-DD` |
+| `{{booking_time}}` | corpo | Horário do agendamento, `HH:mm` |
+| `{{phone}}` | query ou corpo | Telefone/WhatsApp do cliente |
+| `{{name}}` | corpo | Nome do cliente |
+| `{{email}}` | corpo | E-mail do cliente; opcional quando permitido |
+| `{{scope}}` | query | Escopo da listagem: `upcoming`, `past` ou `all` |
+| `{{reason}}` | corpo | Motivo de cancelamento, quando aplicável |
+| `{{new_date}}` | corpo | Nova data no reagendamento |
+| `{{new_time}}` | corpo | Novo horário no reagendamento |
+| `{{method}}` | corpo | Método de cobrança aceito pelo endpoint, por exemplo `pix` ou `credit_card`; valide as formas configuradas |
+| `{{event}}` | corpo | Evento de notificação; confira primeiro `GET /templates` |
+| `{{hold_minutes}}` | corpo opcional do hold | Duração da reserva temporária em minutos, de 1 a 30; padrão de 10 minutos |
+
+**Campos HTTP que não são variáveis de template:** `from` e `to` são os nomes reais da query string; `booking_status`, `payment_status`, `payment_method`, `price`, `status`, `expires_at`, `provider`, `payment_mode`, `methods` e `payout_flow` são campos de entrada/saída ou estado, não placeholders universais. Use-os apenas onde o contrato daquele endpoint os documentar. `id` pode aparecer como identificador genérico em uma resposta; não presuma que seja intercambiável com `booking_id`, `hold_id` ou `payment_id` sem verificar o esquema da resposta.
+
 ## Sequência recomendada para descobrir e selecionar um horário
 
-1. Chame `GET /services` para apresentar o catálogo de serviços.
-2. Quando o cliente selecionar um serviço, guarde o `service_id`. Use `GET /services/details/{{service_id}}` se precisar de preço, duração ou outros detalhes.
-3. Consulte os profissionais com `GET /services/{{service_id}}/employees` ou, quando adequado, `GET /employees?service_id={{service_id}}`.
-4. Com `employee_id` e `service_id`, consulte `GET /availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&from={{date_init}}&to={{date_end}}`.
-5. Para uma data selecionada, consulte `GET /availability/slots?employee_id={{employee_id}}&service_id={{service_id}}&date={{date}}`.
-6. Apresente somente datas e horários retornados como disponíveis. Antes de gravar, reconsulte a disponibilidade.
-7. Busque o cliente por telefone com `GET /clients?phone={{phone}}`. A resposta pode conter `data: null` quando não há cliente correspondente.
-8. Se não houver cliente, solicite os dados necessários e chame `POST /clients`. Se o telefone já estiver cadastrado e a criação retornar `409`, use o `client_id` informado no erro ou faça uma nova busca; não crie repetidamente o mesmo cliente.
-9. Atualize um cadastro existente somente quando necessário, usando `PATCH /clients/{{client_id}}` e enviando apenas os campos que devem mudar.
+1. **Descobrir o serviço:** chame `GET /services` e apresente somente serviços retornados pela API.
+2. **Resolver o serviço escolhido:** guarde o `service_id` retornado. Se precisar esclarecer preço/duração, chame `GET /services/details/{{service_id}}`, `GET /services/{{service_id}}/price` ou `GET /services/{{service_id}}/duration`.
+3. **Resolver quem pode executar:** chame `GET /services/{{service_id}}/employees` ou `GET /employees?service_id={{service_id}}`. Guarde o `employee_id` escolhido, que precisa pertencer à empresa e estar habilitado para o serviço.
+4. **Encontrar dias:** consulte `GET /availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&from={{date_init}}&to={{date_end}}`. Só ofereça datas devolvidas pela API.
+5. **Encontrar horários do dia:** depois que o cliente escolher a data, chame `GET /availability/slots?employee_id={{employee_id}}&service_id={{service_id}}&date={{date}}`. Ofereça apenas os horários retornados.
+6. **Resolver o cliente:** chame `GET /clients?phone={{phone}}`. Se não existir, peça os dados necessários e use `POST /clients`; guarde o ID retornado. Se ocorrer `409` por telefone duplicado, busque novamente e reutilize o `client_id` encontrado. Use `PATCH /clients/{{client_id}}` somente para atualizar dados que o cliente pediu para corrigir.
+7. **Escolher o caminho de criação:** confirme se o usuário quer pagar online ou no local. Para checkout online, siga o Fluxo A. Para pagamento no local com confirmação manual, observe a limitação documentada no Fluxo B: o endpoint público atual não reproduz integralmente esse comportamento do site.
+8. **Validar novamente:** imediatamente antes da operação de escrita, consulte de novo `GET /availability/slots`; um horário mostrado anteriormente pode já ter sido ocupado.
 
 ## Fluxo A — checkout com pagamento online e reserva temporária
 
@@ -63,7 +92,7 @@ A sequência normal é:
 
 `consultar disponibilidade → criar hold → criar cobrança → consultar pagamento → finalizar hold → obter booking_id`
 
-Não execute `POST /bookings` depois de finalizar o hold: a finalização já efetiva o agendamento. A finalização exige pagamento confirmado e não deve ser usada para forçar a conclusão de um pagamento pendente.
+**Regra de exclusividade durante todo o checkout:** a partir do momento em que a IA escolhe `POST /booking-holds` para aquela solicitação, ela deve seguir somente a cadeia de hold e pagamento. Não chame `POST /bookings` em nenhuma etapa dessa mesma solicitação — nem enquanto o hold está ativo, nem depois de criar a cobrança, nem enquanto aguarda o pagamento, nem depois de concluir o hold. O endpoint de conclusão já cria/efetiva o agendamento associado ao hold. Se o checkout falhar ou expirar, consulte o estado do hold e a disponibilidade antes de iniciar uma nova tentativa; não crie um agendamento direto como fallback automático. A conclusão exige pagamento confirmado.
 
 ## Fluxo B — criação direta de agendamento
 
@@ -71,9 +100,11 @@ Não execute `POST /bookings` depois de finalizar o hold: a finalização já ef
 
 Use a criação direta somente quando o cenário de negócio realmente não exigir o checkout com hold. Antes da chamada, valide os IDs e reconsulte a disponibilidade. Envie `client_id`, `service_id`, `employee_id`, `booking_date` e `booking_time`.
 
-**Limitação importante do contrato publicado atualmente:** a operação documentada `POST /bookings` não expõe um campo oficial `payment_method` nem uma regra específica que represente o fluxo de pagamento no local. O comportamento atual da implementação usa `booking_status: confirmed` e `payment_status: pending` como valores padrão quando não são fornecidos. Portanto, não presuma que a escolha “pagar no local” esteja registrada como método de pagamento nem que o agendamento ficará aguardando aprovação manual. Não invente campos para contornar essa limitação.
+**Diferença importante entre o site e a API pública:** o fluxo do site para pagamento no local pode registrar `payment_method: local`, deixar `booking_status: pending` e aguardar a confirmação manual de alguém autorizado no painel. Ao confirmar, o status passa a confirmado; se for cancelado, o agendamento deixa de valer conforme as regras do Booking.
 
-Se o fluxo exigir que o Booking registre explicitamente pagamento no local ou mantenha o agendamento aguardando confirmação manual, esse comportamento precisa ser definido no contrato da API antes de instruir a IA a executá-lo.
+**A API pública atual não implementa esse fluxo completo pelo contrato documentado.** O handler atual de `POST /bookings` não grava `payment_method`; se `booking_status` e `payment_status` não forem enviados, usa `confirmed` e `pending` como padrões. Embora o handler aceite valores de status no corpo, isso não torna `payment_method` oficialmente suportado nem garante que o slot seja protegido/liberado exatamente como no site. `POST /bookings/{{booking_id}}/confirm` apenas muda o status para confirmado e não é uma solução completa para registrar pagamento no local.
+
+Portanto, **não instrua um agente a simular o fluxo de pagamento no local usando campos inventados ou a presumir que o slot ficará reservado até a aprovação manual**. Até a API expor e validar oficialmente esse modo e seu comportamento de disponibilidade/cancelamento, a documentação deve tratar isso como uma lacuna de contrato. O checkout com `booking-holds` é destinado ao fluxo online e não deve ser reaproveitado para pagamento no local.
 
 ### Regra contra duplicidade
 
@@ -143,7 +174,7 @@ Os caminhos são relativos à base `https://api-booking.zailom.com/v1`. Use a es
 - `POST /booking-holds/{{hold_id}}/complete` — finalizar checkout e efetivar o agendamento após pagamento confirmado.
 
 ### Agendamentos
-- `POST /bookings` — criar agendamento diretamente.
+- `POST /bookings` — criar agendamento diretamente; o contrato público atual não oferece o fluxo completo de pagamento no local com aprovação manual.
 - `GET /bookings/{{booking_id}}` — consultar agendamento.
 - `POST /bookings/{{booking_id}}/cancel` — cancelar agendamento.
 - `POST /bookings/{{booking_id}}/confirm` — confirmar agendamento.
@@ -169,6 +200,10 @@ Os caminhos são relativos à base `https://api-booking.zailom.com/v1`. Use a es
 - `404`: recurso ou identificador não encontrado.
 - `409`: conflito, horário indisponível, reserva expirada ou pagamento ainda não confirmado, conforme o corpo de erro. Leia `error`, `code`, `reason` e demais campos retornados.
 - `5xx`: erro no servidor ou dependência. Não afirme sucesso; consulte o estado antes de repetir uma operação de escrita.
+
+## OpenAPI como apêndice de referência
+
+O OpenAPI é o contrato técnico estruturado: contém caminhos, métodos, parâmetros, esquemas de requisição/resposta e autenticação. O guia explica a intenção de negócio e a ordem segura das operações. Para integrações com IA, use ambos juntos. Os botões de exportação da página geram um arquivo combinado com este guia e o conteúdo integral do `openapi.json` anexado ao final, para facilitar o envio em um único arquivo. A especificação anexada deve ser tratada como contrato técnico; não invente propriedades ausentes dela.
 
 ## Orientação final ao agente
 
