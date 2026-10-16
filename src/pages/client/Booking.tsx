@@ -267,7 +267,7 @@ export default function ClientBooking() {
     };
 
     void restoreExpiredBooking();
-  }, [company, user, client, services, combos, toast]);
+  }, [company, user, client, services, combos, catalogLoaded, toast]);
 
   useEffect(() => {
     if (customization) {
