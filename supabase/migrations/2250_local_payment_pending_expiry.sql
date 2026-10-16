@@ -16,7 +16,7 @@ SET booking_settings = COALESCE(booking_settings, '{}'::jsonb)
        COALESCE((booking_settings->>'local_payment_expiry_enabled')::boolean, true),
        'local_payment_expiry_minutes',
        CASE
-         WHEN COALESCE(booking_settings->>'local_payment_expiry_minutes', '') ~ '^\d+$'
+         WHEN COALESCE(booking_settings->>'local_payment_expiry_minutes', '') ~ '^[0-9]+
            AND (booking_settings->>'local_payment_expiry_minutes')::integer BETWEEN 5 AND 1440
          THEN (booking_settings->>'local_payment_expiry_minutes')::integer
          ELSE 120
@@ -34,7 +34,7 @@ WHERE booking_settings IS NULL
 UPDATE public.bookings b
 SET local_payment_expires_at =
       b.created_at + make_interval(mins => CASE
-        WHEN COALESCE(c.booking_settings->>'local_payment_expiry_minutes', '') ~ '^\d+$'
+        WHEN COALESCE(c.booking_settings->>'local_payment_expiry_minutes', '') ~ '^[0-9]+
           AND (c.booking_settings->>'local_payment_expiry_minutes')::integer BETWEEN 5 AND 1440
         THEN (c.booking_settings->>'local_payment_expiry_minutes')::integer
         ELSE 120
@@ -86,7 +86,7 @@ BEGIN
 
   v_enabled := COALESCE((v_settings->>'local_payment_expiry_enabled')::boolean, true);
   v_minutes := CASE
-    WHEN COALESCE(v_settings->>'local_payment_expiry_minutes', '') ~ '^\d+$'
+    WHEN COALESCE(v_settings->>'local_payment_expiry_minutes', '') ~ '^[0-9]+
       AND (v_settings->>'local_payment_expiry_minutes')::integer BETWEEN 5 AND 1440
     THEN (v_settings->>'local_payment_expiry_minutes')::integer
     ELSE 120
