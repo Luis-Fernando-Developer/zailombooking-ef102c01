@@ -1,9 +1,54 @@
 import { useState } from "react";
-import { BookOpen, Bot, Check, Copy, Download, ExternalLink, FileCode2, FileJson, Workflow } from "lucide-react";
+import { jsPDF } from "jspdf";
+import { BookOpen, Bot, Check, Copy, Download, ExternalLink, FileCode2, FileJson, FileText, ChevronDown, Workflow } from "lucide-react";
 import { ENDPOINTS, type Endpoint } from "@/lib/endpoints-catalog";
 
 const API_BASE = "https://api-booking.zailom.com/v1";
 const GUIDE_URL = "/ai-integration.md";
+const MARKDOWN_VIEW_URL = "/api-docs/ai-integration/markdown";
+const BUSINESS_VARIABLES = [
+  ["service_id", "ID do serviço escolhido"], ["employee_id", "ID do profissional"],
+  ["client_id", "ID do cliente"], ["booking_id", "ID do agendamento"],
+  ["hold_id", "ID da reserva temporária"], ["payment_id", "ID do pagamento"],
+  ["date_init", "Data inicial; enviado no parâmetro HTTP `from`"],
+  ["date_end", "Data final; enviado no parâmetro HTTP `to`"], ["date", "Data consultada"],
+  ["booking_date", "Data do agendamento"], ["booking_time", "Horário do agendamento"],
+  ["phone", "Telefone/WhatsApp"], ["name", "Nome do cliente"], ["email", "E-mail do cliente"],
+  ["scope", "upcoming, past ou all"], ["reason", "Motivo de cancelamento"],
+  ["new_date", "Nova data no reagendamento"], ["new_time", "Novo horário no reagendamento"],
+  ["method", "Método de cobrança aceito pelo endpoint"], ["event", "Evento de notificação configurado"],
+  ["hold_minutes", "Duração do hold (1 a 30 minutos; padrão 10)"],
+] as const;
+
+async function loadCombinedGuide() {
+  const [guideResponse, specResponse] = await Promise.all([fetch(GUIDE_URL, { cache: "no-cache" }), fetch("/openapi.json", { cache: "no-cache" })]);
+  if (!guideResponse.ok || !specResponse.ok) throw new Error("Não foi possível carregar o guia e o OpenAPI.");
+  const guide = await guideResponse.text();
+  const spec = JSON.stringify(JSON.parse(await specResponse.text()), null, 2);
+  return guide.trim() + "\n\n---\n\n# Apêndice técnico — OpenAPI JSON integral\n\nO bloco abaixo contém a especificação OpenAPI JSON completa associada à documentação.\n\n```json\n" + spec + "\n```\n";
+}
+
+function downloadTextFile(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: `${mime};charset=utf-8` });
+  const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
+  anchor.href = url; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+}
+
+function downloadGuidePdf(content: string) {
+  const pdf = new jsPDF({ unit: "pt", format: "a4" });
+  const margin = 40, pageWidth = pdf.internal.pageSize.getWidth(), pageHeight = pdf.internal.pageSize.getHeight(); let y = margin;
+  for (const line of content.split("\n")) {
+    const heading = line.startsWith("#"); const fontSize = line.startsWith("# ") ? 15 : line.startsWith("## ") ? 11 : line.startsWith("```") ? 6 : 8;
+    pdf.setFont("helvetica", heading ? "bold" : "normal"); pdf.setFontSize(fontSize);
+    for (const part of pdf.splitTextToSize(line || " ", pageWidth - margin * 2)) {
+      const lineHeight = fontSize * 1.35; if (y + lineHeight > pageHeight - margin) { pdf.addPage(); y = margin; }
+      pdf.text(part, margin, y); y += lineHeight;
+    }
+    y += 2;
+  }
+  pdf.save("zailom-booking-guia-ia-com-openapi.pdf");
+}
+
 
 function methodPath(endpoint: Endpoint) {
   const path = endpoint.path.replace(/:([a-zA-Z0-9_]+)/g, "{{$1}}");
@@ -19,13 +64,12 @@ const groups = Array.from(new Set(ENDPOINTS.map((endpoint) => endpoint.group)));
 export default function ApiAiIntegration() {
   const [copied, setCopied] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   async function copyGuide() {
     setCopying(true);
     try {
-      const response = await fetch(GUIDE_URL, { cache: "no-cache" });
-      if (!response.ok) throw new Error("Não foi possível carregar o guia.");
-      await navigator.clipboard.writeText(await response.text());
+      await navigator.clipboard.writeText(await loadCombinedGuide());
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch (error) {
@@ -72,10 +116,28 @@ export default function ApiAiIntegration() {
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   {copying ? "Carregando guia..." : copied ? "Guia copiado" : "Copiar guia completo"}
                 </button>
-                <a href={GUIDE_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm hover:bg-muted"><ExternalLink className="h-4 w-4" />Abrir Markdown</a>
-                <a href={GUIDE_URL} download="zailom-booking-ai-integration.md" className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm hover:bg-muted"><Download className="h-4 w-4" />Baixar guia</a>
+                <a href={MARKDOWN_VIEW_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm hover:bg-muted"><ExternalLink className="h-4 w-4" />Abrir Markdown</a>
+                <div className="relative">
+                  <button onClick={() => setExportOpen((value) => !value)} className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm hover:bg-muted">
+                    <Download className="h-4 w-4" />Baixar guia + OpenAPI <ChevronDown className="h-4 w-4" />
+                  </button>
+                  {exportOpen && <>
+                    <button aria-label="Fechar menu de exportação" className="fixed inset-0 z-20 cursor-default" onClick={() => setExportOpen(false)} />
+                    <div className="absolute left-0 z-30 mt-2 w-64 overflow-hidden rounded-lg border border-border bg-popover shadow-xl">
+                      <button onClick={async () => { try { downloadTextFile("zailom-booking-guia-ia-com-openapi.md", await loadCombinedGuide(), "text/markdown"); } catch (error) { console.error(error); window.alert("Não foi possível gerar o Markdown combinado."); } finally { setExportOpen(false); } }} className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-muted">
+                        <FileCode2 className="h-4 w-4" /><span><b className="block">Markdown (.md)</b><small className="text-muted-foreground">Guia + OpenAPI JSON no final</small></span>
+                      </button>
+                      <button onClick={async () => { try { const content = await loadCombinedGuide(); const fence = String.fromCharCode(96).repeat(3); downloadTextFile("zailom-booking-guia-ia-com-openapi.txt", content.replace(/^#{1,6} /gm, "").replaceAll(fence + "json", "").replaceAll(fence, ""), "text/plain"); } catch (error) { console.error(error); window.alert("Não foi possível gerar o TXT combinado."); } finally { setExportOpen(false); } }} className="flex w-full items-center gap-3 border-t border-border px-4 py-3 text-left text-sm hover:bg-muted">
+                        <FileText className="h-4 w-4" /><span><b className="block">Texto (.txt)</b><small className="text-muted-foreground">Guia + OpenAPI JSON no final</small></span>
+                      </button>
+                      <button onClick={async () => { try { downloadGuidePdf(await loadCombinedGuide()); } catch (error) { console.error(error); window.alert("Não foi possível gerar o PDF combinado."); } finally { setExportOpen(false); } }} className="flex w-full items-center gap-3 border-t border-border px-4 py-3 text-left text-sm hover:bg-muted">
+                        <FileText className="h-4 w-4" /><span><b className="block">PDF (.pdf)</b><small className="text-muted-foreground">Guia + OpenAPI JSON no final</small></span>
+                      </button>
+                    </div>
+                  </>}
+                </div>
               </div>
-              <p className="mt-3 break-all text-xs text-muted-foreground">URL pública do guia: <code>{window.location.origin}{GUIDE_URL}</code></p>
+              <p className="mt-3 break-all text-xs text-muted-foreground">Markdown original: <code>{window.location.origin}{GUIDE_URL}</code> · As exportações incluem o OpenAPI JSON integral ao final.</p>
             </div>
           </div>
         </section>
@@ -101,7 +163,7 @@ export default function ApiAiIntegration() {
         <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
           <h2 className="text-xl font-semibold">Regras fundamentais</h2>
           <ul className="mt-4 grid gap-3 text-sm leading-6 text-muted-foreground md:grid-cols-2">
-            <li className="rounded-lg bg-muted/35 p-3">Use IDs oficiais como <code>service_id</code>, <code>employee_id</code>, <code>client_id</code>, <code>hold_id</code> e <code>booking_id</code>.</li>
+            <li className="rounded-lg bg-muted/35 p-3">Use exclusivamente os nomes de variáveis oficiais listados na seção abaixo. Não substitua IDs por nomes exibidos ao usuário.</li>
             <li className="rounded-lg bg-muted/35 p-3">Revalide disponibilidade antes de criar uma reserva ou agendamento.</li>
             <li className="rounded-lg bg-muted/35 p-3">Não finalize uma reserva temporária enquanto o pagamento não estiver confirmado.</li>
             <li className="rounded-lg bg-muted/35 p-3">Não crie um agendamento direto após finalizar o hold: isso pode duplicar a solicitação.</li>
@@ -111,23 +173,34 @@ export default function ApiAiIntegration() {
         </section>
 
         <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+          <h2 className="text-xl font-semibold">Variáveis e parâmetros oficiais</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Lista consolidada de placeholders utilizados pelos endpoints publicados. <code>date_init</code> e <code>date_end</code> são enviados na query string como <code>from</code> e <code>to</code>; o nome da variável de template nem sempre é igual ao nome do parâmetro HTTP.</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {BUSINESS_VARIABLES.map(([name, description]) => <div key={name} className="rounded-md bg-muted/35 p-3"><code className="text-xs text-primary">{`{{${name}}}`}</code><p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p></div>)}
+          </div>
+          <p className="mt-4 text-xs leading-5 text-muted-foreground">Campos como <code>booking_status</code>, <code>payment_status</code>, <code>payment_method</code>, <code>status</code>, <code>price</code>, <code>expires_at</code>, <code>payment_mode</code>, <code>methods</code>, <code>provider</code> e <code>payout_flow</code> são campos de entrada/saída ou estados, não variáveis universais. <code>id</code> não deve ser confundido automaticamente com <code>booking_id</code>, <code>hold_id</code> ou <code>payment_id</code>.</p>
+        </section>
+        <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
           <h2 className="text-xl font-semibold">Fluxo online: reserva temporária e pagamento</h2>
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-            <li>Consultar serviços, profissionais e disponibilidade; validar o cliente.</li>
-            <li>Reconsultar horários e criar a reserva com <code>POST /booking-holds</code>.</li>
-            <li>Consultar <code>GET /payments/methods</code> e gerar a cobrança usando <code>POST /payments</code> com <code>hold_id</code>.</li>
-            <li>Consultar <code>{'GET /payments/{{payment_id}}'}</code> até haver um estado de pagamento confirmado.</li>
-            <li>Finalizar com <code>{'POST /booking-holds/{{hold_id}}/complete'}</code> e usar o <code>booking_id</code> retornado.</li>
+            <li>Chamar <code>GET /services</code>; quando o cliente escolher, guardar <code>service_id</code> e consultar detalhes, preço ou duração se necessário.</li>
+            <li>Chamar <code>GET /services/{'{{service_id}}'}/employees</code> ou <code>GET /employees?service_id={'{{service_id}}'}</code> e guardar o <code>employee_id</code> escolhido.</li>
+            <li>Consultar <code>GET /availability/dates</code> com <code>employee_id</code>, <code>service_id</code>, <code>from={'{{date_init}}'}</code> e <code>to={'{{date_end}}'}</code>; depois consultar <code>GET /availability/slots</code> para a data escolhida.</li>
+            <li>Resolver o cliente com <code>GET /clients?phone={'{{phone}}'}</code>; se não existir, usar <code>POST /clients</code> e guardar o <code>client_id</code>.</li>
+            <li>Reconsultar os horários imediatamente antes da escrita e chamar <code>POST /booking-holds</code> com <code>client_id</code>, <code>service_id</code>, <code>employee_id</code>, <code>booking_date</code> e <code>booking_time</code>. Guardar <code>hold_id</code> e <code>expires_at</code>.</li>
+            <li>Consultar <code>GET /payments/methods</code> e usar somente os métodos habilitados. Criar cobrança com <code>POST /payments</code> enviando <code>hold_id</code> e <code>method</code>; nunca enviar também <code>booking_id</code>.</li>
+            <li>Consultar <code>{'GET /payments/{{payment_id}}'}</code>; enquanto o estado não for confirmado, não finalizar o hold nem afirmar que houve pagamento.</li>
+            <li>Somente após confirmação, chamar <code>{'POST /booking-holds/{{hold_id}}/complete'}</code> com <code>payment_id</code> e guardar o <code>booking_id</code> retornado.</li>
           </ol>
           <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-muted-foreground">
-            Não chame <code>POST /bookings</code> para a mesma solicitação depois de finalizar a reserva. A finalização efetiva o agendamento associado ao checkout.
+            Durante todo o checkout com hold — hold ativo, cobrança criada, aguardando pagamento e após a conclusão — não chame <code>POST /bookings</code> para a mesma solicitação. Se o checkout falhar ou expirar, verifique o hold e a disponibilidade antes de recomeçar; não use criação direta como fallback automático.
           </p>
         </section>
 
         <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
           <h2 className="text-xl font-semibold">Fluxo de criação direta</h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            <code>POST /bookings</code> é uma operação distinta do checkout com reserva temporária. O contrato publicado atualmente não documenta <code>payment_method</code> nem um modo explícito de pagamento no local; a implementação usa <code>booking_status: confirmed</code> e <code>payment_status: pending</code> como padrões. Portanto, não presuma que essa operação registre o método escolhido ou aguarde aprovação manual. Essa regra precisa ser definida no contrato antes de orientar um agente a depender dela.
+            <code>POST /bookings</code> é uma operação distinta do checkout online. No site, o fluxo de pagamento no local pode registrar <code>payment_method: local</code> e <code>booking_status: pending</code>, aguardando confirmação manual de alguém autorizado; ao confirmar, passa a confirmado e, se cancelado, deixa de valer conforme as regras do Booking. Porém, o handler atual da API pública não grava <code>payment_method</code> e usa <code>booking_status: confirmed</code> e <code>payment_status: pending</code> como padrões. Enviar status no corpo não torna o modo local oficialmente suportado nem garante que o slot fique protegido como no site. Até que a API exponha e valide esse fluxo de ponta a ponta, não instrua a IA a simulá-lo com campos inventados nem prometa que o horário ficará reservado até a aprovação manual. O hold é para checkout online, não para pagamento no local.
           </p>
         </section>
 
@@ -162,7 +235,7 @@ export default function ApiAiIntegration() {
 
         <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
           <h2 className="text-xl font-semibold">Contrato técnico e arquivos</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">O guia fornece regras de utilização; confira os detalhes técnicos no OpenAPI e nos endpoints individuais.</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Use os dois em conjunto: este guia explica as decisões de negócio e a ordem correta; o OpenAPI define o contrato técnico estruturado, incluindo parâmetros, corpos e respostas. As exportações combinadas incluem o OpenAPI JSON integral no final para enviar um único arquivo a outra ferramenta de IA.</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <a href="/openapi.json" className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"><FileJson className="h-4 w-4" />OpenAPI JSON</a>
             <a href="/openapi.yaml" className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"><FileCode2 className="h-4 w-4" />OpenAPI YAML</a>
