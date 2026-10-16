@@ -123,14 +123,28 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $body$
 BEGIN
   -- Reaplica a política a solicitações antigas que ainda não têm prazo,
   -- por exemplo após a empresa reativar a expiração.
   UPDATE public.bookings b
      SET local_payment_expires_at =
        b.created_at + make_interval(mins => CASE
-         WHEN COALESCE(c.booking_settings->>'local_payment_expiry_minutes', '') ~ '^\\d+    UPDATE public.bookings b
+         WHEN jsonb_typeof(c.booking_settings->'local_payment_expiry_minutes') = 'number'
+          AND (c.booking_settings->>'local_payment_expiry_minutes')::integer BETWEEN 5 AND 1440
+         THEN (c.booking_settings->>'local_payment_expiry_minutes')::integer
+         ELSE 120
+       END)
+    FROM public.companies c
+   WHERE c.id = b.company_id
+     AND LOWER(COALESCE(b.booking_status::text, '')) = 'pending'
+     AND LOWER(COALESCE(b.payment_method::text, '')) = 'local'
+     AND b.local_payment_expires_at IS NULL
+     AND COALESCE((c.booking_settings->>'local_payment_expiry_enabled')::boolean, true);
+
+  RETURN QUERY
+  WITH expired AS (
+    UPDATE public.bookings b
        SET booking_status = 'cancelled',
            local_payment_expired_at = now(),
            updated_at = now(),
@@ -147,8 +161,7 @@ BEGIN
   SELECT expired.id, expired.company_id, expired.should_notify
     FROM expired;
 END;
-$$;
-
+$body$;
 REVOKE ALL ON FUNCTION public.expire_pending_local_bookings() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.expire_pending_local_bookings() TO service_role;
 
