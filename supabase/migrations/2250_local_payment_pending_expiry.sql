@@ -62,6 +62,18 @@ DECLARE
   v_enabled BOOLEAN;
   v_minutes INTEGER;
 BEGIN
+  IF TG_OP = 'UPDATE'
+     AND LOWER(COALESCE(OLD.booking_status::text, '')) = 'pending'
+     AND LOWER(COALESCE(OLD.payment_method::text, '')) = 'local'
+     AND LOWER(COALESCE(NEW.booking_status::text, '')) = 'confirmed'
+     AND OLD.local_payment_expires_at IS NOT NULL
+     AND OLD.local_payment_expires_at <= now() THEN
+    RAISE EXCEPTION USING
+      MESSAGE = 'O prazo para confirmar este agendamento expirou.',
+      DETAIL = 'local_booking_expired',
+      ERRCODE = 'P0001';
+  END IF;
+
   IF LOWER(COALESCE(NEW.booking_status::text, '')) <> 'pending'
      OR LOWER(COALESCE(NEW.payment_method::text, '')) <> 'local' THEN
     RETURN NEW;
