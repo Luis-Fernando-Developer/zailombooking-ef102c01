@@ -70,6 +70,7 @@ export default function ClientBooking() {
   const [company, setCompany] = useState<Company | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [combos, setCombos] = useState<any[]>([]);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -202,7 +203,7 @@ export default function ClientBooking() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const expiredBookingId = params.get("expired_booking_id");
-    if (!expiredBookingId || params.get("action") !== "pay" || !company || !user || !client || services.length === 0 || combos.length === 0) return;
+    if (!expiredBookingId || params.get("action") !== "pay" || !company || !user || !client || !catalogLoaded || services.length === 0) return;
     const guardKey = `local-expiry-retry:${expiredBookingId}`;
     if (sessionStorage.getItem(guardKey) === "loaded") return;
 
@@ -363,6 +364,7 @@ export default function ClientBooking() {
   }, [pendingEmployeeRestore, employees]);
 
   const fetchCompanyAndServices = async () => {
+    setCatalogLoaded(false);
     try {
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
@@ -448,6 +450,7 @@ export default function ClientBooking() {
 
        setCombos(combosWithServices);
      }
+     setCatalogLoaded(true);
 
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
