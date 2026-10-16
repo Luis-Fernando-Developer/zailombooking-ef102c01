@@ -62,6 +62,9 @@ export default function BusinessSettings() {
     advanceBookingDays: 30,
     cancellationPolicy: "",
     reminderOffsetsMinutes: [1440] as number[],
+    localPaymentExpiryEnabled: true,
+    localPaymentExpiryMinutes: 120,
+    localPaymentExpiryNotifyClient: true,
   });
 
   const REMINDER_OFFSET_OPTIONS: { value: number; label: string }[] = [
@@ -132,6 +135,9 @@ export default function BusinessSettings() {
         reminderOffsetsMinutes: Array.isArray(bs.reminder_offsets_minutes)
           ? bs.reminder_offsets_minutes.filter((v: unknown): v is number => typeof v === "number")
           : [1440],
+        localPaymentExpiryEnabled: bs.local_payment_expiry_enabled ?? true,
+        localPaymentExpiryMinutes: Number(bs.local_payment_expiry_minutes) >= 5 && Number(bs.local_payment_expiry_minutes) <= 1440 ? Number(bs.local_payment_expiry_minutes) : 120,
+        localPaymentExpiryNotifyClient: bs.local_payment_expiry_notify_client ?? true,
       });
 
       // Buscar dados do funcionário
@@ -203,6 +209,9 @@ export default function BusinessSettings() {
         advance_booking_days: businessSettings.advanceBookingDays,
         cancellation_policy: businessSettings.cancellationPolicy,
         reminder_offsets_minutes: businessSettings.reminderOffsetsMinutes,
+        local_payment_expiry_enabled: businessSettings.localPaymentExpiryEnabled,
+        local_payment_expiry_minutes: businessSettings.localPaymentExpiryMinutes,
+        local_payment_expiry_notify_client: businessSettings.localPaymentExpiryNotifyClient,
       };
       const { error } = await supabase
         .from('companies')
@@ -323,6 +332,30 @@ export default function BusinessSettings() {
                     })}
                   </div>
                   {businessSettings.reminderOffsetsMinutes.length === 0 && <p className="text-xs text-destructive pt-1">Selecione ao menos um horário ou desative os lembretes.</p>}
+                </div>
+              )}
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Expirar pedidos com pagamento no local</Label>
+                  <p className="text-sm text-muted-foreground">Cancela automaticamente solicitações pendentes vencidas e libera o horário.</p>
+                </div>
+                <Switch checked={businessSettings.localPaymentExpiryEnabled} onCheckedChange={(checked) => setBusinessSettings(prev => ({ ...prev, localPaymentExpiryEnabled: checked }))} disabled={!canManageSettings} />
+              </div>
+              {businessSettings.localPaymentExpiryEnabled && (
+                <div className="space-y-3 rounded-md border border-border p-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="localPaymentExpiryMinutes">Prazo para confirmação (minutos)</Label>
+                    <Input id="localPaymentExpiryMinutes" type="number" min={5} max={1440} step={5} value={businessSettings.localPaymentExpiryMinutes} onChange={(e) => setBusinessSettings(prev => ({ ...prev, localPaymentExpiryMinutes: Math.max(5, Math.min(1440, Number.parseInt(e.target.value, 10) || 120)) }))} disabled={!canManageSettings} />
+                    <p className="text-xs text-muted-foreground">Padrão: 120 minutos (2 horas). Limite: 5 a 1.440 minutos.</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Avisar o cliente pelo WhatsApp</Label>
+                      <p className="text-sm text-muted-foreground">Envia opções quando o prazo expirar.</p>
+                    </div>
+                    <Switch checked={businessSettings.localPaymentExpiryNotifyClient} onCheckedChange={(checked) => setBusinessSettings(prev => ({ ...prev, localPaymentExpiryNotifyClient: checked }))} disabled={!canManageSettings} />
+                  </div>
                 </div>
               )}
               <div className="space-y-2"><Label htmlFor="advanceDays">Antecedência Máxima (dias)</Label><Input id="advanceDays" type="number" value={businessSettings.advanceBookingDays} onChange={(e) => setBusinessSettings(prev => ({...prev, advanceBookingDays: parseInt(e.target.value) || 30}))} disabled={!canManageSettings} /></div>
