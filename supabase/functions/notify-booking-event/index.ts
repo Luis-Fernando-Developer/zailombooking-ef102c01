@@ -182,7 +182,7 @@ serve(async (req) => {
     const { data: bk, error: bkErr } = await supabase
       .from("bookings")
       .select(`
-        id, company_id, booking_date, booking_time, booking_status, payment_status, payment_method,
+        id, company_id, booking_date, booking_time, booking_status, payment_status, payment_method, local_payment_expired_at,
         client:clients(name, phone),
         company:companies(name, slug),
         service:services(name),
