@@ -268,7 +268,7 @@ serve(async (req) => {
       booking_id: String(c.id),
       company_slug: String(c.company?.slug ?? ""),
       pay_now_url: `https://booking.zailom.com/${encodeURIComponent(String(c.company?.slug ?? ""))}/agendar?expired_booking_id=${encodeURIComponent(String(c.id))}&action=pay`,
-      new_booking_url: `https://booking.zailom.com/${encodeURIComponent(String(c.company?.slug ?? ""))}/agendar?expired_booking_id=${encodeURIComponent(String(c.id))}&action=new`,
+      new_booking_url: `https://booking.zailom.com/${encodeURIComponent(String(c.company?.slug ?? ""))}/agendar`,
     };
 
     const tpl = await loadWhatsAppTemplate(supabase, c.company_id, event_key);
