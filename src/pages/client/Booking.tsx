@@ -688,6 +688,21 @@ export default function ClientBooking() {
     if (!selectedDate || !selectedEmployee || !selectedService || !company) return;
 
     setIsLoadingAvailability(true);
+    const publishAvailableTimes = (times: string[]) => {
+      setAvailableTimes(times);
+      const target = expiryRetryTime;
+      if (target) {
+        const match = times.find((time) => String(time).slice(0, 5) === target);
+        if (match) {
+          setSelectedTime(String(match).slice(0, 5));
+          toast({ title: "Horário ainda disponível", description: "O horário original foi validado. Você pode continuar para o pagamento." });
+        } else {
+          setSelectedTime("");
+          toast({ title: "Horário indisponível", description: "O horário original já não está disponível. Escolha outro horário para continuar com o pagamento.", variant: "destructive" });
+        }
+        setExpiryRetryTime(null);
+      }
+    };
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
@@ -696,7 +711,7 @@ export default function ClientBooking() {
         const combo = combos.find(c => c.id === comboId);
         const firstServiceId = combo?.items?.[0]?.service_id;
         if (!firstServiceId) {
-          setAvailableTimes([]);
+          publishAvailableTimes([]);
           return;
         }
 
@@ -712,10 +727,10 @@ export default function ClientBooking() {
         if (error) throw new Error(error);
 
         if (slots && slots.length > 0) {
-          setAvailableTimes(slots.map((s: any) => typeof s === 'string' ? s : s.time));
+          publishAvailableTimes(slots.map((s: any) => typeof s === 'string' ? s : s.time));
           return;
         } else {
-          setAvailableTimes([]);
+          publishAvailableTimes([]);
           return;
         }
 
@@ -734,9 +749,9 @@ export default function ClientBooking() {
 
       setAvailabilityReason(reason ?? null);
       if (slots && slots.length > 0) {
-        setAvailableTimes(slots.map((slot: any) => typeof slot === 'string' ? slot : slot.time));
+        publishAvailableTimes(slots.map((slot: any) => typeof slot === 'string' ? slot : slot.time));
       } else {
-        setAvailableTimes([]);
+        publishAvailableTimes([]);
       }
 
 
@@ -747,7 +762,7 @@ export default function ClientBooking() {
         description: "Não foi possível carregar os horários disponíveis.",
         variant: "destructive"
       });
-      setAvailableTimes([]);
+      publishAvailableTimes([]);
     } finally {
       setIsLoadingAvailability(false);
     }
