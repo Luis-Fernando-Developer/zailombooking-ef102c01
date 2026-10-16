@@ -1552,7 +1552,7 @@ const spec = {
             "description": "HH:mm",
             "template": "{{booking_time}}",
             "businessVariable": "booking_time"
-          }
+          },
           {
             "name": "hold_minutes",
             "location": "body",
