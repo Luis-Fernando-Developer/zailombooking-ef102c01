@@ -334,6 +334,30 @@ export default function BusinessSettings() {
                   {businessSettings.reminderOffsetsMinutes.length === 0 && <p className="text-xs text-destructive pt-1">Selecione ao menos um horário ou desative os lembretes.</p>}
                 </div>
               )}
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Expirar pedidos com pagamento no local</Label>
+                  <p className="text-sm text-muted-foreground">Cancela automaticamente solicitações pendentes vencidas e libera o horário.</p>
+                </div>
+                <Switch checked={businessSettings.localPaymentExpiryEnabled} onCheckedChange={(checked) => setBusinessSettings(prev => ({ ...prev, localPaymentExpiryEnabled: checked }))} disabled={!canManageSettings} />
+              </div>
+              {businessSettings.localPaymentExpiryEnabled && (
+                <div className="space-y-3 rounded-md border border-border p-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="localPaymentExpiryMinutes">Prazo para confirmação (minutos)</Label>
+                    <Input id="localPaymentExpiryMinutes" type="number" min={5} max={1440} step={5} value={businessSettings.localPaymentExpiryMinutes} onChange={(e) => setBusinessSettings(prev => ({ ...prev, localPaymentExpiryMinutes: Math.max(5, Math.min(1440, Number.parseInt(e.target.value, 10) || 120)) }))} disabled={!canManageSettings} />
+                    <p className="text-xs text-muted-foreground">Padrão: 120 minutos (2 horas). Limite: 5 a 1.440 minutos.</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Avisar o cliente pelo WhatsApp</Label>
+                      <p className="text-sm text-muted-foreground">Envia opções quando o prazo expirar.</p>
+                    </div>
+                    <Switch checked={businessSettings.localPaymentExpiryNotifyClient} onCheckedChange={(checked) => setBusinessSettings(prev => ({ ...prev, localPaymentExpiryNotifyClient: checked }))} disabled={!canManageSettings} />
+                  </div>
+                </div>
+              )}
               <div className="space-y-2"><Label htmlFor="advanceDays">Antecedência Máxima (dias)</Label><Input id="advanceDays" type="number" value={businessSettings.advanceBookingDays} onChange={(e) => setBusinessSettings(prev => ({...prev, advanceBookingDays: parseInt(e.target.value) || 30}))} disabled={!canManageSettings} /></div>
               <div className="space-y-2"><Label htmlFor="cancellationPolicy">Política de Cancelamento</Label><Textarea id="cancellationPolicy" value={businessSettings.cancellationPolicy} onChange={(e) => setBusinessSettings(prev => ({...prev, cancellationPolicy: e.target.value}))} placeholder="Descreva sua política de cancelamento..." disabled={!canManageSettings} /></div>
               {canManageSettings && <Button onClick={handleSaveBookingSettings} disabled={saving} className="gap-2"><Save className="w-4 h-4" />{saving ? "Salvando..." : "Salvar Configurações"}</Button>}
