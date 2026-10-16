@@ -35,7 +35,7 @@ A API do Booking é a fonte de verdade para dados e estados do sistema. Não dec
 4. Com `employee_id` e `service_id`, consulte `GET /availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&from={{date_init}}&to={{date_end}}`.
 5. Para uma data selecionada, consulte `GET /availability/slots?employee_id={{employee_id}}&service_id={{service_id}}&date={{date}}`.
 6. Apresente somente datas e horários retornados como disponíveis. Antes de gravar, reconsulte a disponibilidade.
-7. Busque o cliente por telefone com `GET /clients?phone={{phone}}`. A resposta pode conter `data: null) quando não há cliente correspondente.
+7. Busque o cliente por telefone com `GET /clients?phone={{phone}}`. A resposta pode conter `data: null` quando não há cliente correspondente.
 8. Se não houver cliente, solicite os dados necessários e chame `POST /clients`. Se o telefone já estiver cadastrado e a criação retornar `409`, use o `client_id` informado no erro ou faça uma nova busca; não crie repetidamente o mesmo cliente.
 9. Atualize um cadastro existente somente quando necessário, usando `PATCH /clients/{{client_id}}` e enviando apenas os campos que devem mudar.
 
@@ -44,9 +44,9 @@ A API do Booking é a fonte de verdade para dados e estados do sistema. Não dec
 Use este fluxo quando a modalidade escolhida exigir uma cobrança online e o processo de checkout precisar manter o horário temporariamente reservado.
 
 1. Confirme que você tem `client_id`, `service_id`, `employee_id`, `booking_date` e `booking_time`.
-2. Reconsulte `GET /availability/slots) para validar o horário.
+2. Reconsulte `GET /availability/slots` para validar o horário.
 3. Crie a reserva temporária com `POST /booking-holds`, enviando os IDs e as datas/horários obrigatórios. O campo opcional `hold_minutes` aceita um inteiro de 1 a 30; o padrão é 10 minutos.
-4. Guarde o `hold_id` e o `expires_at) retornados. Se a criação falhar por conflito, não prossiga com o pagamento para aquele horário; volte a consultar a disponibilidade.
+4. Guarde o `hold_id` e o `expires_at` retornados. Se a criação falhar por conflito, não prossiga com o pagamento para aquele horário; volte a consultar a disponibilidade.
 5. Consulte as formas configuradas pela empresa com `GET /payments/methods`. Use somente os métodos efetivamente retornados pela API.
 6. Crie a cobrança com `POST /payments`, usando `hold_id` e o método aceito. Não envie `booking_id` junto com `hold_id`.
 7. Apresente ao cliente as instruções de pagamento retornadas pela API, como QR Code ou código Pix, quando presentes.
@@ -95,7 +95,7 @@ Depois de qualquer operação de escrita, use a resposta real para informar o cl
 
 ## Pagamentos: interpretação
 
-- `GET /payments/methods` retorna a configuração de pagamentos da empresa, incluindo `payment_mode`, `methods), `provider` e `payout_flow`. Não presuma que uma modalidade está habilitada sem verificar a resposta.
+- `GET /payments/methods` retorna a configuração de pagamentos da empresa, incluindo `payment_mode`, `methods`, `provider` e `payout_flow`. Não presuma que uma modalidade está habilitada sem verificar a resposta.
 - `POST /payments` gera uma cobrança para um agendamento existente ou para uma reserva temporária. Para checkout com hold, envie `hold_id`; para cobrança associada a um agendamento existente, envie `booking_id`. Não envie os dois juntos.
 - `GET /payments/{{payment_id}}` consulta o pagamento. Use o identificador devolvido pela operação de criação, conforme o contrato da resposta.
 - `POST /payments/{{payment_id}}/confirm` é uma operação explícita de confirmação manual no contrato atual. Não a use como substituto da confirmação real do gateway ou para transformar um pagamento pendente em pago sem autorização e evidência.
@@ -167,7 +167,7 @@ Os caminhos são relativos à base `https://api-booking.zailom.com/v1`. Use a es
 - `401`: API key ausente ou inválida.
 - `403`: a chave não possui o escopo necessário.
 - `404`: recurso ou identificador não encontrado.
-- `409`: conflito, horário indisponível, reserva expirada ou pagamento ainda não confirmado, conforme o corpo de erro. Leia `error`, `code), `reason) e demais campos retornados.
+- `409`: conflito, horário indisponível, reserva expirada ou pagamento ainda não confirmado, conforme o corpo de erro. Leia `error`, `code`, `reason` e demais campos retornados.
 - `5xx`: erro no servidor ou dependência. Não afirme sucesso; consulte o estado antes de repetir uma operação de escrita.
 
 ## Orientação final ao agente
