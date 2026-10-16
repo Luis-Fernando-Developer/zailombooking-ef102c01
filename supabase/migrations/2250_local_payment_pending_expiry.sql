@@ -164,6 +164,11 @@ $needle$;
       AND NOT (
         LOWER(COALESCE(bk.booking_status::text,'')) = 'pending'
         AND LOWER(COALESCE(bk.payment_method::text,'')) = 'local'
+        AND COALESCE((
+          SELECT (co.booking_settings->>'local_payment_expiry_enabled')::boolean
+            FROM public.companies co
+           WHERE co.id = bk.company_id
+        ), true)
         AND bk.local_payment_expires_at IS NOT NULL
         AND bk.local_payment_expires_at <= now()
       )
