@@ -339,6 +339,58 @@ $$;
 REVOKE ALL ON FUNCTION public.confirm_local_booking(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.confirm_local_booking(UUID) TO authenticated, service_role;
 
+CREATE OR REPLACE FUNCTION public.sync_local_payment_expiry_policy()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_old_enabled BOOLEAN;
+  v_new_enabled BOOLEAN;
+  v_minutes INTEGER;
+BEGIN
+  v_old_enabled := COALESCE((OLD.booking_settings->>'local_payment_expiry_enabled')::boolean, true);
+  v_new_enabled := COALESCE((NEW.booking_settings->>'local_payment_expiry_enabled')::boolean, true);
+  IF v_old_enabled IS NOT DISTINCT FROM v_new_enabled THEN
+    RETURN NEW;
+  END IF;
+
+  IF NOT v_new_enabled THEN
+    UPDATE public.bookings b
+       SET local_payment_expires_at = NULL
+     WHERE b.company_id = NEW.id
+       AND LOWER(COALESCE(b.booking_status::text, '')) = 'pending'
+       AND LOWER(COALESCE(b.payment_method::text, '')) = 'local';
+    RETURN NEW;
+  END IF;
+
+  v_minutes := CASE
+    WHEN COALESCE(NEW.booking_settings->>'local_payment_expiry_minutes', '') ~ '^[0-9]+
+
+COMMIT;
+
+     AND (NEW.booking_settings->>'local_payment_expiry_minutes')::integer BETWEEN 5 AND 1440
+    THEN (NEW.booking_settings->>'local_payment_expiry_minutes')::integer
+    ELSE 120
+  END;
+
+  UPDATE public.bookings b
+     SET local_payment_expires_at = now() + make_interval(mins => v_minutes)
+   WHERE b.company_id = NEW.id
+     AND LOWER(COALESCE(b.booking_status::text, '')) = 'pending'
+     AND LOWER(COALESCE(b.payment_method::text, '')) = 'local'
+     AND b.local_payment_expires_at IS NULL;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS trg_sync_local_payment_expiry_policy ON public.companies;
+CREATE TRIGGER trg_sync_local_payment_expiry_policy
+AFTER UPDATE OF booking_settings ON public.companies
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_local_payment_expiry_policy();
+
 NOTIFY pgrst, 'reload schema';
 
 COMMIT;
