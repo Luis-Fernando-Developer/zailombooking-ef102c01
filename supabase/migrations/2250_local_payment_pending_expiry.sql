@@ -188,6 +188,94 @@ BEGIN
   EXECUTE v_def;
 END $$;
 
+-- A solicitação local pendente agora ocupa o horário até expirar. Ao confirmá-la,
+-- retire-a temporariamente da consulta de disponibilidade dentro da mesma transação
+-- para que ela não entre em conflito consigo mesma. Se houver conflito real, a
+-- exceção reverte também essa alteração temporária.
+CREATE OR REPLACE FUNCTION public.confirm_local_booking(p_booking_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_booking public.bookings%ROWTYPE;
+  v_booking_time TIME;
+  v_available BOOLEAN;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION USING MESSAGE = 'Não autenticado.', ERRCODE = 'P0001';
+  END IF;
+
+  SELECT * INTO v_booking
+    FROM public.bookings
+   WHERE id = p_booking_id
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING MESSAGE = 'Agendamento não encontrado.', DETAIL = 'booking_not_found', ERRCODE = 'P0001';
+  END IF;
+
+  IF NOT (
+    public.user_has_company_permission(v_booking.company_id, 'bookings.edit')
+    OR public.user_has_company_permission(v_booking.company_id, 'bookings.manage_all')
+  ) THEN
+    RAISE EXCEPTION USING MESSAGE = 'Você não tem permissão para confirmar este agendamento.', DETAIL = 'booking_confirm_permission_denied', ERRCODE = 'P0001';
+  END IF;
+
+  IF LOWER(COALESCE(v_booking.booking_status::text, '')) <> 'pending'
+     OR LOWER(COALESCE(v_booking.payment_method::text, '')) <> 'local' THEN
+    RAISE EXCEPTION USING MESSAGE = 'Somente agendamentos pendentes com pagamento no local podem ser confirmados.', DETAIL = 'booking_not_local_pending', ERRCODE = 'P0001';
+  END IF;
+
+  IF v_booking.local_payment_expires_at IS NOT NULL
+     AND v_booking.local_payment_expires_at <= now() THEN
+    RAISE EXCEPTION USING MESSAGE = 'O prazo para confirmar este agendamento expirou.', DETAIL = 'local_booking_expired', ERRCODE = 'P0001';
+  END IF;
+
+  v_booking_time := COALESCE(
+    v_booking.booking_time,
+    (v_booking.start_time AT TIME ZONE 'America/Sao_Paulo')::TIME
+  );
+
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended(
+      concat_ws(':', v_booking.company_id::TEXT, v_booking.employee_id::TEXT, v_booking.booking_date::TEXT, v_booking_time::TEXT),
+      0
+    )
+  );
+
+  UPDATE public.bookings
+     SET booking_status = 'cancelled', updated_at = now()
+   WHERE id = v_booking.id;
+
+  SELECT EXISTS (
+    SELECT 1
+      FROM public.get_available_slots(
+        v_booking.company_id,
+        v_booking.employee_id,
+        v_booking.service_id,
+        v_booking.booking_date,
+        TRUE
+      ) gs
+     WHERE gs.slot = v_booking_time
+  ) INTO v_available;
+
+  IF NOT v_available THEN
+    RAISE EXCEPTION USING MESSAGE = 'Esse horário não está mais disponível.', DETAIL = 'slot_unavailable_on_confirmation', ERRCODE = 'P0001';
+  END IF;
+
+  UPDATE public.bookings
+     SET booking_status = 'confirmed', updated_at = now()
+   WHERE id = v_booking.id;
+
+  RETURN TRUE;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.confirm_local_booking(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.confirm_local_booking(UUID) TO authenticated, service_role;
+
 NOTIFY pgrst, 'reload schema';
 
 COMMIT;
