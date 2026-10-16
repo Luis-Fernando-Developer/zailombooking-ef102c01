@@ -34,6 +34,50 @@ Deno.serve(async (req) => {
 
     const results: Array<Record<string, unknown>> = [];
 
+    // Expira pedidos de pagamento no local no mesmo worker já usado para
+    // lembretes, evitando depender de um segundo cron.
+    const { data: expiredBookings, error: expiryError } = await supabase.rpc("expire_pending_local_bookings");
+    if (expiryError) throw expiryError;
+
+    for (const row of (expiredBookings ?? []) as Array<{
+      booking_id: string;
+      company_id: string;
+      notify_client: boolean;
+    }>) {
+      if (!row.notify_client) {
+        results.push({ booking_id: row.booking_id, kind: "local_payment_expiry", notified: false, reason: "notification_disabled" });
+        continue;
+      }
+      try {
+        const invokeRes = await fetch(`${SUPABASE_URL}/functions/v1/notify-booking-event`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SERVICE_KEY}`,
+            "apikey": SERVICE_KEY,
+          },
+          body: JSON.stringify({ booking_id: row.booking_id, event_key: "booking_expired" }),
+        });
+        const body = await invokeRes.text().then((t) => {
+          try { return JSON.parse(t); } catch { return t; }
+        });
+        results.push({
+          booking_id: row.booking_id,
+          kind: "local_payment_expiry",
+          notified: invokeRes.ok,
+          status: invokeRes.status,
+          response: body,
+        });
+      } catch (e) {
+        results.push({
+          booking_id: row.booking_id,
+          kind: "local_payment_expiry",
+          notified: false,
+          error: (e as Error).message,
+        });
+      }
+    }
+
     for (const row of (pending ?? []) as Array<{
       booking_id: string;
       company_id: string;
