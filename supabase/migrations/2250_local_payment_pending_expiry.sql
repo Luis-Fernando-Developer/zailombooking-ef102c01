@@ -14,7 +14,7 @@ SET booking_settings = COALESCE(booking_settings, '{}'::jsonb)
   || jsonb_build_object(
        'local_payment_expiry_enabled',
        CASE WHEN lower(COALESCE(booking_settings->>'local_payment_expiry_enabled', 'true')) IN ('true', 'false')
-         THEN (booking_settings->>'local_payment_expiry_enabled')::boolean ELSE true END,
+         THEN (COALESCE(booking_settings->>'local_payment_expiry_enabled', 'true'))::boolean ELSE true END,
        'local_payment_expiry_minutes',
        CASE
          WHEN COALESCE(booking_settings->>'local_payment_expiry_minutes', '') ~ '^[0-9]+$'
@@ -24,7 +24,7 @@ SET booking_settings = COALESCE(booking_settings, '{}'::jsonb)
        END,
        'local_payment_expiry_notify_client',
        CASE WHEN lower(COALESCE(booking_settings->>'local_payment_expiry_notify_client', 'true')) IN ('true', 'false')
-         THEN (booking_settings->>'local_payment_expiry_notify_client')::boolean ELSE true END
+         THEN (COALESCE(booking_settings->>'local_payment_expiry_notify_client', 'true'))::boolean ELSE true END
      );
 
 -- Compatibilidade: pedidos locais pendentes antigos recebem prazo com base
