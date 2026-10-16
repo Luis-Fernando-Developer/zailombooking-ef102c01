@@ -366,9 +366,8 @@ BEGIN
   END IF;
 
   v_minutes := CASE
-    WHEN COALESCE(NEW.booking_settings->>'local_payment_expiry_minutes', '') ~ '^[0-9]+
+    WHEN COALESCE(NEW.booking_settings->>'local_payment_expiry_minutes', '') ~ '^[0-9]+$'
 
-COMMIT;
 
      AND (NEW.booking_settings->>'local_payment_expiry_minutes')::integer BETWEEN 5 AND 1440
     THEN (NEW.booking_settings->>'local_payment_expiry_minutes')::integer
