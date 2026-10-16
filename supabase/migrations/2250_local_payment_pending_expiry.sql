@@ -234,7 +234,7 @@ BEGIN
   END IF;
 
   EXECUTE v_def;
-END $;
+END $$;
 
 -- Confirmação segura de pedido local: valida permissão e prazo, trava o slot,
 -- remove temporariamente o próprio pedido da consulta e revalida disponibilidade.
