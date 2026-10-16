@@ -242,8 +242,9 @@ export const ENDPOINTS: Endpoint[] = [
       { name: "employee_id", type: "uuid", location: "body", required: true, description: "Identificador do profissional" },
       { name: "booking_date", type: "date", location: "body", required: true, description: "YYYY-MM-DD" },
       { name: "booking_time", type: "time", location: "body", required: true, description: "HH:mm" },
+      { name: "hold_minutes", type: "integer", location: "body", required: false, description: "Duração do hold em minutos (1–30; padrão: 10)", example: "10" },
     ],
-    bodyExample: { client_id: "uuid", service_id: "uuid", employee_id: "uuid", booking_date: "2026-10-05", booking_time: "15:00" },
+    bodyExample: { client_id: "uuid", service_id: "uuid", employee_id: "uuid", booking_date: "2026-10-05", booking_time: "15:00", hold_minutes: 10 },
     responseExample: { id: "hold_xxx", status: "active", expires_at: "2026-10-05T18:10:00.000Z", booking_date: "2026-10-05", booking_time: "15:00" },
   },
   {
