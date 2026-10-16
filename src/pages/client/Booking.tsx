@@ -243,8 +243,22 @@ export default function ClientBooking() {
         return;
       }
 
+      const { data: oldEmployee } = await supabase
+        .from("employees")
+        .select("id, name, avatar_url")
+        .eq("id", oldBooking.employee_id)
+        .eq("company_id", company.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!oldEmployee) {
+        toast({ title: "Profissional indisponível", description: "O profissional original não está mais disponível. Escolha outro para continuar.", variant: "destructive" });
+        sessionStorage.setItem(guardKey, "loaded");
+        return;
+      }
+
       setSelectedService(service);
-      setPendingEmployeeRestore(oldBooking.employee_id);
+      setSelectedEmployee(oldEmployee);
       setSelectedDate(new Date(`${oldBooking.booking_date}T12:00:00`));
       setSelectedTime("");
       setStep(4);
