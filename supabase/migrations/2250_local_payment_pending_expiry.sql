@@ -1,5 +1,5 @@
 -- 2250 — expiração configurável de solicitações de pagamento no local.
--- O prazo padrão é 120 minutos. As configurações ficam em companies.booking_settings.
+-- O prazo padrão é 120 minutos. (revisão SQL) As configurações ficam em companies.booking_settings.
 -- A expiração é aplicada no banco para não depender exclusivamente do worker.
 
 BEGIN;
