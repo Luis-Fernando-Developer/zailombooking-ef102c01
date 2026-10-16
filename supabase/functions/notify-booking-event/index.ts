@@ -127,6 +127,7 @@ const ALLOWED_EVENTS = new Set([
   "booking_rescheduled",
   "booking_reallocated",
   "booking_reminder",
+  "booking_expired",
   "payment_confirmed",
   "payment_pending",
 ]);
@@ -150,6 +151,8 @@ function defaultMessage(eventKey: string, vars: Record<string, string>): string 
       return `🔀 Olá ${vars.client_name}! Houve uma realocação no seu agendamento em *${vars.company_name}*.\n\n${line}`;
     case "booking_reminder":
       return `⏰ Olá ${vars.client_name}! Lembrete do seu agendamento em *${vars.company_name}*.\n\n${line}`;
+    case "booking_expired":
+      return `⌛ Olá ${vars.client_name}! O prazo para confirmar seu agendamento com pagamento no local em *${vars.company_name}* expirou, e a solicitação foi cancelada.\n\n${line}\n\n*Escolha uma opção:*\n1️⃣ Pagar agora (vamos verificar se o horário ainda está disponível): ${vars.pay_now_url}\n2️⃣ Fazer novo agendamento: ${vars.new_booking_url}`;
     case "payment_confirmed":
       return `💳 Olá ${vars.client_name}! Recebemos o pagamento do seu agendamento em *${vars.company_name}*.\n\n${line}`;
     case "payment_pending":
@@ -181,7 +184,7 @@ serve(async (req) => {
       .select(`
         id, company_id, booking_date, booking_time, booking_status, payment_status, payment_method,
         client:clients(name, phone),
-        company:companies(name),
+        company:companies(name, slug),
         service:services(name),
         employee:employees(name)
       `)
@@ -253,6 +256,10 @@ serve(async (req) => {
       employee_name: c.employee?.name ?? "",
       date: dateBR,
       time: timeStr,
+      booking_id: String(c.id),
+      company_slug: String(c.company?.slug ?? ""),
+      pay_now_url: `https://booking.zailom.com/${encodeURIComponent(String(c.company?.slug ?? ""))}/agendar?expired_booking_id=${encodeURIComponent(String(c.id))}&action=pay`,
+      new_booking_url: `https://booking.zailom.com/${encodeURIComponent(String(c.company?.slug ?? ""))}/agendar?expired_booking_id=${encodeURIComponent(String(c.id))}&action=new`,
     };
 
     const tpl = await loadWhatsAppTemplate(supabase, c.company_id, event_key);
