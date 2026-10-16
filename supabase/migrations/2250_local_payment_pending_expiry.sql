@@ -44,10 +44,10 @@ WHERE c.id = b.company_id
   AND b.local_payment_expires_at IS NULL
   AND COALESCE((c.booking_settings->>'local_payment_expiry_enabled')::boolean, true);
 
+-- Índice simples: predicados com conversões/casts de status podem não ser
+-- considerados IMMUTABLE pelo PostgreSQL e impedir a aplicação da migration.
 CREATE INDEX IF NOT EXISTS idx_bookings_local_payment_expiry
-  ON public.bookings (local_payment_expires_at)
-  WHERE LOWER(COALESCE(booking_status::text, '')) = 'pending'
-    AND LOWER(COALESCE(payment_method::text, '')) = 'local';
+  ON public.bookings (local_payment_expires_at);
 
 CREATE OR REPLACE FUNCTION public.set_local_booking_expiry()
 RETURNS TRIGGER
