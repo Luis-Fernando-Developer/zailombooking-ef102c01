@@ -116,8 +116,8 @@ export default function ApiAiIntegration() {
             <li>Consultar serviços, profissionais e disponibilidade; validar o cliente.</li>
             <li>Reconsultar horários e criar a reserva com <code>POST /booking-holds</code>.</li>
             <li>Consultar <code>GET /payments/methods</code> e gerar a cobrança usando <code>POST /payments</code> com <code>hold_id</code>.</li>
-            <li>Consultar <code>GET /payments/{{payment_id}}</code> até haver um estado de pagamento confirmado.</li>
-            <li>Finalizar com <code>POST /booking-holds/{{hold_id}}/complete</code> e usar o <code>booking_id</code> retornado.</li>
+            <li>Consultar <code>{'GET /payments/{{payment_id}}'}</code> até haver um estado de pagamento confirmado.</li>
+            <li>Finalizar com <code>{'POST /booking-holds/{{hold_id}}/complete'}</code> e usar o <code>booking_id</code> retornado.</li>
           </ol>
           <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-muted-foreground">
             Não chame <code>POST /bookings</code> para a mesma solicitação depois de finalizar a reserva. A finalização efetiva o agendamento associado ao checkout.
