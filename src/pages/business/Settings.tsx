@@ -62,6 +62,9 @@ export default function BusinessSettings() {
     advanceBookingDays: 30,
     cancellationPolicy: "",
     reminderOffsetsMinutes: [1440] as number[],
+    localPaymentExpiryEnabled: true,
+    localPaymentExpiryMinutes: 120,
+    localPaymentExpiryNotifyClient: true,
   });
 
   const REMINDER_OFFSET_OPTIONS: { value: number; label: string }[] = [
@@ -203,6 +206,9 @@ export default function BusinessSettings() {
         advance_booking_days: businessSettings.advanceBookingDays,
         cancellation_policy: businessSettings.cancellationPolicy,
         reminder_offsets_minutes: businessSettings.reminderOffsetsMinutes,
+        local_payment_expiry_enabled: businessSettings.localPaymentExpiryEnabled,
+        local_payment_expiry_minutes: businessSettings.localPaymentExpiryMinutes,
+        local_payment_expiry_notify_client: businessSettings.localPaymentExpiryNotifyClient,
       };
       const { error } = await supabase
         .from('companies')
