@@ -223,6 +223,15 @@ serve(async (req) => {
       }
     }
 
+    if (event_key === "booking_expired") {
+      if (String(c.booking_status ?? "").toLowerCase() !== "cancelled" || String(c.payment_method ?? "").toLowerCase() !== "local" || !c.local_payment_expired_at) {
+        return new Response(JSON.stringify({ ok: false, skipped: "booking_not_expired_local_payment" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     if (event_key === "booking_pending") {
       const bookingStatus = String(c.booking_status ?? "").toLowerCase();
       if (bookingStatus !== "pending") {
