@@ -71,6 +71,7 @@ export default function ClientBooking() {
   const [services, setServices] = useState<Service[]>([]);
   const [combos, setCombos] = useState<any[]>([]);
   const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [expiryRetryTime, setExpiryRetryTime] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -210,7 +211,7 @@ export default function ClientBooking() {
     const restoreExpiredBooking = async () => {
       const { data: oldBooking, error } = await supabase
         .from("bookings")
-        .select("id, company_id, client_id, service_id, combo_id, employee_id, booking_date, booking_status, payment_method")
+        .select("id, company_id, client_id, service_id, combo_id, employee_id, booking_date, booking_time, booking_status, payment_method")
         .eq("id", expiredBookingId)
         .eq("company_id", company.id)
         .eq("client_id", client.id)
@@ -261,9 +262,10 @@ export default function ClientBooking() {
       setSelectedEmployee(oldEmployee);
       setSelectedDate(new Date(`${oldBooking.booking_date}T12:00:00`));
       setSelectedTime("");
+      setExpiryRetryTime(String(oldBooking.booking_time ?? "").slice(0, 5) || null);
       setStep(4);
       sessionStorage.setItem(guardKey, "loaded");
-      toast({ title: "Agendamento recuperado", description: "Escolha novamente o horário. A disponibilidade será validada antes de prosseguir com o pagamento." });
+      toast({ title: "Agendamento recuperado", description: "Verificando se o horário original continua disponível antes de prosseguir com o pagamento." });
     };
 
     void restoreExpiredBooking();
