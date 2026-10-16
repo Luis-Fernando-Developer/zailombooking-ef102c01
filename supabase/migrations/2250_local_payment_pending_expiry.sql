@@ -127,9 +127,9 @@ BEGIN
        AND b.local_payment_expires_at IS NOT NULL
        AND b.local_payment_expires_at <= now()
        AND COALESCE((c.booking_settings->>'local_payment_expiry_enabled')::boolean, true)
-    RETURNING b.id, b.company_id, COALESCE((c.booking_settings->>'local_payment_expiry_notify_client')::boolean, true)
+    RETURNING b.id, b.company_id, COALESCE((c.booking_settings->>'local_payment_expiry_notify_client')::boolean, true) AS should_notify
   )
-  SELECT expired.id, expired.company_id, expired.coalesce
+  SELECT expired.id, expired.company_id, expired.should_notify
     FROM expired;
 END;
 $$;
