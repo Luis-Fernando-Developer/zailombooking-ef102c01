@@ -1,6 +1,6 @@
 # Guia de integração para IA — Zailom Booking API
 
-Versão do guia: 1.0  
+Versão do guia: 1.1  
 API base: `https://api-booking.zailom.com/v1`  
 OpenAPI JSON: `https://booking.zailom.com/openapi.json`  
 OpenAPI YAML: `https://booking.zailom.com/openapi.yaml`  
@@ -102,7 +102,7 @@ Use a criação direta somente quando o cenário de negócio realmente não exig
 
 **Diferença importante entre o site e a API pública:** o fluxo do site para pagamento no local pode registrar `payment_method: local`, deixar `booking_status: pending` e aguardar a confirmação manual de alguém autorizado no painel. Ao confirmar, o status passa a confirmado; se for cancelado, o agendamento deixa de valer conforme as regras do Booking.
 
-**A API pública atual não implementa esse fluxo completo pelo contrato documentado.** O handler atual de `POST /bookings` não grava `payment_method`; se `booking_status` e `payment_status` não forem enviados, usa `confirmed` e `pending` como padrões. Embora o handler aceite valores de status no corpo, isso não torna `payment_method` oficialmente suportado nem garante que o slot seja protegido/liberado exatamente como no site. `POST /bookings/{{booking_id}}/confirm` apenas muda o status para confirmado e não é uma solução completa para registrar pagamento no local.
+**A API pública atual não implementa esse fluxo completo pelo contrato documentado.** O handler atual de `POST /bookings` não grava `payment_method`; se `booking_status` e `payment_status` não forem enviados, usa `confirmed` e `pending` como padrões. Embora o handler aceite valores de status no corpo, isso não torna `payment_method` oficialmente suportado nem garante que o slot seja protegido/liberado exatamente como no site. Além disso, a migration `2181_local_payment_pending_does_not_block_slot.sql` define explicitamente que um agendamento `pending` com `payment_method = local` não bloqueia a disponibilidade; a confirmação manual revalida o horário e pode falhar se ele já tiver sido ocupado. O endpoint público genérico `POST /bookings/{{booking_id}}/confirm` apenas altera o status para confirmado e não chama a rotina específica `confirm_local_booking` que aplica essa revalidação.
 
 Portanto, **não instrua um agente a simular o fluxo de pagamento no local usando campos inventados ou a presumir que o slot ficará reservado até a aprovação manual**. Até a API expor e validar oficialmente esse modo e seu comportamento de disponibilidade/cancelamento, a documentação deve tratar isso como uma lacuna de contrato. O checkout com `booking-holds` é destinado ao fluxo online e não deve ser reaproveitado para pagamento no local.
 
