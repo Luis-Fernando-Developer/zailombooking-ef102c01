@@ -135,6 +135,9 @@ export default function BusinessSettings() {
         reminderOffsetsMinutes: Array.isArray(bs.reminder_offsets_minutes)
           ? bs.reminder_offsets_minutes.filter((v: unknown): v is number => typeof v === "number")
           : [1440],
+        localPaymentExpiryEnabled: bs.local_payment_expiry_enabled ?? true,
+        localPaymentExpiryMinutes: Number(bs.local_payment_expiry_minutes) >= 5 && Number(bs.local_payment_expiry_minutes) <= 1440 ? Number(bs.local_payment_expiry_minutes) : 120,
+        localPaymentExpiryNotifyClient: bs.local_payment_expiry_notify_client ?? true,
       });
 
       // Buscar dados do funcionário
