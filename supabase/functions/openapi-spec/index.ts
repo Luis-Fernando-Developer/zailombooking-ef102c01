@@ -1553,6 +1553,15 @@ const spec = {
             "template": "{{booking_time}}",
             "businessVariable": "booking_time"
           }
+          {
+            "name": "hold_minutes",
+            "location": "body",
+            "type": "integer",
+            "required": false,
+            "description": "Duração do hold em minutos (1–30; padrão: 10)",
+            "template": "{{hold_minutes}}",
+            "businessVariable": "hold_minutes"
+          }
         ],
         "operationId": "create_booking_hold",
         "requestBody": {
@@ -1603,6 +1612,14 @@ const spec = {
                     "description": "HH:mm",
                     "x-business-variable": "booking_time",
                     "x-template-placeholder": "{{booking_time}}"
+                  },
+                  "hold_minutes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30,
+                    "description": "Duração do hold em minutos (1–30; padrão: 10)",
+                    "x-business-variable": "hold_minutes",
+                    "x-template-placeholder": "{{hold_minutes}}"
                   }
                 }
               },
@@ -1611,7 +1628,8 @@ const spec = {
                 "service_id": "uuid",
                 "employee_id": "uuid",
                 "booking_date": "2026-10-05",
-                "booking_time": "15:00"
+                "booking_time": "15:00",
+                "hold_minutes": 10
               }
             }
           }
