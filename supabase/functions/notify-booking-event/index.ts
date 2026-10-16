@@ -263,7 +263,17 @@ serve(async (req) => {
     };
 
     const tpl = await loadWhatsAppTemplate(supabase, c.company_id, event_key);
-    const text = tpl ? renderTemplate(tpl, vars) : defaultMessage(event_key, vars);
+    let text = tpl ? renderTemplate(tpl, vars) : defaultMessage(event_key, vars);
+    // A expiração sempre precisa oferecer as duas saídas, inclusive quando a
+    // empresa possui um template personalizado que não contém os links.
+    if (event_key === "booking_expired") {
+      if (!text.includes(vars.pay_now_url)) {
+        text += `\n\n1️⃣ Pagar agora (vamos verificar se o horário ainda está disponível): ${vars.pay_now_url}`;
+      }
+      if (!text.includes(vars.new_booking_url)) {
+        text += `\n2️⃣ Fazer novo agendamento: ${vars.new_booking_url}`;
+      }
+    }
     const wa = await sendWhatsApp(supabase, c.company_id, phone, text, event_key);
 
     return new Response(JSON.stringify({ ok: true, event_key, whatsapp: wa }), {
