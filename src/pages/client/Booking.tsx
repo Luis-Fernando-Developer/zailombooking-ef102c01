@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -198,6 +198,61 @@ export default function ClientBooking() {
       fetchAvailableTimes();
     }
   }, [selectedDate, selectedEmployee, selectedService, company]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const expiredBookingId = params.get("expired_booking_id");
+    if (!expiredBookingId || params.get("action") !== "pay" || !company || !user || !client || services.length === 0 || combos.length === 0) return;
+    const guardKey = `local-expiry-retry:${expiredBookingId}`;
+    if (sessionStorage.getItem(guardKey) === "loaded") return;
+
+    const restoreExpiredBooking = async () => {
+      const { data: oldBooking, error } = await supabase
+        .from("bookings")
+        .select("id, company_id, client_id, service_id, combo_id, employee_id, booking_date, booking_status, payment_method")
+        .eq("id", expiredBookingId)
+        .eq("company_id", company.id)
+        .eq("client_id", client.id)
+        .maybeSingle();
+
+      if (error || !oldBooking || oldBooking.booking_status !== "cancelled" || oldBooking.payment_method !== "local") {
+        toast({ title: "Solicitação indisponível", description: "Não foi possível recuperar esse agendamento expirado. Você pode fazer um novo agendamento.", variant: "destructive" });
+        sessionStorage.setItem(guardKey, "loaded");
+        return;
+      }
+
+      let service: Service | undefined;
+      if (oldBooking.combo_id) {
+        const combo = combos.find((item: any) => item.id === oldBooking.combo_id);
+        if (combo) service = {
+          id: `combo:${combo.id}`,
+          name: combo.name,
+          description: combo.description || "",
+          price: combo.price || combo.combo_price || 0,
+          duration_minutes: combo.total_duration_minutes ?? (combo.items?.reduce((sum: number, item: any) => sum + (item.service?.duration_minutes || 0), 0) || 0),
+          image_url: combo.image_url || combo.items?.[0]?.service?.image_url,
+        };
+      } else {
+        service = services.find((item) => item.id === oldBooking.service_id);
+      }
+
+      if (!service) {
+        toast({ title: "Serviço indisponível", description: "Esse serviço ou combo não está mais disponível. Escolha outro para continuar.", variant: "destructive" });
+        sessionStorage.setItem(guardKey, "loaded");
+        return;
+      }
+
+      setSelectedService(service);
+      setPendingEmployeeRestore(oldBooking.employee_id);
+      setSelectedDate(new Date(`${oldBooking.booking_date}T12:00:00`));
+      setSelectedTime("");
+      setStep(4);
+      sessionStorage.setItem(guardKey, "loaded");
+      toast({ title: "Agendamento recuperado", description: "Escolha novamente o horário. A disponibilidade será validada antes de prosseguir com o pagamento." });
+    };
+
+    void restoreExpiredBooking();
+  }, [company, user, client, services, combos, toast]);
 
   useEffect(() => {
     if (customization) {
