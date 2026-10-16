@@ -344,7 +344,7 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   v_old_enabled BOOLEAN;
   v_new_enabled BOOLEAN;
@@ -382,7 +382,7 @@ BEGIN
      AND b.local_payment_expires_at IS NULL;
   RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS trg_sync_local_payment_expiry_policy ON public.companies;
 CREATE TRIGGER trg_sync_local_payment_expiry_policy
