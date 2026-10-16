@@ -172,15 +172,19 @@ GRANT EXECUTE ON FUNCTION public.expire_pending_local_bookings() TO service_role
 DO $$
 DECLARE
   v_def TEXT;
-  v_old TEXT := $needle$
+  v_old_extended TEXT := $needle_extended$
       AND LOWER(COALESCE(bk.booking_status::text,''))
           NOT IN ('cancelled','canceled','rejected','no_show')
       AND NOT (
         LOWER(COALESCE(bk.booking_status::text,'')) = 'pending'
         AND LOWER(COALESCE(bk.payment_method::text,'')) = 'local'
       )
-$needle$;
-  v_new TEXT := $replacement$
+$needle_extended$;
+  v_old_simple TEXT := $needle_simple$
+      AND LOWER(COALESCE(bk.booking_status::text,''))
+          NOT IN ('cancelled','canceled','rejected','no_show')
+$needle_simple$;
+  v_new_simple TEXT := $replacement_simple$
       AND LOWER(COALESCE(bk.booking_status::text,''))
           NOT IN ('cancelled','canceled','rejected','no_show')
       AND NOT (
@@ -196,19 +200,41 @@ $needle$;
           AND bk.local_payment_expires_at > now()
         )
       )
-$replacement$;
+$replacement_simple$;
+  v_new_extended TEXT := $replacement_extended$
+      AND LOWER(COALESCE(bk.booking_status::text,''))
+          NOT IN ('cancelled','canceled','rejected','no_show')
+      AND NOT (
+        LOWER(COALESCE(bk.booking_status::text,'')) = 'pending'
+        AND LOWER(COALESCE(bk.payment_method::text,'')) = 'local'
+        AND NOT (
+          COALESCE((
+            SELECT (co.booking_settings->>'local_payment_expiry_enabled')::boolean
+              FROM public.companies co
+             WHERE co.id = bk.company_id
+          ), true)
+          AND bk.local_payment_expires_at IS NOT NULL
+          AND bk.local_payment_expires_at > now()
+        )
+      )
+$replacement_extended$;
 BEGIN
   SELECT pg_get_functiondef(
     'public.get_available_slots(uuid,uuid,uuid,date,boolean)'::regprocedure
   ) INTO v_def;
 
-  IF position(v_old IN v_def) = 0 THEN
-    RAISE EXCEPTION 'Não foi possível localizar o filtro legado de pagamento local em get_available_slots.';
+  -- A migration 2204 recriou get_available_slots depois da 2181 e removeu
+  -- o filtro de pagamento local. Aceitamos ambas as definições conhecidas.
+  IF position(v_old_extended IN v_def) > 0 THEN
+    v_def := replace(v_def, v_old_extended, v_new_extended);
+  ELSIF position(v_old_simple IN v_def) > 0 THEN
+    v_def := replace(v_def, v_old_simple, v_new_simple);
+  ELSE
+    RAISE EXCEPTION 'Não foi possível localizar o filtro de bookings em get_available_slots; nenhuma alteração foi aplicada.';
   END IF;
 
-  v_def := replace(v_def, v_old, v_new);
   EXECUTE v_def;
-END $$;
+END $;
 
 -- Confirmação segura de pedido local: valida permissão e prazo, trava o slot,
 -- remove temporariamente o próprio pedido da consulta e revalida disponibilidade.
