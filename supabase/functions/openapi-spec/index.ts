@@ -418,7 +418,7 @@ const spec = {
         ],
         "summary": "Dias disponíveis",
         "description": "Retorna os dias no intervalo que possuem ao menos um horário livre. Respeita escala, ausências, bloqueios e configurações da empresa. Informe employee_id, service_id, date_init e date_end; as datas usam YYYY-MM-DD.",
-        "x-integration-template": "/v1/availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&from={{date_init}}&to={{date_end}}",
+        "x-integration-template": "/v1/availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&date_init={{date_init}}&date_end={{date_end}}",
         "x-business-variables": [
           {
             "name": "employee_id",
@@ -439,7 +439,7 @@ const spec = {
             "businessVariable": "service_id"
           },
           {
-            "name": "from",
+            "name": "date_init",
             "location": "query",
             "type": "date",
             "required": true,
@@ -448,7 +448,7 @@ const spec = {
             "businessVariable": "date_init"
           },
           {
-            "name": "to",
+            "name": "date_end",
             "location": "query",
             "type": "date",
             "required": true,
@@ -484,7 +484,7 @@ const spec = {
             "x-template-placeholder": "{{service_id}}"
           },
           {
-            "name": "from",
+            "name": "date_init",
             "in": "query",
             "required": true,
             "description": "Data inicial do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_init}}.",
@@ -497,7 +497,7 @@ const spec = {
             "x-template-placeholder": "{{date_init}}"
           },
           {
-            "name": "to",
+            "name": "date_end",
             "in": "query",
             "required": true,
             "description": "Data final do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_end}}.",
@@ -3398,7 +3398,7 @@ const spec = {
         ],
         "summary": "Agenda ocupada por intervalo",
         "description": "Retorna os agendamentos ativos do profissional identificado por employee_id no intervalo informado. Use date_init para a data inicial e date_end para a data final, ambas no formato YYYY-MM-DD.",
-        "x-integration-template": "/v1/employees/{{employee_id}}/interval?from={{date_init}}&to={{date_end}}",
+        "x-integration-template": "/v1/employees/{{employee_id}}/interval?date_init={{date_init}}&date_end={{date_end}}",
         "x-business-variables": [
           {
             "name": "employee_id",
@@ -3410,7 +3410,7 @@ const spec = {
             "businessVariable": "employee_id"
           },
           {
-            "name": "from",
+            "name": "date_init",
             "location": "query",
             "type": "date",
             "required": true,
@@ -3419,7 +3419,7 @@ const spec = {
             "businessVariable": "date_init"
           },
           {
-            "name": "to",
+            "name": "date_end",
             "location": "query",
             "type": "date",
             "required": true,
@@ -3444,7 +3444,7 @@ const spec = {
             "example": "123e4567-e89b-12d3-a456-426614174000"
           },
           {
-            "name": "from",
+            "name": "date_init",
             "in": "query",
             "required": true,
             "description": "Data inicial do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_init}}.",
@@ -3457,7 +3457,7 @@ const spec = {
             "x-template-placeholder": "{{date_init}}"
           },
           {
-            "name": "to",
+            "name": "date_end",
             "in": "query",
             "required": true,
             "description": "Data final do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_end}}.",
