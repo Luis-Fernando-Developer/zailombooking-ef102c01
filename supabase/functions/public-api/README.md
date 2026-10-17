@@ -64,12 +64,12 @@ Escopos:
 | --- | --- | --- |
 | GET | `/employees?service_id=` | Lista (filtra por serviço) |
 | GET | `/employees/:id` | Detalhes |
-| GET | `/employees/:id/busy?from=&to=` | Agenda ocupada (bookings ativos) |
+| GET | `/employees/:employee_id/interval?date_init=&date_end=` | Agenda ocupada (bookings ativos) |
 
 ### Disponibilidade (SSOT — usa `get_available_slots` / `list_available_dates`)
 | Método | Rota | Descrição |
 | --- | --- | --- |
-| GET | `/availability/dates?employee_id=&service_id=&from=&to=` | Dias com pelo menos 1 slot |
+| GET | `/availability/dates?employee_id=&service_id=&date_init=&date_end=` | Dias com pelo menos 1 slot |
 | GET | `/availability/slots?employee_id=&service_id=&date=` | Horários livres no dia |
 | GET | `/availability/next?employee_id=&service_id=` | Próximo horário livre (até 60d) |
 
