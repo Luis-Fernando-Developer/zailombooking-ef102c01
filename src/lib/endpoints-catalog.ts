@@ -122,8 +122,8 @@ export const ENDPOINTS: Endpoint[] = [
     description: "Retorna os agendamentos ativos do profissional identificado por employee_id no intervalo informado. Use date_init para a data inicial e date_end para a data final, ambas no formato YYYY-MM-DD. Substitua os placeholders pelos valores reais antes de enviar a requisição.",
     params: [
       { name: "employee_id", type: "uuid", location: "path", required: true, description: "Identificador do profissional retornado pela API" },
-      { name: "from", templateName: "date_init", type: "date", location: "query", required: true, description: "Data inicial do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_init}}.", example: "2026-10-05" },
-      { name: "to", templateName: "date_end", type: "date", location: "query", required: true, description: "Data final do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_end}}.", example: "2026-10-31" },
+      { name: "date_init", type: "date", location: "query", required: true, description: "Data inicial do intervalo (YYYY-MM-DD). Use date_init na query string.", example: "2026-10-05" },
+      { name: "date_end", type: "date", location: "query", required: true, description: "Data final do intervalo (YYYY-MM-DD). Use date_end na query string.", example: "2026-10-31" },
     ],
     responseExample: [{ id: "uuid", booking_date: "2026-07-10", start_time: "14:00", end_time: "14:30" }],
   },
@@ -140,8 +140,8 @@ export const ENDPOINTS: Endpoint[] = [
     params: [
       { name: "employee_id", type: "uuid", location: "query", required: true, description: "Identificador do profissional" },
       { name: "service_id", type: "uuid", location: "query", required: true, description: "Identificador do serviço" },
-      { name: "from", templateName: "date_init", type: "date", location: "query", required: true, description: "Data inicial do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_init}}.", example: "2026-10-05" },
-      { name: "to", templateName: "date_end", type: "date", location: "query", required: true, description: "Data final do intervalo (YYYY-MM-DD). No template, o valor vem de {{date_end}}.", example: "2026-10-31" },
+      { name: "date_init", type: "date", location: "query", required: true, description: "Data inicial do intervalo (YYYY-MM-DD). Use date_init na query string.", example: "2026-10-05" },
+      { name: "date_end", type: "date", location: "query", required: true, description: "Data final do intervalo (YYYY-MM-DD). Use date_end na query string.", example: "2026-10-31" },
     ],
     responseExample: ["2026-07-10", "2026-07-11", "2026-07-14"],
   },
