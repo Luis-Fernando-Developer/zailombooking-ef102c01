@@ -29,7 +29,7 @@ A API do Booking é a fonte de verdade para dados e estados do sistema. Não dec
 
 ## Variáveis e parâmetros oficiais
 
-A tabela abaixo reúne as variáveis de template usadas nos endpoints publicados e os nomes de parâmetros HTTP relacionados. O nome do placeholder de negócio pode ser diferente do nome do parâmetro HTTP: por exemplo, `{{date_init}}` é enviado no parâmetro de consulta `from`, e `{{date_end}}` é enviado em `to`.
+A tabela abaixo reúne as variáveis de template usadas nos endpoints publicados e os nomes de parâmetros HTTP relacionados. Os parâmetros HTTP seguem os nomes semânticos do contrato: `date_init` representa o início do intervalo e `date_end` representa o fim, ambos no formato `YYYY-MM-DD`.
 
 | Variável/template | Onde é usada | Significado |
 |---|---|---|
@@ -39,8 +39,8 @@ A tabela abaixo reúne as variáveis de template usadas nos endpoints publicados
 | `{{booking_id}}` | caminho ou corpo | ID do agendamento existente ou retornado |
 | `{{hold_id}}` | caminho ou corpo | ID da reserva temporária do checkout |
 | `{{payment_id}}` | caminho ou corpo | ID do pagamento; use o ID retornado pela criação/consulta conforme o endpoint exigir |
-| `{{date_init}}` | query `from` | Início do intervalo, `YYYY-MM-DD` |
-| `{{date_end}}` | query `to` | Fim do intervalo, `YYYY-MM-DD` |
+| `{{date_init}}` | query `date_init` | Início do intervalo, `YYYY-MM-DD` |
+| `{{date_end}}` | query `date_end` | Fim do intervalo, `YYYY-MM-DD` |
 | `{{date}}` | query `date` | Data consultada, `YYYY-MM-DD` |
 | `{{booking_date}}` | corpo | Data do agendamento, `YYYY-MM-DD` |
 | `{{booking_time}}` | corpo | Horário do agendamento, `HH:mm` |
@@ -62,7 +62,7 @@ A tabela abaixo reúne as variáveis de template usadas nos endpoints publicados
 1. **Descobrir o serviço:** chame `GET /services` e apresente somente serviços retornados pela API.
 2. **Resolver o serviço escolhido:** guarde o `service_id` retornado. Se precisar esclarecer preço/duração, chame `GET /services/details/{{service_id}}`, `GET /services/{{service_id}}/price` ou `GET /services/{{service_id}}/duration`.
 3. **Resolver quem pode executar:** chame `GET /services/{{service_id}}/employees` ou `GET /employees?service_id={{service_id}}`. Guarde o `employee_id` escolhido, que precisa pertencer à empresa e estar habilitado para o serviço.
-4. **Encontrar dias:** consulte `GET /availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&from={{date_init}}&to={{date_end}}`. Só ofereça datas devolvidas pela API.
+4. **Encontrar dias:** consulte `GET /availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&date_init={{date_init}}&date_end={{date_end}}`. Só ofereça datas devolvidas pela API.
 5. **Encontrar horários do dia:** depois que o cliente escolher a data, chame `GET /availability/slots?employee_id={{employee_id}}&service_id={{service_id}}&date={{date}}`. Ofereça apenas os horários retornados.
 6. **Resolver o cliente:** chame `GET /clients?phone={{phone}}`. Se não existir, peça os dados necessários e use `POST /clients`; guarde o ID retornado. Se ocorrer `409` por telefone duplicado, busque novamente e reutilize o `client_id` encontrado. Use `PATCH /clients/{{client_id}}` somente para atualizar dados que o cliente pediu para corrigir.
 7. **Escolher o caminho de criação:** confirme se o usuário quer pagar online ou no local. Para checkout online, siga o Fluxo A. Para pagamento no local com confirmação manual, observe a limitação documentada no Fluxo B: o endpoint público atual não reproduz integralmente esse comportamento do site.
@@ -154,10 +154,10 @@ Os caminhos são relativos à base `https://api-booking.zailom.com/v1`. Use a es
 ### Profissionais
 - `GET /employees` — listar profissionais; aceita `service_id` como filtro.
 - `GET /employees/{{employee_id}}` — detalhes do profissional.
-- `GET /employees/{{employee_id}}/interval?from={{date_init}}&to={{date_end}}` — agenda ocupada no intervalo.
+- `GET /employees/{{employee_id}}/interval?date_init={{date_init}}&date_end={{date_end}}` — agenda ocupada no intervalo.
 
 ### Disponibilidade
-- `GET /availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&from={{date_init}}&to={{date_end}}` — datas com horários livres.
+- `GET /availability/dates?employee_id={{employee_id}}&service_id={{service_id}}&date_init={{date_init}}&date_end={{date_end}}` — datas com horários livres.
 - `GET /availability/slots?employee_id={{employee_id}}&service_id={{service_id}}&date={{date}}` — horários disponíveis em uma data.
 - `GET /availability/next?employee_id={{employee_id}}&service_id={{service_id}}` — próximo horário livre.
 
