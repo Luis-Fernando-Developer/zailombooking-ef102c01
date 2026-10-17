@@ -10,8 +10,8 @@ const BUSINESS_VARIABLES = [
   ["service_id", "ID do serviço escolhido"], ["employee_id", "ID do profissional"],
   ["client_id", "ID do cliente"], ["booking_id", "ID do agendamento"],
   ["hold_id", "ID da reserva temporária"], ["payment_id", "ID do pagamento"],
-  ["date_init", "Data inicial; enviado no parâmetro HTTP `from`"],
-  ["date_end", "Data final; enviado no parâmetro HTTP `to`"], ["date", "Data consultada"],
+  ["date_init", "Data inicial; parâmetro HTTP `date_init`"],
+  ["date_end", "Data final; parâmetro HTTP `date_end`"], ["date", "Data consultada"],
   ["booking_date", "Data do agendamento"], ["booking_time", "Horário do agendamento"],
   ["phone", "Telefone/WhatsApp"], ["name", "Nome do cliente"], ["email", "E-mail do cliente"],
   ["scope", "upcoming, past ou all"], ["reason", "Motivo de cancelamento"],
@@ -174,7 +174,7 @@ export default function ApiAiIntegration() {
 
         <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
           <h2 className="text-xl font-semibold">Variáveis e parâmetros oficiais</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">Lista consolidada de placeholders utilizados pelos endpoints publicados. <code>date_init</code> e <code>date_end</code> são enviados na query string como <code>from</code> e <code>to</code>; o nome da variável de template nem sempre é igual ao nome do parâmetro HTTP.</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Lista consolidada de placeholders utilizados pelos endpoints publicados. <code>date_init</code> e <code>date_end</code> são também os nomes dos parâmetros HTTP na query string.</p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {BUSINESS_VARIABLES.map(([name, description]) => <div key={name} className="rounded-md bg-muted/35 p-3"><code className="text-xs text-primary">{`{{${name}}}`}</code><p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p></div>)}
           </div>
@@ -185,7 +185,7 @@ export default function ApiAiIntegration() {
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
             <li>Chamar <code>GET /services</code>; quando o cliente escolher, guardar <code>service_id</code> e consultar detalhes, preço ou duração se necessário.</li>
             <li>Chamar <code>GET /services/{'{{service_id}}'}/employees</code> ou <code>GET /employees?service_id={'{{service_id}}'}</code> e guardar o <code>employee_id</code> escolhido.</li>
-            <li>Consultar <code>GET /availability/dates</code> com <code>employee_id</code>, <code>service_id</code>, <code>from={'{{date_init}}'}</code> e <code>to={'{{date_end}}'}</code>; depois consultar <code>GET /availability/slots</code> para a data escolhida.</li>
+            <li>Consultar <code>GET /availability/dates</code> com <code>employee_id</code>, <code>service_id</code>, <code>date_init={'{{date_init}}'}</code> e <code>date_end={'{{date_end}}'}</code>; depois consultar <code>GET /availability/slots</code> para a data escolhida.</li>
             <li>Resolver o cliente com <code>GET /clients?phone={'{{phone}}'}</code>; se não existir, usar <code>POST /clients</code> e guardar o <code>client_id</code>.</li>
             <li>Reconsultar os horários imediatamente antes da escrita e chamar <code>POST /booking-holds</code> com <code>client_id</code>, <code>service_id</code>, <code>employee_id</code>, <code>booking_date</code> e <code>booking_time</code>. Guardar <code>hold_id</code> e <code>expires_at</code>.</li>
             <li>Consultar <code>GET /payments/methods</code> e usar somente os métodos habilitados. Criar cobrança com <code>POST /payments</code> enviando <code>hold_id</code> e <code>method</code>; nunca enviar também <code>booking_id</code>.</li>
