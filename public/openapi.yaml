@@ -569,7 +569,7 @@ paths:
       tags:
         - "Clientes"
       summary: "Buscar cliente por telefone"
-      description: "Localiza um cliente pelo WhatsApp/telefone (E.164 ou nacional)."
+      description: "Localiza um cliente pelo WhatsApp/telefone (E.164 ou nacional). Execute esta consulta antes de pedir nome/e-mail ou criar cliente. Se data não for null, reutilize data.id, data.name, data.email e data.tax_id; não solicite novamente dados já retornados. Só crie cliente se data for null."
       x-integration-template: "/v1/clients?phone={{phone}}"
       x-business-variables:
         - name: "phone"
@@ -596,9 +596,13 @@ paths:
           content:
             "application/json":
               example:
-                id: "uuid"
-                name: "Maria"
-                phone: "5511999998888"
+                data:
+                  id: "uuid"
+                  name: "Maria"
+                  email: "maria@example.com"
+                  phone: "5511999998888"
+                  cpf: "12345678901"
+                  tax_id: "12345678901"
         "400":
           description: "Requisição inválida"
           content:
@@ -643,7 +647,7 @@ paths:
       tags:
         - "Clientes"
       summary: "Criar cliente"
-      description: "Cria um novo cliente. Se o telefone já estiver cadastrado, retorna conflito e não altera o cliente existente."
+      description: "Cria um cliente com nome, telefone e dados opcionais. Aceita cpf, cpf_cnpj ou tax_id e persiste o documento no campo cpf. Se o telefone já estiver cadastrado, retorna o cliente existente com HTTP 200 e existing=true; reutilize data.id e os dados retornados em vez de tentar criar outro."
       x-integration-template: "/v1/clients"
       x-business-variables:
         - name: "name"
@@ -667,6 +671,13 @@ paths:
           description: "E-mail opcional"
           template: "{{email}}"
           businessVariable: "email"
+        - name: "tax_id"
+          location: "body"
+          type: "string"
+          required: false
+          description: "CPF/CNPJ do cliente"
+          template: "{{tax_id}}"
+          businessVariable: "tax_id"
       operationId: "create_client"
       requestBody:
         required: true
@@ -693,18 +704,29 @@ paths:
                   description: "E-mail opcional"
                   x-business-variable: "email"
                   x-template-placeholder: "{{email}}"
+                tax_id:
+                  type: "string"
+                  description: "CPF/CNPJ opcional; aceito também como cpf ou cpf_cnpj"
+                  x-business-variable: "tax_id"
+                  x-template-placeholder: "{{tax_id}}"
             example:
               name: "Maria"
               phone: "5511999998888"
+              tax_id: "12345678901"
       responses:
         "200":
           description: "Sucesso"
           content:
             "application/json":
               example:
-                id: "uuid"
-                name: "Maria"
-                phone: "5511999998888"
+                data:
+                  id: "uuid"
+                  name: "Maria"
+                  email: "maria@example.com"
+                  phone: "5511999998888"
+                  cpf: "12345678901"
+                  tax_id: "12345678901"
+                existing: false
         "400":
           description: "Requisição inválida"
           content:
