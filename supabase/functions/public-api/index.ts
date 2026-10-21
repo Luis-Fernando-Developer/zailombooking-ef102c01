@@ -578,7 +578,7 @@ const findClientByPhone: Handler = async (ctx, req) => {
   if (!phone) return err("phone is required", 400);
   const { data, error } = await ctx.sb
     .from("clients")
-    .select("id, name, email, phone, created_at")
+    .select("id, name, email, phone, cpf, created_at")
     .eq("company_id", ctx.companyId)
     .ilike("phone", `%${phone}%`)
     .maybeSingle();
@@ -591,25 +591,29 @@ const createClient: Handler = async (ctx, req) => {
   const name = String(body.name ?? "").trim();
   const phone = normalizePhone(body.phone ?? "");
   const email = body.email ? String(body.email).trim().toLowerCase() : null;
+  const cpfInput = body.cpf ?? body.cpf_cnpj ?? body.tax_id;
+  const cpf = cpfInput ? normalizePhone(cpfInput) : null;
   if (!name || !phone) return err("name and phone are required", 400);
 
   const { data: existing, error: existingError } = await ctx.sb
     .from("clients")
-    .select("id")
+    .select("id, name, email, phone, cpf")
     .eq("company_id", ctx.companyId)
     .ilike("phone", phone)
     .maybeSingle();
 
   if (existingError) return err(existingError.message, 500);
-  if (existing?.id) return err("Client already exists for this phone", 409, { client_id: existing.id });
+  // POST é idempotente por telefone: se o cliente já existe, devolve seus dados
+  // para que integrações possam reutilizá-lo sem interromper o fluxo com HTTP 409.
+  if (existing) return json({ data: existing, existing: true }, 200);
 
   const { data, error } = await ctx.sb
     .from("clients")
-    .insert({ company_id: ctx.companyId, name, phone, email })
-    .select("id, name, email, phone")
+    .insert({ company_id: ctx.companyId, name, phone, email, ...(cpf ? { cpf } : {}) })
+    .select("id, name, email, phone, cpf")
     .single();
   if (error) return err(error.message, 500);
-  return json({ data }, 201);
+  return json({ data, existing: false }, 201);
 };
 
 const updateClient: Handler = async (ctx, req, { clientId }) => {
@@ -644,8 +648,13 @@ const updateClient: Handler = async (ctx, req, { clientId }) => {
     updates.email = body.email ? String(body.email).trim().toLowerCase() : null;
   }
 
+  if (body.cpf !== undefined || body.cpf_cnpj !== undefined || body.tax_id !== undefined) {
+    const rawCpf = body.cpf ?? body.cpf_cnpj ?? body.tax_id;
+    updates.cpf = rawCpf ? normalizePhone(rawCpf) : null;
+  }
+
   if (!Object.keys(updates).length) {
-    return err("At least one field is required: name, phone, email", 400);
+    return err("At least one field is required: name, phone, email, cpf/tax_id", 400);
   }
 
   const { data, error } = await ctx.sb
@@ -653,7 +662,7 @@ const updateClient: Handler = async (ctx, req, { clientId }) => {
     .update(updates)
     .eq("company_id", ctx.companyId)
     .eq("id", clientId)
-    .select("id, name, email, phone")
+    .select("id, name, email, phone, cpf")
     .maybeSingle();
 
   if (error) return err(error.message, 500);
