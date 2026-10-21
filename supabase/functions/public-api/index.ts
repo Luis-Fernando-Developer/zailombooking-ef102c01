@@ -583,7 +583,8 @@ const findClientByPhone: Handler = async (ctx, req) => {
     .ilike("phone", `%${phone}%`)
     .maybeSingle();
   if (error) return err(error.message, 500);
-  return json({ data: data ?? null });
+  const client = data ? { ...data, tax_id: data.cpf ?? null } : null;
+  return json({ data: client });
 };
 
 const createClient: Handler = async (ctx, req) => {
@@ -605,7 +606,7 @@ const createClient: Handler = async (ctx, req) => {
   if (existingError) return err(existingError.message, 500);
   // POST é idempotente por telefone: se o cliente já existe, devolve seus dados
   // para que integrações possam reutilizá-lo sem interromper o fluxo com HTTP 409.
-  if (existing) return json({ data: existing, existing: true }, 200);
+  if (existing) return json({ data: { ...existing, tax_id: existing.cpf ?? null }, existing: true }, 200);
 
   const { data, error } = await ctx.sb
     .from("clients")
@@ -613,7 +614,7 @@ const createClient: Handler = async (ctx, req) => {
     .select("id, name, email, phone, cpf")
     .single();
   if (error) return err(error.message, 500);
-  return json({ data, existing: false }, 201);
+  return json({ data: { ...data, tax_id: data.cpf ?? null }, existing: false }, 201);
 };
 
 const updateClient: Handler = async (ctx, req, { clientId }) => {
@@ -667,7 +668,7 @@ const updateClient: Handler = async (ctx, req, { clientId }) => {
 
   if (error) return err(error.message, 500);
   if (!data) return err("Client not found", 404);
-  return json({ data });
+  return json({ data: { ...data, tax_id: data.cpf ?? null } });
 };
 
 // =============================================================================
