@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Search, Plus, Pencil, UserRound, Phone, Mail, CalendarDays, KeyRound } from "lucide-react";
+import { Search, Plus, Pencil, UserRound, Phone, Mail, CalendarDays, KeyRound, Trash2 } from "lucide-react";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export default function BusinessClients() {
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [accessLoadingId, setAccessLoadingId] = useState<string | null>(null);
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", cpf: "" });
 
   useEffect(() => { load(); }, [slug]);
@@ -57,6 +58,7 @@ export default function BusinessClients() {
   const isAdmin = userRole === "owner" || userRole === "admin";
   const canCreate = isAdmin || hasPermission("clients.create");
   const canEdit = isAdmin || hasPermission("clients.edit");
+  const canDelete = isAdmin || hasPermission("clients.delete");
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -106,6 +108,52 @@ export default function BusinessClients() {
       toast({ title: "Não foi possível salvar", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deleteClient(client: any) {
+    if (!company || !canDelete) return;
+
+    const confirmed = window.confirm(
+      `Excluir o cliente "${client.name || "Sem nome"}"? Essa ação não pode ser desfeita. Clientes com agendamentos vinculados não podem ser excluídos para preservar o histórico.`
+    );
+    if (!confirmed) return;
+
+    setDeletingClientId(client.id);
+    try {
+      const { count, error: bookingsError } = await supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", company.id)
+        .eq("client_id", client.id);
+
+      if (bookingsError) throw bookingsError;
+      if ((count ?? 0) > 0) {
+        throw new Error("Este cliente possui agendamentos vinculados. Para preservar o histórico, cancele ou mantenha os registros e não exclua o cliente.");
+      }
+
+      const { data, error } = await supabase
+        .from("clients")
+        .delete()
+        .eq("id", client.id)
+        .eq("company_id", company.id)
+        .select("id");
+
+      if (error) throw error;
+      if (!data?.length) {
+        throw new Error("Nenhum cliente foi excluído. Verifique sua permissão de exclusão nesta empresa.");
+      }
+
+      toast({ title: "Cliente excluído", description: "O cliente foi removido da empresa." });
+      await load();
+    } catch (error: any) {
+      toast({
+        title: "Não foi possível excluir o cliente",
+        description: error.message || "Ocorreu um erro ao excluir o cliente.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingClientId(null);
     }
   }
 
@@ -165,6 +213,7 @@ export default function BusinessClients() {
                   <div className="flex flex-wrap gap-2">
                     {canEdit && <Button variant="outline" onClick={() => openEdit(client)}><Pencil className="w-4 h-4 mr-2" />Editar</Button>}
                     {canEdit && <Button variant="neon" disabled={accessBusy} onClick={() => requestClientAccess(client)}><KeyRound className="w-4 h-4 mr-2" />{accessBusy ? "Enviando..." : hasIdentity ? "Enviar acesso" : "Criar acesso"}</Button>}
+                    {canDelete && <Button variant="destructive" disabled={deletingClientId === client.id} onClick={() => deleteClient(client)}><Trash2 className="w-4 h-4 mr-2" />{deletingClientId === client.id ? "Excluindo..." : "Excluir"}</Button>}
                   </div>
                 </div>
               );
