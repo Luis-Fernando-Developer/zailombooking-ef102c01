@@ -859,7 +859,12 @@ const createBookingHold: Handler = async (ctx, req) => {
   const client_id = String(b.client_id ?? "").trim();
   const booking_date = getBookingDate(b);
   const booking_time = getBookingClockTime(b);
-  const hold_minutes = Number(b.hold_minutes ?? b.holdMinutes ?? 10);
+  // Campo opcional: ausência, null ou string vazia mantém o padrão da API (10 minutos).
+  // A API é responsável pela política de duração; clientes não precisam conhecer esse padrão.
+  const rawHoldMinutes = b.hold_minutes ?? b.holdMinutes;
+  const hold_minutes = rawHoldMinutes == null || String(rawHoldMinutes).trim() === ""
+    ? 10
+    : Number(rawHoldMinutes);
 
   if (!employee_id || !client_id || !booking_date || !booking_time) {
     return err(
