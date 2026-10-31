@@ -1157,14 +1157,15 @@ const createPayment: Handler = async (ctx, req) => {
 
 const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
   const paymentFields = "id, booking_id, company_id, status, method, amount, asaas_id, provider_payment_id, provider, created_at, paid_at";
-  // IDs de gateway (ex.: pay_...) são texto, não UUID. Não use OR com id.uuid
-  // porque o Postgres tenta converter o valor externo para UUID e aborta a consulta.
+  // IDs de gateway (ex.: pay_...) são texto, não UUID. Consultas separadas
+  // evitam que o Postgres tente converter um identificador externo para UUID.
   let { data, error } = await ctx.sb
     .from("booking_payments")
     .select(paymentFields)
     .eq("company_id", ctx.companyId)
     .eq("provider_payment_id", id)
     .maybeSingle();
+
   if (!data && !error) {
     const result = await ctx.sb.from("booking_payments")
       .select(paymentFields)
@@ -1174,7 +1175,9 @@ const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
     data = result.data;
     error = result.error;
   }
-  if (!data && !error && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  if (!data && !error && isUuid) {
     const result = await ctx.sb.from("booking_payments")
       .select(paymentFields)
       .eq("company_id", ctx.companyId)
@@ -1183,6 +1186,7 @@ const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
     data = result.data;
     error = result.error;
   }
+
   if (error) return err(error.message, 500);
   if (!data) return err("Payment not found", 404);
 
@@ -1197,7 +1201,7 @@ const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
 
   const { data: refreshed } = await ctx.sb
     .from("booking_payments")
-    .select("id, booking_id, company_id, status, method, amount, asaas_id, created_at, paid_at")
+    .select(paymentFields)
     .eq("company_id", ctx.companyId)
     .eq("id", data.id)
     .maybeSingle();
