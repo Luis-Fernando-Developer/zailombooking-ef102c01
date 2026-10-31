@@ -1220,15 +1220,70 @@ const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
 };
 
 const confirmPayment: Handler = async (ctx, _req, { id }) => {
+  // O parâmetro da rota pode ser o ID externo do gateway (ex.: pay_...),
+  // enquanto booking_payments.id é UUID. Resolver primeiro pelo ID textual.
+  const paymentFields = "id, company_id, provider, provider_payment_id, asaas_id, status, booking_id, paid_at";
+  let { data: payment, error: lookupError } = await ctx.sb
+    .from("booking_payments")
+    .select(paymentFields)
+    .eq("company_id", ctx.companyId)
+    .eq("provider_payment_id", id)
+    .maybeSingle();
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
+  if (!payment && !lookupError && isUuid) {
+    const result = await ctx.sb.from("booking_payments")
+      .select(paymentFields)
+      .eq("company_id", ctx.companyId)
+      .eq("asaas_id", id)
+      .maybeSingle();
+    payment = result.data;
+    lookupError = result.error;
+  }
+
+  if (!payment && !lookupError && isUuid) {
+    const result = await ctx.sb.from("booking_payments")
+      .select(paymentFields)
+      .eq("company_id", ctx.companyId)
+      .eq("id", id)
+      .maybeSingle();
+    payment = result.data;
+    lookupError = result.error;
+  }
+
+  if (lookupError) return err(lookupError.message, 500);
+  if (!payment) return err("Payment not found", 404);
+
+  // Não confiar apenas na mensagem do cliente: confirmar somente após
+  // consultar o status diretamente no gateway e persistir o resultado.
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const { data: gateway, error: gatewayError } = await ctx.sb.functions.invoke("booking-payment-status", {
+    body: {
+      payment_id: payment.provider_payment_id ?? payment.asaas_id ?? id,
+      provider: payment.provider,
+    },
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
+  });
+
+  if (gatewayError) return err(gatewayError.message, 502);
+  if (gateway?.is_paid !== true) {
+    return err("Payment is not confirmed by the payment provider", 409, {
+      code: "payment_not_confirmed",
+      gateway_status: gateway?.transaction_status ?? null,
+    });
+  }
+
   const { data, error } = await ctx.sb
     .from("booking_payments")
-    .update({ status: "confirmed", paid_at: new Date().toISOString() })
+    .select(paymentFields)
     .eq("company_id", ctx.companyId)
-    .eq("id", id)
-    .select()
+    .eq("id", payment.id)
     .single();
   if (error) return err(error.message, 500);
-  return json({ data });
+  return json({ data, gateway });
 };
 
 const cancelPayment: Handler = async (ctx, _req, { id }) => {
