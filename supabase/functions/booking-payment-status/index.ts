@@ -58,17 +58,18 @@ serve(async (req) => {
       if (body?.provider) genericQuery = genericQuery.eq("provider", String(body.provider).toLowerCase())
       const { data: genericRow } = await genericQuery.maybeSingle()
       let row = genericRow
-      if (!row) {
+      // asaas_id é uma coluna UUID em bancos legados. Só consultar esse
+      // campo quando o identificador recebido também tiver formato UUID.
+      const isInternalPaymentUuid =
+        typeof payment_id === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payment_id);
+
+      if (!row && isInternalPaymentUuid) {
         const { data: legacyRow } = await supabase
           .from("booking_payments").select(selectFields)
           .eq("asaas_id", payment_id).maybeSingle()
         row = legacyRow
       }
-      // O ID interno da tabela é UUID. IDs de gateway (ex.: klk6ba3u7xr4ztkb)
-      // são texto e nunca devem ser enviados para o filtro da coluna UUID.
-      const isInternalPaymentUuid =
-        typeof payment_id === "string" &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payment_id);
 
       if (!row && isInternalPaymentUuid) {
         const { data: internalRow } = await supabase
