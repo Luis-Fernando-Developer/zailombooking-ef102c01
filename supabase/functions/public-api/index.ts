@@ -1166,7 +1166,11 @@ const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
     .eq("provider_payment_id", id)
     .maybeSingle();
 
-  if (!data && !error) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
+  // asaas_id pode ser UUID em instalações legadas. Nunca comparar um ID
+  // alfanumérico de gateway com essa coluna.
+  if (!data && !error && isUuid) {
     const result = await ctx.sb.from("booking_payments")
       .select(paymentFields)
       .eq("company_id", ctx.companyId)
@@ -1176,7 +1180,6 @@ const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
     error = result.error;
   }
 
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
   if (!data && !error && isUuid) {
     const result = await ctx.sb.from("booking_payments")
       .select(paymentFields)
