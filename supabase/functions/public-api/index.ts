@@ -1004,12 +1004,33 @@ const completeBookingHold: Handler = async (ctx, req, { id }) => {
   if (holdError) return err(holdError.message, 500);
   if (!hold) return err("Booking hold not found", 404);
 
-  const { data: payment, error: paymentError } = await ctx.sb
+  // O ID público retornado pelo gateway pode não ser UUID. Resolver primeiro
+  // pelos identificadores externos; nunca comparar um ID alfanumérico com a coluna UUID.
+  const paymentFields = "id, asaas_id, provider_payment_id, booking_id, company_id, status";
+  let { data: payment, error: paymentError } = await ctx.sb
     .from("booking_payments")
-    .select("id, asaas_id, booking_id, company_id, status")
+    .select(paymentFields)
     .eq("company_id", ctx.companyId)
-    .eq("asaas_id", payment_id)
+    .eq("provider_payment_id", payment_id)
     .maybeSingle();
+  if (!payment && !paymentError) {
+    const result = await ctx.sb.from("booking_payments")
+      .select(paymentFields)
+      .eq("company_id", ctx.companyId)
+      .eq("asaas_id", payment_id)
+      .maybeSingle();
+    payment = result.data;
+    paymentError = result.error;
+  }
+  if (!payment && !paymentError && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payment_id)) {
+    const result = await ctx.sb.from("booking_payments")
+      .select(paymentFields)
+      .eq("company_id", ctx.companyId)
+      .eq("id", payment_id)
+      .maybeSingle();
+    payment = result.data;
+    paymentError = result.error;
+  }
   if (paymentError) return err(paymentError.message, 500);
   if (!payment) return err("Payment not found", 404);
 
@@ -1135,18 +1156,39 @@ const createPayment: Handler = async (ctx, req) => {
 };
 
 const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
-  const { data, error } = await ctx.sb
+  const paymentFields = "id, booking_id, company_id, status, method, amount, asaas_id, provider_payment_id, provider, created_at, paid_at";
+  // IDs de gateway (ex.: pay_...) são texto, não UUID. Não use OR com id.uuid
+  // porque o Postgres tenta converter o valor externo para UUID e aborta a consulta.
+  let { data, error } = await ctx.sb
     .from("booking_payments")
-    .select("id, booking_id, company_id, status, method, amount, asaas_id, created_at, paid_at")
+    .select(paymentFields)
     .eq("company_id", ctx.companyId)
-    .or(`id.eq.${id},asaas_id.eq.${id}`)
+    .eq("provider_payment_id", id)
     .maybeSingle();
+  if (!data && !error) {
+    const result = await ctx.sb.from("booking_payments")
+      .select(paymentFields)
+      .eq("company_id", ctx.companyId)
+      .eq("asaas_id", id)
+      .maybeSingle();
+    data = result.data;
+    error = result.error;
+  }
+  if (!data && !error && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    const result = await ctx.sb.from("booking_payments")
+      .select(paymentFields)
+      .eq("company_id", ctx.companyId)
+      .eq("id", id)
+      .maybeSingle();
+    data = result.data;
+    error = result.error;
+  }
   if (error) return err(error.message, 500);
   if (!data) return err("Payment not found", 404);
 
-  const gatewayId = data.asaas_id ?? id;
+  const gatewayId = data.provider_payment_id ?? data.asaas_id ?? id;
   const { data: gateway, error: gatewayError } = await ctx.sb.functions.invoke("booking-payment-status", {
-    body: { payment_id: gatewayId },
+    body: { payment_id: gatewayId, provider: data.provider },
   });
 
   if (gatewayError) {
