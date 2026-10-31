@@ -64,7 +64,13 @@ serve(async (req) => {
           .eq("asaas_id", payment_id).maybeSingle()
         row = legacyRow
       }
-      if (!row) {
+      // O ID interno da tabela é UUID. IDs de gateway (ex.: klk6ba3u7xr4ztkb)
+      // são texto e nunca devem ser enviados para o filtro da coluna UUID.
+      const isInternalPaymentUuid =
+        typeof payment_id === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payment_id);
+
+      if (!row && isInternalPaymentUuid) {
         const { data: internalRow } = await supabase
           .from("booking_payments").select(selectFields)
           .eq("id", payment_id).maybeSingle()
