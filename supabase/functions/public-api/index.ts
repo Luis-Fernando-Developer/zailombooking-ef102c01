@@ -1194,8 +1194,12 @@ const getPaymentStatus: Handler = async (ctx, _req, { id }) => {
   if (!data) return err("Payment not found", 404);
 
   const gatewayId = data.provider_payment_id ?? data.asaas_id ?? id;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const { data: gateway, error: gatewayError } = await ctx.sb.functions.invoke("booking-payment-status", {
     body: { payment_id: gatewayId, provider: data.provider },
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
   });
 
   if (gatewayError) {
