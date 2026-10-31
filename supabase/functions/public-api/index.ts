@@ -1013,12 +1013,7 @@ const completeBookingHold: Handler = async (ctx, req, { id }) => {
     .eq("company_id", ctx.companyId)
     .eq("provider_payment_id", payment_id)
     .maybeSingle();
-  const isUuidPaymentId =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payment_id);
-
-  // asaas_id pode ser UUID em bancos legados. IDs alfanuméricos do gateway
-  // devem ser resolvidos exclusivamente por provider_payment_id.
-  if (!payment && !paymentError && isUuidPaymentId) {
+  if (!payment && !paymentError) {
     const result = await ctx.sb.from("booking_payments")
       .select(paymentFields)
       .eq("company_id", ctx.companyId)
