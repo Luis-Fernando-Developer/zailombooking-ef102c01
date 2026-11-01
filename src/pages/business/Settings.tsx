@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { LandingPageCustomizer } from "@/components/business/LandingPageCustomizer";
 import { PaymentSettings } from "@/components/business/PaymentSettings";
+import { CompanyDomainSettings } from "@/components/business/CompanyDomainSettings";
 import { usePermissions } from "@/hooks/use-permissions";
 import type { User } from "@supabase/supabase-js";
 
@@ -309,6 +310,8 @@ export default function BusinessSettings() {
             </CardContent>
           </Card>
         )}
+
+        <CompanyDomainSettings companyId={company.id} canManage={canManageSettings} />
 
         {canViewBooking && (
           <Card className="flex w-full flex-col">
