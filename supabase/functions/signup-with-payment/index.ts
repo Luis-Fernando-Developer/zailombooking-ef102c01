@@ -246,6 +246,9 @@ serve(async (req) => {
     const fullPayload: Record<string, unknown> = {
       name: c.name,
       slug: c.slug,
+      booking_url_type: c.booking_url_type ?? "path",
+      booking_subdomain: c.booking_subdomain ?? null,
+      custom_domain: c.custom_domain ?? null,
       owner_name: c.owner_name,
       owner_email: c.owner_email,
       owner_phone: c.owner_phone ?? null,
@@ -266,6 +269,9 @@ serve(async (req) => {
       "company_niche",
       "company_segment",
       "cnpj",
+      "booking_url_type",
+      "booking_subdomain",
+      "custom_domain",
     ];
 
 
