@@ -642,7 +642,7 @@ export default function ApiDocs() {
                 </span>
               </div>
               <button
-                onClick={() => copy(curl, "req")}
+                onClick={() => copy(`URL: ${url}${body ? `\n\nBody (application/json):\n${JSON.stringify(body, null, 2)}` : ""}`, "req")}
                 className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-label="Copiar exemplo de requisição"
               >
