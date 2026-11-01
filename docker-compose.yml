@@ -15,11 +15,19 @@ services:
       - bookingZailom_net
     labels:
       - "traefik.enable=true"
-      # Router HTTPS
+      # Router HTTPS do endereço principal do Booking
       - "traefik.http.routers.zailom-booking-frontend.rule=Host(`booking.zailom.com`)"
       - "traefik.http.routers.zailom-booking-frontend.entrypoints=websecure"
       - "traefik.http.routers.zailom-booking-frontend.tls=true"
-      # Router HTTP (Redirecionamento para HTTPS)
+      # Router HTTPS para subdomínios das empresas
+      # Prioridade baixa para preservar os routers específicos dos outros serviços.
+      - "traefik.http.routers.zailom-booking-subdomains.rule=HostRegexp(`^[a-z0-9-]+\\.zailom\\.com$`)"
+      - "traefik.http.routers.zailom-booking-subdomains.entrypoints=websecure"
+      - "traefik.http.routers.zailom-booking-subdomains.priority=1"
+      - "traefik.http.routers.zailom-booking-subdomains.tls=true"
+      - "traefik.http.routers.zailom-booking-subdomains.tls.certresolver=cloudflare"
+      - "traefik.http.routers.zailom-booking-subdomains.service=zailom-booking-frontend"
+      # Router HTTP (o Traefik global redireciona HTTP para HTTPS)
       - "traefik.http.routers.zailom-booking-frontend-http.rule=Host(`booking.zailom.com`)"
       - "traefik.http.routers.zailom-booking-frontend-http.entrypoints=web"
       - "traefik.http.routers.zailom-booking-frontend-http.middlewares=https-redirect"
