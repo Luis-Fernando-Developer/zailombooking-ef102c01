@@ -9,7 +9,7 @@ import { Globe, Link2, Save, ShieldCheck, Info } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
-const RESERVED = new Set(["www", "booking", "flow", "api", "api-booking", "api-flowbuilder", "wa", "mail", "email", "admin", "app", " suporte"]);
+const RESERVED = new Set(["www", "booking", "flow", "api", "api-booking", "api-flowbuilder", "wa", "mail", "email", "admin", "app", "suporte"]);
 
 export function CompanyDomainSettings({ companyId, canManage }: { companyId: string; canManage: boolean }) {
   const { slug } = useParams<{ slug: string }>();
@@ -34,12 +34,12 @@ export function CompanyDomainSettings({ companyId, canManage }: { companyId: str
 
   const save = async () => {
     const normalizedSubdomain = subdomain.trim().toLowerCase();
-    const normalizedDomain = customDomain.trim().toLowerCase().replace(/^https?:\\/\\//, "").replace(/\\/$/, "");
+    const normalizedDomain = customDomain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
     if (normalizedSubdomain && (!/^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/.test(normalizedSubdomain) || RESERVED.has(normalizedSubdomain))) {
       toast({ title: "Subdomínio inválido", description: "Use de 3 a 40 caracteres, letras minúsculas, números e hífen. Esse nome pode estar reservado.", variant: "destructive" });
       return;
     }
-    if (normalizedDomain && (!/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,}$/i.test(normalizedDomain) || normalizedDomain === suffix)) {
+    if (normalizedDomain && (!/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(normalizedDomain) || normalizedDomain === suffix)) {
       toast({ title: "Domínio inválido", description: "Informe um domínio válido, por exemplo agenda.suaempresa.com.br.", variant: "destructive" });
       return;
     }
@@ -54,7 +54,7 @@ export function CompanyDomainSettings({ companyId, canManage }: { companyId: str
       if (error) throw error;
       setSubdomain(normalizedSubdomain);
       setCustomDomain(normalizedDomain);
-      setDomainStatus(normalizedDomain ? "pending" : "not_configured");
+      setDomainStatus(normalizedDomain ? (normalizedDomain === customDomain && domainStatus === "verified" ? "verified" : "pending") : "not_configured");
       toast({ title: "Endereços salvos", description: "O subdomínio Zailom fica disponível após a configuração DNS wildcard. O domínio próprio ficará pendente até a validação DNS." });
     } catch (error: any) {
       toast({ title: "Não foi possível salvar", description: error.message || "Verifique se o nome já está em uso.", variant: "destructive" });
