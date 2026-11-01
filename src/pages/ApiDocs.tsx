@@ -314,7 +314,7 @@ export default function ApiDocs() {
   if (isRoot) return <Navigate to="/api-docs/introduction" replace />;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="api-docs-glass min-h-screen bg-background text-foreground">
 
 
       {/* Top bar */}
@@ -453,7 +453,7 @@ export default function ApiDocs() {
 
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_480px] gap-0">
         {/* Sidebar de endpoints (desktop) */}
-        <aside className="hidden md:block h-[calc(100vh-56px)] overflow-y-auto border-r border-border/60 bg-card/30 p-3">
+        <aside className="api-docs-glass-sidebar hidden md:block h-[calc(100vh-56px)] overflow-y-auto border-r border-border/60 bg-card/30 p-3">
           {GROUPS.map((g) => (
             <div key={g} className="mb-4">
               <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
