@@ -102,6 +102,9 @@ export default function SignUp() {
     cardZip: "",
     cardAddrNumber: "",
   });
+  const [bookingUrlType, setBookingUrlType] = useState<"path" | "subdomain" | "custom_domain">("path");
+  const [customDomain, setCustomDomain] = useState("");
+  const [bookingSubdomain, setBookingSubdomain] = useState("");
   const [urlAvailable, setUrlAvailable] = useState<boolean | null>(null);
   const [isCheckingUrl, setIsCheckingUrl] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -188,14 +191,14 @@ export default function SignUp() {
   };
 
   const checkUrlAvailability = async () => {
-    if (!formData.customUrl) return;
+    const value = bookingUrlType === "path" ? formData.customUrl : bookingUrlType === "subdomain" ? bookingSubdomain : customDomain;
+    if (!value.trim()) return;
     setIsCheckingUrl(true);
     try {
-      const { data } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("slug", formData.customUrl)
-        .maybeSingle();
+      const column = bookingUrlType === "path" ? "slug" : bookingUrlType === "subdomain" ? "booking_subdomain" : "custom_domain";
+      const normalized = value.trim().toLowerCase();
+      const { data, error } = await supabase.from("companies").select("id").eq(column, normalized).maybeSingle();
+      if (error) throw error;
       setUrlAvailable(!data);
     } catch {
       setUrlAvailable(false);
@@ -256,8 +259,9 @@ export default function SignUp() {
     }
 
     try {
-      if (!urlAvailable) {
-        toast({ title: "URL indisponível", description: "Escolha uma URL disponível.", variant: "destructive" });
+      const selectedAddress = bookingUrlType === "path" ? formData.customUrl : bookingUrlType === "subdomain" ? bookingSubdomain : customDomain;
+      if (!selectedAddress.trim() || !urlAvailable) {
+        toast({ title: "Endereço indisponível", description: "Preencha e verifique o endereço escolhido.", variant: "destructive" });
         setIsLoading(false);
         return;
       }
@@ -305,7 +309,10 @@ export default function SignUp() {
       const payload: any = {
         company: {
           name: formData.companyName,
-          slug: formData.customUrl,
+          slug: bookingUrlType === "path" ? formData.customUrl : formData.companyName.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+          booking_url_type: bookingUrlType,
+          booking_subdomain: bookingUrlType === "subdomain" ? bookingSubdomain.trim().toLowerCase() : null,
+          custom_domain: bookingUrlType === "custom_domain" ? customDomain.trim().toLowerCase() : null,
           owner_name: formData.ownerName,
           owner_email: formData.ownerMail,
           owner_phone: formData.ownerPhone || null,
@@ -491,23 +498,41 @@ export default function SignUp() {
                 </div>
               </div>
 
-              {/* Custom URL */}
-              <div className="space-y-2">
-                <Label htmlFor="customUrl">URL Personalizada *</Label>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">booking.zailom.com/</span>
-                  <div className="relative flex-1">
-                    <Input id="customUrl" placeholder="viking-barbearia" value={formData.customUrl} onChange={(e) => handleInputChange("customUrl", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} className="bg-background/50 border-primary/30 focus:border-primary" required />
-                    {formData.customUrl && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        {isCheckingUrl ? <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /> : urlAvailable === true ? <Check className="w-4 h-4 text-green-500" /> : urlAvailable === false ? <X className="w-4 h-4 text-red-500" /> : null}
-                      </div>
-                    )}
+              {/* Modelo de endereço */}
+              <div className="space-y-3">
+                <Label htmlFor="bookingUrlType">Tipo de endereço *</Label>
+                <Select value={bookingUrlType} onValueChange={(value: "path" | "subdomain" | "custom_domain") => { setBookingUrlType(value); setUrlAvailable(null); }}>
+                  <SelectTrigger id="bookingUrlType" className="bg-background/50 border-primary/30"><SelectValue placeholder="Selecione o tipo de endereço" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="custom_domain">URL própria</SelectItem>
+                    <SelectItem value="subdomain">Subdomínio</SelectItem>
+                    <SelectItem value="path">Path</SelectItem>
+                  </SelectContent>
+                </Select>
+                {bookingUrlType === "path" && <div className="space-y-2">
+                  <Label htmlFor="customUrl">URL Personalizada *</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">booking.zailom.com/</span>
+                    <Input id="customUrl" placeholder="viking-barbearia" value={formData.customUrl} onChange={(e) => handleInputChange("customUrl", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} className="bg-background/50 border-primary/30" required />
                   </div>
-                  <Button type="button" variant="outline" onClick={checkUrlAvailability} disabled={!formData.customUrl || isCheckingUrl} size="sm">Verificar</Button>
+                </div>}
+                {bookingUrlType === "subdomain" && <div className="space-y-2">
+                  <Label htmlFor="bookingSubdomain">Subdomínio *</Label>
+                  <div className="flex items-center gap-2">
+                    <Input id="bookingSubdomain" placeholder="viking-barbearia" value={bookingSubdomain} onChange={(e) => { setBookingSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")); setUrlAvailable(null); }} className="bg-background/50 border-primary/30" required />
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">.zailom.com</span>
+                  </div>
+                </div>}
+                {bookingUrlType === "custom_domain" && <div className="space-y-2">
+                  <Label htmlFor="customDomain">Digite seu domínio *</Label>
+                  <Input id="customDomain" placeholder="agenda.suaempresa.com.br" value={customDomain} onChange={(e) => { setCustomDomain(e.target.value.toLowerCase().trim()); setUrlAvailable(null); }} className="bg-background/50 border-primary/30" required />
+                </div>}
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" onClick={checkUrlAvailability} disabled={isCheckingUrl || !(bookingUrlType === "path" ? formData.customUrl : bookingUrlType === "subdomain" ? bookingSubdomain : customDomain).trim()} size="sm">Verificar</Button>
+                  {isCheckingUrl && <span className="text-xs text-muted-foreground">Verificando...</span>}
+                  {urlAvailable === false && <span className="text-sm text-red-500">Endereço não disponível.</span>}
+                  {urlAvailable === true && <span className="text-sm text-green-500">Endereço disponível!</span>}
                 </div>
-                {urlAvailable === false && <p className="text-sm text-red-500">URL não disponível.</p>}
-                {urlAvailable === true && <p className="text-sm text-green-500">URL disponível! 🎉</p>}
               </div>
 
               {/* Owner Name */}
