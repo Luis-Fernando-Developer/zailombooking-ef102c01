@@ -48,16 +48,18 @@ export function CompanyDomainSettings({ companyId, canManage }: { companyId: str
     }
     setSaving(true);
     try {
+      const keepVerified = addressType === "custom_domain" && normalizedDomain === customDomain && domainStatus === "verified";
       const { error } = await supabase.from("companies").update({
-        booking_subdomain: normalizedSubdomain || null,
-        custom_domain: normalizedDomain || null,
-        custom_domain_status: normalizedDomain ? (normalizedDomain === customDomain && domainStatus === "verified" ? "verified" : "pending") : "not_configured",
-        custom_domain_verified_at: normalizedDomain === customDomain && domainStatus === "verified" ? undefined : null,
+        booking_url_type: addressType,
+        booking_subdomain: addressType === "subdomain" ? normalizedSubdomain : null,
+        custom_domain: addressType === "custom_domain" ? normalizedDomain : null,
+        custom_domain_status: addressType === "custom_domain" ? (keepVerified ? "verified" : "pending") : "not_configured",
+        custom_domain_verified_at: keepVerified ? undefined : null,
       } as any).eq("id", companyId);
       if (error) throw error;
-      setSubdomain(normalizedSubdomain);
-      setCustomDomain(normalizedDomain);
-      setDomainStatus(normalizedDomain ? (normalizedDomain === customDomain && domainStatus === "verified" ? "verified" : "pending") : "not_configured");
+      setSubdomain(addressType === "subdomain" ? normalizedSubdomain : "");
+      setCustomDomain(addressType === "custom_domain" ? normalizedDomain : "");
+      setDomainStatus(addressType === "custom_domain" ? (keepVerified ? "verified" : "pending") : "not_configured");
       toast({ title: "Endereços salvos", description: "O subdomínio Zailom fica disponível após a configuração DNS wildcard. O domínio próprio ficará pendente até a validação DNS." });
     } catch (error: any) {
       toast({ title: "Não foi possível salvar", description: error.message || "Verifique se o nome já está em uso.", variant: "destructive" });
