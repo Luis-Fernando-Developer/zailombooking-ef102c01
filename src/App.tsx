@@ -70,6 +70,7 @@ import ConfirmLink from "./pages/client/ConfirmLink";
 import SetPassword from "./pages/client/SetPassword";
 import ConfirmOwnerCompany from "./pages/business/ConfirmOwnerCompany";
 import NotFound from "./pages/NotFound";
+import { CompanyDomainResolver } from "@/components/CompanyDomainResolver";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <CompanyDomainResolver />
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/api-docs" element={<ApiDocs />} />
