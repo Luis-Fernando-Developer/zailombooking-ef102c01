@@ -30,7 +30,7 @@ SET search_path = public
 AS $$
   SELECT c.slug
   FROM public.companies c
-  WHERE c.status = 'active'
+  WHERE c.status IN ('active', 'pending_payment')
     AND (
       (c.booking_subdomain IS NOT NULL
        AND lower(c.booking_subdomain || '.zailom.com') = lower(split_part(p_host, ':', 1)))
