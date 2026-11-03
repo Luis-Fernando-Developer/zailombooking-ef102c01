@@ -18,6 +18,9 @@ interface Company {
   id: string;
   name: string;
   slug: string;
+  booking_url_type?: "path" | "subdomain" | "custom_domain" | null;
+  booking_subdomain?: string | null;
+  custom_domain?: string | null;
 }
 
 interface Service {
@@ -267,6 +270,16 @@ export default function BusinessProfile() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const getCompanyPublicUrl = (company: Company) => {
+    if (company.booking_url_type === "subdomain" && company.booking_subdomain) {
+      return `https://${company.booking_subdomain}.zailom.com`;
+    }
+    if (company.booking_url_type === "custom_domain" && company.custom_domain) {
+      return `https://${company.custom_domain}`;
+    }
+    return `https://booking.zailom.com/${company.slug}`;
+  };
+
   if (loading) {
     return (
       <BusinessLayout
@@ -500,7 +513,7 @@ export default function BusinessProfile() {
                 <div>
                   <Label className="text-sm font-medium">URL da Empresa</Label>
                   <p className="text-sm text-muted-foreground">
-                    {window.location.origin}/{employee.company.slug}
+                    {getCompanyPublicUrl(employee.company)}
                   </p>
                 </div>
                 <div>
