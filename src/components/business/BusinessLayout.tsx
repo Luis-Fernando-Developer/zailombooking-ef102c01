@@ -11,6 +11,7 @@ import { NotificationsBell } from "@/components/business/NotificationsBell";
 import { ThemeToggle, applyTheme, getInitialTheme } from "@/components/ThemeToggle";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabaseClient";
 
 
 interface BusinessLayoutProps {
@@ -38,7 +39,30 @@ export function BusinessLayout({
     applyTheme(getInitialTheme("admin"));
   }, []);
   const [copied, setCopied] = useState(false);
-  const publicUrl = `https://booking.zailom.com/${companySlug}`;
+  const [publicUrl, setPublicUrl] = useState(`https://booking.zailom.com/${companySlug}`);
+
+  useEffect(() => {
+    let active = true;
+    if (!companyId) {
+      setPublicUrl(`https://booking.zailom.com/${companySlug}`);
+      return;
+    }
+    supabase.from("companies")
+      .select("slug, booking_url_type, booking_subdomain, custom_domain, custom_domain_status")
+      .eq("id", companyId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active || error || !data) return;
+        let url = `https://booking.zailom.com/${data.slug || companySlug}`;
+        if (data.booking_url_type === "subdomain" && data.booking_subdomain) {
+          url = `https://${data.booking_subdomain}.zailom.com`;
+        } else if (data.booking_url_type === "custom_domain" && data.custom_domain) {
+          url = `https://${data.custom_domain}`;
+        }
+        setPublicUrl(url);
+      });
+    return () => { active = false; };
+  }, [companyId, companySlug]);
 
   const handleCopy = async () => {
     try {
