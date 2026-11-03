@@ -102,6 +102,7 @@ export default function ClientSignup() {
         try {
           const { data: funcData, error: funcError } = await supabase.functions.invoke("send-client-confirmation", {
             body: {
+              signup_flow: false,
               user_id: userIdData,
               company_id: companyData.id,
               name: fullName,
