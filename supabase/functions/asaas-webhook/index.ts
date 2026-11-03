@@ -186,64 +186,83 @@ serve(async (req) => {
           await supabaseClient.rpc('apply_paid_plan_change', { _invoice_id: invoiceIdForChange });
         }
 
-        // E-mail 3: só após confirmação real do pagamento. O link leva à criação
-        // da senha empresarial; a empresa continua pendente até essa etapa.
+        // E-mail 3: confirmação de pagamento, sem link de ativação.
+        // E-mail 4: agendado no Resend para 60 segundos depois do e-mail 3.
         try {
           const { data: paidInvoice } = await supabaseClient
-            .from('company_invoices')
-            .select('company_id, amount')
-            .eq('id', subscriptionInvoiceId)
-            .maybeSingle();
+            .from('company_invoices').select('company_id, amount').eq('id', subscriptionInvoiceId).maybeSingle();
           if (paidInvoice?.company_id) {
-            const { data: company } = await supabaseClient
-              .from('companies')
-              .select('id, name, owner_name, owner_email, status')
-              .eq('id', paidInvoice.company_id)
-              .maybeSingle();
-            const { data: ownerLink } = await supabaseClient
-              .from('owner_company_confirmations')
-              .select('id, employee_id, email, confirmation_token, confirmed_at, password_setup_email_sent_at')
-              .eq('company_id', paidInvoice.company_id)
-              .is('confirmed_at', null)
-              .maybeSingle();
+            const { data: company } = await supabaseClient.from('companies')
+              .select('id, name, owner_name, owner_email').eq('id', paidInvoice.company_id).maybeSingle();
+            const { data: ownerLink } = await supabaseClient.from('owner_company_confirmations')
+              .select('id, employee_id, email, confirmation_token, confirmed_at, password_setup_email_sent_at, payment_confirmation_email_sent_at, password_setup_email_scheduled_at')
+              .eq('company_id', paidInvoice.company_id).is('confirmed_at', null).maybeSingle();
             const resendKey = (Deno.env.get('RESEND_API_KEY') ?? '').trim();
-            // Empresa reativada com credencial existente não precisa criar senha novamente.
-            const { data: existingOwnerCredential } = ownerLink?.employee_id
-              ? await supabaseClient.from('employees')
-                  .select('id, password_hash')
-                  .eq('id', ownerLink.employee_id)
-                  .eq('company_id', paidInvoice.company_id)
-                  .maybeSingle()
-              : { data: null };
-            const alreadyHasPassword = !!String(existingOwnerCredential?.password_hash ?? '').trim();
-            if (company && ownerLink && !alreadyHasPassword && !ownerLink.password_setup_email_sent_at && resendKey) {
-              const from = (Deno.env.get('BILLING_EMAIL_FROM') || Deno.env.get('CLIENT_ACCESS_EMAIL_FROM') || 'Zailom Booking <atendimento@suport-mail.booking.zailom.com>').trim();
-              const siteUrl = (Deno.env.get('SITE_URL') || 'https://booking.zailom.com').replace(/\/$/, '');
-              const setupLink = siteUrl + '/confirmar-empresa?token=' + ownerLink.confirmation_token;
-              const emailResponse = await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + resendKey },
-                body: JSON.stringify({
-                  from,
-                  to: [ownerLink.email || company.owner_email],
-                  subject: 'Zailom Booking — pagamento confirmado, crie sua senha',
-                  html: '<h2>Pagamento confirmado!</h2><p>Olá, ' + (company.owner_name || 'empreendedor') + '.</p><p>Recebemos o pagamento da empresa <strong>' + company.name + '</strong>.</p><p>Para concluir a ativação, confirme seu e-mail e crie uma senha exclusiva para esta empresa:</p><p><a href="' + setupLink + '">Confirmar e criar minha senha</a></p>',
-                }),
-              });
-              if (emailResponse.ok) {
-                await supabaseClient.from('owner_company_confirmations')
-                  .update({ password_setup_email_sent_at: new Date().toISOString() })
-                  .eq('id', ownerLink.id)
-                  .is('password_setup_email_sent_at', null);
-              } else {
-                console.error('[ASAAS_WEBHOOK][' + requestId + '] Falha ao enviar link de criação de senha:', await emailResponse.text());
+            const from = (Deno.env.get('BILLING_EMAIL_FROM') || Deno.env.get('CLIENT_ACCESS_EMAIL_FROM') || 'Zailom Booking <atendimento@suport-mail.booking.zailom.com>').trim();
+            const siteUrl = (Deno.env.get('SITE_URL') || 'https://booking.zailom.com').replace(/\/$/, '');
+
+            if (company && ownerLink && resendKey) {
+              const { data: owner } = ownerLink.employee_id
+                ? await supabaseClient.from('employees').select('password_hash').eq('id', ownerLink.employee_id).eq('company_id', paidInvoice.company_id).maybeSingle()
+                : { data: null };
+              const needsActivation = !String(owner?.password_hash ?? '').trim();
+
+              // Claim atômico: apenas uma entrega concorrente do webhook envia cada mensagem.
+              if (!ownerLink.payment_confirmation_email_sent_at) {
+                const { data: claim } = await supabaseClient.from('owner_company_confirmations')
+                  .update({ payment_confirmation_email_sent_at: new Date().toISOString() })
+                  .eq('id', ownerLink.id).is('payment_confirmation_email_sent_at', null).select('id').maybeSingle();
+                if (claim?.id) {
+                  const response = await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + resendKey },
+                    body: JSON.stringify({
+                      from, to: [ownerLink.email || company.owner_email],
+                      subject: 'Zailom Booking — pagamento confirmado',
+                      html: '<h2>Pagamento confirmado!</h2><p>Olá, ' + (company.owner_name || 'empreendedor') + '.</p><p>O pagamento da empresa <strong>' + company.name + '</strong> foi confirmado com sucesso.</p><p>Em instantes, você receberá outro e-mail com as instruções para criar sua senha e ativar sua conta.</p>',
+                    }),
+                  });
+                  if (!response.ok) {
+                    await supabaseClient.from('owner_company_confirmations').update({ payment_confirmation_email_sent_at: null }).eq('id', ownerLink.id);
+                    console.error('[ASAAS_WEBHOOK][' + requestId + '] Falha no e-mail de pagamento confirmado:', await response.text());
+                  } else {
+                    // Agenda o e-mail 4 somente depois que o e-mail 3 foi aceito pelo provedor.
+                    if (needsActivation && ownerLink.confirmation_token && !ownerLink.password_setup_email_sent_at && !ownerLink.password_setup_email_scheduled_at) {
+                      const { data: scheduleClaim } = await supabaseClient.from('owner_company_confirmations')
+                        .update({ password_setup_email_scheduled_at: new Date().toISOString() })
+                        .eq('id', ownerLink.id).is('password_setup_email_scheduled_at', null)
+                        .is('password_setup_email_sent_at', null).select('id').maybeSingle();
+                      if (scheduleClaim?.id) {
+                        const setupLink = siteUrl + '/confirmar-empresa?token=' + ownerLink.confirmation_token;
+                        const scheduledAt = new Date(Date.now() + 60_000).toISOString();
+                        const setupResponse = await fetch('https://api.resend.com/emails', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + resendKey },
+                          body: JSON.stringify({
+                            from, to: [ownerLink.email || company.owner_email],
+                            subject: 'Zailom Booking — ação necessária: crie sua senha e ative sua empresa',
+                            scheduled_at: scheduledAt,
+                            html: '<h2>Falta apenas ativar sua empresa</h2><p>Olá, ' + (company.owner_name || 'empreendedor') + '.</p><p>O pagamento da empresa <strong>' + company.name + '</strong> já foi confirmado. Agora, crie sua senha empresarial para concluir a ativação e liberar seu acesso.</p><p><a href="' + setupLink + '">Criar minha senha e ativar empresa</a></p>',
+                          }),
+                        });
+                        if (setupResponse.ok) {
+                          await supabaseClient.from('owner_company_confirmations')
+                            .update({ password_setup_email_sent_at: new Date().toISOString() }).eq('id', ownerLink.id);
+                        } else {
+                          await supabaseClient.from('owner_company_confirmations')
+                            .update({ password_setup_email_scheduled_at: null }).eq('id', ownerLink.id);
+                          console.error('[ASAAS_WEBHOOK][' + requestId + '] Falha ao agendar e-mail de ativação:', await setupResponse.text());
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
         } catch (activationEmailError) {
-          console.error('[ASAAS_WEBHOOK][' + requestId + '] Erro no e-mail de ativação:', activationEmailError);
+          console.error('[ASAAS_WEBHOOK][' + requestId + '] Erro nos e-mails de confirmação/ativação:', activationEmailError);
         }
-
       } else if (failedEvents[event]) {
         await supabaseClient.rpc('mark_subscription_invoice_status', {
           _asaas_payment_id: asaasPaymentId,
