@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RequireBusinessAuth } from "@/components/business/RequireBusinessAuth";
 import { RequireRole } from "@/components/business/RequireRole";
@@ -70,7 +70,7 @@ import ConfirmLink from "./pages/client/ConfirmLink";
 import SetPassword from "./pages/client/SetPassword";
 import ConfirmOwnerCompany from "./pages/business/ConfirmOwnerCompany";
 import NotFound from "./pages/NotFound";
-import { CompanyDomainResolver } from "@/components/CompanyDomainResolver";
+import { CompanyAwareRouter } from "@/components/CompanyAwareRouter";
 
 const queryClient = new QueryClient();
 
@@ -80,8 +80,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <CompanyDomainResolver />
+        <CompanyAwareRouter>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/api-docs" element={<ApiDocs />} />
@@ -158,7 +157,7 @@ const App = () => (
             <Route path="/:slug/client/agendamentos" element={<ClientBookings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </CompanyAwareRouter>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
