@@ -73,8 +73,17 @@ export function CompanyAwareRouter({ children }: { children: ReactNode }) {
       const slug = !error && typeof data === "string" && data ? data : null;
       setCompanySlug(slug);
       const parsed = parsePath(window.location.pathname + window.location.search + window.location.hash);
+      const virtualPath = toVirtualPath(parsed.pathname || "/", slug);
+      const browserPath = toBrowserPath(virtualPath, slug);
+      if (slug && browserPath !== (parsed.pathname || "/")) {
+        window.history.replaceState(
+          window.history.state,
+          "",
+          createPath({ pathname: browserPath, search: parsed.search, hash: parsed.hash }),
+        );
+      }
       setLocation(makeLocation(
-        toVirtualPath(parsed.pathname || "/", slug),
+        virtualPath,
         parsed.search,
         parsed.hash,
         window.history.state?.usr,
