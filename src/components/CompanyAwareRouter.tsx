@@ -124,11 +124,15 @@ export function CompanyAwareRouter({ children }: { children: ReactNode }) {
       });
     },
     encodeLocation(to: any) {
-      const parsed = parsePath(createPath(to));
+      // React Router já entrega uma Location com pathname/search/hash.
+      // Não passar o objeto inteiro para parsePath/createPath: parsePath espera string.
+      const pathname = typeof to?.pathname === "string" ? to.pathname : "/";
+      const search = typeof to?.search === "string" ? to.search : "";
+      const hash = typeof to?.hash === "string" ? to.hash : "";
       return {
-        pathname: parsed.pathname || "/",
-        search: parsed.search || "",
-        hash: parsed.hash || "",
+        pathname: pathname.startsWith("/") ? pathname : `/${pathname}`,
+        search: search && !search.startsWith("?") ? `?${search}` : search,
+        hash: hash && !hash.startsWith("#") ? `#${hash}` : hash,
       };
     },
     go(delta: number) {
