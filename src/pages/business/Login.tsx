@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -15,9 +15,9 @@ export default function BusinessLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [companySlugInput, setCompanySlugInput] = useState("");
-  const pathSegments = window.location.pathname.split("/").filter(Boolean);
-  const isGenericLogin = pathSegments.length === 1 && pathSegments[0] === "login";
-  const resolvedCompanySlug = isGenericLogin ? companySlugInput.trim().toLowerCase() : (pathSegments[0] || "");
+  const { slug: routeCompanySlug } = useParams<{ slug: string }>();
+  const isGenericLogin = !routeCompanySlug;
+  const resolvedCompanySlug = isGenericLogin ? companySlugInput.trim().toLowerCase() : routeCompanySlug;
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
