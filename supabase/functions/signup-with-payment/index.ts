@@ -156,14 +156,28 @@ serve(async (req) => {
       ? body.billing_type
       : "PIX") as BillingType;
 
-    // 1) Verifica slug livre
-    const { data: slugExists } = await admin
-      .from("companies")
-      .select("id")
-      .eq("slug", c.slug)
-      .maybeSingle();
-    if (slugExists) {
-      return json({ ok: false, error: "Esse link personalizado já está em uso.", code: "slug_taken" }, 200);
+    // O endereço público é validado conforme booking_url_type.
+    // Em subdomínio/domínio próprio, o slug é apenas identificador interno
+    // e não pode bloquear um endereço público que já foi validado.
+    const requestedSlug = String(c.slug ?? "").trim().toLowerCase();
+    const bookingUrlType = String(c.booking_url_type ?? "path");
+    const internalSlug = bookingUrlType === "path"
+      ? requestedSlug
+      : `${requestedSlug || "empresa"}-${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
+
+    if (bookingUrlType === "path") {
+      const { data: slugExists, error: slugLookupError } = await admin
+        .from("companies")
+        .select("id")
+        .eq("slug", internalSlug)
+        .maybeSingle();
+      if (slugLookupError) {
+        console.error("[signup-with-payment] erro ao verificar slug:", slugLookupError.message);
+        return json({ ok: false, error: "Não foi possível validar o endereço personalizado. Tente novamente." }, 200);
+      }
+      if (slugExists) {
+        return json({ ok: false, error: "Esse link personalizado já está em uso.", code: "slug_taken" }, 200);
+      }
     }
 
     // 1b) Plano + valor do ciclo
@@ -245,7 +259,7 @@ serve(async (req) => {
     // 3) Cria empresa — fallback removendo opcionais caso a coluna não exista.
     const fullPayload: Record<string, unknown> = {
       name: c.name,
-      slug: c.slug,
+      slug: internalSlug,
       booking_url_type: c.booking_url_type ?? "path",
       booking_subdomain: c.booking_subdomain ?? null,
       custom_domain: c.custom_domain ?? null,
