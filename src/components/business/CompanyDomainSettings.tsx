@@ -37,7 +37,7 @@ export function CompanyDomainSettings({ companyId, canManage }: { companyId: str
 
   const loadCompany = async () => {
     const { data, error } = await supabase.from("companies")
-      .select("booking_url_type, booking_subdomain, custom_domain, custom_domain_status, custom_domain_validation_records, custom_domain_ownership_verification")
+      .select("booking_url_type, booking_subdomain, custom_domain, custom_domain_status, custom_domain_validation_records, custom_domain_ownership_verification, flow_custom_domain_status, flow_custom_domain_validation_records, flow_custom_domain_ownership_verification")
       .eq("id", companyId).single();
     if (error || !data) return;
     setAddressType(data.booking_url_type || (data.custom_domain ? "custom_domain" : data.booking_subdomain ? "subdomain" : "path"));
