@@ -243,31 +243,34 @@ export default function CreateCompany() {
       }
       console.log("✅ Assinatura Asaas provisionada:", authData.billing);
 
-      // Provisionar Flow somente se o Super Admin tiver ativado o toggle.
-      if (formData.provision_flow) try {
-        // Verificar se já existe integração para não duplicar
-        const { data: existingIntegration } = await supabase
+      // Registrar a integração Flow de forma confiável. A ativação da senha
+      // depende deste registro para disparar o provisionamento do workspace.
+      if (formData.provision_flow) {
+        const { data: existingIntegration, error: lookupError } = await supabase
           .from('chatbot_integration')
           .select('id')
           .eq('company_id', companyData.id)
           .maybeSingle();
 
+        if (lookupError) {
+          throw new Error(`Empresa criada, mas não foi possível verificar a integração Flow: ${lookupError.message}`);
+        }
+
         if (!existingIntegration) {
-          await supabase
+          const { error: integrationError } = await supabase
             .from('chatbot_integration')
             .insert([{
               company_id: companyData.id,
               builder_base_url: 'https://fwoescubnnagdvwasbjl.supabase.co',
-              builder_workspace_slug: formData.slug,
+              builder_workspace_slug: companyData.slug,
               is_active: false,
               talkmap_provisioned: false,
             }]);
+
+          if (integrationError) {
+            throw new Error(`Empresa criada, mas não foi possível registrar a integração Flow: ${integrationError.message}`);
+          }
         }
-
-        // O provisionamento do Flow foi adiado para depois do pagamento e da criação da senha.
-
-      } catch (provErr) {
-        console.warn('⚠️ Erro ao provisionar ZailomFlow (não bloqueante):', provErr);
       }
 
       // Sincronizar tier do plano com o builder
