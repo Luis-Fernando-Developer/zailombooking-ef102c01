@@ -206,7 +206,7 @@ export function CompanyDomainSettings({ companyId, canManage }: { companyId: str
                 : <Badge variant="outline">Não configurado</Badge>}
           {cloudflareStatus && <span className="text-xs text-muted-foreground">Cloudflare: {cloudflareStatus}</span>}
           {sslStatus && <span className="text-xs text-muted-foreground">SSL: {sslStatus}</span>}
-          {domainStatus === "pending" && <Button type="button" size="sm" variant="outline" onClick={refreshStatus} disabled={refreshing}>
+          {(domainStatus === "pending" || flowDomainStatus === "pending") && <Button type="button" size="sm" variant="outline" onClick={refreshStatus} disabled={refreshing}>
             <RefreshCw className={`mr-2 h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Verificando..." : "Atualizar validação"}
           </Button>}
         </div>
