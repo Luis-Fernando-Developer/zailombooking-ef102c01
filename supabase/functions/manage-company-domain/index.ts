@@ -132,6 +132,8 @@ Deno.serve(async (req) => {
         flow_custom_domain_cloudflare_id: null,
         flow_custom_domain_status: "not_configured",
         flow_custom_domain_verified_at: null,
+        flow_custom_domain_validation_records: [],
+        flow_custom_domain_ownership_verification: null,
         custom_domain_validation_records: [],
         custom_domain_ownership_verification: null,
         custom_domain_last_error: null,
@@ -227,6 +229,8 @@ Deno.serve(async (req) => {
       flow_custom_domain_cloudflare_id: flowHostname?.id || null,
       flow_custom_domain_status: flowReady ? "verified" : "pending",
       flow_custom_domain_verified_at: flowReady ? new Date().toISOString() : null,
+      flow_custom_domain_validation_records: flowHostname?.ssl?.validation_records || [],
+      flow_custom_domain_ownership_verification: flowHostname?.ownership_verification || null,
     }).eq("id", companyId);
     if (flowSaveError) throw flowSaveError;
 
@@ -261,6 +265,7 @@ Deno.serve(async (req) => {
       flow_ssl_status: flowHostname?.ssl?.status || "pending",
       flow_cname_target: "flow-builder.zailom.com",
       flow_validation_records: flowHostname?.ssl?.validation_records || [],
+      flow_ownership_verification: flowHostname?.ownership_verification || null,
       cloudflare_status: hostname?.status || "pending",
       ssl_status: hostname?.ssl?.status || "pending",
       cname_target: FALLBACK_ORIGIN,
