@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const { data: company, error: companyError } = await admin.from("companies")
-      .select("id, owner_email, custom_domain, custom_domain_status, custom_domain_cloudflare_id, flow_custom_domain_cloudflare_id")
+      .select("id, owner_email, owner_name, slug, plan_id, custom_domain, custom_domain_status, custom_domain_cloudflare_id, flow_custom_domain_cloudflare_id")
       .eq("id", companyId).maybeSingle();
     if (companyError || !company) return json({ error: "Empresa não encontrada." }, 404);
 
@@ -217,8 +217,29 @@ Deno.serve(async (req) => {
     }).eq("id", companyId);
     if (flowSaveError) throw flowSaveError;
 
+    let flowWorkspaceSynced = false;
+    let flowWorkspaceSyncError: string | null = null;
+    const { data: flowIntegration } = await admin.from("chatbot_integration")
+      .select("talkmap_provisioned").eq("company_id", companyId).maybeSingle();
+    if (flowIntegration?.talkmap_provisioned && company.owner_email && company.slug) {
+      const { data: syncResult, error: syncError } = await admin.functions.invoke("provision-zailom-flow", {
+        body: {
+          email: company.owner_email, slug: company.slug,
+          display_name: company.owner_name || company.slug, full_name: company.owner_name || company.slug,
+          plan_id: company.plan_id, company_id: company.id,
+        },
+      });
+      if (syncError || !syncResult?.success) {
+        flowWorkspaceSyncError = syncError?.message || syncResult?.error || "Falha ao atualizar domínio do workspace Flow.";
+      } else {
+        flowWorkspaceSynced = true;
+      }
+    }
+
     return json({
       success: true,
+      flow_workspace_synced: flowWorkspaceSynced,
+      ...(flowWorkspaceSyncError ? { flow_workspace_sync_error: flowWorkspaceSyncError } : {}),
       domain,
       status,
       flow_domain: flowDomain,
