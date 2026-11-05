@@ -133,6 +133,9 @@ export function CompanyDomainSettings({ companyId, canManage }: { companyId: str
         setDomainStatus("not_configured");
         setValidationRecords([]);
         setOwnershipVerification(null);
+        setFlowDomainStatus("not_configured");
+        setFlowValidationRecords([]);
+        setFlowOwnershipVerification(null);
         if (addressType === "subdomain") {
           const { error } = await supabase.from("companies").update({
             booking_url_type: "subdomain",
@@ -222,6 +225,15 @@ export function CompanyDomainSettings({ companyId, canManage }: { companyId: str
           </div>)}
         </div>}
         {domainStatus === "verified" && <p className="text-sm text-green-600">Seu endereço público está pronto: https://{customDomain}</p>}
+        {flowDomainStatus !== "not_configured" && <div className="rounded-md border p-3 space-y-2">
+          <p className="text-sm font-medium">Zailom Flow: https://flow.{customDomain}</p>
+          <p className="text-xs text-muted-foreground">Status do domínio Flow: {flowDomainStatus}. O CNAME deve apontar para flow-builder.zailom.com.</p>
+          {flowOwnershipVerification && <div className="text-xs break-all">TXT de propriedade: <code>{String(flowOwnershipVerification.name || flowOwnershipVerification.txt_name || "")}</code> — <code>{String(flowOwnershipVerification.value || flowOwnershipVerification.txt_record || flowOwnershipVerification.txt_value || "")}</code></div>}
+          {flowValidationRecords.map((record,index)=><div key={index} className="text-xs break-all">
+            <div>TXT nome: <code>{record.txt_name || "—"}</code></div>
+            <div>TXT valor: <code>{record.txt_record || record.txt_value || "—"}</code></div>
+          </div>)}
+        </div>}
       </div>}
 
       {addressType === "subdomain" && <div className="space-y-2">
