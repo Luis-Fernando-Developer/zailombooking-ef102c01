@@ -46,33 +46,61 @@ Deno.serve(async (req) => {
       if (!emailResponse.ok) console.error("[set-owner-company-password] Falha no e-mail de boas-vindas:", await emailResponse.text());
     }
 
-    // Se o Super Admin habilitou a integração com o Flow, provisiona somente agora,
-    // quando o proprietário definiu a senha contextual. Falha do Flow não desfaz a ativação do Booking.
-    const { data: integration } = await admin.from("chatbot_integration")
+    // Provisionar o Flow somente para empresas cuja integração foi habilitada
+    // pelo Super Admin. O registro é criado no cadastro e é a fonte explícita
+    // dessa opção (não inferir pelo e-mail, pois um usuário pode ter várias empresas).
+    let flowProvisioned: boolean | null = null;
+    let flowProvisionError: string | null = null;
+    const { data: integration, error: integrationLookupError } = await admin.from("chatbot_integration")
       .select("id, talkmap_provisioned, builder_workspace_slug")
       .eq("company_id", data.company_id).maybeSingle();
-    if (integration && !integration.talkmap_provisioned) {
-      const { data: company } = await admin.from("companies").select("plan_id, slug, owner_name").eq("id", data.company_id).maybeSingle();
-      try {
-        const { data: provisionResult, error: provisionError } = await admin.functions.invoke("provision-zailom-flow", {
-          body: {
-            email: data.email,
-            password,
-            slug: company?.slug || integration.builder_workspace_slug,
-            display_name: company?.owner_name || data.company_name,
-            plan_id: company?.plan_id,
-            company_id: data.company_id,
-          },
-        });
-        if (provisionError || !provisionResult?.success) {
-          console.error("[set-owner-company-password] Provisionamento Flow não concluído:", provisionError?.message || provisionResult?.error);
+
+    if (integrationLookupError) {
+      flowProvisionError = integrationLookupError.message;
+      console.error("[set-owner-company-password] Falha ao consultar integração Flow:", flowProvisionError);
+    } else if (integration && !integration.talkmap_provisioned) {
+      const { data: company, error: companyLookupError } = await admin.from("companies")
+        .select("plan_id, slug, owner_name")
+        .eq("id", data.company_id).maybeSingle();
+
+      if (companyLookupError || !company) {
+        flowProvisionError = companyLookupError?.message || "Empresa não encontrada para provisionar o Flow.";
+      } else {
+        try {
+          const { data: provisionResult, error: provisionError } = await admin.functions.invoke("provision-zailom-flow", {
+            body: {
+              email: data.email,
+              password,
+              slug: company.slug || integration.builder_workspace_slug,
+              display_name: company.owner_name || data.company_name,
+              plan_id: company.plan_id,
+              company_id: data.company_id,
+            },
+          });
+          if (provisionError || !provisionResult?.success) {
+            flowProvisionError = provisionError?.message || provisionResult?.error || "O Flow não confirmou o provisionamento.";
+          } else {
+            flowProvisioned = true;
+          }
+        } catch (e) {
+          flowProvisionError = e instanceof Error ? e.message : "Erro inesperado ao provisionar o Flow.";
         }
-      } catch (e) {
-        console.error("[set-owner-company-password] Erro ao provisionar Flow:", e);
       }
+
+      if (flowProvisionError) {
+        console.error("[set-owner-company-password] Provisionamento Flow não concluído:", flowProvisionError);
+      }
+    } else if (integration?.talkmap_provisioned) {
+      flowProvisioned = true;
     }
 
-    return reply({ success: true, company_slug: data.company_slug, welcome_email_sent: welcomeEmailSent });
+    return reply({
+      success: true,
+      company_slug: data.company_slug,
+      welcome_email_sent: welcomeEmailSent,
+      flow_provisioned: flowProvisioned,
+      ...(flowProvisionError ? { flow_provision_error: flowProvisionError } : {}),
+    });
   } catch (e) {
     console.error("[set-owner-company-password] Erro:", e);
     return reply({ success: false, error: e instanceof Error ? e.message : "Erro interno." }, 500);
