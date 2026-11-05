@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       console.error("[set-owner-company-password] Falha ao consultar integração Flow:", flowProvisionError);
     } else if (integration && !integration.talkmap_provisioned) {
       const { data: company, error: companyLookupError } = await admin.from("companies")
-        .select("plan_id, slug, owner_name, booking_url_type, booking_subdomain, custom_domain")
+        .select("plan_id, slug, owner_name, booking_url_type, booking_subdomain, custom_domain, flow_custom_domain_status")
         .eq("id", data.company_id).maybeSingle();
 
       if (companyLookupError || !company) {
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
           const subdomain = String(company.booking_subdomain).toLowerCase().replace(/\.zailom\.com$/, "");
           flowLoginUrl = "https://flow-" + subdomain + ".zailom.com/login";
         } else if (company.booking_url_type === "custom_domain" && company.custom_domain) {
-          flowLoginUrl = "https://flow." + String(company.custom_domain).replace(/^https?:\/\//, "").replace(/\/$/, "") + "/login";
+          if (company.flow_custom_domain_status === "verified") flowLoginUrl = "https://flow." + String(company.custom_domain).replace(/^https?:\/\//, "").replace(/\/$/, "") + "/login";
         }
         const flowEmail = await fetch("https://api.resend.com/emails", {
           method: "POST",
