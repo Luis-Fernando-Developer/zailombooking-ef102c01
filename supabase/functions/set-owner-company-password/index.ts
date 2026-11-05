@@ -70,7 +70,6 @@ Deno.serve(async (req) => {
           const { data: provisionResult, error: provisionError } = await admin.functions.invoke("provision-zailom-flow", {
             body: {
               email: data.email,
-              password,
               slug: company.slug || integration.builder_workspace_slug,
               display_name: company.owner_name || data.company_name,
               plan_id: company.plan_id,
