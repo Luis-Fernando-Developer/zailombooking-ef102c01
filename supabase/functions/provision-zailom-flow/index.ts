@@ -168,8 +168,8 @@ serve(async (req) => {
       ? ownerPasswordHash
       : null;
 
-    let flowAccessHost: string | null = null;
-    let flowDomainType = "subdomain";
+    let flowAccessHost: string | null = slug;
+    let flowDomainType = "platform";
     let flowDomainVerified = false;
     if (companyDomain?.booking_url_type === "subdomain" && companyDomain.booking_subdomain) {
       const subdomain = String(companyDomain.booking_subdomain).toLowerCase().replace(/\.zailom\.com$/, "").replace(/[^a-z0-9-]/g, "");
