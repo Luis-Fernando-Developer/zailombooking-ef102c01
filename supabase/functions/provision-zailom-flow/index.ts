@@ -150,7 +150,7 @@ serve(async (req) => {
     // O hash bcrypt é transferido entre os servidores; senha em texto puro nunca é enviada.
     const { data: companyDomain, error: domainLookupError } = await supabaseClient
       .from("companies")
-      .select("booking_url_type, booking_subdomain, custom_domain, custom_domain_status")
+      .select("booking_url_type, booking_subdomain, custom_domain, custom_domain_status, flow_custom_domain_status")
       .eq("id", company_id)
       .maybeSingle();
     if (domainLookupError) throw new Error("Falha ao consultar domínio da empresa: " + domainLookupError.message);
@@ -179,6 +179,7 @@ serve(async (req) => {
       if (customDomain) {
         flowAccessHost = "flow." + customDomain;
         flowDomainType = "custom";
+        flowDomainVerified = companyDomain.flow_custom_domain_status === "verified";
       }
     }
 
