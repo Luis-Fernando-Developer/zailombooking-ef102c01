@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Building2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +11,6 @@ export default function CompanyLoginEntry() {
   const [slug, setSlug] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const navigate = useNavigate();
 
   const handleContinue = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -21,9 +19,11 @@ export default function CompanyLoginEntry() {
     if (rawSlug.includes("://") || rawSlug.startsWith("www.")) {
       try {
         const parsed = new URL(rawSlug.includes("://") ? rawSlug : "https://" + rawSlug);
-        normalizedSlug = parsed.pathname.split("/").filter(Boolean)[0] || "";
-        if (!normalizedSlug && parsed.hostname !== "booking.zailom.com") {
-          normalizedSlug = parsed.hostname.replace(/^www\./, "").split(".")[0];
+        const hostname = parsed.hostname.toLowerCase();
+        if (hostname === "booking.zailom.com") {
+          normalizedSlug = parsed.pathname.split("/").filter(Boolean)[0] || "";
+        } else {
+          normalizedSlug = hostname.split(".")[0];
         }
       } catch {
         normalizedSlug = rawSlug;
@@ -47,7 +47,14 @@ export default function CompanyLoginEntry() {
         setErrorMessage("Empresa não encontrada. Confira o slug e tente novamente.");
         return;
       }
-      navigate("/" + encodeURIComponent(data.slug) + "/login");
+
+      const destinationHost = data.custom_domain
+        || (data.booking_subdomain ? `${data.booking_subdomain}.zailom.com` : null);
+      if (destinationHost) {
+        window.location.assign(`https://${destinationHost}/login`);
+      } else {
+        window.location.assign(`https://booking.zailom.com/${encodeURIComponent(data.slug)}/login`);
+      }
     } catch {
       setErrorMessage("Não foi possível validar a empresa agora. Tente novamente.");
     } finally {
