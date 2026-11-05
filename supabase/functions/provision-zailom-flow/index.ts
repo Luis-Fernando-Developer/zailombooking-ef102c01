@@ -107,7 +107,7 @@ serve(async (req) => {
       });
     }
 
-    const { email, password, slug, display_name, company_id, plan_id, full_name } = await req.json();
+    const { email, slug, display_name, company_id, plan_id, full_name } = await req.json();
 
     // O Booking envia o UUID real do plano. Resolve o nome/tier no banco
     // para que Starter -> starter, Professional -> pro e Enterprise -> business.
@@ -146,6 +146,42 @@ serve(async (req) => {
       });
     }
 
+    // Booking é a fonte de verdade do domínio e do hash da senha empresarial.
+    // O hash bcrypt é transferido entre os servidores; senha em texto puro nunca é enviada.
+    const { data: companyDomain, error: domainLookupError } = await supabaseClient
+      .from("companies")
+      .select("booking_url_type, booking_subdomain, custom_domain, custom_domain_status")
+      .eq("id", company_id)
+      .maybeSingle();
+    if (domainLookupError) throw new Error("Falha ao consultar domínio da empresa: " + domainLookupError.message);
+
+    const { data: ownerCredential, error: credentialLookupError } = await supabaseClient
+      .from("employees")
+      .select("password_hash")
+      .eq("company_id", company_id)
+      .eq("role", "owner")
+      .eq("is_active", true)
+      .maybeSingle();
+    if (credentialLookupError) throw new Error("Falha ao consultar credencial do proprietário: " + credentialLookupError.message);
+    const ownerPasswordHash = String(ownerCredential?.password_hash || "");
+    const validPasswordHash = /^\\$2[aby]\\$[0-9]{2}\\$[./A-Za-z0-9]{53}$/.test(ownerPasswordHash)
+      ? ownerPasswordHash
+      : null;
+
+    let flowAccessHost: string | null = null;
+    let flowDomainType = "subdomain";
+    let flowDomainVerified = false;
+    if (companyDomain?.booking_url_type === "subdomain" && companyDomain.booking_subdomain) {
+      const subdomain = String(companyDomain.booking_subdomain).toLowerCase().replace(/\\.zailom\\.com$/, "").replace(/[^a-z0-9-]/g, "");
+      if (subdomain) flowAccessHost = "flow-" + subdomain + ".zailom.com";
+    } else if (companyDomain?.booking_url_type === "custom_domain" && companyDomain.custom_domain) {
+      const customDomain = String(companyDomain.custom_domain).toLowerCase().replace(/^https?:\\/\\//, "").replace(/\\/$/, "");
+      if (customDomain) {
+        flowAccessHost = "flow." + customDomain;
+        flowDomainType = "custom";
+      }
+    }
+
     let limits = {
       max_chatbots: 1,
       max_messages: 700,
@@ -181,11 +217,14 @@ serve(async (req) => {
     // Helper for logging integration
     const logIntegration = async (direction: string, endpoint: string, request: any, response: any, status: number) => {
       try {
+        const safeRequest = request && typeof request === "object"
+          ? Object.fromEntries(Object.entries(request).filter(([key]) => !["password", "password_hash"].includes(key)))
+          : request;
         await supabaseClient.from("integration_logs").insert({
           company_id,
           direction,
           endpoint,
-          request_payload: request,
+          request_payload: safeRequest,
           response_payload: response,
           status_code: status,
           system: "zailom-flow"
@@ -197,10 +236,11 @@ serve(async (req) => {
 
     const flowPayload = {
       email,
-      ...(password ? { password } : {}),
+      ...(validPasswordHash ? { password_hash: validPasswordHash } : {}),
       full_name: full_name || display_name || slug,
       slug,
       company_id,
+      ...(flowAccessHost ? { access_host: flowAccessHost, domain_type: flowDomainType, domain_verified: flowDomainVerified } : {}),
       plan_tier: embed_plan_tier,
       limits: {
         max_chatbots: limits.max_chatbots,
