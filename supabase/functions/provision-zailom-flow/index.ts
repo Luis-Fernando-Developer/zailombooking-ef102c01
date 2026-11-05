@@ -139,7 +139,7 @@ serve(async (req) => {
       }
     }
 
-    if (!email || !password || !slug || !company_id) {
+    if (!email || !slug || !company_id) {
       return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -197,7 +197,7 @@ serve(async (req) => {
 
     const flowPayload = {
       email,
-      password,
+      ...(password ? { password } : {}),
       full_name: full_name || display_name || slug,
       slug,
       company_id,
