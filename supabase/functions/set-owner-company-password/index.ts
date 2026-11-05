@@ -96,6 +96,8 @@ Deno.serve(async (req) => {
         } else if (company.booking_url_type === "custom_domain" && company.custom_domain) {
           if (company.flow_custom_domain_status === "verified") flowLoginUrl = "https://flow." + String(company.custom_domain).replace(/^https?:\/\//, "").replace(/\/$/, "") + "/login";
         }
+        const needsFlowIdentifier = company.booking_url_type === "path" || (company.booking_url_type === "custom_domain" && company.flow_custom_domain_status !== "verified");
+        const flowIdentifierHtml = needsFlowIdentifier ? "<p><strong>Identificador da empresa:</strong> " + company.slug + "</p>" : "";
         const flowEmail = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
@@ -103,7 +105,7 @@ Deno.serve(async (req) => {
             from,
             to: [data.email],
             subject: "Zailom Flow — acesso da sua empresa",
-            html: "<h2>Seu Zailom Flow está pronto!</h2><p>O ambiente Flow da empresa <strong>" + (data.company_name || "sua empresa") + "</strong> foi provisionado.</p><p><strong>Endereço:</strong> <a href=\"" + flowLoginUrl + "\">" + flowLoginUrl + "</a></p><p><strong>E-mail de acesso:</strong> " + data.email + "</p><p>Use a mesma senha que você acabou de cadastrar no Booking. A partir de agora, as senhas dos dois sistemas poderão ser alteradas separadamente.</p>"
+            html: "<h2>Seu Zailom Flow está pronto!</h2><p>O ambiente Flow da empresa <strong>" + (data.company_name || "sua empresa") + "</strong> foi provisionado.</p><p><strong>Endereço:</strong> <a href=\"" + flowLoginUrl + "\">" + flowLoginUrl + "</a></p>" + flowIdentifierHtml + "<p><strong>E-mail de acesso:</strong> " + data.email + "</p><p>Use a mesma senha que você acabou de cadastrar no Booking. A partir de agora, as senhas dos dois sistemas poderão ser alteradas separadamente.</p>"
           }),
         });
         if (!flowEmail.ok) console.error("[set-owner-company-password] Falha no e-mail de acesso Flow:", await flowEmail.text());
