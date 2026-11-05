@@ -31,6 +31,9 @@ export function CompanyDomainSettings({ companyId, canManage }: { companyId: str
   const [ownershipVerification, setOwnershipVerification] = useState<Record<string, unknown> | null>(null);
   const [cloudflareStatus, setCloudflareStatus] = useState("");
   const [sslStatus, setSslStatus] = useState("");
+  const [flowDomainStatus, setFlowDomainStatus] = useState("not_configured");
+  const [flowValidationRecords, setFlowValidationRecords] = useState<ValidationRecord[]>([]);
+  const [flowOwnershipVerification, setFlowOwnershipVerification] = useState<Record<string, unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const suffix = import.meta.env.VITE_COMPANY_DOMAIN_SUFFIX || "zailom.com";
@@ -46,6 +49,9 @@ export function CompanyDomainSettings({ companyId, canManage }: { companyId: str
     setDomainStatus(data.custom_domain_status || "not_configured");
     setValidationRecords(Array.isArray(data.custom_domain_validation_records) ? data.custom_domain_validation_records : []);
     setOwnershipVerification(data.custom_domain_ownership_verification || null);
+    setFlowDomainStatus(data.flow_custom_domain_status || "not_configured");
+    setFlowValidationRecords(Array.isArray(data.flow_custom_domain_validation_records) ? data.flow_custom_domain_validation_records : []);
+    setFlowOwnershipVerification(data.flow_custom_domain_ownership_verification || null);
   };
 
   useEffect(() => {
