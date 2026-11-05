@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       console.error("[set-owner-company-password] Falha ao consultar integração Flow:", flowProvisionError);
     } else if (integration && !integration.talkmap_provisioned) {
       const { data: company, error: companyLookupError } = await admin.from("companies")
-        .select("plan_id, slug, owner_name")
+        .select("plan_id, slug, owner_name, booking_url_type, booking_subdomain, custom_domain")
         .eq("id", data.company_id).maybeSingle();
 
       if (companyLookupError || !company) {
@@ -88,6 +88,25 @@ Deno.serve(async (req) => {
 
       if (flowProvisionError) {
         console.error("[set-owner-company-password] Provisionamento Flow não concluído:", flowProvisionError);
+      } else if (flowProvisioned && resendKey && data.email) {
+        let flowLoginUrl = siteUrl.replace("booking.zailom.com", "flow-builder.zailom.com") + "/login";
+        if (company.booking_url_type === "subdomain" && company.booking_subdomain) {
+          const subdomain = String(company.booking_subdomain).toLowerCase().replace(/\.zailom\.com$/, "");
+          flowLoginUrl = "https://flow-" + subdomain + ".zailom.com/login";
+        } else if (company.booking_url_type === "custom_domain" && company.custom_domain) {
+          flowLoginUrl = "https://flow." + String(company.custom_domain).replace(/^https?:\/\//, "").replace(/\/$/, "") + "/login";
+        }
+        const flowEmail = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
+          body: JSON.stringify({
+            from,
+            to: [data.email],
+            subject: "Zailom Flow — acesso da sua empresa",
+            html: "<h2>Seu Zailom Flow está pronto!</h2><p>O ambiente Flow da empresa <strong>" + (data.company_name || "sua empresa") + "</strong> foi provisionado.</p><p><strong>Endereço:</strong> <a href=\"" + flowLoginUrl + "\">" + flowLoginUrl + "</a></p><p><strong>E-mail de acesso:</strong> " + data.email + "</p><p>Use a mesma senha que você acabou de cadastrar no Booking. A partir de agora, as senhas dos dois sistemas poderão ser alteradas separadamente.</p>"
+          }),
+        });
+        if (!flowEmail.ok) console.error("[set-owner-company-password] Falha no e-mail de acesso Flow:", await flowEmail.text());
       }
     } else if (integration?.talkmap_provisioned) {
       flowProvisioned = true;
