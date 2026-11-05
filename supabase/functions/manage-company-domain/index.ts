@@ -137,7 +137,20 @@ Deno.serve(async (req) => {
         custom_domain_last_error: null,
       }).eq("id", companyId);
       if (error) throw error;
-      return json({ success: true, status: "not_configured" });
+      let flowWorkspaceSynced = false;
+      const { data: flowIntegration } = await admin.from("chatbot_integration")
+        .select("talkmap_provisioned").eq("company_id", companyId).maybeSingle();
+      if (flowIntegration?.talkmap_provisioned && company.owner_email && company.slug) {
+        const { data: syncResult, error: syncError } = await admin.functions.invoke("provision-zailom-flow", {
+          body: {
+            email: company.owner_email, slug: company.slug,
+            display_name: company.owner_name || company.slug, full_name: company.owner_name || company.slug,
+            plan_id: company.plan_id, company_id: company.id,
+          },
+        });
+        flowWorkspaceSynced = !syncError && Boolean(syncResult?.success);
+      }
+      return json({ success: true, status: "not_configured", flow_workspace_synced: flowWorkspaceSynced });
     }
 
     const domain = String(body.custom_domain || company.custom_domain || "")
