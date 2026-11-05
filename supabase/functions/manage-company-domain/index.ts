@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const { data: company, error: companyError } = await admin.from("companies")
-      .select("id, owner_email, custom_domain, custom_domain_status, custom_domain_cloudflare_id")
+      .select("id, owner_email, custom_domain, custom_domain_status, custom_domain_cloudflare_id, flow_custom_domain_cloudflare_id")
       .eq("id", companyId).maybeSingle();
     if (companyError || !company) return json({ error: "Empresa não encontrada." }, 404);
 
@@ -115,6 +115,13 @@ Deno.serve(async (req) => {
           console.warn("[manage-company-domain] remoção Cloudflare:", error);
         }
       }
+      if (company.flow_custom_domain_cloudflare_id) {
+        try {
+          await cf(cfToken, collection + "/" + company.flow_custom_domain_cloudflare_id, { method: "DELETE" });
+        } catch (error) {
+          console.warn("[manage-company-domain] remoção Flow Cloudflare:", error);
+        }
+      }
       const { error } = await admin.from("companies").update({
         booking_url_type: body.booking_url_type === "subdomain" ? "subdomain" : "path",
         booking_subdomain: body.booking_url_type === "subdomain" ? body.booking_subdomain : null,
@@ -122,6 +129,9 @@ Deno.serve(async (req) => {
         custom_domain_status: "not_configured",
         custom_domain_verified_at: null,
         custom_domain_cloudflare_id: null,
+        flow_custom_domain_cloudflare_id: null,
+        flow_custom_domain_status: "not_configured",
+        flow_custom_domain_verified_at: null,
         custom_domain_validation_records: [],
         custom_domain_ownership_verification: null,
         custom_domain_last_error: null,
@@ -177,10 +187,42 @@ Deno.serve(async (req) => {
     }).eq("id", companyId);
     if (saveError) throw saveError;
 
+    // Cria também o hostname independente do Flow, apontando para a origem do Flow.
+    let flowHostname: any = null;
+    const flowDomain = "flow." + domain;
+    if (company.flow_custom_domain_cloudflare_id) {
+      try {
+        flowHostname = await cf(cfToken, collection + "/" + company.flow_custom_domain_cloudflare_id);
+        if (String(flowHostname?.hostname || "").toLowerCase() !== flowDomain) flowHostname = null;
+      } catch { flowHostname = null; }
+    }
+    if (!flowHostname) {
+      if (company.flow_custom_domain_cloudflare_id) {
+        await cf(cfToken, collection + "/" + company.flow_custom_domain_cloudflare_id, { method: "DELETE" }).catch(() => {});
+      }
+      flowHostname = await cf(cfToken, collection, {
+        method: "POST",
+        body: JSON.stringify({
+          hostname: flowDomain,
+          custom_origin_server: "flow-builder.zailom.com",
+          ssl: { method: "txt", type: "dv" },
+        }),
+      });
+    }
+    const flowReady = flowHostname?.status === "active" && flowHostname?.ssl?.status === "active";
+    const { error: flowSaveError } = await admin.from("companies").update({
+      flow_custom_domain_cloudflare_id: flowHostname?.id || null,
+      flow_custom_domain_status: flowReady ? "verified" : "pending",
+      flow_custom_domain_verified_at: flowReady ? new Date().toISOString() : null,
+    }).eq("id", companyId);
+    if (flowSaveError) throw flowSaveError;
+
     return json({
       success: true,
       domain,
       status,
+      flow_domain: flowDomain,
+      flow_domain_status: flowReady ? "verified" : "pending",
       cloudflare_status: hostname?.status || "pending",
       ssl_status: hostname?.ssl?.status || "pending",
       cname_target: FALLBACK_ORIGIN,
