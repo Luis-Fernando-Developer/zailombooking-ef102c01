@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
       if (insertError) return reply({ success: false, error: "Não foi possível preparar o registro de integração.", details: insertError.message }, 500);
     }
 
-    // Não envia senha: o Flow reutiliza a conta existente pelo e-mail.
-    // Se a conta ainda não existir no Flow, o endpoint recusa a criação sem senha.
+    // Não envia senha em texto puro. O provisionador transfere somente o hash bcrypt
+    // empresarial do Booking e o Flow o registra sem sobrescrever credenciais existentes.
     const { data: provision, error: provisionError } = await admin.functions.invoke("provision-zailom-flow", {
       body: {
         email: company.owner_email,
