@@ -259,6 +259,7 @@ Deno.serve(async (req) => {
       flow_domain_status: flowReady ? "verified" : "pending",
       flow_cloudflare_status: flowHostname?.status || "pending",
       flow_ssl_status: flowHostname?.ssl?.status || "pending",
+      flow_cname_target: "flow-builder.zailom.com",
       flow_validation_records: flowHostname?.ssl?.validation_records || [],
       cloudflare_status: hostname?.status || "pending",
       ssl_status: hostname?.ssl?.status || "pending",
