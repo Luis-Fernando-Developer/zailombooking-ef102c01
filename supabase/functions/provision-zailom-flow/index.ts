@@ -164,7 +164,7 @@ serve(async (req) => {
       .maybeSingle();
     if (credentialLookupError) throw new Error("Falha ao consultar credencial do proprietário: " + credentialLookupError.message);
     const ownerPasswordHash = String(ownerCredential?.password_hash || "");
-    const validPasswordHash = /^\\$2[aby]\\$[0-9]{2}\\$[./A-Za-z0-9]{53}$/.test(ownerPasswordHash)
+    const validPasswordHash = /^\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}$/.test(ownerPasswordHash)
       ? ownerPasswordHash
       : null;
 
@@ -172,10 +172,10 @@ serve(async (req) => {
     let flowDomainType = "subdomain";
     let flowDomainVerified = false;
     if (companyDomain?.booking_url_type === "subdomain" && companyDomain.booking_subdomain) {
-      const subdomain = String(companyDomain.booking_subdomain).toLowerCase().replace(/\\.zailom\\.com$/, "").replace(/[^a-z0-9-]/g, "");
+      const subdomain = String(companyDomain.booking_subdomain).toLowerCase().replace(/\.zailom\.com$/, "").replace(/[^a-z0-9-]/g, "");
       if (subdomain) flowAccessHost = "flow-" + subdomain + ".zailom.com";
     } else if (companyDomain?.booking_url_type === "custom_domain" && companyDomain.custom_domain) {
-      const customDomain = String(companyDomain.custom_domain).toLowerCase().replace(/^https?:\\/\\//, "").replace(/\\/$/, "");
+      const customDomain = String(companyDomain.custom_domain).toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
       if (customDomain) {
         flowAccessHost = "flow." + customDomain;
         flowDomainType = "custom";
