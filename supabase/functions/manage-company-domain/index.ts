@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
       return json({ success: true, status: "not_configured" });
     }
 
-    const domain = String(company.custom_domain || body.custom_domain || "")
+    const domain = String(body.custom_domain || company.custom_domain || "")
       .trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
     if (!/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(domain)) {
       return json({ error: "Informe um domínio válido, como agenda.suaempresa.com.br." }, 400);
@@ -148,6 +148,9 @@ Deno.serve(async (req) => {
       }
     }
     if (!hostname) {
+      if (company.custom_domain_cloudflare_id) {
+        await cf(cfToken, collection + "/" + company.custom_domain_cloudflare_id, { method: "DELETE" }).catch(() => {});
+      }
       hostname = await cf(cfToken, collection, {
         method: "POST",
         body: JSON.stringify({
