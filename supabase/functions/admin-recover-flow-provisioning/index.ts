@@ -47,10 +47,8 @@ Deno.serve(async (req) => {
       .select("id, talkmap_provisioned, flow_workspace_id")
       .eq("company_id", companyId).maybeSingle();
     if (integrationError) return reply({ success: false, error: "Falha ao consultar integração.", details: integrationError.message }, 500);
-    if (current?.talkmap_provisioned && current.flow_workspace_id) {
-      return reply({ success: true, already_provisioned: true, company_id: companyId, workspace_id: current.flow_workspace_id });
-    }
-
+    // Mesmo quando já existe workspace, executar a sincronização idempotente
+    // para registrar o domínio e migrar o hash bcrypt para a credencial contextual.
     if (!current) {
       const { error: insertError } = await admin.from("chatbot_integration").insert({
         company_id: companyId,
@@ -82,7 +80,7 @@ Deno.serve(async (req) => {
 
     return reply({
       success: true,
-      already_provisioned: false,
+      already_provisioned: Boolean(current?.talkmap_provisioned && current.flow_workspace_id),
       company_id: companyId,
       workspace_id: provision.workspace_id,
       user_id: provision.user_id,
