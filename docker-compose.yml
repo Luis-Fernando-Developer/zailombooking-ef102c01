@@ -23,10 +23,15 @@ services:
       # Prioridade baixa para preservar os routers específicos dos outros serviços.
       - "traefik.http.routers.zailom-booking-subdomains.rule=HostRegexp(`^[a-z0-9-]+\\.zailom\\.com$`)"
       - "traefik.http.routers.zailom-booking-subdomains.entrypoints=websecure"
-      - "traefik.http.routers.zailom-booking-subdomains.priority=1"
+      - "traefik.http.routers.zailom-booking-subdomains.priority=10"
       - "traefik.http.routers.zailom-booking-subdomains.tls=true"
       - "traefik.http.routers.zailom-booking-subdomains.tls.certresolver=cloudflare"
       - "traefik.http.routers.zailom-booking-subdomains.service=zailom-booking-frontend"
+      - "traefik.http.routers.zailom-booking-custom-domains.rule=HostRegexp(`{host:.+}`)"
+      - "traefik.http.routers.zailom-booking-custom-domains.entrypoints=websecure"
+      - "traefik.http.routers.zailom-booking-custom-domains.priority=1"
+      - "traefik.http.routers.zailom-booking-custom-domains.tls=true"
+      - "traefik.http.routers.zailom-booking-custom-domains.service=zailom-booking-frontend"
       # Router HTTP (o Traefik global redireciona HTTP para HTTPS)
       - "traefik.http.routers.zailom-booking-frontend-http.rule=Host(`booking.zailom.com`)"
       - "traefik.http.routers.zailom-booking-frontend-http.entrypoints=web"
