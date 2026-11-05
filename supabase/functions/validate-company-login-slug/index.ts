@@ -23,12 +23,12 @@ Deno.serve(async (request) => {
     }
 
     const admin = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data, error } = await admin.from("companies").select("id").or(`slug.eq.${slug},booking_subdomain.eq.${slug}`).maybeSingle();
+    const { data, error } = await admin.from("companies").select("id,slug,booking_subdomain").or(`slug.eq.${slug},booking_subdomain.eq.${slug}`).maybeSingle();
     if (error) {
       console.error("[validate-company-login-slug] Lookup failed:", error.message);
       return respond({ success: false, exists: false }, 500);
     }
-    return respond({ success: true, exists: Boolean(data) });
+    return respond({ success: true, exists: Boolean(data), slug: data?.slug ?? null });
   } catch (error) {
     console.error("[validate-company-login-slug] Unexpected error:", error);
     return respond({ success: false, exists: false }, 500);
