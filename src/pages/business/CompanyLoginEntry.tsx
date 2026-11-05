@@ -43,11 +43,11 @@ export default function CompanyLoginEntry() {
       const { data, error } = await supabase.functions.invoke("validate-company-login-slug", {
         body: { slug: normalizedSlug },
       });
-      if (error || !data?.success || !data?.exists) {
+      if (error || !data?.success || !data?.exists || !data?.slug) {
         setErrorMessage("Empresa não encontrada. Confira o slug e tente novamente.");
         return;
       }
-      navigate("/" + encodeURIComponent(normalizedSlug) + "/login");
+      navigate("/" + encodeURIComponent(data.slug) + "/login");
     } catch {
       setErrorMessage("Não foi possível validar a empresa agora. Tente novamente.");
     } finally {
