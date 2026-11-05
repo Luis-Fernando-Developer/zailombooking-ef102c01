@@ -56,7 +56,7 @@ export function BusinessLayout({
         let url = `https://booking.zailom.com/${data.slug || companySlug}`;
         if (data.booking_url_type === "subdomain" && data.booking_subdomain) {
           url = `https://${data.booking_subdomain}.zailom.com`;
-        } else if (data.booking_url_type === "custom_domain" && data.custom_domain) {
+        } else if (data.booking_url_type === "custom_domain" && data.custom_domain && data.custom_domain_status === "verified") {
           url = `https://${data.custom_domain}`;
         }
         setPublicUrl(url);
