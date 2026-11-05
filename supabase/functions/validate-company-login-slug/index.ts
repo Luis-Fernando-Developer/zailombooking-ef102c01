@@ -23,7 +23,7 @@ Deno.serve(async (request) => {
     }
 
     const admin = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data, error } = await admin.from("companies").select("id").eq("slug", slug).maybeSingle();
+    const { data, error } = await admin.from("companies").select("id").or(`slug.eq.${slug},booking_subdomain.eq.${slug}`).maybeSingle();
     if (error) {
       console.error("[validate-company-login-slug] Lookup failed:", error.message);
       return respond({ success: false, exists: false }, 500);
