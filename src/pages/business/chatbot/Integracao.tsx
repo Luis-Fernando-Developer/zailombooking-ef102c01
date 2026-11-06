@@ -279,13 +279,46 @@ export default function ChatbotIntegracao() {
     if (!companyId) return;
     setSyncing(true);
     try {
-      const { error } = await supabase.functions.invoke("chatbot-integration", {
-        body: { action: "sync", company_id: companyId },
+      // Consulta explicitamente o workspace pela mesma rota usada ao conectar.
+      // A ação legada "sync" podia responder sucesso mesmo quando /workspace
+      // falhava, deixando flow_workspace_data vazio sem explicar o motivo.
+      const { data, error } = await supabase.functions.invoke("chatbot-integration", {
+        body: { action: "flow-fetch", company_id: companyId, path: "/v1/workspace" },
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        let details = error.message;
+        try {
+          const context = (error as unknown as { context?: { text?: () => Promise<string> } }).context;
+          if (context?.text) details = await context.text();
+        } catch { /* mantém a mensagem original */ }
+        throw new Error(details);
+      }
+      if (data?.error) {
+        throw new Error(JSON.stringify({
+          message: data.message || data.error,
+          status: data.status,
+          flow_response: data.flow_response,
+        }));
+      }
+
+      const workspace = data?.data?.data as FlowWorkspace | undefined;
+      if (!workspace?.id || !workspace?.slug) {
+        throw new Error("O endpoint do Flow respondeu, mas não retornou id e slug do workspace: " + JSON.stringify(data?.data));
+      }
+
+      const { error: persistError } = await supabase
+        .from("chatbot_integration")
+        .update({
+          flow_workspace_data: workspace,
+          flow_workspace_id: workspace.id,
+          flow_last_synced_at: new Date().toISOString(),
+        })
+        .eq("company_id", companyId);
+      if (persistError) throw persistError;
+
       await refreshIntegration(companyId);
       await fetchFlowLists(companyId);
-      toast.success("Informações do Flow atualizadas");
+      toast.success(`Workspace "${workspace.name || workspace.slug}" sincronizado`);
     } catch (e) {
       toast.error(`Falha ao sincronizar: ${(e as Error).message}`);
     } finally {
