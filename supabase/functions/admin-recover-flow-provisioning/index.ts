@@ -62,20 +62,42 @@ Deno.serve(async (req) => {
 
     // Não envia senha em texto puro. O provisionador transfere somente o hash bcrypt
     // empresarial do Booking e o Flow o registra sem sobrescrever credenciais existentes.
-    const { data: provision, error: provisionError } = await admin.functions.invoke("provision-zailom-flow", {
-      body: {
+    // Chamada HTTP direta para preservar o status e o corpo originais da Edge Function.
+    // functions.invoke() transforma respostas não-2xx em erro genérico e descarta o JSON útil.
+    const provisionResponse = await fetch(`${url}/functions/v1/provision-zailom-flow`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+      },
+      body: JSON.stringify({
         email: company.owner_email,
         slug: company.slug,
         display_name: company.owner_name || company.name,
         full_name: company.owner_name || company.name,
         plan_id: company.plan_id,
         company_id: company.id,
-      },
+      }),
     });
 
-    if (provisionError || !provision?.success) {
-      const reason = provisionError?.message || provision?.error || provision?.details?.error || "O Flow não confirmou o provisionamento.";
-      return reply({ success: false, company_id: companyId, error: reason, flow_details: provision?.details ?? null }, 502);
+    const provisionText = await provisionResponse.text();
+    let provision: any = null;
+    try {
+      provision = provisionText ? JSON.parse(provisionText) : null;
+    } catch {
+      provision = { raw_response: provisionText.slice(0, 2000) };
+    }
+
+    if (!provisionResponse.ok || !provision?.success) {
+      const reason = provision?.error || provision?.message || "O Flow não confirmou o provisionamento.";
+      return reply({
+        success: false,
+        company_id: companyId,
+        error: reason,
+        provision_http_status: provisionResponse.status,
+        flow_details: provision?.details ?? provision,
+      }, 502);
     }
 
     return reply({
