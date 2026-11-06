@@ -168,19 +168,37 @@ serve(async (req) => {
       ? ownerPasswordHash
       : null;
 
-    let flowAccessHost: string | null = slug;
+    let flowAccessHost: string | null = null;
     let flowDomainType = "platform";
     let flowDomainVerified = false;
-    if (companyDomain?.booking_url_type === "subdomain" && companyDomain.booking_subdomain) {
-      const subdomain = String(companyDomain.booking_subdomain).toLowerCase().replace(/\.zailom\.com$/, "").replace(/[^a-z0-9-]/g, "");
-      if (subdomain) flowAccessHost = "flow-" + subdomain + ".zailom.com";
-    } else if (companyDomain?.booking_url_type === "custom_domain" && companyDomain.custom_domain) {
-      const customDomain = String(companyDomain.custom_domain).toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
-      if (customDomain) {
-        flowAccessHost = "flow." + customDomain;
-        flowDomainType = "custom";
-        flowDomainVerified = companyDomain.flow_custom_domain_status === "verified";
+    const bookingUrlType = String(companyDomain?.booking_url_type || "path").toLowerCase();
+
+    if (bookingUrlType === "subdomain") {
+      const subdomain = String(companyDomain?.booking_subdomain || "")
+        .toLowerCase()
+        .replace(/\.zailom\.com$/, "")
+        .trim();
+      if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(subdomain)) {
+        throw new Error("A empresa está configurada com URL por subdomínio, mas booking_subdomain está ausente ou inválido.");
       }
+      flowAccessHost = `flow-${subdomain}.zailom.com`;
+    } else if (bookingUrlType === "custom_domain") {
+      const customDomain = String(companyDomain?.custom_domain || "")
+        .toLowerCase()
+        .replace(/^https?:\/\//, "")
+        .replace(/\/$/, "");
+      if (!customDomain) {
+        throw new Error("A empresa está configurada com domínio próprio, mas custom_domain está vazio.");
+      }
+      flowAccessHost = "flow." + customDomain;
+      flowDomainType = "custom";
+      flowDomainVerified = companyDomain?.flow_custom_domain_status === "verified";
+    } else {
+      const pathSlug = String(slug || "").trim().toLowerCase();
+      if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(pathSlug)) {
+        throw new Error("Slug interno inválido para gerar o domínio do Flow.");
+      }
+      flowAccessHost = `flow-${pathSlug}.zailom.com`;
     }
 
     let limits = {
@@ -238,11 +256,13 @@ serve(async (req) => {
     const flowPayload = {
       email,
       ...(validPasswordHash ? { password_hash: validPasswordHash } : {}),
-      full_name: full_name || display_name || slug,
+      display_name: full_name || display_name || slug,
       slug,
       company_id,
-      ...(flowAccessHost ? { access_host: flowAccessHost, domain_type: flowDomainType, domain_verified: flowDomainVerified } : {}),
-      plan_tier: embed_plan_tier,
+      access_host: flowAccessHost,
+      domain_type: flowDomainType,
+      domain_verified: flowDomainVerified,
+      embed_plan_tier,
       limits: {
         max_chatbots: limits.max_chatbots,
         max_messages: limits.max_messages,
