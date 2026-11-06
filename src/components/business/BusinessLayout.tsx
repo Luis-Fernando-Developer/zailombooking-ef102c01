@@ -76,7 +76,7 @@ export function BusinessLayout({
   };
 
   return (
-    <SidebarProvider className="min-h-screen flex w-full" style={{ "--sidebar-width-icon": "3.5rem" } as CSSProperties}>
+    <SidebarProvider className="min-h-screen flex w-full" style={{ "--sidebar-width-icon": "4rem" } as CSSProperties}>
       <PlatformNotificationModal companyId={companyId} />
       <BusinessSidebar
         companySlug={companySlug}
