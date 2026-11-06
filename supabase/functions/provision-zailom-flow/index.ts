@@ -334,7 +334,18 @@ serve(async (req) => {
       }, { onConflict: 'company_id' });
 
     if (dbError) {
-      console.error("Erro ao salvar dados de integração:", dbError);
+      console.error("[Provisioning] Flow provisionado, mas falhou ao persistir chatbot_integration:", dbError);
+      return new Response(JSON.stringify({
+        success: false,
+        error: "O Flow criou/sincronizou o workspace, mas o Booking não conseguiu salvar o vínculo em chatbot_integration.",
+        details: dbError.message,
+        code: dbError.code,
+        workspace_id: result.workspace_id,
+        user_id: result.user_id,
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ 
