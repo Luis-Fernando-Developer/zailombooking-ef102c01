@@ -156,6 +156,7 @@ const Sidebar = React.forwardRef<
     side?: "left" | "right";
     variant?: "sidebar" | "floating" | "inset";
     collapsible?: "offcanvas" | "icon" | "none";
+    collapsedWidth?: string;
   }
 >(
   (
@@ -163,6 +164,7 @@ const Sidebar = React.forwardRef<
       side = "left",
       variant = "sidebar",
       collapsible = "offcanvas",
+      collapsedWidth,
       className,
       children,
       ...props
@@ -213,6 +215,7 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
+        style={state === "collapsed" && collapsible === "icon" && collapsedWidth ? { width: collapsedWidth } : undefined}
         className={cn(
           "group peer hidden h-svh shrink-0 overflow-hidden text-sidebar-foreground transition-[width] duration-300 ease-in-out md:block",
           state === "collapsed"
