@@ -1,4 +1,4 @@
-import { ReactNode, useState, CSSProperties } from "react";
+import { ReactNode, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { BusinessSidebar } from "@/components/business/BusinessSidebar";
 import { Button } from "../ui/button";
@@ -76,7 +76,7 @@ export function BusinessLayout({
   };
 
   return (
-    <SidebarProvider className="min-h-screen flex w-full" style={{ "--sidebar-width-icon": "4rem" } as CSSProperties}>
+    <SidebarProvider className="min-h-screen flex w-full">
       <PlatformNotificationModal companyId={companyId} />
       <BusinessSidebar
         companySlug={companySlug}
