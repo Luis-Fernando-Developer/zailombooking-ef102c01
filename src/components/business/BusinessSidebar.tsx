@@ -205,7 +205,7 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
         .filter((item): item is MenuItem => item !== null);
 
   return (
-    <Sidebar collapsible="icon" collapsedWidth="4.5rem" className="border-r border-primary/20 h-screen sticky top-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
+    <Sidebar collapsible="none" collapsedWidth="4.5rem" className="border-r border-primary/20 h-screen sticky top-0 transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
       <SidebarContent className="bg-card/30 backdrop-blur-sm border-r border-primary/20 min-h-0 overflow-hidden flex flex-col transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]">
         <div className="p-4 border-b border-primary/20 flex flex-col items-center justify-center min-h-[100px] shrink-0">
           {state !== "collapsed" ? (
