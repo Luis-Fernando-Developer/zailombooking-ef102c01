@@ -21,13 +21,36 @@ services:
       - "traefik.http.routers.zailom-booking-frontend.tls=true"
       # Router HTTPS para subdomínios das empresas
       # Prioridade baixa para preservar os routers específicos dos outros serviços.
-      - "traefik.http.routers.zailom-booking-subdomains.rule=HostRegexp(`^[a-z0-9-]+\\.zailom\\.com$`)"
+      - "traefik.http.routers.zailom-booking-subdomains.rule=HostRegexp(`^[a-z0-9-]+\\.zailom\\.comservices:
+  frontend:
+    image: zailom-booking-frontend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+        - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+        - VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID}
+    container_name: zailom-booking-frontend
+    restart: always
+    networks:
+      - bookingZailom_net
+    labels:
+      - "traefik.enable=true"
+      # Router HTTPS do endereço principal do Booking
+      - "traefik.http.routers.zailom-booking-frontend.rule=Host(`booking.zailom.com`)"
+      - "traefik.http.routers.zailom-booking-frontend.entrypoints=websecure"
+      - "traefik.http.routers.zailom-booking-frontend.tls=true"
+      # Router HTTPS para subdomínios das empresas
+      # Prioridade baixa para preservar os routers específicos dos outros serviços.
+) && !Host(`orbit.zailom.com`) && !Host(`api-orbit.zailom.com`) && !Host(`flow.zailom.com`) && !Host(`api-flowbuilder.zailom.com`) && !Host(`wa.zailom.com`) && !Host(`booking.zailom.com`) && !Host(`fallback.zailom.com`)"
       - "traefik.http.routers.zailom-booking-subdomains.entrypoints=websecure"
       - "traefik.http.routers.zailom-booking-subdomains.priority=10"
       - "traefik.http.routers.zailom-booking-subdomains.tls=true"
       - "traefik.http.routers.zailom-booking-subdomains.tls.certresolver=cloudflare"
       - "traefik.http.routers.zailom-booking-subdomains.service=zailom-booking-frontend"
-      - "traefik.http.routers.zailom-booking-custom-domains.rule=HostRegexp(`{host:.+}`)"
+      - "traefik.http.routers.zailom-booking-custom-domains.rule=HostRegexp(`{host:.+}`) && !Host(`orbit.zailom.com`) && !Host(`api-orbit.zailom.com`) && !Host(`flow.zailom.com`) && !Host(`api-flowbuilder.zailom.com`) && !Host(`wa.zailom.com`) && !Host(`booking.zailom.com`) && !Host(`fallback.zailom.com`)"
       - "traefik.http.routers.zailom-booking-custom-domains.entrypoints=websecure"
       - "traefik.http.routers.zailom-booking-custom-domains.priority=1"
       - "traefik.http.routers.zailom-booking-custom-domains.tls=true"
