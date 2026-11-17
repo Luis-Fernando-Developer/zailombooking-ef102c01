@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 const RESERVED_HOSTS = new Set([
   "zailom.com", "www.zailom.com", "booking.zailom.com", "fallback.zailom.com",
   "flow.zailom.com", "api-flowbuilder.zailom.com", "wa.zailom.com",
+  "pay.zailom.com", "api-pay.zailom.com",
   "localhost", "127.0.0.1",
 ]);
 
