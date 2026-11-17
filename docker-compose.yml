@@ -20,14 +20,14 @@ services:
       - "traefik.http.routers.zailom-booking-frontend.entrypoints=websecure"
       - "traefik.http.routers.zailom-booking-frontend.tls=true"
       # Router HTTPS para subdomínios das empresas; hosts dos produtos Zailom ficam reservados.
-      - "traefik.http.routers.zailom-booking-subdomains.rule=HostRegexp(`^[a-z0-9-]+\\.zailom\\.com$`) && !Host(`orbit.zailom.com`) && !Host(`api-orbit.zailom.com`) && !Host(`flow.zailom.com`) && !Host(`api-flowbuilder.zailom.com`) && !Host(`wa.zailom.com`) && !Host(`booking.zailom.com`) && !Host(`fallback.zailom.com`)"
+      - "traefik.http.routers.zailom-booking-subdomains.rule=HostRegexp(`^[a-z0-9-]+\\.zailom\\.com$`) && !Host(`orbit.zailom.com`) && !Host(`api-orbit.zailom.com`) && !Host(`flow.zailom.com`) && !Host(`api-flowbuilder.zailom.com`) && !Host(`wa.zailom.com`) && !Host(`booking.zailom.com`) && !Host(`fallback.zailom.com`) && !Host(`pay.zailom.com`) && !Host(`api-pay.zailom.com`)"
       - "traefik.http.routers.zailom-booking-subdomains.entrypoints=websecure"
       - "traefik.http.routers.zailom-booking-subdomains.priority=10"
       - "traefik.http.routers.zailom-booking-subdomains.tls=true"
       - "traefik.http.routers.zailom-booking-subdomains.tls.certresolver=cloudflare"
       - "traefik.http.routers.zailom-booking-subdomains.service=zailom-booking-frontend"
       # Domínios personalizados continuam chegando ao Booking, exceto hosts reservados da Zailom.
-      - "traefik.http.routers.zailom-booking-custom-domains.rule=HostRegexp(`{host:.+}`) && !Host(`orbit.zailom.com`) && !Host(`api-orbit.zailom.com`) && !Host(`flow.zailom.com`) && !Host(`api-flowbuilder.zailom.com`) && !Host(`wa.zailom.com`) && !Host(`booking.zailom.com`) && !Host(`fallback.zailom.com`)"
+      - "traefik.http.routers.zailom-booking-custom-domains.rule=HostRegexp(`{host:.+}`) && !Host(`orbit.zailom.com`) && !Host(`api-orbit.zailom.com`) && !Host(`flow.zailom.com`) && !Host(`api-flowbuilder.zailom.com`) && !Host(`wa.zailom.com`) && !Host(`booking.zailom.com`) && !Host(`fallback.zailom.com`) && !Host(`pay.zailom.com`) && !Host(`api-pay.zailom.com`)"
       - "traefik.http.routers.zailom-booking-custom-domains.entrypoints=websecure"
       - "traefik.http.routers.zailom-booking-custom-domains.priority=1"
       - "traefik.http.routers.zailom-booking-custom-domains.tls=true"
