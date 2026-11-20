@@ -486,7 +486,7 @@ export default function CreateCompany() {
                   <div className="space-y-2">
                     <Label htmlFor="acquisition-coupon-code">Cupom de aquisição (opcional)</Label>
                     <div className="flex gap-2">
-                      <Input id="acquisition-coupon-code" value={formData.coupon_code} onChange={(e) => { setFormData(prev => ({ ...prev, coupon_code: e.target.value.toUpperCase().replace(/\s+/g, ""), discount_enabled: e.target.value.trim() ? false : prev.discount_enabled })); setCouponPreview(null); }} placeholder="Ex.: ZAILOM20" maxLength={40} />
+                      <Input id="acquisition-coupon-code" disabled={formData.trial_enabled} value={formData.coupon_code} onChange={(e) => { setFormData(prev => ({ ...prev, coupon_code: e.target.value.toUpperCase().replace(/\s+/g, ""), discount_enabled: e.target.value.trim() ? false : prev.discount_enabled })); setCouponPreview(null); }} placeholder="Ex.: ZAILOM20" maxLength={40} />
                       <Button type="button" variant="outline" onClick={applyCoupon} disabled={couponLoading || !formData.coupon_code.trim() || !selectedPlan}>{couponLoading ? "Validando..." : "Validar"}</Button>
                     </div>
                     {couponPreview && <p className="text-xs text-green-600">Cupom válido: desconto de R$ {Number(couponPreview.discount_amount).toFixed(2).replace(".", ",")}. Total inicial: <strong>R$ {Number(couponPreview.discounted_amount).toFixed(2).replace(".", ",")}</strong>.</p>}
@@ -495,7 +495,7 @@ export default function CreateCompany() {
                   <div className="rounded-lg border border-primary/20 p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /><Label>Aplicar Desconto Especial</Label></div>
-                      <Switch checked={formData.discount_enabled} disabled={!!formData.coupon_code.trim()} onCheckedChange={(v) => setFormData(prev => ({ ...prev, discount_enabled: v, coupon_code: v ? "" : prev.coupon_code, discount_cycles: v ? Math.max(1, prev.discount_cycles) : prev.discount_cycles }))} />
+                      <Switch checked={formData.discount_enabled} disabled={formData.trial_enabled || !!formData.coupon_code.trim()} onCheckedChange={(v) => setFormData(prev => ({ ...prev, discount_enabled: v, coupon_code: v ? "" : prev.coupon_code, discount_cycles: v ? Math.max(1, prev.discount_cycles) : prev.discount_cycles }))} />
                     </div>
                     {formData.discount_enabled && (
                       <div className="grid md:grid-cols-2 gap-4">
