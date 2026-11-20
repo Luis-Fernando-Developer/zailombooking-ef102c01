@@ -6,6 +6,7 @@ import { Copy, Check } from "lucide-react";
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { PlanOverageBanner } from "@/components/business/PlanOverageBanner";
 import { SubscriptionSuspendedBanner } from "@/components/business/SubscriptionSuspendedBanner";
+import { TrialStatusBanner } from "@/components/business/TrialStatusBanner";
 import { PlatformNotificationModal } from "@/components/business/PlatformNotificationModal";
 import { NotificationsBell } from "@/components/business/NotificationsBell";
 import { ThemeToggle, applyTheme, getInitialTheme } from "@/components/ThemeToggle";
@@ -120,6 +121,7 @@ export function BusinessLayout({
           <div className={`w-full ${hideHeader ? 'h-full flex flex-col' : ''}`}>
             {!hideHeader && (
               <div className="px-4 pt-4">
+                <TrialStatusBanner companyId={companyId} companySlug={companySlug} />
                 <SubscriptionSuspendedBanner companyId={companyId} />
                 <PlanOverageBanner companyId={companyId} />
               </div>
