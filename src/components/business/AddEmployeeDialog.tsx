@@ -315,11 +315,19 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
           service_id: serviceId
         }));
 
-        const { error: servicesError } = await supabase
+        const { data: existingServices, error: existingServicesError } = await supabase
           .from('employee_services')
-          .upsert(serviceInserts, { onConflict: 'employee_id,service_id', ignoreDuplicates: true });
-
-        if (servicesError) throw servicesError;
+          .select('service_id')
+          .eq('employee_id', employeeId);
+        if (existingServicesError) throw existingServicesError;
+        const existingServiceIds = new Set((existingServices || []).map(item => item.service_id));
+        const missingServiceInserts = serviceInserts.filter(item => !existingServiceIds.has(item.service_id));
+        if (missingServiceInserts.length > 0) {
+          const { error: servicesError } = await supabase
+            .from('employee_services')
+            .insert(missingServiceInserts);
+          if (servicesError) throw servicesError;
+        }
       }
 
       // Identidades já existentes recebem o convite da nova empresa pelo Resend.
