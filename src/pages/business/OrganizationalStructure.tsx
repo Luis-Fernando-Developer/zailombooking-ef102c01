@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 type Sector = { id: string; name: string; description: string | null };
 type Group = { id: string; sector_id: string; name: string; description: string | null };
 type Employee = { id: string; name: string; role: string | null; is_active: boolean | null; termination_effective_date: string | null; org_group_id: string | null; org_position_id: string | null };
+type OrgPosition = { id: string; group_id: string; name: string; max_members: number | null };
+type PositionPermission = { position_id: string; permission_code: string; enabled: boolean };
 
 export default function OrganizationalStructure() {
   const { slug } = useParams<{ slug: string }>();
@@ -21,6 +23,9 @@ export default function OrganizationalStructure() {
   const [sectors, setSectors] = useState<Sector[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [positions, setPositions] = useState<OrgPosition[]>([]);
+  const [positionPermissions, setPositionPermissions] = useState<PositionPermission[]>([]);
+  const [newPositions, setNewPositions] = useState<Record<string, string>>({});
   const [newSector, setNewSector] = useState("");
   const [newGroups, setNewGroups] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -38,16 +43,22 @@ export default function OrganizationalStructure() {
       const { data: employeeData, error: employeeError } = await supabase.from("employees").select("id,role").eq("company_id", companyData.id).eq("user_id", auth.user.id).maybeSingle();
       if (employeeError) throw employeeError;
       setCurrentEmployee(employeeData);
-      const [sectorResult, groupResult, employeeResult] = await Promise.all([
+      const [sectorResult, groupResult, employeeResult, positionResult, permissionResult] = await Promise.all([
         supabase.from("company_sectors").select("id,name,description").eq("company_id", companyData.id).order("position").order("name"),
         supabase.from("company_groups").select("id,sector_id,name,description").eq("company_id", companyData.id).order("position").order("name"),
         supabase.from("employees").select("id,name,role,is_active,termination_effective_date,org_group_id,org_position_id").eq("company_id", companyData.id).order("name"),
+        supabase.from("company_group_positions").select("id,group_id,name,max_members").eq("company_id", companyData.id).order("position").order("name"),
+        supabase.from("company_group_position_permissions").select("position_id,permission_code,enabled").eq("company_id", companyData.id),
       ]);
       if (sectorResult.error) throw sectorResult.error;
       if (groupResult.error) throw groupResult.error;
       if (employeeResult.error) throw employeeResult.error;
+      if (positionResult.error) throw positionResult.error;
+      if (permissionResult.error) throw permissionResult.error;
       setSectors(sectorResult.data || []);
       setGroups(groupResult.data || []);
+      setPositions(positionResult.data || []);
+      setPositionPermissions(permissionResult.data || []);
       setEmployees((employeeResult.data || []).filter((e: Employee) => e.is_active !== false || (e.termination_effective_date && e.termination_effective_date > new Date().toISOString().slice(0, 10))));
     } catch (error: any) {
       toast({ title: "Erro ao carregar estrutura", description: error.message, variant: "destructive" });
@@ -91,14 +102,35 @@ export default function OrganizationalStructure() {
     else await load();
   }
 
-  async function moveEmployee(employeeId: string, groupId: string) {
+  async function createPosition(groupId: string) {
+    const name = (newPositions[groupId] || "").trim();
+    if (!company || !name) return;
+    const { error } = await supabase.rpc("org_upsert_group_position", { _company_id: company.id, _group_id: groupId, _position_id: null, _name: name, _max_members: null });
+    if (error) return toast({ title: "Erro ao criar cargo", description: error.message, variant: "destructive" });
+    setNewPositions(prev => ({ ...prev, [groupId]: "" }));
+    await load();
+  }
+
+  async function togglePositionPermission(positionId: string, permissionCode: string, enabled: boolean) {
+    if (!company || !isAdmin) return;
+    const { error } = await supabase.rpc("org_set_position_permission", { _company_id: company.id, _position_id: positionId, _permission_code: permissionCode, _enabled: enabled });
+    if (error) return toast({ title: "Erro ao salvar permissão", description: error.message, variant: "destructive" });
+    setPositionPermissions(prev => {
+      const old = prev.find(p => p.position_id === positionId && p.permission_code === permissionCode);
+      return old
+        ? prev.map(p => p === old ? { ...p, enabled } : p)
+        : [...prev, { position_id: positionId, permission_code: permissionCode, enabled }];
+    });
+  }
+
+  async function moveEmployee(employeeId: string, groupId: string, positionId: string | null = null) {
     if (!company) return;
     const employee = employees.find(e => e.id === employeeId);
-    if (!employee || employee.org_group_id === (groupId || null)) return;
+    if (!employee || (employee.org_group_id === (groupId || null) && employee.org_position_id === positionId)) return;
     setSaving(true);
     const { error } = await supabase.rpc("org_move_employee", {
       _company_id: company.id, _employee_id: employeeId,
-      _target_group_id: groupId || null, _target_position_id: null,
+      _target_group_id: groupId || null, _target_position_id: positionId,
       _reason: "Movimentação pela estrutura organizacional",
     });
     setSaving(false);
@@ -136,10 +168,28 @@ export default function OrganizationalStructure() {
                     <div className="space-y-2 min-h-10">
                       {groupedEmployees(group.id).map(employee => (
                         <div key={employee.id} draggable onDragStart={e => e.dataTransfer.setData("text/employee-id", employee.id)} className="rounded-lg bg-background border p-2 flex items-center gap-2 cursor-grab active:cursor-grabbing">
-                          <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" /><div className="min-w-0"><p className="text-sm font-medium truncate">{employee.name}</p><p className="text-xs text-muted-foreground">{employee.role || "Colaborador"}</p></div>
+                          <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <div className="min-w-0 flex-1"><p className="text-sm font-medium truncate">{employee.name}</p><p className="text-xs text-muted-foreground">{employee.role || "Colaborador"}</p></div>
+                          <select aria-label={`Cargo organizacional de ${employee.name}`} className="max-w-[105px] rounded-md border bg-background px-1 py-1 text-xs" value={employee.org_position_id || ""} onChange={e => moveEmployee(employee.id, group.id, e.target.value || null)}>
+                            <option value="">Sem cargo</option>
+                            {positions.filter(p => p.group_id === group.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          </select>
                         </div>
                       ))}
                       {groupedEmployees(group.id).length === 0 && <p className="text-xs text-muted-foreground py-2">Arraste colaboradores para este grupo.</p>}
+                    </div>
+                    <div className="border-t pt-3 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cargos e permissões</p>
+                      {positions.filter(p => p.group_id === group.id).map(position => (
+                        <div key={position.id} className="rounded-md border bg-background p-2 space-y-2">
+                          <p className="text-sm font-medium">{position.name}</p>
+                          {isAdmin && <div className="flex flex-wrap gap-3 text-xs">
+                            <label className="flex items-center gap-1"><input type="checkbox" checked={positionPermissions.some(p => p.position_id === position.id && p.permission_code === "org.manage_group_members" && p.enabled)} onChange={e => togglePositionPermission(position.id, "org.manage_group_members", e.target.checked)} />Gerenciar membros</label>
+                            <label className="flex items-center gap-1"><input type="checkbox" checked={positionPermissions.some(p => p.position_id === position.id && p.permission_code === "schedules.manage_group" && p.enabled)} onChange={e => togglePositionPermission(position.id, "schedules.manage_group", e.target.checked)} />Gerenciar escalas</label>
+                          </div>}
+                        </div>
+                      ))}
+                      {isAdmin && <div className="flex gap-2"><Input value={newPositions[group.id] || ""} onChange={e => setNewPositions(prev => ({ ...prev, [group.id]: e.target.value }))} placeholder="Novo cargo (ex.: Líder)" onKeyDown={e => e.key === "Enter" && createPosition(group.id)} /><Button size="icon" variant="outline" onClick={() => createPosition(group.id)} disabled={!((newPositions[group.id] || "").trim())}><Plus className="w-4 h-4" /></Button></div>}
                     </div>
                   </div>
                 ))}
