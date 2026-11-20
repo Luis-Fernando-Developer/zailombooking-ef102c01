@@ -214,6 +214,54 @@ serve(async (req) => {
       });
     }
 
+    // Trial é exclusivo do cadastro manual pelo Super Admin.
+    // O caminho retorna antes de qualquer integração/cobrança Asaas.
+    if (metadata?.trial_enabled === true) {
+      const trialDays = Number(metadata?.trial_days ?? 7);
+      const { data: trialResult, error: trialError } = await supabaseClient.rpc("admin_start_company_trial", {
+        _company_id: companyIdForAccess,
+        _plan_id: metadata?.plan_id,
+        _days: trialDays,
+        _actor_user_id: requesterId,
+      });
+      if (trialError || !trialResult?.success) {
+        return new Response(JSON.stringify({ error: trialError?.message || "Não foi possível iniciar o trial." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+      const siteUrl = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\\/$/, "");
+      const setupLink = siteUrl + "/confirmar-empresa?token=" + ownerAccess.confirmation_token;
+      let emailSent = false;
+      if (resendKey) {
+        const ownerName = String(metadata?.owner_name || "empreendedor");
+        const companyName = String(metadata?.company_name || "sua empresa");
+        const from = (Deno.env.get("BILLING_EMAIL_FROM") || Deno.env.get("CLIENT_ACCESS_EMAIL_FROM") || "Zailom Booking <atendimento@suport-mail.booking.zailom.com>").trim();
+        const response = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + resendKey },
+          body: JSON.stringify({
+            from, to: [email],
+            subject: "Zailom Booking — seu período de demonstração começou",
+            html: "<h2>Olá, " + ownerName + "!</h2><p>O período de teste da sua empresa começou e ficará disponível por " + trialDays + " dias.</p><p><a href='" + setupLink + "'>Confirmar e criar minha senha</a></p><p>Não haverá cobrança automática ao final do teste. Você poderá escolher um plano quando desejar contratar.</p>",
+          }),
+        });
+        emailSent = response.ok;
+        if (emailSent) {
+          await supabaseClient.from("owner_company_confirmations")
+            .update({ password_setup_email_sent_at: new Date().toISOString() })
+            .eq("company_id", companyIdForAccess);
+        }
+      }
+
+      return new Response(JSON.stringify({
+        user: createData.user,
+        owner_employee_id: ownerAccess.employee_id,
+        trial: { ...trialResult, email_sent: emailSent },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // E-mail 1: apenas notificação do cadastro. O link para criar senha
     // será enviado pelo webhook somente após a confirmação do pagamento.
     const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
