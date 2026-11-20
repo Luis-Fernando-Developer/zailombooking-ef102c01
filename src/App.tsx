@@ -34,6 +34,7 @@ import BusinessBookings from "./pages/business/Bookings";
 import BusinessServices from "./pages/business/Services";
 import BusinessCoupons from "./pages/business/Coupons";
 import BusinessEmployees from "./pages/business/Employees";
+import OrganizationalStructure from "./pages/business/OrganizationalStructure";
 import BusinessClients from "./pages/business/Clients";
 import BusinessReports from "./pages/business/Reports";
 import BusinessFinance from "./pages/business/Finance";
@@ -118,6 +119,7 @@ const App = () => (
             <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><BusinessServices /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/cupons" element={<RequireBusinessAuth><BusinessCoupons /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/colaboradores" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessEmployees /></RequireRole></RequireBusinessAuth>} />
+            <Route path="/:slug/admin/estrutura-organizacional" element={<RequireBusinessAuth><OrganizationalStructure /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/recursos-humanos" element={<RequireBusinessAuth><HumanResources /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/recursos-humanos/documentos" element={<RequireBusinessAuth><HrDocuments /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/recursos-humanos/avaliacoes" element={<RequireBusinessAuth><HrEvaluations /></RequireBusinessAuth>} />
