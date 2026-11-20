@@ -1,0 +1,304 @@
+-- 2228 — Estrutura organizacional configurável, vínculo único por grupo
+-- e base de seleção de colaboradores para escalas de jornada.
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.company_sectors (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  name text NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 100),
+  description text,
+  position integer NOT NULL DEFAULT 0,
+  created_by uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (company_id, id)
+);
+CREATE INDEX IF NOT EXISTS idx_company_sectors_order
+  ON public.company_sectors(company_id, position, name);
+
+CREATE TABLE IF NOT EXISTS public.company_groups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  sector_id uuid NOT NULL REFERENCES public.company_sectors(id) ON DELETE CASCADE,
+  name text NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 100),
+  description text,
+  position integer NOT NULL DEFAULT 0,
+  created_by uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (company_id, id)
+);
+CREATE INDEX IF NOT EXISTS idx_company_groups_sector
+  ON public.company_groups(company_id, sector_id, position, name);
+
+CREATE TABLE IF NOT EXISTS public.company_group_positions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  group_id uuid NOT NULL REFERENCES public.company_groups(id) ON DELETE CASCADE,
+  name text NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 80),
+  max_members integer CHECK (max_members IS NULL OR max_members >= 1),
+  position integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (group_id, name),
+  UNIQUE (company_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS public.company_group_position_permissions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  position_id uuid NOT NULL REFERENCES public.company_group_positions(id) ON DELETE CASCADE,
+  permission_code text NOT NULL CHECK (permission_code IN (
+    'org.view_group','org.manage_group_members','org.manage_group_positions',
+    'schedules.view_group','schedules.manage_group'
+  )),
+  enabled boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (position_id, permission_code)
+);
+
+ALTER TABLE public.employees
+  ADD COLUMN IF NOT EXISTS org_group_id uuid,
+  ADD COLUMN IF NOT EXISTS org_position_id uuid;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_org_group_company_fk') THEN
+    ALTER TABLE public.employees
+      ADD CONSTRAINT employees_org_group_company_fk
+      FOREIGN KEY (company_id, org_group_id)
+      REFERENCES public.company_groups(company_id, id)
+      ON DELETE SET NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_org_position_company_fk') THEN
+    ALTER TABLE public.employees
+      ADD CONSTRAINT employees_org_position_company_fk
+      FOREIGN KEY (company_id, org_position_id)
+      REFERENCES public.company_group_positions(company_id, id)
+      ON DELETE SET NULL;
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_employees_org_group ON public.employees(company_id, org_group_id);
+
+CREATE TABLE IF NOT EXISTS public.employee_org_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+  from_group_id uuid REFERENCES public.company_groups(id) ON DELETE SET NULL,
+  to_group_id uuid REFERENCES public.company_groups(id) ON DELETE SET NULL,
+  from_position_id uuid REFERENCES public.company_group_positions(id) ON DELETE SET NULL,
+  to_position_id uuid REFERENCES public.company_group_positions(id) ON DELETE SET NULL,
+  changed_by uuid REFERENCES auth.users(id),
+  reason text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_employee_org_history_employee
+  ON public.employee_org_history(employee_id, created_at DESC);
+
+ALTER TABLE public.company_sectors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_group_positions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_group_position_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.employee_org_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS company_sectors_company_access ON public.company_sectors;
+CREATE POLICY company_sectors_company_access ON public.company_sectors
+  FOR SELECT TO authenticated
+  USING (public.user_belongs_to_company(auth.uid(), company_id));
+DROP POLICY IF EXISTS company_groups_company_access ON public.company_groups;
+CREATE POLICY company_groups_company_access ON public.company_groups
+  FOR SELECT TO authenticated
+  USING (public.user_belongs_to_company(auth.uid(), company_id));
+DROP POLICY IF EXISTS company_group_positions_company_access ON public.company_group_positions;
+CREATE POLICY company_group_positions_company_access ON public.company_group_positions
+  FOR SELECT TO authenticated
+  USING (public.user_belongs_to_company(auth.uid(), company_id));
+DROP POLICY IF EXISTS company_group_position_permissions_company_access ON public.company_group_position_permissions;
+CREATE POLICY company_group_position_permissions_company_access ON public.company_group_position_permissions
+  FOR SELECT TO authenticated
+  USING (public.user_belongs_to_company(auth.uid(), company_id));
+DROP POLICY IF EXISTS employee_org_history_company_access ON public.employee_org_history;
+CREATE POLICY employee_org_history_company_access ON public.employee_org_history
+  FOR SELECT TO authenticated
+  USING (public.user_belongs_to_company(auth.uid(), company_id));
+
+GRANT SELECT ON public.company_sectors, public.company_groups,
+  public.company_group_positions, public.company_group_position_permissions,
+  public.employee_org_history TO authenticated;
+GRANT ALL ON public.company_sectors, public.company_groups,
+  public.company_group_positions, public.company_group_position_permissions,
+  public.employee_org_history TO service_role;
+
+-- Proprietário/admin controla a estrutura. Líderes só podem operar no próprio grupo
+-- quando o proprietário habilitar a permissão correspondente ao cargo.
+CREATE OR REPLACE FUNCTION public.user_can_manage_org_group(_user_id uuid, _group_id uuid, _permission text DEFAULT 'org.manage_group_members')
+RETURNS boolean
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_company uuid;
+  v_role text;
+  v_employee uuid;
+BEGIN
+  SELECT company_id INTO v_company FROM public.company_groups WHERE id = _group_id;
+  IF v_company IS NULL OR NOT public.user_belongs_to_company(_user_id, v_company) THEN
+    RETURN false;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.companies c
+    WHERE c.id = v_company AND lower(c.owner_email) = lower((SELECT email FROM auth.users WHERE id = _user_id))
+  ) THEN RETURN true; END IF;
+
+  SELECT id, lower(coalesce(role::text,'')) INTO v_employee, v_role
+    FROM public.employees WHERE company_id = v_company AND user_id = _user_id
+    LIMIT 1;
+  IF v_employee IS NULL OR v_role IN ('employee','receptionist') THEN
+    -- perfil comum não ganha permissão implícita
+    NULL;
+  END IF;
+
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.employees e
+    JOIN public.company_group_positions p ON p.id = e.org_position_id
+    JOIN public.company_group_position_permissions pp ON pp.position_id = p.id
+    WHERE e.id = v_employee
+      AND e.org_group_id = _group_id
+      AND pp.company_id = v_company
+      AND pp.permission_code = _permission
+      AND pp.enabled = true
+  );
+END;
+$$;
+
+-- A consulta de escala de jornada não exige que o funcionário seja profissional
+-- agendável. Mantém apenas vínculo vigente e autorização hierárquica existente.
+CREATE OR REPLACE FUNCTION public.list_company_employees_for_schedules(
+  _company_id uuid,
+  _as_of date DEFAULT CURRENT_DATE
+)
+RETURNS TABLE(id uuid, name text, profile_code text, profile_name text, level integer)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT e.id, e.name, sp.code, sp.name, coalesce(sp.hierarchy_level, 999)
+  FROM public.employees e
+  LEFT JOIN public.system_profiles sp ON sp.id = e.system_profile_id
+  WHERE e.company_id = _company_id
+    AND (
+      e.is_active = true
+      OR (e.termination_effective_date IS NOT NULL AND e.termination_effective_date > _as_of)
+    )
+    AND public.user_can_schedule_employee(auth.uid(), e.id)
+  ORDER BY e.name;
+$$;
+REVOKE ALL ON FUNCTION public.list_company_employees_for_schedules(uuid,date) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.list_company_employees_for_schedules(uuid,date) TO authenticated;
+
+-- Metadados de trial ficam na assinatura já existente; não cria cobrança nem ledger paralelo.
+ALTER TABLE public.company_subscriptions
+  ADD COLUMN IF NOT EXISTS trial_started_at timestamptz,
+  ADD COLUMN IF NOT EXISTS trial_ends_at timestamptz,
+  ADD COLUMN IF NOT EXISTS trial_created_by uuid REFERENCES auth.users(id),
+  ADD COLUMN IF NOT EXISTS trial_converted_at timestamptz;
+CREATE INDEX IF NOT EXISTS idx_company_subscriptions_trial_expiry
+  ON public.company_subscriptions(trial_ends_at)
+  WHERE trial_started_at IS NOT NULL AND trial_converted_at IS NULL;
+
+CREATE OR REPLACE FUNCTION public.admin_start_company_trial(
+  _company_id uuid,
+  _plan_id uuid,
+  _days integer,
+  _actor_user_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_plan public.subscription_plans%ROWTYPE;
+  v_sub public.company_subscriptions%ROWTYPE;
+  v_start timestamptz := now();
+  v_end timestamptz;
+BEGIN
+  IF _days NOT IN (7,14,30) THEN
+    RAISE EXCEPTION 'Duração de trial inválida. Use 7, 14 ou 30 dias.';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.super_admins sa
+    WHERE sa.user_id = _actor_user_id AND coalesce(sa.active, sa.is_active, true) = true
+  ) THEN
+    RAISE EXCEPTION 'Somente Super Admin ativo pode iniciar trial.';
+  END IF;
+  SELECT * INTO v_plan FROM public.subscription_plans WHERE id = _plan_id AND is_active = true;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Plano selecionado não encontrado ou inativo.'; END IF;
+
+  SELECT * INTO v_sub FROM public.company_subscriptions WHERE company_id = _company_id FOR UPDATE;
+  IF FOUND AND v_sub.asaas_subscription_id IS NOT NULL THEN
+    RAISE EXCEPTION 'A empresa já possui assinatura vinculada ao Asaas. Não é possível iniciar trial por cima dela.';
+  END IF;
+  v_end := v_start + make_interval(days => _days);
+
+  IF FOUND THEN
+    UPDATE public.company_subscriptions SET
+      plan_id = _plan_id,
+      billing_period = 'monthly',
+      status = 'active',
+      billing_status = 'active',
+      trial_started_at = v_start,
+      trial_ends_at = v_end,
+      trial_created_by = _actor_user_id,
+      trial_converted_at = NULL,
+      updated_at = now()
+    WHERE id = v_sub.id;
+  ELSE
+    INSERT INTO public.company_subscriptions(
+      company_id, plan_id, billing_period, status, billing_status,
+      cycle_start_at, next_renewal_at, next_billing_date,
+      trial_started_at, trial_ends_at, trial_created_by
+    ) VALUES (
+      _company_id, _plan_id, 'monthly', 'active', 'active',
+      v_start, v_end, v_end, v_start, v_end, _actor_user_id
+    );
+  END IF;
+
+  UPDATE public.companies SET
+    plan_id = _plan_id,
+    billing_period = 'monthly',
+    status = 'trial'
+  WHERE id = _company_id;
+
+  RETURN jsonb_build_object('success', true, 'trial_started_at', v_start, 'trial_ends_at', v_end, 'plan_id', _plan_id);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_start_company_trial(uuid,uuid,integer,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_start_company_trial(uuid,uuid,integer,uuid) TO service_role;
+
+-- Expiração sob demanda no momento de qualquer nova reserva; dados permanecem intactos.
+CREATE OR REPLACE FUNCTION public.enforce_trial_expiration_on_bookings()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_trial_end timestamptz;
+BEGIN
+  SELECT trial_ends_at INTO v_trial_end
+  FROM public.company_subscriptions
+  WHERE company_id = NEW.company_id
+    AND trial_started_at IS NOT NULL
+    AND trial_converted_at IS NULL
+  LIMIT 1;
+
+  IF v_trial_end IS NOT NULL AND now() >= v_trial_end THEN
+    UPDATE public.company_subscriptions
+      SET status = 'suspended', billing_status = 'suspended', updated_at = now()
+    WHERE company_id = NEW.company_id AND trial_converted_at IS NULL;
+    UPDATE public.companies SET status = 'suspended' WHERE id = NEW.company_id AND status = 'trial';
+    RAISE EXCEPTION USING MESSAGE = 'O período de teste terminou. Escolha um plano para continuar.', DETAIL = 'trial_expired', ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_enforce_trial_expiration_on_bookings ON public.bookings;
+CREATE TRIGGER trg_enforce_trial_expiration_on_bookings
+  BEFORE INSERT ON public.bookings
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_trial_expiration_on_bookings();
+
+NOTIFY pgrst, 'reload schema';
+COMMIT;
