@@ -323,7 +323,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
       toast({
         title: "Colaborador adicionado",
-        description: "O colaborador foi convidado com sucesso. Ele receberá um email para ativar a conta.",
+        description: "O acesso foi configurado nesta empresa. Compartilhe com o colaborador o endereço do painel, o e-mail e a senha definida aqui.",
       });
 
       setFormData({
@@ -451,7 +451,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Senha *</Label>
+            <Label htmlFor="password">Senha de acesso nesta empresa *</Label>
             <PasswordInput
               id="password"
               showLeftIcon={false}
