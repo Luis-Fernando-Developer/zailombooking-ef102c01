@@ -309,6 +309,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
       }
 
       if (formData.services.length > 0) {
+        // Evita duplicar vínculos de serviço ao repetir uma tentativa após falha parcial.
         const serviceInserts = formData.services.map(serviceId => ({
           employee_id: employeeId,
           service_id: serviceId
@@ -316,14 +317,33 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
         const { error: servicesError } = await supabase
           .from('employee_services')
-          .insert(serviceInserts);
+          .upsert(serviceInserts, { onConflict: 'employee_id,service_id', ignoreDuplicates: true });
 
         if (servicesError) throw servicesError;
       }
 
+      // Identidades já existentes recebem o convite da nova empresa pelo Resend.
+      // Identidades novas já receberam o convite nativo do Supabase Auth.
+      let invitationSent = Boolean(identityData.invitation_sent);
+      let invitationProvider = identityData.email_provider || (identityData.existing ? "resend" : "supabase");
+      if (identityData.existing) {
+        const { data: invitationData, error: invitationError } = await supabase.functions.invoke(
+          "send-employee-invitation",
+          { body: { company_id: companyId, employee_id: employeeId } }
+        );
+        if (invitationError) throw invitationError;
+        if (!invitationData?.success || !invitationData?.email_sent) {
+          throw new Error(invitationData?.error || "Não foi possível enviar o convite por e-mail.");
+        }
+        invitationSent = true;
+        invitationProvider = "resend";
+      }
+
       toast({
         title: "Colaborador adicionado",
-        description: "O acesso foi configurado nesta empresa. Compartilhe com o colaborador o endereço do painel, o e-mail e a senha definida aqui.",
+        description: invitationSent
+          ? `Acesso configurado e convite enviado por ${invitationProvider === "supabase" ? "Supabase" : "Resend"} para ${normalizedEmail}.`
+          : "O acesso foi configurado, mas o envio do convite não foi confirmado.",
       });
 
       setFormData({
