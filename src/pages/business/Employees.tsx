@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, Mail, Phone, UserCheck, UserX } from "lucide-react";
+import { Edit, Trash2, Mail, Phone, UserCheck, UserX, Send } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { AddEmployeeDialog } from "@/components/business/AddEmployeeDialog";
@@ -29,7 +29,7 @@ export default function BusinessEmployees() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selfDialogOpen, setSelfDialogOpen] = useState(false);
-  const [canManagePermissions, setCanManagePermissions] = useState(false);
+  const [canManagePermissions, setCanManagePermissions] = useState(false);\n  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => { fetchData(); }, [slug]);
@@ -94,6 +94,26 @@ export default function BusinessEmployees() {
     setEditDialogOpen(true);
   };
 
+  const handleResendInvitation = async (employee: Employee) => {
+    if (!company || !employee.email) return;
+    setResendingInviteId(employee.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-employee-invitation", {
+        body: { company_id: company.id, employee_id: employee.id },
+      });
+      if (error) throw error;
+      if (!data?.success || !data?.email_sent) {
+        throw new Error(data?.error || "O e-mail não foi enviado.");
+      }
+      toast({ title: "Convite reenviado", description: `Enviamos novamente o acesso para ${employee.email}.` });
+    } catch (error) {
+      console.error("Erro ao reenviar convite:", error);
+      toast({ title: "Falha no envio", description: error instanceof Error ? error.message : "Não foi possível reenviar o convite.", variant: "destructive" });
+    } finally {
+      setResendingInviteId(null);
+    }
+  };
+
   const handleDeleteEmployee = async (employeeId: string) => {
     try {
       const { error: servicesError } = await supabase.from('employee_services').delete().eq('employee_id', employeeId);
@@ -130,7 +150,7 @@ export default function BusinessEmployees() {
                   <CardTitle className="flex items-center gap-2">{employee.name}{employee.is_active ? <UserCheck className="w-4 h-4 text-green-500" /> : <UserX className="w-4 h-4 text-red-500" />}</CardTitle>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">{getRoleBadge(employee.role || 'employee')}{employee.role !== 'owner' && employee.invite_accepted === true && <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">Convite aceito</Badge>}{employee.role !== 'owner' && employee.invite_accepted === false && <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Convite pendente</Badge>}{!employee.is_active && <Badge variant="destructive">Inativo</Badge>}</div>
                 </div></div>
-                {(isSelf(employee) || canEditOtherEmployees) && employee.role !== 'owner' && <div className="flex gap-1"><Button variant="ghost" size="sm" onClick={() => handleEditEmployee(employee)}><Edit className="w-4 h-4" /></Button>{!isSelf(employee) && canEditOtherEmployees && <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar exclusão</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja remover o colaborador {employee.name}? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteEmployee(employee.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}</div>}
+                {(isSelf(employee) || canEditOtherEmployees) && employee.role !== 'owner' && <div className="flex gap-1">{!isSelf(employee) && canEditOtherEmployees && employee.invite_accepted === false && <Button variant="outline" size="sm" onClick={() => handleResendInvitation(employee)} disabled={resendingInviteId === employee.id}><Send className="w-4 h-4 mr-1" />{resendingInviteId === employee.id ? "Enviando..." : "Reenviar convite"}</Button>}<Button variant="ghost" size="sm" onClick={() => handleEditEmployee(employee)}><Edit className="w-4 h-4" /></Button>{!isSelf(employee) && canEditOtherEmployees && <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar exclusão</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja remover o colaborador {employee.name}? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteEmployee(employee.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}</div>}
               </div></CardHeader>
               <CardContent><div className="grid gap-3 md:grid-cols-2"><div className="flex items-center gap-2 text-sm"><Mail className="w-4 h-4 text-primary" /><span>{employee.email}</span></div>{employee.phone && <div className="flex items-center gap-2 text-sm"><Phone className="w-4 h-4 text-primary" /><span>{employee.phone}</span></div>}</div></CardContent>
             </Card>
