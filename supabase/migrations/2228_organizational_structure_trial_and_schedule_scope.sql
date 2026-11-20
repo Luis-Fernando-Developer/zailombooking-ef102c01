@@ -62,19 +62,15 @@ ALTER TABLE public.employees
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_org_group_company_fk') THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_org_group_fk') THEN
     ALTER TABLE public.employees
-      ADD CONSTRAINT employees_org_group_company_fk
-      FOREIGN KEY (company_id, org_group_id)
-      REFERENCES public.company_groups(company_id, id)
-      ON DELETE SET NULL;
+      ADD CONSTRAINT employees_org_group_fk
+      FOREIGN KEY (org_group_id) REFERENCES public.company_groups(id) ON DELETE SET NULL;
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_org_position_company_fk') THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_org_position_fk') THEN
     ALTER TABLE public.employees
-      ADD CONSTRAINT employees_org_position_company_fk
-      FOREIGN KEY (company_id, org_position_id)
-      REFERENCES public.company_group_positions(company_id, id)
-      ON DELETE SET NULL;
+      ADD CONSTRAINT employees_org_position_fk
+      FOREIGN KEY (org_position_id) REFERENCES public.company_group_positions(id) ON DELETE SET NULL;
   END IF;
 END $$;
 CREATE INDEX IF NOT EXISTS idx_employees_org_group ON public.employees(company_id, org_group_id);
@@ -224,7 +220,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM public.super_admins sa
-    WHERE sa.user_id = _actor_user_id AND coalesce(sa.active, sa.is_active, true) = true
+    WHERE sa.user_id = _actor_user_id
+      AND coalesce(nullif(to_jsonb(sa)->>'active','')::boolean,
+                   nullif(to_jsonb(sa)->>'is_active','')::boolean, true) = true
   ) THEN
     RAISE EXCEPTION 'Somente Super Admin ativo pode iniciar trial.';
   END IF;
@@ -299,6 +297,149 @@ DROP TRIGGER IF EXISTS trg_enforce_trial_expiration_on_bookings ON public.bookin
 CREATE TRIGGER trg_enforce_trial_expiration_on_bookings
   BEFORE INSERT ON public.bookings
   FOR EACH ROW EXECUTE FUNCTION public.enforce_trial_expiration_on_bookings();
+
+
+-- Operações organizacionais são RPCs para que a validação não dependa do frontend.
+CREATE OR REPLACE FUNCTION public.user_can_admin_company_org(_user_id uuid, _company_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
+  SELECT
+    EXISTS (SELECT 1 FROM public.companies c
+      JOIN auth.users u ON lower(u.email) = lower(c.owner_email)
+      WHERE c.id = _company_id AND u.id = _user_id)
+    OR EXISTS (SELECT 1 FROM public.employees e
+      WHERE e.company_id = _company_id AND e.user_id = _user_id
+        AND lower(coalesce(e.role::text,'')) IN ('owner','admin'));
+$;
+
+CREATE OR REPLACE FUNCTION public.org_upsert_sector(
+  _company_id uuid, _sector_id uuid, _name text, _description text DEFAULT NULL
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $
+DECLARE v_id uuid;
+BEGIN
+  IF NOT public.user_can_admin_company_org(auth.uid(), _company_id) THEN
+    RAISE EXCEPTION 'Sem permissão para administrar setores.';
+  END IF;
+  IF length(trim(coalesce(_name,''))) = 0 THEN RAISE EXCEPTION 'Informe o nome do setor.'; END IF;
+  IF _sector_id IS NULL THEN
+    INSERT INTO public.company_sectors(company_id,name,description,created_by)
+    VALUES (_company_id,trim(_name),_description,auth.uid()) RETURNING id INTO v_id;
+  ELSE
+    UPDATE public.company_sectors SET name=trim(_name),description=_description,updated_at=now()
+    WHERE id=_sector_id AND company_id=_company_id RETURNING id INTO v_id;
+    IF v_id IS NULL THEN RAISE EXCEPTION 'Setor não encontrado.'; END IF;
+  END IF;
+  RETURN v_id;
+END $;
+
+CREATE OR REPLACE FUNCTION public.org_upsert_group(
+  _company_id uuid, _sector_id uuid, _group_id uuid, _name text, _description text DEFAULT NULL
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $
+DECLARE v_id uuid;
+BEGIN
+  IF NOT public.user_can_admin_company_org(auth.uid(), _company_id) THEN
+    RAISE EXCEPTION 'Sem permissão para administrar grupos.';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.company_sectors WHERE id=_sector_id AND company_id=_company_id) THEN
+    RAISE EXCEPTION 'Setor inválido para esta empresa.';
+  END IF;
+  IF length(trim(coalesce(_name,''))) = 0 THEN RAISE EXCEPTION 'Informe o nome do grupo.'; END IF;
+  IF _group_id IS NULL THEN
+    INSERT INTO public.company_groups(company_id,sector_id,name,description,created_by)
+    VALUES (_company_id,_sector_id,trim(_name),_description,auth.uid()) RETURNING id INTO v_id;
+  ELSE
+    UPDATE public.company_groups SET sector_id=_sector_id,name=trim(_name),description=_description,updated_at=now()
+    WHERE id=_group_id AND company_id=_company_id RETURNING id INTO v_id;
+    IF v_id IS NULL THEN RAISE EXCEPTION 'Grupo não encontrado.'; END IF;
+  END IF;
+  RETURN v_id;
+END $;
+
+CREATE OR REPLACE FUNCTION public.org_upsert_group_position(
+  _company_id uuid, _group_id uuid, _position_id uuid, _name text, _max_members integer DEFAULT NULL
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $
+DECLARE v_id uuid;
+BEGIN
+  IF NOT public.user_can_admin_company_org(auth.uid(), _company_id) THEN
+    RAISE EXCEPTION 'Somente o proprietário ou administrador pode configurar cargos organizacionais.';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.company_groups WHERE id=_group_id AND company_id=_company_id) THEN
+    RAISE EXCEPTION 'Grupo inválido.';
+  END IF;
+  IF _max_members IS NOT NULL AND _max_members < 1 THEN RAISE EXCEPTION 'Limite de ocupantes inválido.'; END IF;
+  IF _position_id IS NULL THEN
+    INSERT INTO public.company_group_positions(company_id,group_id,name,max_members)
+    VALUES (_company_id,_group_id,trim(_name),_max_members) RETURNING id INTO v_id;
+  ELSE
+    UPDATE public.company_group_positions SET group_id=_group_id,name=trim(_name),max_members=_max_members
+    WHERE id=_position_id AND company_id=_company_id RETURNING id INTO v_id;
+    IF v_id IS NULL THEN RAISE EXCEPTION 'Cargo organizacional não encontrado.'; END IF;
+  END IF;
+  RETURN v_id;
+END $;
+
+CREATE OR REPLACE FUNCTION public.org_set_position_permission(
+  _company_id uuid, _position_id uuid, _permission_code text, _enabled boolean
+) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $
+BEGIN
+  IF NOT public.user_can_admin_company_org(auth.uid(), _company_id) THEN
+    RAISE EXCEPTION 'Somente o proprietário ou administrador pode delegar permissões.';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.company_group_positions WHERE id=_position_id AND company_id=_company_id) THEN
+    RAISE EXCEPTION 'Cargo organizacional não encontrado.';
+  END IF;
+  INSERT INTO public.company_group_position_permissions(company_id,position_id,permission_code,enabled)
+  VALUES (_company_id,_position_id,_permission_code,_enabled)
+  ON CONFLICT (position_id,permission_code) DO UPDATE SET enabled=EXCLUDED.enabled;
+  RETURN true;
+END $;
+
+CREATE OR REPLACE FUNCTION public.org_move_employee(
+  _company_id uuid, _employee_id uuid, _target_group_id uuid,
+  _target_position_id uuid DEFAULT NULL, _reason text DEFAULT NULL
+) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $
+DECLARE v_from_group uuid; v_from_position uuid; v_actor uuid := auth.uid();
+BEGIN
+  SELECT org_group_id,org_position_id INTO v_from_group,v_from_position
+  FROM public.employees WHERE id=_employee_id AND company_id=_company_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Colaborador não encontrado nesta empresa.'; END IF;
+  IF _target_group_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.company_groups WHERE id=_target_group_id AND company_id=_company_id
+  ) THEN RAISE EXCEPTION 'Grupo de destino inválido.'; END IF;
+  IF _target_position_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.company_group_positions
+    WHERE id=_target_position_id AND company_id=_company_id AND group_id=_target_group_id
+  ) THEN RAISE EXCEPTION 'Cargo de destino não pertence ao grupo selecionado.'; END IF;
+
+  IF NOT public.user_can_admin_company_org(v_actor,_company_id) THEN
+    IF v_from_group IS NULL OR _target_group_id IS NULL
+      OR NOT public.user_can_manage_org_group(v_actor,v_from_group,'org.manage_group_members')
+      OR NOT public.user_can_manage_org_group(v_actor,_target_group_id,'org.manage_group_members') THEN
+      RAISE EXCEPTION 'Você não pode movimentar colaboradores entre esses grupos.';
+    END IF;
+  END IF;
+
+  IF _target_position_id IS NOT NULL THEN
+    IF EXISTS (
+      SELECT 1 FROM public.company_group_positions p
+      WHERE p.id=_target_position_id AND p.max_members IS NOT NULL
+        AND (SELECT count(*) FROM public.employees e WHERE e.org_position_id=p.id AND e.id<>_employee_id) >= p.max_members
+    ) THEN RAISE EXCEPTION 'Esse cargo atingiu o limite de ocupantes.'; END IF;
+  END IF;
+
+  INSERT INTO public.employee_org_history(
+    company_id,employee_id,from_group_id,to_group_id,from_position_id,to_position_id,changed_by,reason
+  ) VALUES (_company_id,_employee_id,v_from_group,_target_group_id,v_from_position,_target_position_id,v_actor,_reason);
+
+  UPDATE public.employees SET org_group_id=_target_group_id,org_position_id=_target_position_id
+  WHERE id=_employee_id AND company_id=_company_id;
+  RETURN true;
+END $;
+
+GRANT EXECUTE ON FUNCTION public.org_upsert_sector(uuid,uuid,text,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.org_upsert_group(uuid,uuid,uuid,text,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.org_upsert_group_position(uuid,uuid,uuid,text,integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.org_set_position_permission(uuid,uuid,text,boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.org_move_employee(uuid,uuid,uuid,uuid,text) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
 COMMIT;
