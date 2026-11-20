@@ -264,7 +264,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
       const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
-        .insert([{
+        .upsert([{
           company_id: companyId,
           user_id: authUserId,
           name: fullName,
@@ -272,7 +272,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
           second_name: formData.second_name || null,
           last_name: formData.last_name || null,
           nickname: formData.nickname || null,
-          email: formData.email,
+          email: normalizedEmail,
           phone: formData.phone,
           role: formData.role,
           employee_type: formData.employee_type,
@@ -280,7 +280,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
           system_profile_id: formData.system_profile_id || null,
           base_occupation_id: formData.base_occupation_id || null,
           internal_job_title: formData.internal_job_title || null,
-        }])
+        }], { onConflict: 'company_id,email' })
         .select();
 
       if (employeeError) throw employeeError;
@@ -295,17 +295,17 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
       if (credentialError) throw credentialError;
       if (!credentialResult?.success) throw new Error(credentialResult?.error || "Não foi possível configurar a senha desta empresa.");
 
-      if (selectedPermissions.length > 0) {
-        const permissionInserts = selectedPermissions.map(permissionId => ({
-          employee_id: employeeId,
-          permission_id: permissionId,
-        }));
-
-        const { error: permissionsError } = await supabase
-          .from('employee_permissions')
-          .insert(permissionInserts);
-
-        if (permissionsError) throw permissionsError;
+      const { data: permissionResult, error: permissionsError } = await supabase.rpc(
+        "assign_employee_permissions_for_company",
+        {
+          p_company_id: companyId,
+          p_employee_id: employeeId,
+          p_permission_ids: selectedPermissions,
+        }
+      );
+      if (permissionsError) throw permissionsError;
+      if (!permissionResult?.success) {
+        throw new Error(permissionResult?.error || "Não foi possível salvar as permissões do colaborador.");
       }
 
       if (formData.services.length > 0) {
@@ -358,8 +358,8 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
         });
       } else {
         toast({
-          title: "Erro",
-          description: "Não foi possível adicionar o colaborador.",
+          title: "Erro ao adicionar colaborador",
+          description: error?.message || "Não foi possível concluir o cadastro. Os dados já salvos poderão ser reutilizados ao tentar novamente.",
           variant: "destructive",
         });
       }
