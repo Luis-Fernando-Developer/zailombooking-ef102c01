@@ -27,8 +27,8 @@ Deno.serve(async (req) => {
 
     const scoped = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
     const { data: allowed, error: permissionError } = await scoped.rpc("user_has_company_permission", {
-      p_company_id: companyId,
-      p_permission: "employees.create",
+      _company_id: companyId,
+      _permission_code: "employees.create",
     });
     if (permissionError || !allowed) throw new Error("Você não tem permissão para convidar colaboradores nesta empresa.");
 
