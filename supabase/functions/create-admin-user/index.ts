@@ -225,6 +225,7 @@ serve(async (req) => {
         _actor_user_id: requesterId,
       });
       if (trialError || !trialResult?.success) {
+        if (createdNewAuthUser) await supabaseClient.auth.admin.deleteUser(createData.user.id).catch(() => {});
         return new Response(JSON.stringify({ error: trialError?.message || "Não foi possível iniciar o trial." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
