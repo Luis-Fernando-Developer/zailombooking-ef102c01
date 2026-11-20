@@ -251,36 +251,36 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
     setLoading(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            name: fullName,
-            phone: formData.phone
+      const normalizedEmail = formData.email.trim().toLowerCase();
+      const { data: existingUserId, error: lookupError } = await supabase.rpc(
+        "get_user_id_by_email",
+        { _email: normalizedEmail }
+      );
+      if (lookupError) throw lookupError;
+
+      let authUserId = existingUserId as string | null;
+      if (!authUserId) {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password: formData.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: { name: fullName, phone: formData.phone }
           }
-        }
-      });
-
-      if (authError) throw authError;
-
-      const identities = (authData.user as any)?.identities;
-      if (!authData.user || (Array.isArray(identities) && identities.length === 0)) {
-        toast({
-          title: "Email já cadastrado",
-          description: "Este email já possui uma conta no sistema. Use outro email.",
-          variant: "destructive",
         });
-        setLoading(false);
-        return;
+        if (authError) throw authError;
+        const identities = (authData.user as any)?.identities;
+        if (!authData.user || (Array.isArray(identities) && identities.length === 0)) {
+          throw new Error("Não foi possível criar a identidade global deste usuário.");
+        }
+        authUserId = authData.user.id;
       }
 
       const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
         .insert([{
           company_id: companyId,
-          user_id: authData.user.id,
+          user_id: authUserId,
           name: fullName,
           first_name: formData.first_name || null,
           second_name: formData.second_name || null,
@@ -301,6 +301,13 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
       const employeeId = employeeData?.[0]?.id;
       if (!employeeId) throw new Error('Funcionário criado sem ID.');
+
+      const { data: credentialResult, error: credentialError } = await supabase.rpc(
+        "set_employee_company_password",
+        { p_employee_id: employeeId, p_password: formData.password }
+      );
+      if (credentialError) throw credentialError;
+      if (!credentialResult?.success) throw new Error(credentialResult?.error || "Não foi possível configurar a senha desta empresa.");
 
       if (selectedPermissions.length > 0) {
         const permissionInserts = selectedPermissions.map(permissionId => ({
