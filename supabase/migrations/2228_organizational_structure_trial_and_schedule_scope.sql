@@ -184,7 +184,13 @@ AS $$
       e.is_active = true
       OR (e.termination_effective_date IS NOT NULL AND e.termination_effective_date > _as_of)
     )
-    AND public.user_can_schedule_employee(auth.uid(), e.id)
+    AND (
+      public.user_can_schedule_employee(auth.uid(), e.id)
+      OR (
+        e.org_group_id IS NOT NULL
+        AND public.user_can_manage_org_group(auth.uid(), e.org_group_id, 'schedules.manage_group')
+      )
+    )
   ORDER BY e.name;
 $$;
 REVOKE ALL ON FUNCTION public.list_company_employees_for_schedules(uuid,date) FROM PUBLIC;
@@ -440,6 +446,24 @@ GRANT EXECUTE ON FUNCTION public.org_upsert_group(uuid,uuid,uuid,text,text) TO a
 GRANT EXECUTE ON FUNCTION public.org_upsert_group_position(uuid,uuid,uuid,text,integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.org_set_position_permission(uuid,uuid,text,boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.org_move_employee(uuid,uuid,uuid,uuid,text) TO authenticated;
+
+
+-- Ao converter o trial em assinatura paga, encerra o estado de trial.
+CREATE OR REPLACE FUNCTION public.mark_trial_converted()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $
+BEGIN
+  IF NEW.trial_started_at IS NOT NULL
+     AND NEW.trial_converted_at IS NULL
+     AND NEW.asaas_subscription_id IS NOT NULL
+     AND NEW.billing_status = 'active' THEN
+    NEW.trial_converted_at := now();
+  END IF;
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS trg_mark_trial_converted ON public.company_subscriptions;
+CREATE TRIGGER trg_mark_trial_converted
+  BEFORE UPDATE OF asaas_subscription_id, billing_status ON public.company_subscriptions
+  FOR EACH ROW EXECUTE FUNCTION public.mark_trial_converted();
 
 NOTIFY pgrst, 'reload schema';
 COMMIT;
