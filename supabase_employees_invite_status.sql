@@ -1,7 +1,6 @@
--- Função para retornar o status do convite dos colaboradores (aceito/pendente)
--- Baseado em auth.users.email_confirmed_at
--- Rode este SQL no SQL Editor do Supabase.
-
+-- Status de convite específico por empresa.
+-- A confirmação global do e-mail em auth.users NÃO significa que o convite desta empresa foi aceito.
+-- A migration 2264 cria employees.invitation_accepted_at e atualiza também o login contextual.
 CREATE OR REPLACE FUNCTION public.get_employees_invite_status(_company_id uuid)
 RETURNS TABLE (employee_id uuid, user_id uuid, invite_accepted boolean)
 LANGUAGE sql
@@ -12,9 +11,8 @@ AS $$
   SELECT
     e.id AS employee_id,
     e.user_id,
-    (u.email_confirmed_at IS NOT NULL) AS invite_accepted
+    (e.invitation_accepted_at IS NOT NULL) AS invite_accepted
   FROM public.employees e
-  LEFT JOIN auth.users u ON u.id = e.user_id
   WHERE e.company_id = _company_id;
 $$;
 
