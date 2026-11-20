@@ -26,6 +26,8 @@ interface CompanyForm {
   billing_period: "monthly" | "quarterly" | "annual";
   extra_whatsapp_instances: number;
   provision_flow: boolean;
+  trial_enabled: boolean;
+  trial_days: number;
   discount_enabled: boolean;
   discount_percentage: number;
   discount_cycles: number;
@@ -48,6 +50,8 @@ export default function CreateCompany() {
     billing_period: "monthly",
     extra_whatsapp_instances: 0,
     provision_flow: true,
+    trial_enabled: false,
+    trial_days: 7,
     discount_enabled: false,
     discount_percentage: 0,
     discount_cycles: 1,
@@ -190,7 +194,10 @@ export default function CreateCompany() {
             discount_cycles: formData.discount_enabled ? Math.max(1, formData.discount_cycles) : 0,
             coupon_code: formData.coupon_code.trim().toUpperCase(),
             extra_whatsapp_instances: formData.extra_whatsapp_instances,
-            provision_flow: formData.provision_flow
+            provision_flow: formData.provision_flow,
+            trial_enabled: formData.trial_enabled,
+            trial_days: formData.trial_days,
+            company_name: formData.name
           }
         }
       });
@@ -237,11 +244,19 @@ export default function CreateCompany() {
       // A criação do usuário pelo Super Admin também provisiona a assinatura
       // recorrente do plano Starter mensal no Asaas. O retorno fica em
       // authData.billing; não criamos uma cobrança avulsa aqui.
-      if (authData?.billing?.error || !authData?.billing?.subscription_id) {
-        await supabase.from('companies').delete().eq('id', companyData.id);
-        throw new Error(authData?.billing?.error || "Não foi possível criar a assinatura Asaas. A empresa não foi concluída.");
+      if (formData.trial_enabled) {
+        if (!authData?.trial?.success) {
+          await supabase.from('companies').delete().eq('id', companyData.id);
+          throw new Error(authData?.trial?.error || "Não foi possível iniciar o período de teste.");
+        }
+        console.log("✅ Trial iniciado:", authData.trial);
+      } else {
+        if (authData?.billing?.error || !authData?.billing?.subscription_id) {
+          await supabase.from('companies').delete().eq('id', companyData.id);
+          throw new Error(authData?.billing?.error || "Não foi possível criar a assinatura Asaas. A empresa não foi concluída.");
+        }
+        console.log("✅ Assinatura Asaas provisionada:", authData.billing);
       }
-      console.log("✅ Assinatura Asaas provisionada:", authData.billing);
 
       // Registrar a integração Flow de forma confiável. A ativação da senha
       // depende deste registro para disparar o provisionamento do workspace.
@@ -280,7 +295,9 @@ export default function CreateCompany() {
 
       toast({
         title: "Cadastro empresarial criado",
-        description: "A empresa ficará pendente até o pagamento e a criação da senha pelo link enviado por e-mail.",
+        description: formData.trial_enabled
+          ? `Trial de ${formData.trial_days} dias iniciado. O proprietário receberá o link para criar a senha.`
+          : "A empresa ficará pendente até o pagamento e a criação da senha pelo link enviado por e-mail.",
       });
 
       navigate("/super-admin/painel");
@@ -429,6 +446,28 @@ export default function CreateCompany() {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <Label>Ativar período de teste (trial)</Label>
+                        <p className="text-xs text-muted-foreground">Disponível somente no cadastro manual. Não cria cobrança no Asaas.</p>
+                      </div>
+                      <Switch checked={formData.trial_enabled} onCheckedChange={(v) => setFormData(prev => ({ ...prev, trial_enabled: v, discount_enabled: v ? false : prev.discount_enabled, coupon_code: v ? "" : prev.coupon_code }))} />
+                    </div>
+                    {formData.trial_enabled && (
+                      <div className="space-y-2 max-w-xs">
+                        <Label>Duração do teste</Label>
+                        <Select value={String(formData.trial_days)} onValueChange={(v) => setFormData(prev => ({ ...prev, trial_days: Number(v) as 7 | 14 | 30 }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="7">7 dias</SelectItem>
+                            <SelectItem value="14">14 dias</SelectItem>
+                            <SelectItem value="30">30 dias</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
