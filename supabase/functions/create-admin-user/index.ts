@@ -232,7 +232,8 @@ serve(async (req) => {
       }
 
       const resendKey = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
-      const siteUrl = (Deno.env.get("SITE_URL") || "https://booking.zailom.com").replace(/\\/$/, "");
+      const configuredSiteUrl = Deno.env.get("SITE_URL") || "https://booking.zailom.com";
+      const siteUrl = configuredSiteUrl.endsWith("/") ? configuredSiteUrl.slice(0, -1) : configuredSiteUrl;
       const setupLink = siteUrl + "/confirmar-empresa?token=" + ownerAccess.confirmation_token;
       let emailSent = false;
       if (resendKey) {
