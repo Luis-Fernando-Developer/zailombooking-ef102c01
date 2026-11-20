@@ -252,29 +252,15 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
 
     try {
       const normalizedEmail = formData.email.trim().toLowerCase();
-      const { data: existingUserId, error: lookupError } = await supabase.rpc(
-        "get_user_id_by_email",
-        { _email: normalizedEmail }
+      const { data: identityData, error: identityError } = await supabase.functions.invoke(
+        "create-employee-identity",
+        { body: { email: normalizedEmail, company_id: companyId, name: fullName, phone: formData.phone } }
       );
-      if (lookupError) throw lookupError;
-
-      let authUserId = existingUserId as string | null;
-      if (!authUserId) {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: normalizedEmail,
-          password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: { name: fullName, phone: formData.phone }
-          }
-        });
-        if (authError) throw authError;
-        const identities = (authData.user as any)?.identities;
-        if (!authData.user || (Array.isArray(identities) && identities.length === 0)) {
-          throw new Error("Não foi possível criar a identidade global deste usuário.");
-        }
-        authUserId = authData.user.id;
+      if (identityError) throw identityError;
+      if (!identityData?.success || !identityData?.user_id) {
+        throw new Error(identityData?.error || "Não foi possível localizar ou criar a identidade global.");
       }
+      const authUserId = identityData.user_id as string;
 
       const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
