@@ -29,7 +29,8 @@ export default function BusinessEmployees() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selfDialogOpen, setSelfDialogOpen] = useState(false);
-  const [canManagePermissions, setCanManagePermissions] = useState(false);\n  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null);
+  const [canManagePermissions, setCanManagePermissions] = useState(false);
+  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => { fetchData(); }, [slug]);
