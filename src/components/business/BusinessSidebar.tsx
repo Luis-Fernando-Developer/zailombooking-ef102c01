@@ -60,7 +60,6 @@ const menuItems: MenuItem[] = [
   { title: "Agendamentos", url: "/admin/agendamentos", icon: Calendar, permission: "bookings.view" },
   { title: "Clientes", url: "/admin/clientes", icon: Users, permission: "clients.view" },
   { title: "Realocação", url: "/admin/realocacao", icon: ArrowRightLeft, permission: "reallocation.view" },
-  { title: "Ausências", url: "/admin/ausencias", icon: CalendarOff, permission: "schedules.view_absences" },
   { title: "Horários", url: "/admin/horarios", icon: Clock, permission: "schedules.view_establishment" },
   { title: "Serviços", url: "/admin/servicos", icon: Briefcase, permission: "services.view_services" },
   { title: "Cupons promocionais", url: "/admin/cupons", icon: Ticket, permission: "coupons.view" },
@@ -181,7 +180,7 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
 
   const canAccessPermission = (permission?: PermissionCode) => {
     if (!permission) return false;
-    if (effectiveUserRole === 'owner' || effectiveUserRole === 'admin') return true;
+    if (effectiveUserRole === 'owner' || permissionCodes.has('*')) return true;
 
     // Configurações e Cupons ficam visíveis se o colaborador tiver alguma
     // permissão do respectivo módulo, sem exigir permissão de administração.
