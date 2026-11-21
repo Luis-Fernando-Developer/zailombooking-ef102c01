@@ -67,8 +67,9 @@ export default function Realocacao() {
       if (user) {
         setCurrentUser(user);
         const { data: emp } = await supabase
-          .from("employees").select("*").eq("user_id", user.id).maybeSingle();
-        setEmployee(emp);
+          .from("employees").select("*").eq("company_id", companyData.id).eq("user_id", user.id).maybeSingle();
+        const isOwner = String(companyData.owner_email || "").trim().toLowerCase() === String(user.email || "").trim().toLowerCase();
+        setEmployee(emp || (isOwner ? { id: null, role: "owner", company_id: companyData.id } : null));
       }
 
       const { data: emps } = await supabase
