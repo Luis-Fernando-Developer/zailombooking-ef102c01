@@ -1,22 +1,46 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { Loader2 } from 'lucide-react';
-import type { UserRole } from '@/hooks/use-permissions';
 
 interface RequireRoleProps {
   children: ReactNode;
-  allow: UserRole[];
+  allow: string[];
 }
 
-/**
- * Protege rotas com base no role do colaborador (ou owner pela company.owner_email).
- * Se não autorizado, redireciona para o dashboard da empresa.
- */
-export const RequireRole = ({ children, allow }: RequireRoleProps) => {
+const routePermissions: Record<string, string[]> = {
+  '/admin/realocacao': ['reallocation.view'],
+  '/admin/ausencias': ['schedules.view_absences'],
+  '/admin/colaboradores': ['employees.view'],
+  '/admin/configuracoes': ['settings.view', 'settings.manage'],
+  '/admin/chatbot': ['chatbot.view'],
+  '/admin/chatbot/integracao': ['chatbot.view'],
+  '/admin/integracao/chatbot': ['chatbot.view'],
+  '/admin/chatbot/talkmap': ['chatbot.view'],
+  '/admin/automacoes/chatbot/zailom-flow': ['chatbot.view'],
+  '/admin/integracoes/whatsapp': ['whatsapp.view'],
+  '/admin/integracoes/email': ['settings.view'],
+  '/admin/integracoes/api': ['settings.view'],
+  '/admin/automacoes/disparos': ['whatsapp.manage'],
+  '/admin/automacoes/email-marketing': ['marketing.view'],
+  '/admin/automacoes/gatilhos': ['bookings.view'],
+  '/admin/bate-papo': ['chat.view'],
+  '/admin/marketing': ['marketing.view'],
+};
+
+function requiredPermissions(pathname: string): string[] {
+  const route = Object.keys(routePermissions)
+    .sort((a, b) => b.length - a.length)
+    .find((key) => pathname.includes(key));
+  return route ? routePermissions[route] : [];
+}
+
+/** Permission-based route guard. Roles do not grant module access. */
+export const RequireRole = ({ children }: RequireRoleProps) => {
   const { user, loading: authLoading } = useAuth();
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
   const [status, setStatus] = useState<'checking' | 'allowed' | 'denied'>('checking');
 
   useEffect(() => {
@@ -27,55 +51,55 @@ export const RequireRole = ({ children, allow }: RequireRoleProps) => {
         return;
       }
       try {
-        const { data: company } = await supabase
+        const { data: company, error: companyError } = await supabase
           .from('companies')
           .select('id, owner_email')
           .eq('slug', slug)
           .single();
-
-        if (!company) {
+        if (companyError || !company) {
           if (mounted) setStatus('denied');
           return;
         }
 
-        const isOwner =
-          (company.owner_email || '').toLowerCase() ===
-          (user.email || '').toLowerCase();
-
-        if (isOwner && allow.includes('owner')) {
+        const isOwner = String(company.owner_email || '').trim().toLowerCase() ===
+          String(user.email || '').trim().toLowerCase();
+        if (isOwner) {
           if (mounted) setStatus('allowed');
           return;
         }
 
-        const { data: emp } = await supabase
-          .from('employees')
-          .select('role')
-          .eq('company_id', company.id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        const role = (emp?.role || 'employee') as UserRole;
-        if (mounted) setStatus(allow.includes(role) ? 'allowed' : 'denied');
-      } catch {
+        const { data, error } = await supabase.rpc('get_my_company_permissions', {
+          p_company_id: company.id,
+        });
+        if (error) throw error;
+        const result = data as { success?: boolean; role?: string; permissions?: string[] } | null;
+        const permissions = new Set(result?.permissions || []);
+        const isAdmin = result?.role === 'admin';
+        const required = requiredPermissions(location.pathname);
+        const allowed = isAdmin || (result?.success === true && required.some((code) => permissions.has(code)));
+        if (mounted) setStatus(allowed ? 'allowed' : 'denied');
+      } catch (error) {
+        console.error('Permission route check failed:', error);
         if (mounted) setStatus('denied');
       }
     }
     if (!authLoading) check();
-    return () => {
-      mounted = false;
-    };
-  }, [user, authLoading, slug, allow]);
+    return () => { mounted = false; };
+  }, [user, authLoading, slug, location.pathname]);
 
   if (authLoading || status === 'checking') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>;
   }
 
   if (status === 'denied') {
-    return <Navigate to={slug ? `/${slug}/admin/dashboard` : '/login'} replace />;
+    return <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
+        <p className="text-muted-foreground mt-2">Você não possui a permissão necessária para acessar esta área.</p>
+      </div>
+    </div>;
   }
 
   return <>{children}</>;
