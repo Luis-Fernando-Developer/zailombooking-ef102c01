@@ -152,28 +152,50 @@ export default function BusinessBookings() {
       if (user) {
         setCurrentUser(user);
         
-        const { data: employeeData, error: employeeError } = await supabase
+        // O vínculo de colaborador é apenas informativo para a UI.
+        // A autorização deve vir da RPC de permissões, evitando bloqueios
+        // causados por RLS na consulta direta à tabela employees.
+        const { data: employeeData } = await supabase
           .from('employees')
           .select('*, company:companies(*)')
           .eq('user_id', user.id)
           .eq('company_id', companyData.id)
           .maybeSingle();
 
-        if (employeeError) {
-          console.error('Error fetching employee:', employeeError);
+        setEmployee(employeeData);
+
+        const isCompanyOwner = !!user.email &&
+          String(companyData.owner_email ?? '').toLowerCase() === user.email.toLowerCase();
+
+        const { data: permissionData, error: permissionError } = await supabase.rpc(
+          'get_my_company_permissions',
+          { p_company_id: companyData.id }
+        );
+
+        if (permissionError) {
+          console.error('Error checking booking permissions:', permissionError);
           toast({
-            title: "Erro",
-            description: "Não foi possível verificar suas permissões.",
+            title: "Erro ao verificar permissões",
+            description: "Não foi possível validar seu acesso aos agendamentos.",
             variant: "destructive",
           });
           return;
         }
 
-        setEmployee(employeeData);
+        const permissionResult = permissionData as {
+          success?: boolean;
+          role?: string;
+          permissions?: string[];
+        } | null;
 
-        // Buscar agendamentos se tiver permissão
-        const isCompanyOwner = !!user.email && String(companyData.owner_email ?? '').toLowerCase() === user.email.toLowerCase();
-        if ((employeeData && employeeData.company_id === companyData.id) || isCompanyOwner) {
+        const canViewBookings =
+          isCompanyOwner ||
+          permissionResult?.role === 'owner' ||
+          permissionResult?.role === 'admin' ||
+          (permissionResult?.success === true &&
+            (permissionResult.permissions ?? []).includes('bookings.view'));
+
+        if (canViewBookings) {
           await fetchBookings(companyData.id);
         }
       }
@@ -388,7 +410,18 @@ export default function BusinessBookings() {
 
   const isCompanyOwner = !!currentUser?.email && String(company.owner_email ?? '').toLowerCase() === currentUser.email.toLowerCase();
 
-  if ((!employee || employee.company_id !== company.id) && !isCompanyOwner) {
+  if (permissionsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verificando permissões...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isCompanyOwner && !hasPermission('bookings.view')) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
