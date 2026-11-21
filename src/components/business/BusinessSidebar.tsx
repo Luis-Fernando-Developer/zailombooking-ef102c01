@@ -185,11 +185,22 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
 
     // Configurações e Cupons ficam visíveis se o colaborador tiver alguma
     // permissão do respectivo módulo, sem exigir permissão de administração.
+    // Menus agrupadores devem aparecer quando qualquer permissão interna
+    // do módulo estiver liberada, e não apenas a permissão da primeira aba.
     if (permission === 'settings.view') {
       return Array.from(permissionCodes).some((code) => code.startsWith('settings.'));
     }
     if (permission === 'coupons.view') {
       return Array.from(permissionCodes).some((code) => code.startsWith('coupons.'));
+    }
+    if (permission === 'schedules.view_establishment') {
+      return Array.from(permissionCodes).some((code) => code.startsWith('schedules.'));
+    }
+    if (permission === 'services.view_services') {
+      return Array.from(permissionCodes).some((code) => code.startsWith('services.'));
+    }
+    if (permission === 'hr.view') {
+      return Array.from(permissionCodes).some((code) => code.startsWith('hr.'));
     }
 
     return hasPermission(permission);
