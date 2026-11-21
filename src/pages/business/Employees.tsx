@@ -43,11 +43,13 @@ export default function BusinessEmployees() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setCurrentUser(user);
-      const { data: currentEmployeeData } = await supabase.from('employees').select('*, company:companies(*)').eq('user_id', user.id).eq('company_id', companyData.id).single();
-      if (!currentEmployeeData) return;
-      setCurrentEmployee(currentEmployeeData);
+      const { data: currentEmployeeData } = await supabase.from('employees').select('*, company:companies(*)').eq('user_id', user.id).eq('company_id', companyData.id).maybeSingle();
+      const isOwner = String(companyData.owner_email || '').trim().toLowerCase() === String(user.email || '').trim().toLowerCase();
+      const effectiveEmployee = currentEmployeeData || (isOwner ? { id: '', role: 'owner', company: companyData } : null);
+      if (!effectiveEmployee) return;
+      setCurrentEmployee(effectiveEmployee as CurrentEmployee);
 
-      if (['owner', 'admin'].includes(currentEmployeeData.role)) {
+      if (isOwner || ['owner', 'admin'].includes(effectiveEmployee.role)) {
         setCanManagePermissions(true);
       } else {
         const { data: permissionRows } = await supabase.from('employee_permissions').select('permission_id, permissions!inner(code, is_active)').eq('employee_id', currentEmployeeData.id);
