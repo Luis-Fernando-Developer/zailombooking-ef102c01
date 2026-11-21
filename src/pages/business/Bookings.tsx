@@ -156,6 +156,7 @@ export default function BusinessBookings() {
           .from('employees')
           .select('*, company:companies(*)')
           .eq('user_id', user.id)
+          .eq('company_id', companyData.id)
           .maybeSingle();
 
         if (employeeError) {
@@ -385,7 +386,9 @@ export default function BusinessBookings() {
     );
   }
 
-  if (!employee || employee.company_id !== company.id) {
+  const isCompanyOwner = !!currentUser?.email && String(company.owner_email ?? '').toLowerCase() === currentUser.email.toLowerCase();
+
+  if ((!employee || employee.company_id !== company.id) && !isCompanyOwner) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
