@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { Navigate, useLocation, useParams } from 'react-router-dom';
+import { ReactNode, useEffect, useState } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/use-permissions';
 import { Loader2 } from 'lucide-react';
@@ -45,12 +45,8 @@ export const RequireRole = ({ children }: RequireRoleProps) => {
   const { user, loading: authLoading } = useAuth();
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
-  const { hasPermission, loading } = usePermissions(undefined, user);
-  // The company id is resolved by the route slug in a dedicated query below
-  // through the page-level permission hook. This guard only enforces ownership
-  // and role-independent permission checks when company context is available.
-  const [companyId, setCompanyId] = React.useState<string | undefined>(undefined);
-  React.useEffect(() => {
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined);
+  useEffect(() => {
     let active = true;
     if (!slug) return;
     supabase.from('companies').select('id').eq('slug', slug).maybeSingle()
@@ -72,5 +68,4 @@ export const RequireRole = ({ children }: RequireRoleProps) => {
   return <>{children}</>;
 };
 
-import React from 'react';
 import { supabase } from '@/lib/supabaseClient';
