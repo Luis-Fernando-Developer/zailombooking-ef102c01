@@ -210,6 +210,13 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
     if (permission === 'hr.view') {
       return Array.from(permissionCodes).some((code) => code.startsWith('hr.'));
     }
+    // Group headings are visible when at least one child capability is granted.
+    if (permission === 'chatbot.view') {
+      return ['chatbot.view', 'whatsapp.manage', 'marketing.view', 'bookings.view'].some(hasPermission);
+    }
+    if (permission === 'whatsapp.view') {
+      return ['whatsapp.view', 'chatbot.view', ...Array.from(permissionCodes).filter((code) => code.startsWith('settings.'))].some(hasPermission);
+    }
 
     return hasPermission(permission);
   };
