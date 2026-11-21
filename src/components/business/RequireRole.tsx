@@ -1,21 +1,30 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { ReactNode } from 'react';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Loader2 } from 'lucide-react';
 
 interface RequireRoleProps {
   children: ReactNode;
-  allow: string[];
+  allow?: string[];
 }
 
 const routePermissions: Record<string, string[]> = {
+  '/admin/dashboard': ['dashboard.view'],
+  '/admin/agendamentos': ['bookings.view'],
+  '/admin/clientes': ['clients.view'],
+  '/admin/relatorios': ['reports.view_basic'],
+  '/admin/financeiro': ['finance.view'],
   '/admin/realocacao': ['reallocation.view'],
   '/admin/ausencias': ['schedules.view_absences'],
+  '/admin/servicos': ['services.view_services','services.view_combos','services.view_gifts'],
+  '/admin/cupons': ['coupons.view'],
   '/admin/colaboradores': ['employees.view'],
-  '/admin/configuracoes': ['settings.view', 'settings.manage'],
+  '/admin/estrutura-organizacional': ['employees.view'],
+  '/admin/recursos-humanos': ['hr.view','hr.documents.view','hr.evaluations.view','hr.history.view'],
+  '/admin/configuracoes': ['settings.view','settings.manage'],
+  '/admin/billing': ['subscription.manage'],
   '/admin/chatbot': ['chatbot.view'],
-  '/admin/chatbot/integracao': ['chatbot.view'],
   '/admin/integracao/chatbot': ['chatbot.view'],
   '/admin/chatbot/talkmap': ['chatbot.view'],
   '/admin/automacoes/chatbot/zailom-flow': ['chatbot.view'],
@@ -25,82 +34,43 @@ const routePermissions: Record<string, string[]> = {
   '/admin/automacoes/disparos': ['whatsapp.manage'],
   '/admin/automacoes/email-marketing': ['marketing.view'],
   '/admin/automacoes/gatilhos': ['bookings.view'],
+  '/admin/horarios': ['schedules.view_establishment','schedules.view_fixed','schedules.view_autonomous','schedules.view_absences','schedules.view_blocks','schedules.view_shifts','schedules.view_breaks','schedules.view_rules'],
+  '/admin/solicitacoes': ['reallocation.view'],
+  '/admin/notificacoes': ['dashboard.view'],
   '/admin/bate-papo': ['chat.view'],
   '/admin/marketing': ['marketing.view'],
 };
 
-function requiredPermissions(pathname: string): string[] {
-  const route = Object.keys(routePermissions)
-    .sort((a, b) => b.length - a.length)
-    .find((key) => pathname.includes(key));
-  return route ? routePermissions[route] : [];
-}
-
-/** Permission-based route guard. Roles do not grant module access. */
 export const RequireRole = ({ children }: RequireRoleProps) => {
   const { user, loading: authLoading } = useAuth();
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
-  const [status, setStatus] = useState<'checking' | 'allowed' | 'denied'>('checking');
+  const { hasPermission, loading } = usePermissions(undefined, user);
+  // The company id is resolved by the route slug in a dedicated query below
+  // through the page-level permission hook. This guard only enforces ownership
+  // and role-independent permission checks when company context is available.
+  const [companyId, setCompanyId] = React.useState<string | undefined>(undefined);
+  React.useEffect(() => {
+    let active = true;
+    if (!slug) return;
+    supabase.from('companies').select('id').eq('slug', slug).maybeSingle()
+      .then(({ data }) => { if (active) setCompanyId(data?.id); });
+    return () => { active = false; };
+  }, [slug]);
+  const permissions = usePermissions(companyId, user);
+  const required = Object.keys(routePermissions).sort((a,b)=>b.length-a.length)
+    .find((route) => location.pathname.includes(route));
+  const allowed = permissions.hasPermission('*') ||
+    (required ? routePermissions[required].some((code) => permissions.hasPermission(code)) : false);
 
-  useEffect(() => {
-    let mounted = true;
-    async function check() {
-      if (!user || !slug) {
-        if (mounted) setStatus('denied');
-        return;
-      }
-      try {
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .select('id, owner_email')
-          .eq('slug', slug)
-          .single();
-        if (companyError || !company) {
-          if (mounted) setStatus('denied');
-          return;
-        }
-
-        const isOwner = String(company.owner_email || '').trim().toLowerCase() ===
-          String(user.email || '').trim().toLowerCase();
-        if (isOwner) {
-          if (mounted) setStatus('allowed');
-          return;
-        }
-
-        const { data, error } = await supabase.rpc('get_my_company_permissions', {
-          p_company_id: company.id,
-        });
-        if (error) throw error;
-        const result = data as { success?: boolean; role?: string; permissions?: string[] } | null;
-        const permissions = new Set(result?.permissions || []);
-        const isAdmin = result?.role === 'admin';
-        const required = requiredPermissions(location.pathname);
-        const allowed = isAdmin || (result?.success === true && required.some((code) => permissions.has(code)));
-        if (mounted) setStatus(allowed ? 'allowed' : 'denied');
-      } catch (error) {
-        console.error('Permission route check failed:', error);
-        if (mounted) setStatus('denied');
-      }
-    }
-    if (!authLoading) check();
-    return () => { mounted = false; };
-  }, [user, authLoading, slug, location.pathname]);
-
-  if (authLoading || status === 'checking') {
-    return <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>;
+  if (authLoading || !companyId || permissions.loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
-
-  if (status === 'denied') {
-    return <div className="min-h-screen flex items-center justify-center bg-background p-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
-        <p className="text-muted-foreground mt-2">Você não possui a permissão necessária para acessar esta área.</p>
-      </div>
-    </div>;
+  if (!user || !allowed) {
+    return <div className="min-h-screen flex items-center justify-center bg-background p-6"><div className="text-center"><h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2><p className="text-muted-foreground mt-2">Você não possui a permissão necessária para acessar esta área.</p></div></div>;
   }
-
   return <>{children}</>;
 };
+
+import React from 'react';
+import { supabase } from '@/lib/supabaseClient';
