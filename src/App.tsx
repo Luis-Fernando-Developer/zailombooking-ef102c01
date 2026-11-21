@@ -51,7 +51,6 @@ import AutomacoesEmailMarketing from "./pages/business/automacoes/EmailMarketing
 import AutomacoesGatilhos from "./pages/business/automacoes/Gatilhos";
 import BusinessSchedule from "./pages/business/Schedule";
 import BusinessRealocacao from "./pages/business/Realocacao";
-import BusinessAusencias from "./pages/business/Ausencias";
 import BusinessSolicitacoes from "./pages/business/Solicitacoes";
 import BusinessNotifications from "./pages/business/Notifications";
 import BusinessChat from "./pages/business/Chat";
@@ -115,7 +114,6 @@ const App = () => (
             <Route path="/:slug/admin/relatorios" element={<RequireBusinessAuth><BusinessReports /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/financeiro" element={<RequireBusinessAuth><BusinessFinance /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/realocacao" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessRealocacao /></RequireRole></RequireBusinessAuth>} />
-            <Route path="/:slug/admin/ausencias" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessAusencias /></RequireRole></RequireBusinessAuth>} />
             <Route path="/:slug/admin/servicos" element={<RequireBusinessAuth><BusinessServices /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/cupons" element={<RequireBusinessAuth><BusinessCoupons /></RequireBusinessAuth>} />
             <Route path="/:slug/admin/colaboradores" element={<RequireBusinessAuth><RequireRole allow={['owner','manager','supervisor']}><BusinessEmployees /></RequireRole></RequireBusinessAuth>} />
