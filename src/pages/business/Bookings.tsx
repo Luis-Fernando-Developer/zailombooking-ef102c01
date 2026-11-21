@@ -172,9 +172,9 @@ export default function BusinessBookings() {
         setEmployee(employeeData);
 
         // Buscar agendamentos se tiver permissão
-        if (employeeData && employeeData.company_id === companyData.id) {
+        const isCompanyOwner = !!user.email && String(companyData.owner_email ?? '').toLowerCase() === user.email.toLowerCase();
+        if ((employeeData && employeeData.company_id === companyData.id) || isCompanyOwner) {
           await fetchBookings(companyData.id);
-          
         }
       }
     } catch (error) {
