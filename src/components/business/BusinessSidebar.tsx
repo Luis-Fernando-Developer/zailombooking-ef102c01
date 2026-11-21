@@ -201,6 +201,15 @@ export function BusinessSidebar({ companySlug, companyName, companyId, userRole,
     if (permission === 'hr.view') {
       return Array.from(permissionCodes).some((code) => code.startsWith('hr.'));
     }
+    if (permission === 'schedules.view_establishment') {
+      return Array.from(permissionCodes).some((code) => code.startsWith('schedules.'));
+    }
+    if (permission === 'services.view_services') {
+      return Array.from(permissionCodes).some((code) => code.startsWith('services.'));
+    }
+    if (permission === 'hr.view') {
+      return Array.from(permissionCodes).some((code) => code.startsWith('hr.'));
+    }
 
     return hasPermission(permission);
   };
