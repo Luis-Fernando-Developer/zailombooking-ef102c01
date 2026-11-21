@@ -59,7 +59,8 @@ export default function Ausencias() {
       if (user) {
         setCurrentUser(user);
         const { data: emp } = await supabase.from("employees").select("*").eq("company_id", c.id).eq("user_id", user.id).maybeSingle();
-        setEmployee(emp);
+        const isOwner = String(c.owner_email || "").trim().toLowerCase() === String(user.email || "").trim().toLowerCase();
+        setEmployee(emp || (isOwner ? { id: null, role: "owner", company_id: c.id } : null));
       }
       const { data: emps } = await supabase
         .from("employees").select("id, name").eq("company_id", c.id).order("name");
