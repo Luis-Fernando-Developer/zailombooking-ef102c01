@@ -23,6 +23,7 @@ interface Company {
   id: string;
   name: string;
   slug: string;
+  owner_email?: string | null;
 }
 
 export default function BusinessSchedule() {
@@ -45,7 +46,7 @@ export default function BusinessSchedule() {
 
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
-        .select('id, name, slug')
+        .select('id, name, slug, owner_email')
         .eq('slug', slug)
         .single();
 
@@ -90,10 +91,11 @@ export default function BusinessSchedule() {
     );
   }
 
-  const role: string = currentEmployee?.role || 'owner';
+  const isCompanyOwner = !!authUser?.email && String((company as any)?.owner_email ?? '').toLowerCase() === authUser.email.toLowerCase();
+  const role: string = isCompanyOwner ? 'owner' : (currentEmployee?.role || 'employee');
   const employeeType: string = currentEmployee?.employee_type || 'fixo';
   const isEmployee = role === 'employee';
-  const isManager = role === 'owner' || role === 'admin' || role === 'manager' || !currentEmployee;
+  const isManager = role === 'owner' || role === 'admin' || role === 'manager';
   const isSupervisor = role === 'supervisor';
 
   const canSeeBusinessHours = hasPermission('schedules.view_establishment');
