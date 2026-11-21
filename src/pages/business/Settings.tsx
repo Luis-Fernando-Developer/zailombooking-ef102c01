@@ -149,11 +149,10 @@ export default function BusinessSettings() {
         .select('*, company:companies(*)')
         .eq('user_id', user.id)
         .eq('company_id', companyData.id)
-        .single();
-
-      if (!employeeData) return;
-
-      setEmployee(employeeData);
+        .maybeSingle();
+      const isOwner = String(companyData.owner_email || '').trim().toLowerCase() === String(user.email || '').trim().toLowerCase();
+      if (!employeeData && !isOwner) return;
+      setEmployee(employeeData || { id: '', role: 'owner', company: companyData } as Employee);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
