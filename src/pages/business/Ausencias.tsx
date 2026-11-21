@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const ABSENCE_TYPES: Record<string, { label: string; tone: string }> = {
   vacation:   { label: "Férias",          tone: "bg-blue-500/10 text-blue-500 border-blue-500/30" },
@@ -57,7 +58,7 @@ export default function Ausencias() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUser(user);
-        const { data: emp } = await supabase.from("employees").select("*").eq("user_id", user.id).maybeSingle();
+        const { data: emp } = await supabase.from("employees").select("*").eq("company_id", c.id).eq("user_id", user.id).maybeSingle();
         setEmployee(emp);
       }
       const { data: emps } = await supabase
@@ -99,7 +100,11 @@ export default function Ausencias() {
     </div>;
   }
 
-  const canManage = ["owner", "manager", "supervisor"].includes(employee.role || "");
+  const { hasPermission, loading: permissionLoading } = usePermissions(company?.id, currentUser);
+  if (permissionLoading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  const canView = hasPermission("schedules.view_absences");
+  if (!canView) return <BusinessLayout companySlug={company.slug} companyName={company.name} companyId={company.id} userRole={employee.role} currentUser={currentUser}><div className="p-10 text-center"><h2 className="text-xl font-bold text-destructive">Acesso Negado</h2><p className="text-muted-foreground mt-2">Você não possui permissão para visualizar ausências.</p></div></BusinessLayout>;
+  const canManage = ["owner", "admin", "manager", "supervisor"].includes(employee.role || "");
 
   return (
     <BusinessLayout
