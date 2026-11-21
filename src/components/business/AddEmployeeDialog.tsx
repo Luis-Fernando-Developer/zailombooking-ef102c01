@@ -241,6 +241,16 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
       }
     }
 
+    if (permissionsCatalog.length === 0) {
+      toast({ title: "Permissões não carregadas", description: "O catálogo de permissões não foi carregado. Feche e abra novamente o convite antes de continuar.", variant: "destructive" });
+      return;
+    }
+
+    if (selectedPermissions.length === 0) {
+      toast({ title: "Selecione as permissões", description: "Escolha um preset ou marque ao menos uma permissão para este colaborador.", variant: "destructive" });
+      return;
+    }
+
     const fullName = composeFullName(formData);
     if (!fullName) {
       toast({ title: "Nome obrigatório", description: "Informe ao menos o primeiro nome.", variant: "destructive" });
@@ -538,6 +548,10 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             <p className="text-xs text-muted-foreground">
               O preset apenas preenche as permissões. Você pode ajustar qualquer item manualmente.
             </p>
+            <div className="flex items-center justify-between rounded-md bg-muted px-2 py-1.5 text-xs">
+              <span>Permissões selecionadas</span>
+              <span className="font-semibold">{selectedPermissions.length}</span>
+            </div>
 
             <div className="space-y-4 pt-2">
               {Object.entries(groupedPermissions).map(([module, permissions]) => (
@@ -565,7 +579,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
                 </div>
               ))}
               {permissionsCatalog.length === 0 && (
-                <p className="text-sm text-muted-foreground">Nenhuma permissão disponível.</p>
+                <p className="text-sm text-destructive">Nenhuma permissão carregada. Não será possível enviar o convite até que o catálogo esteja disponível.</p>
               )}
             </div>
           </div>
@@ -691,7 +705,7 @@ export function AddEmployeeDialog({ companyId, onEmployeeAdded }: AddEmployeeDia
             </Button>
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || permissionsCatalog.length === 0 || selectedPermissions.length === 0}
               className="flex-1"
             >
               {loading ? "Enviando..." : "Enviar Convite"}
