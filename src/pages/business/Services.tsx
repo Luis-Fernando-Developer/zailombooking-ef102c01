@@ -204,7 +204,7 @@ export default function BusinessServices() {
     );
   }
 
-  const canSeeServices = hasPermission('services.view_services');
+  const canSeeServices = hasPermission('services.view_services') || hasPermission('services.view');
   const canSeeCombos = hasPermission('services.view_combos');
   const canSeeGifts = hasPermission('services.view_gifts');
 
