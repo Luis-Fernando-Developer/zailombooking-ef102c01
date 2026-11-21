@@ -62,8 +62,28 @@ export function usePermissions(companyId?: string, user?: User | null) {
     }
     setLoading(true);
     try {
-      // Security-definer RPC avoids frontend permission loading being blocked
-      // by employee/employee_permissions RLS policies.
+      // Resolve company ownership before employee permissions. The owner is
+      // never dependent on an employees row or permission assignments.
+      const { data: authData } = await supabase.auth.getUser();
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('owner_email')
+        .eq('id', companyId)
+        .maybeSingle();
+      if (companyError) throw companyError;
+      const isOwner = !!authData.user?.email &&
+        String(company?.owner_email || '').trim().toLowerCase() ===
+        authData.user.email.trim().toLowerCase();
+      if (isOwner) {
+        setUserRole('owner');
+        setEmployeeId(null);
+        const allCodes = new Set<string>(['*']);
+        setPermissionCodes(allCodes);
+        setPermissions(buildPermissionLevel(allCodes));
+        return;
+      }
+
+      // Security-definer RPC returns only permissions assigned in this company.
       const { data, error } = await supabase.rpc('get_my_company_permissions', {
         p_company_id: companyId,
       });
@@ -89,7 +109,7 @@ export function usePermissions(companyId?: string, user?: User | null) {
   useEffect(() => { fetchPermissions(); }, [fetchPermissions]);
 
   const hasPermission = useCallback(
-    (code:string) => userRole === 'owner' || userRole === 'admin' || permissionCodes.has(code),
+    (code:string) => userRole === 'owner' || permissionCodes.has('*') || permissionCodes.has(code),
     [permissionCodes,userRole]
   );
   return { userRole,employeeId,permissions,permissionCodes,hasPermission,loading,refreshPermissions:fetchPermissions };
