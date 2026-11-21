@@ -11,8 +11,6 @@ import { ApprovalsTab } from "@/components/business/marketing/ApprovalsTab";
 import { HistoryTab } from "@/components/business/marketing/HistoryTab";
 import { usePermissions } from "@/hooks/use-permissions";
 
-const EDIT_ROLES = new Set(['owner', 'manager', 'rh', 'marketing', 'designer']);
-const APPROVE_ROLES = new Set(['owner', 'manager', 'rh']);
 
 export default function BusinessMarketing() {
   const { slug } = useParams<{ slug: string }>();
@@ -48,8 +46,8 @@ export default function BusinessMarketing() {
 
   if (!company) return <Navigate to="/" replace />;
 
-  const canEdit = EDIT_ROLES.has(role);
-  const canApprove = APPROVE_ROLES.has(role);
+  const canEdit = hasPermission('marketing.create') || hasPermission('marketing.edit');
+  const canApprove = hasPermission('marketing.approve');
 
   const canSeeMaterials = hasPermission('marketing.view_materials');
   const canSeeCampaigns = hasPermission('marketing.view_campaigns');
