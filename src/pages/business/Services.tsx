@@ -31,6 +31,7 @@ interface Company {
   id: string;
   name: string;
   slug: string;
+  owner_email?: string | null;
 }
 
 interface Employee {
@@ -86,11 +87,9 @@ export default function BusinessServices() {
         .select('*, company:companies(*)')
         .eq('user_id', user.id)
         .eq('company_id', companyData.id)
-        .single();
+        .maybeSingle();
 
-      if (!employeeData) return;
-
-      setEmployee(employeeData);
+      setEmployee(employeeData || null);
 
       const { data: servicesData } = await supabase
         .from('services')
@@ -186,7 +185,8 @@ export default function BusinessServices() {
     );
   }
 
-  if (!company || !employee) {
+  const isCompanyOwner = !!authUser?.email && String((company as any)?.owner_email ?? '').toLowerCase() === authUser.email.toLowerCase();
+  if (!company || (!employee && !isCompanyOwner)) {
     return (
       <BusinessLayout
         companySlug={slug || ""}
@@ -204,7 +204,7 @@ export default function BusinessServices() {
     );
   }
 
-  const canSeeServices = hasPermission('services.view');
+  const canSeeServices = hasPermission('services.view_services');
   const canSeeCombos = hasPermission('services.view_combos');
   const canSeeGifts = hasPermission('services.view_gifts');
 
@@ -224,7 +224,7 @@ export default function BusinessServices() {
 
   if (visibleTabs === 0) {
     return (
-      <BusinessLayout companySlug={company.slug} companyName={company.name} companyId={company.id} userRole={employee.role}>
+      <BusinessLayout companySlug={company.slug} companyName={company.name} companyId={company.id} userRole={employee?.role || 'owner'}>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
