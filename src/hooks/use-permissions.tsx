@@ -26,7 +26,7 @@ const EMPTY_PERMISSIONS: Omit<PermissionLevel, 'hasPermission'> = {
 };
 
 function buildPermissionLevel(codes: Set<string>): PermissionLevel {
-  const hasPermission = (code: string) => codes.has(code);
+  const hasPermission = (code: string) => codes.has('*') || codes.has(code);
   return {
     ...EMPTY_PERMISSIONS,
     canManageEmployees:['employees.create','employees.edit','employees.delete'].some(hasPermission),
