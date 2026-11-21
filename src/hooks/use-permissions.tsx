@@ -89,7 +89,7 @@ export function usePermissions(companyId?: string, user?: User | null) {
   useEffect(() => { fetchPermissions(); }, [fetchPermissions]);
 
   const hasPermission = useCallback(
-    (code:string) => userRole === 'owner' || permissionCodes.has(code),
+    (code:string) => userRole === 'owner' || userRole === 'admin' || permissionCodes.has(code),
     [permissionCodes,userRole]
   );
   return { userRole,employeeId,permissions,permissionCodes,hasPermission,loading,refreshPermissions:fetchPermissions };
