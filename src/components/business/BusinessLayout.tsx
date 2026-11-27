@@ -87,7 +87,7 @@ export function BusinessLayout({
         currentUser={currentUser}
       />
 
-      <div className="flex flex-col flex-1 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
+      <div className="flex min-w-0 min-h-0 flex-col flex-1 h-screen transition-[margin,width] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] relative overflow-hidden">
         {!hideHeader ? (
           <header className="min-h-[70px] shrink-0 w-full flex items-center border-b border-primary/20 bg-card/80 backdrop-blur-2xl px-3 sm:px-4 z-40 gap-2">
             <SidebarTrigger className="text-foreground hover:bg-primary/10 shrink-0" />
@@ -126,7 +126,7 @@ export function BusinessLayout({
                 <PlanOverageBanner companyId={companyId} />
               </div>
             )}
-            <div className={hideHeader ? "flex-1 overflow-hidden" : ""}>
+            <div className={hideHeader ? "flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col" : ""}>
               {children}
             </div>
           </div>
