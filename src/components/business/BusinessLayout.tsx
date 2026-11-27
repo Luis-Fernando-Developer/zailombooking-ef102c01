@@ -77,7 +77,7 @@ export function BusinessLayout({
   };
 
   return (
-    <SidebarProvider className="min-h-screen flex w-full">
+    <SidebarProvider defaultOpen={!hideHeader} className="min-h-screen flex w-full">
       <PlatformNotificationModal companyId={companyId} />
       <BusinessSidebar
         companySlug={companySlug}
